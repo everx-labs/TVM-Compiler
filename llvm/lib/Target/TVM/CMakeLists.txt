@@ -1,0 +1,25 @@
+set(LLVM_TARGET_DEFINITIONS TVM.td)
+
+tablegen(LLVM TVMGenAsmWriter.inc -gen-asm-writer)
+tablegen(LLVM TVMGenCallingConv.inc -gen-callingconv)
+tablegen(LLVM TVMGenDAGISel.inc -gen-dag-isel)
+tablegen(LLVM TVMGenInstrInfo.inc -gen-instr-info)
+tablegen(LLVM TVMGenRegisterInfo.inc -gen-register-info)
+tablegen(LLVM TVMGenSubtargetInfo.inc -gen-subtarget)
+
+add_public_tablegen_target(TVMTableGen)
+
+add_llvm_target(TVMCodeGen
+  TVMSubtarget.cpp
+  TVMTargetMachine.cpp
+  TVMISelLowering.cpp
+  TVMInstrInfo.cpp
+  TVMFrameLowering.cpp
+  TVMRegisterInfo.cpp
+  TVMISelDAGToDAG.cpp
+  TVMMachineFunctionInfo.cpp
+)
+
+add_subdirectory(InstPrinter)
+add_subdirectory(TargetInfo)
+add_subdirectory(MCTargetDesc)

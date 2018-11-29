@@ -71,6 +71,7 @@ StringRef Triple::getArchTypeName(ArchType Kind) {
   case wasm64:         return "wasm64";
   case renderscript32: return "renderscript32";
   case renderscript64: return "renderscript64";
+  case tvm:            return "tvm";
   }
 
   llvm_unreachable("Invalid ArchType!");
@@ -169,6 +170,7 @@ StringRef Triple::getVendorTypeName(VendorType Kind) {
   case Mesa: return "mesa";
   case SUSE: return "suse";
   case OpenEmbedded: return "oe";
+  case Telegram: return "telegram";
   }
 
   llvm_unreachable("Invalid VendorType!");
@@ -309,6 +311,7 @@ Triple::ArchType Triple::getArchTypeForLLVMName(StringRef Name) {
     .Case("wasm64", wasm64)
     .Case("renderscript32", renderscript32)
     .Case("renderscript64", renderscript64)
+    .Case("tvm", tvm)
     .Default(UnknownArch);
 }
 
@@ -432,6 +435,7 @@ static Triple::ArchType parseArch(StringRef ArchName) {
     .Case("wasm64", Triple::wasm64)
     .Case("renderscript32", Triple::renderscript32)
     .Case("renderscript64", Triple::renderscript64)
+    .Case("tvm", Triple::tvm)
     .Default(Triple::UnknownArch);
 
   // Some architectures require special parsing logic just to compute the
@@ -465,6 +469,7 @@ static Triple::VendorType parseVendor(StringRef VendorName) {
     .Case("mesa", Triple::Mesa)
     .Case("suse", Triple::SUSE)
     .Case("oe", Triple::OpenEmbedded)
+    .Case("telegram", Triple::Telegram)
     .Default(Triple::UnknownVendor);
 }
 
@@ -671,6 +676,8 @@ static Triple::ObjectFormatType getDefaultFormat(const Triple &T) {
   case Triple::tcele:
   case Triple::thumbeb:
   case Triple::xcore:
+  // TODO: Temporary
+  case Triple::tvm:
     return Triple::ELF;
 
   case Triple::ppc:
@@ -1237,6 +1244,7 @@ static unsigned getArchPointerBitWidth(llvm::Triple::ArchType Arch) {
   case llvm::Triple::spir64:
   case llvm::Triple::wasm64:
   case llvm::Triple::renderscript64:
+  case llvm::Triple::tvm:
     return 64;
   }
   llvm_unreachable("Invalid architecture value");
@@ -1265,6 +1273,7 @@ Triple Triple::get32BitArchVariant() const {
   case Triple::msp430:
   case Triple::systemz:
   case Triple::ppc64le:
+  case Triple::tvm:
     T.setArch(UnknownArch);
     break;
 
@@ -1335,6 +1344,7 @@ Triple Triple::get64BitArchVariant() const {
   case Triple::xcore:
   case Triple::sparcel:
   case Triple::shave:
+  case Triple::tvm:
     T.setArch(UnknownArch);
     break;
 

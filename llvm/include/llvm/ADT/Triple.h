@@ -96,7 +96,8 @@ public:
     wasm64,         // WebAssembly with 64-bit pointers
     renderscript32, // 32-bit RenderScript
     renderscript64, // 64-bit RenderScript
-    LastArchType = renderscript64
+    tvm,            // Telegram Virtual Machine
+    LastArchType = tvm
   };
   enum SubArchType {
     NoSubArch,
@@ -146,7 +147,8 @@ public:
     Mesa,
     SUSE,
     OpenEmbedded,
-    LastVendorType = OpenEmbedded
+    Telegram,
+    LastVendorType = Telegram
   };
   enum OSType {
     UnknownOS,

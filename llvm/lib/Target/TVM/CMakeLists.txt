@@ -18,6 +18,8 @@ add_llvm_target(TVMCodeGen
   TVMRegisterInfo.cpp
   TVMISelDAGToDAG.cpp
   TVMMachineFunctionInfo.cpp
+  TVMAsmPrinter.cpp
+  TVMMCInstLower.cpp
 )
 
 add_subdirectory(InstPrinter)

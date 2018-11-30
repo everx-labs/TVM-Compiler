@@ -11,8 +11,8 @@
 //  Declarations that describe the TVM register file
 //===----------------------------------------------------------------------===//
 
-class TVMReg<bits<4> num, string n, list<string> alt = []> : Register<n> {
-  field bits<4> Num = num;
+class TVMReg<bits<16> num, string n, list<string> alt = []> : Register<n> {
+  field bits<16> Num = num;
   let Namespace = "TVM";
 }
 

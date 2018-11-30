@@ -45,7 +45,7 @@ TVMTargetLowering::TVMTargetLowering(const TargetMachine &TM,
 
   // Set up the register classes.
   // addRegisterClass(MVT::i8,  &TVM::GR8RegClass);
-  // addRegisterClass(MVT::i16, &TVM::GR16RegClass);
+  addRegisterClass(MVT::i64, &TVM::GRRegClass);
 
   // Compute derived properties from the register classes
   computeRegisterProperties(STI.getRegisterInfo());

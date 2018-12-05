@@ -34,7 +34,9 @@ using namespace llvm;
 TVMRegisterInfo::TVMRegisterInfo() : TVMGenRegisterInfo(TVM::DUMMY) {}
 
 BitVector TVMRegisterInfo::getReservedRegs(const MachineFunction &MF) const {
-  return {};
+  BitVector Reserved(getNumRegs());
+  Reserved.set(TVM::DUMMYRESERVED);
+  return Reserved;
 }
 
 unsigned TVMRegisterInfo::getFrameRegister(const MachineFunction &MF) const {
@@ -43,7 +45,8 @@ unsigned TVMRegisterInfo::getFrameRegister(const MachineFunction &MF) const {
 
 const MCPhysReg *
 TVMRegisterInfo::getCalleeSavedRegs(const MachineFunction *MF) const {
-  return nullptr;
+  static const MCPhysReg CalleeSavedRegs[] = {0};
+  return CalleeSavedRegs;
 }
 
 void TVMRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,

@@ -20,6 +20,7 @@ def SDT_TVMCall         : SDTypeProfile<0, -1, [SDTCisVT<0, iPTR>]>;
 def SDT_TVMCallSeqStart : SDCallSeqStart<[SDTCisVT<0, i64>,
                                           SDTCisVT<1, i64>]>;
 def SDT_TVMCallSeqEnd   : SDCallSeqEnd<[SDTCisVT<0, i64>, SDTCisVT<1, i64>]>;
+def SDT_TVMReturn       : SDTypeProfile<0, -1, []>;
 
 //===----------------------------------------------------------------------===//
 // TVM specific node definitions
@@ -30,13 +31,31 @@ def TVMcallseq_start :
 def TVMcallseq_end :
                  SDNode<"ISD::CALLSEQ_END",   SDT_TVMCallSeqEnd,
                         [SDNPHasChain, SDNPOptInGlue, SDNPOutGlue]>;
+def TVMreturn : SDNode<"TVMISD::RETURN",
+                       SDT_TVMReturn, [SDNPHasChain]>;
 
 //===----------------------------------------------------------------------===//
 // Instruction list..
 
-def ADJCALLSTACKDOWN : Pseudo<(outs), (ins i64imm:$amt1, i64imm:$amt2),
-                              "#ADJCALLSTACKDOWN",
-                              [(TVMcallseq_start timm:$amt1, timm:$amt2)]>;
-def ADJCALLSTACKUP   : Pseudo<(outs), (ins i64imm:$amt1, i64imm:$amt2),
-                              "#ADJCALLSTACKUP",
-                              [(TVMcallseq_end timm:$amt1, timm:$amt2)]>;
+defm ADJCALLSTACKDOWN : NRI<(outs), (ins i64imm:$amt, i64imm:$amt2),
+                            [(TVMcallseq_start timm:$amt, timm:$amt2)]>;
+defm ADJCALLSTACKUP : NRI<(outs), (ins i64imm:$amt, i64imm:$amt2),
+                          [(TVMcallseq_end timm:$amt, timm:$amt2)]>;
+
+defm NOP : NRI<(outs), (ins), [], "nop", 0x00>;
+
+let isTerminator = 1, hasCtrlDep = 1, isBarrier = 1, isReturn = 1 in {
+  defm RETURN_IMM64 : NRI<(outs), (ins i64imm:$val), [(TVMreturn i64:$val)],
+                      "NOP", 0x00>;
+  defm RETURN_VOID : NRI<(outs), (ins), [(TVMreturn)],
+                     "NOP", 0x00>;
+  let isCodeGenOnly = 1 in
+  defm FALLTHROUGH_RETURN_VOID : NRI<(outs), (ins), []>;
+}
+
+let isMoveImm = 1, isAsCheapAsAMove = 1, isReMaterializable = 1 in {
+defm CONST_I64 : I<(outs I64:$res), (ins i64imm:$imm),
+                   (outs), (ins i64imm:$imm),
+                   [(set I64:$res, imm:$imm)],
+                   "PUSHINT\t$res, $imm", "PUSHINT\t$imm", 0x82>;
+}

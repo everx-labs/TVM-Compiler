@@ -11,15 +11,17 @@
 //  Declarations that describe the TVM register file
 //===----------------------------------------------------------------------===//
 
-class TVMReg<bits<16> num, string n, list<string> alt = []> : Register<n> {
-  field bits<16> Num = num;
+class TVMReg<string n> : Register<n> {
   let Namespace = "TVM";
 }
+
+class TVMRegClass<list<ValueType> regTypes, int alignment, dag regList>
+     : RegisterClass<"TVM", regTypes, alignment, regList>;
 
 //===----------------------------------------------------------------------===//
 //  Registers
 //===----------------------------------------------------------------------===//
 
-def DUMMY  : TVMReg<0,  "r0">;
-def GR : RegisterClass<"TVM", [i64], 64,
-  (add DUMMY)>;
+def DUMMY  : TVMReg<"DUMMY">;
+def DUMMYRESERVED  : TVMReg<"DRES">;
+def I64 : TVMRegClass<[i64], 64, (add DUMMY, DUMMYRESERVED)>;

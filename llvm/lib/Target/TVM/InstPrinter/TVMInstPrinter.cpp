@@ -30,3 +30,15 @@ void TVMInstPrinter::printInst(const MCInst *MI, raw_ostream &O,
   printInstruction(MI, O);
   printAnnotation(O, Annot);
 }
+
+void TVMInstPrinter::printOperand(const MCInst *MI, unsigned OpNo,
+                                  raw_ostream &O) {
+  const MCOperand &Op = MI->getOperand(OpNo);
+  if (Op.isImm()) {
+    O << Op.getImm();
+  } else {
+    O << getRegisterName(Op.getReg());
+    // TODO: It should be unreacheble once stackification implemented.
+    // llvm_unreachable("unimplemented");
+  }
+}

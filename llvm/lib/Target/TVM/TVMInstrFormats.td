@@ -55,3 +55,17 @@ multiclass NRI<dag oops, dag iops, list<dag> pattern, string asmstr = "",
                bits<32> inst = -1> {
   defm "": I<oops, iops, oops, iops, pattern, asmstr, asmstr, inst>;
 }
+
+// Unary and binary instructions, for the local types that TVM supports.
+multiclass UnaryInt<SDNode node, string name, bits<32> i64Inst> {
+  defm "" : I<(outs I64:$dst), (ins I64:$src), (outs), (ins),
+              [(set I64:$dst, (node I64:$src))],
+              !strconcat(name, "\t$dst, $src"),
+              name, i64Inst>;
+}
+multiclass BinaryInt<SDNode node, string name, bits<32> i64Inst> {
+  defm "" : I<(outs I64:$dst), (ins I64:$lhs, I64:$rhs), (outs), (ins),
+              [(set I64:$dst, (node I64:$lhs, I64:$rhs))],
+              !strconcat(name, "\t$dst, $lhs, $rhs"),
+              name, i64Inst>;
+}

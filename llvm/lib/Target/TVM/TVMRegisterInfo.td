@@ -22,6 +22,15 @@ class TVMRegClass<list<ValueType> regTypes, int alignment, dag regList>
 //  Registers
 //===----------------------------------------------------------------------===//
 
+// The value stack "register". This is an opaque entity which serves to order
+// uses and defs that must remain in LIFO order.
+def VALUE_STACK : TVMReg<"STACK">;
+
+// The incoming arguments "register". This is an opaque entity which serves to
+// order the ARGUMENT instructions that are emulating live-in registers and
+// must not be scheduled below other instructions.
+def ARGUMENTS : TVMReg<"ARGUMENTS">;
+
 def DUMMY  : TVMReg<"DUMMY">;
 def DUMMYRESERVED  : TVMReg<"DRES">;
 def I64 : TVMRegClass<[i64], 64, (add DUMMY, DUMMYRESERVED)>;

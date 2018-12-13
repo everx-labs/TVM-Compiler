@@ -102,10 +102,16 @@ defm CONST_I64 : I<(outs I64:$res), (ins i64imm:$imm),
                    [(set I64:$res, imm:$imm)],
                    "PUSHINT\t$res, $imm", "PUSHINT\t$imm", 0x82>;
 }
-
+def inc : PatFrag<(ops node:$in), (add node:$in, 1)>;
+def dec : PatFrag<(ops node:$in), (add node:$in, -1)>;
 //===----------------------------------------------------------------------===//
 // Arithmetic instructions
 //===----------------------------------------------------------------------===//
 let isCommutable = 1 in
-defm ADD : BinaryInt<add, "ADD ", 0xa0>;
-defm SUB : BinaryInt<sub, "SUB ", 0xa1>;
+defm ADD      : BinaryInt<add, "ADD ", 0xa0>;
+defm SUB      : BinaryInt<sub, "SUB ", 0xa1>;
+defm NEGATE   : UnaryInt<ineg, "NEGATE ", 0xa3>;
+defm INC      : UnaryInt<inc, "INC ", 0xa4>;
+defm DEC      : UnaryInt<dec, "DEC ", 0xa5>;
+defm MUL      : BinaryInt<mul, "MUL ", 0xa8>;
+defm DIV      : BinaryInt<sdiv, "DIV ", 0xa904>;

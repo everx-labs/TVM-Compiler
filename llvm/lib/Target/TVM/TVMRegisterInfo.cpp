@@ -35,12 +35,12 @@ TVMRegisterInfo::TVMRegisterInfo() : TVMGenRegisterInfo(TVM::DUMMY) {}
 
 BitVector TVMRegisterInfo::getReservedRegs(const MachineFunction &MF) const {
   BitVector Reserved(getNumRegs());
-  Reserved.set(TVM::DUMMYRESERVED);
+  Reserved.set(TVM::SP);
   return Reserved;
 }
 
 unsigned TVMRegisterInfo::getFrameRegister(const MachineFunction &MF) const {
-  return TVM::DUMMY;
+  return TVM::SP;
 }
 
 const MCPhysReg *

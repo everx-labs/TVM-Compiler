@@ -37,6 +37,20 @@ def TVMreturn : SDNode<"TVMISD::RETURN",
 def TVMargument : SDNode<"TVMISD::ARGUMENT", SDT_TVMArgument>;
 
 //===----------------------------------------------------------------------===//
+// TVM-specific Operands.
+//===----------------------------------------------------------------------===//
+
+let OperandNamespace = "TVM" in {
+
+let OperandType = "OPERAND_LOCAL" in
+def local_op : Operand<i32>;
+
+let OperandType = "OPERAND_I64IMM" in
+def i64imm_op : Operand<i64>;
+
+}
+
+//===----------------------------------------------------------------------===//
 // Instruction list..
 
 defm ADJCALLSTACKDOWN : NRI<(outs), (ins i64imm:$amt, i64imm:$amt2),
@@ -49,6 +63,28 @@ defm ARGUMENT : I<(outs I64:$res), (ins i64imm:$argno),
                   (outs), (ins i64imm:$argno),
                   [(set I64:$res, (TVMargument timm:$argno))]>;
 
+// Stack manipulation instructions are not supposed to be selected, instead
+// ExplicitLocal pass inserts them to manipulate with local variables.
+// They has mayLoad because it reads from a local, which is a side effect
+// not otherwise modeled in LLVM.
+let mayLoad = 1, isAsCheapAsAMove = 1 in
+defm PUSH : I<(outs I64:$res), (ins local_op:$local),
+              (outs), (ins local_op:$local), [],
+              "PUSH\t$res, s$local", "PUSH\ts$local", 0x20>;
+
+let mayLoad = 1, isAsCheapAsAMove = 1 in
+defm XCHG : I<(outs I64:$res), (ins local_op:$local),
+              (outs), (ins local_op:$local), [],
+              "XCHG\t$res, $local", "XCHG\t$local", 0x10>;
+
+// Peudo XCHG s0, s0.
+let mayLoad = 1, isAsCheapAsAMove = 1, isCodeGenOnly = 1 in
+defm CG_XCHG : I<(outs I64:$res), (ins local_op:$local),
+                 (outs), (ins local_op:$local), []>;
+
+// TODO: It should be an alias for POP s0
+// TODO: Fix opcode.
+defm POP : NRI<(outs), (ins I64:$src), [], "POP\t$src", 0x30>;
 
 defm NOP : NRI<(outs), (ins), [], "nop", 0x00>;
 

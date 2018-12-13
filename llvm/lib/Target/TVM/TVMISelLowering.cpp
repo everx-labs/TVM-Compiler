@@ -130,8 +130,6 @@ SDValue TVMTargetLowering::LowerFormalArguments(
     fail(DL, DAG, "VarArg is not supported yet");
 
   MachineFunction &MF = DAG.getMachineFunction();
-  // TODO: We are likely to need our own machine function info.
-  auto &MFI = MF.getFrameInfo();
 
   // Set up the incoming ARGUMENTS value, which serves to represent the liveness
   // of the incoming values before they're represented by virtual registers.

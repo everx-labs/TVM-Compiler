@@ -13,6 +13,7 @@
 
 #include "TVMInstPrinter.h"
 #include "TVM.h"
+#include "TVMMachineFunctionInfo.h"
 #include "llvm/MC/MCAsmInfo.h"
 #include "llvm/MC/MCExpr.h"
 #include "llvm/MC/MCInst.h"
@@ -37,7 +38,8 @@ void TVMInstPrinter::printOperand(const MCInst *MI, unsigned OpNo,
   if (Op.isImm()) {
     O << Op.getImm();
   } else {
-    O << getRegisterName(Op.getReg());
+    unsigned TVMReg = Op.getReg();
+    O << "%" << TVMFunctionInfo::getTVMRegStackId(TVMReg);
     // TODO: It should be unreacheble once stackification implemented.
     // llvm_unreachable("unimplemented");
   }

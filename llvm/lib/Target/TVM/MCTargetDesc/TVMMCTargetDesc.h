@@ -14,12 +14,24 @@
 #ifndef LLVM_LIB_TARGET_TVM_MCTARGETDESC_TVMMCTARGETDESC_H
 #define LLVM_LIB_TARGET_TVM_MCTARGETDESC_TVMMCTARGETDESC_H
 
+#include "llvm/MC/MCInstrDesc.h"
 #include "llvm/Support/DataTypes.h"
 
 namespace llvm {
 class Target;
 
 Target &getTheTVMTarget();
+
+namespace TVM {
+enum OperandType {
+  /// Basic block label in a branch construct.
+  OPERAND_BASIC_BLOCK = MCOI::OPERAND_FIRST_TARGET,
+  /// Local index.
+  OPERAND_LOCAL,
+  /// 64-bit integer immediates.
+  OPERAND_I64IMM,
+};
+} // end namespace TVM
 
 } // End llvm namespace
 

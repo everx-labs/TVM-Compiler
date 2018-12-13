@@ -16,6 +16,7 @@
 #include "TVM.h"
 #include "TVMInstrInfo.h"
 #include "TVMMCInstLower.h"
+#include "TVMMachineFunctionInfo.h"
 #include "TVMTargetMachine.h"
 #include "llvm/CodeGen/AsmPrinter.h"
 #include "llvm/CodeGen/MachineConstantPool.h"
@@ -47,8 +48,23 @@ public:
   void printOperand(const MachineInstr *MI, int OpNum, raw_ostream &O,
                     const char *Modifier = nullptr);
   void EmitInstruction(const MachineInstr *MI) override;
+  std::string regToString(const MachineOperand &MO);
+  bool runOnMachineFunction(MachineFunction &MF) override;
+
+private:
+  TVMFunctionInfo *MFI;
 };
 } // end of anonymous namespace
+
+std::string TVMAsmPrinter::regToString(const MachineOperand &MO) {
+  unsigned RegNo = MO.getReg();
+  assert(TargetRegisterInfo::isVirtualRegister(RegNo) &&
+         "Unlowered physical register encountered during assembly printing");
+  assert(!MFI->isVRegStackified(RegNo));
+  unsigned TVMReg = MFI->getTVMReg(RegNo);
+  assert(TVMReg != TVMFunctionInfo::UnusedReg);
+  return 's' + utostr(TVMReg);
+}
 
 void TVMAsmPrinter::printOperand(const MachineInstr *MI, int OpNum,
                                  raw_ostream &O, const char *Modifier) {
@@ -57,7 +73,7 @@ void TVMAsmPrinter::printOperand(const MachineInstr *MI, int OpNum,
   default:
     llvm_unreachable("Not implemented yet!");
   case MachineOperand::MO_Register:
-    O << TVMInstPrinter::getRegisterName(MO.getReg());
+    O << regToString(MO);
     return;
   case MachineOperand::MO_Immediate:
     if (!Modifier || strcmp(Modifier, "nohash"))
@@ -69,11 +85,29 @@ void TVMAsmPrinter::printOperand(const MachineInstr *MI, int OpNum,
 
 //===----------------------------------------------------------------------===//
 void TVMAsmPrinter::EmitInstruction(const MachineInstr *MI) {
-  TVMMCInstLower MCInstLowering(OutContext, *this);
+  LLVM_DEBUG(dbgs() << "EmitInstruction: " << *MI << '\n');
+  switch (MI->getOpcode()) {
+  case TVM::ARGUMENT:
+    llvm_unreachable("CG only instruction mustn't reach ASM printer");
+    break;
+  case TVM::CG_XCHG:
+    // CG_XCHG is XCHG s0, s0 pseudo.
+    if (isVerbose())
+      OutStreamer->AddComment("XCHG s0, s0");
+    OutStreamer->AddBlankLine();
+    break;
+  default:
+    TVMMCInstLower MCInstLowering(OutContext, *this);
 
-  MCInst TmpInst;
-  MCInstLowering.Lower(MI, TmpInst);
-  EmitToStreamer(*OutStreamer, TmpInst);
+    MCInst TmpInst;
+    MCInstLowering.Lower(MI, TmpInst);
+    EmitToStreamer(*OutStreamer, TmpInst);
+  }
+}
+
+bool TVMAsmPrinter::runOnMachineFunction(MachineFunction &MF) {
+  MFI = MF.getInfo<TVMFunctionInfo>();
+  return AsmPrinter::runOnMachineFunction(MF);
 }
 
 // Force static initialization.

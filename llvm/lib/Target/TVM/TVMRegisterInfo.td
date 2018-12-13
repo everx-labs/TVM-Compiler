@@ -22,6 +22,9 @@ class TVMRegClass<list<ValueType> regTypes, int alignment, dag regList>
 //  Registers
 //===----------------------------------------------------------------------===//
 
+// Special register used as the stack pointer.
+def SP : TVMReg<"%SP">;
+
 // The value stack "register". This is an opaque entity which serves to order
 // uses and defs that must remain in LIFO order.
 def VALUE_STACK : TVMReg<"STACK">;
@@ -32,5 +35,4 @@ def VALUE_STACK : TVMReg<"STACK">;
 def ARGUMENTS : TVMReg<"ARGUMENTS">;
 
 def DUMMY  : TVMReg<"DUMMY">;
-def DUMMYRESERVED  : TVMReg<"DRES">;
-def I64 : TVMRegClass<[i64], 64, (add DUMMY, DUMMYRESERVED)>;
+def I64 : TVMRegClass<[i64], 64, (add DUMMY, SP)>;

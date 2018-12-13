@@ -25,6 +25,12 @@ namespace llvm {
 
 extern "C" void LLVMInitializeTVMTarget() {
   RegisterTargetMachine<TVMTargetMachine> X(getTheTVMTarget());
+  auto &PR = *PassRegistry::getPassRegistry();
+  initializeTVMArgumentMovePass(PR);
+  initializeTVMReplacePhysRegsPass(PR);
+  initializeTVMRegStackifyPass(PR);
+  initializeTVMRegNumberingPass(PR);
+  initializeTVMExplicitLocalsPass(PR);
 }
 
 static Reloc::Model getEffectiveRelocModel(Optional<Reloc::Model> RM) {
@@ -69,18 +75,64 @@ public:
     return getTM<TVMTargetMachine>();
   }
 
+  FunctionPass *createTargetRegisterAllocator(bool) override;
+
   bool addInstSelector() override;
+  void addPreEmitPass() override;
+  void addPostRegAlloc() override;
 };
 } // namespace
+
+FunctionPass *TVMPassConfig::createTargetRegisterAllocator(bool) {
+  return nullptr; // No reg alloc
+}
 
 TargetPassConfig *TVMTargetMachine::createPassConfig(PassManagerBase &PM) {
   return new TVMPassConfig(*this, PM);
 }
 
 bool TVMPassConfig::addInstSelector() {
+  (void)TargetPassConfig::addInstSelector();
   // Install an instruction selector.
   addPass(createTVMISelDag(getTVMTargetMachine(), getOptLevel()));
+  // Run the argument-move pass immediately after the ScheduleDAG scheduler
+  // so that we can fix up the ARGUMENT instructions before anything else
+  // sees them in the wrong place.
+  addPass(createTVMArgumentMove());
   return false;
+}
+
+void TVMPassConfig::addPreEmitPass() {
+  TargetPassConfig::addPreEmitPass();
+
+  // Now that we have a prologue and epilogue and all frame indices are
+  // rewritten, eliminate SP and FP. This allows them to be stackified,
+  // colored, and numbered with the rest of the registers.
+  addPass(createTVMReplacePhysRegs());
+
+  addPass(createTVMRegStackify());
+  addPass(createTVMExplicitLocals());
+
+  // Create a mapping from LLVM CodeGen virtual registers to wasm registers.
+  addPass(createTVMRegNumbering());
+}
+
+void TVMPassConfig::addPostRegAlloc() {
+  // TODO: The following CodeGen passes don't currently support code containing
+  // virtual registers. Consider removing their restrictions and re-enabling
+  // them.
+
+  // These functions all require the NoVRegs property.
+  disablePass(&MachineCopyPropagationID);
+  disablePass(&PostRAMachineSinkingID);
+  disablePass(&PostRASchedulerID);
+  disablePass(&FuncletLayoutID);
+  disablePass(&StackMapLivenessID);
+  disablePass(&LiveDebugValuesID);
+  disablePass(&PatchableFunctionID);
+  disablePass(&ShrinkWrapID);
+
+  TargetPassConfig::addPostRegAlloc();
 }
 
 } // end of namespace llvm

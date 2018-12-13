@@ -25,6 +25,18 @@ class formatted_raw_ostream;
 
 FunctionPass *createTVMISelDag(TVMTargetMachine &TM,
                                CodeGenOpt::Level OptLevel);
+
+FunctionPass *createTVMArgumentMove();
+FunctionPass *createTVMReplacePhysRegs();
+FunctionPass *createTVMRegStackify();
+FunctionPass *createTVMRegNumbering();
+FunctionPass *createTVMExplicitLocals();
+
+void initializeTVMArgumentMovePass(PassRegistry &);
+void initializeTVMReplacePhysRegsPass(PassRegistry &);
+void initializeTVMRegStackifyPass(PassRegistry &);
+void initializeTVMRegNumberingPass(PassRegistry &);
+void initializeTVMExplicitLocalsPass(PassRegistry &);
 } // namespace llvm
 
 #endif // LLVM_LIB_TARGET_TVM_TVM_H

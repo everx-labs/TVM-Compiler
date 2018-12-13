@@ -1,4 +1,4 @@
-//=== TVMMachineFunctionInfo.h - TVM machine function info -------*- C++ -*-==//
+//===-- TVMMachineFunctionInfo.h - TVM machine function info -----*- C++ -*-==//
 //
 //                     The LLVM Compiler Infrastructure
 //
@@ -6,27 +6,124 @@
 // License. See LICENSE.TXT for details.
 //
 //===----------------------------------------------------------------------===//
-//
-// This file declares TVM-specific per-machine-function information.
-//
+///
+/// \file
+/// This file declares TVM-specific per-machine-function information.
+///
 //===----------------------------------------------------------------------===//
 
 #ifndef LLVM_LIB_TARGET_TVM_TVMMACHINEFUNCTIONINFO_H
 #define LLVM_LIB_TARGET_TVM_TVMMACHINEFUNCTIONINFO_H
 
-#include "llvm/CodeGen/MachineFunction.h"
+#include "MCTargetDesc/TVMMCTargetDesc.h"
+#include "llvm/CodeGen/MachineRegisterInfo.h"
 
 namespace llvm {
 
-/// TVMMachineFunctionInfo - This class is derived from MachineFunction and
-/// contains private TVM target-specific information for each MachineFunction.
-class TVMMachineFunctionInfo : public MachineFunctionInfo {
-  virtual void anchor();
+/// This class is derived from MachineFunctionInfo and contains private
+/// TVM-specific information for each MachineFunction.
+class TVMFunctionInfo final : public MachineFunctionInfo {
+  MachineFunction &MF;
+
+  std::vector<MVT> Params;
+  std::vector<MVT> Results;
+  std::vector<MVT> Locals;
+
+  /// A mapping from CodeGen vreg index to TVM register number.
+  std::vector<unsigned> TVMRegs;
+
+  /// A mapping from CodeGen vreg index to a boolean value indicating whether
+  /// the given register is considered to be "stackified", meaning it has been
+  /// determined or made to meet the stack requirements:
+  ///   - single use (per path)
+  ///   - single def (per path)
+  ///   - defined and used in LIFO order with other stack registers
+  BitVector VRegStackified;
+
+  // A virtual register holding the pointer to the vararg buffer for vararg
+  // functions. It is created and set in TLI::LowerFormalArguments and read by
+  // TLI::LowerVASTART
+  unsigned VarargVreg = -1U;
+
+  // A virtual register holding the base pointer for functions that have
+  // overaligned values on the user stack.
+  unsigned BasePtrVreg = -1U;
 
 public:
-  TVMMachineFunctionInfo() {}
+  explicit TVMFunctionInfo(MachineFunction &MF) : MF(MF) {}
+  ~TVMFunctionInfo() override;
+
+  void addParam(MVT VT) { Params.push_back(VT); }
+  const std::vector<MVT> &getParams() const { return Params; }
+
+  void addResult(MVT VT) { Results.push_back(VT); }
+  const std::vector<MVT> &getResults() const { return Results; }
+
+  void clearParamsAndResults() {
+    Params.clear();
+    Results.clear();
+  }
+
+  void setNumLocals(size_t NumLocals) { Locals.resize(NumLocals, MVT::i64); }
+  void setLocal(size_t i, MVT VT) { Locals[i] = VT; }
+  void addLocal(MVT VT) { Locals.push_back(VT); }
+  const std::vector<MVT> &getLocals() const { return Locals; }
+
+  unsigned getVarargBufferVreg() const {
+    assert(VarargVreg != -1U && "Vararg vreg hasn't been set");
+    return VarargVreg;
+  }
+  void setVarargBufferVreg(unsigned Reg) { VarargVreg = Reg; }
+
+  unsigned getBasePointerVreg() const {
+    assert(BasePtrVreg != -1U && "Base ptr vreg hasn't been set");
+    return BasePtrVreg;
+  }
+  void setBasePointerVreg(unsigned Reg) { BasePtrVreg = Reg; }
+
+  static const unsigned UnusedReg = -1u;
+
+  void stackifyVReg(unsigned VReg) {
+    assert(MF.getRegInfo().getUniqueVRegDef(VReg));
+    auto I = TargetRegisterInfo::virtReg2Index(VReg);
+    if (I >= VRegStackified.size())
+      VRegStackified.resize(I + 1);
+    VRegStackified.set(I);
+  }
+  bool isVRegStackified(unsigned VReg) const {
+    auto I = TargetRegisterInfo::virtReg2Index(VReg);
+    if (I >= VRegStackified.size())
+      return false;
+    return VRegStackified.test(I);
+  }
+
+  void initTVMRegs();
+  void setTVMReg(unsigned VReg, unsigned WAReg) {
+    assert(WAReg != UnusedReg);
+    auto I = TargetRegisterInfo::virtReg2Index(VReg);
+    assert(I < TVMRegs.size());
+    TVMRegs[I] = WAReg;
+  }
+  unsigned getTVMReg(unsigned VReg) const {
+    auto I = TargetRegisterInfo::virtReg2Index(VReg);
+    assert(I < TVMRegs.size());
+    return TVMRegs[I];
+  }
+
+  // For a given stackified WAReg, return the id number to print with push/pop.
+  static unsigned getTVMRegStackId(unsigned Reg) {
+    assert(Reg & INT32_MIN);
+    return Reg & INT32_MAX;
+  }
 };
 
-} // namespace llvm
+void ComputeLegalValueVTs(const Function &F, const TargetMachine &TM, Type *Ty,
+                          SmallVectorImpl<MVT> &ValueVTs);
+
+void ComputeSignatureVTs(const Function &F, const TargetMachine &TM,
+                         SmallVectorImpl<MVT> &Params,
+                         SmallVectorImpl<MVT> &Results);
+
+} // end namespace llvm
 
 #endif

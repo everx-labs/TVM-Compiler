@@ -10,6 +10,7 @@ tablegen(LLVM TVMGenSubtargetInfo.inc -gen-subtarget)
 add_public_tablegen_target(TVMTableGen)
 
 add_llvm_target(TVMCodeGen
+  TVMArgumentMove.cpp
   TVMSubtarget.cpp
   TVMTargetMachine.cpp
   TVMISelLowering.cpp
@@ -20,6 +21,11 @@ add_llvm_target(TVMCodeGen
   TVMMachineFunctionInfo.cpp
   TVMAsmPrinter.cpp
   TVMMCInstLower.cpp
+  TVMReplacePhysRegs.cpp
+  TVMRegStackify.cpp
+  TVMRegNumbering.cpp
+  TVMExplicitLocals.cpp
+  TVMUtilities.cpp
 )
 
 add_subdirectory(InstPrinter)

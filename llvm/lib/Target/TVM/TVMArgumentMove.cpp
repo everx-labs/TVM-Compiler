@@ -46,7 +46,7 @@ public:
   static char ID; // Pass identification, replacement for typeid
   TVMArgumentMove() : MachineFunctionPass(ID) {}
 
-  StringRef getPassName() const override { return "WebAssembly Argument Move"; }
+  StringRef getPassName() const override { return "TVM Argument Move"; }
 
   void getAnalysisUsage(AnalysisUsage &AU) const override {
     AU.setPreservesCFG();

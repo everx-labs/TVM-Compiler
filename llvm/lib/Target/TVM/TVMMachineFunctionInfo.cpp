@@ -48,8 +48,8 @@ void llvm::ComputeSignatureVTs(const Function &F, const TargetMachine &TM,
   ComputeLegalValueVTs(F, TM, F.getReturnType(), Results);
 
   if (Results.size() > 1) {
-    // WebAssembly currently can't lower returns of multiple values without
-    // demoting to sret (see WebAssemblyTargetLowering::CanLowerReturn). So
+    // TVM currently can't lower returns of multiple values without
+    // demoting to sret (see TVMTargetLowering::CanLowerReturn). So
     // replace multiple return values with a pointer parameter.
     Results.clear();
     Params.push_back(

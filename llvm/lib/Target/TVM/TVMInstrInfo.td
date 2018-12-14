@@ -42,8 +42,9 @@ def TVMargument : SDNode<"TVMISD::ARGUMENT", SDT_TVMArgument>;
 
 let OperandNamespace = "TVM" in {
 
-let OperandType = "OPERAND_LOCAL" in
-def local_op : Operand<i32>;
+// This operand represents stack slots (s0, s1, s2 etc.)
+let OperandType = "OPERAND_STACK" in
+def stack_op : Operand<i8>;
 
 let OperandType = "OPERAND_I64IMM" in
 def i64imm_op : Operand<i64>;
@@ -67,26 +68,6 @@ defm ARGUMENT : I<(outs I64:$res), (ins i64imm:$argno),
 // ExplicitLocal pass inserts them to manipulate with local variables.
 // They has mayLoad because it reads from a local, which is a side effect
 // not otherwise modeled in LLVM.
-let mayLoad = 1, isAsCheapAsAMove = 1 in
-defm PUSH : I<(outs I64:$res), (ins local_op:$local),
-              (outs), (ins local_op:$local), [],
-              "PUSH\t$res, s$local", "PUSH\ts$local", 0x20>;
-
-let mayLoad = 1, isAsCheapAsAMove = 1 in
-defm XCHG : I<(outs I64:$res), (ins local_op:$local),
-              (outs), (ins local_op:$local), [],
-              "XCHG\t$res, $local", "XCHG\t$local", 0x10>;
-
-// Peudo XCHG s0, s0.
-let mayLoad = 1, isAsCheapAsAMove = 1, isCodeGenOnly = 1 in
-defm CG_XCHG : I<(outs I64:$res), (ins local_op:$local),
-                 (outs), (ins local_op:$local), []>;
-
-// TODO: It should be an alias for POP s0
-// TODO: Fix opcode.
-defm POP : NRI<(outs), (ins I64:$src), [], "POP\t$src", 0x30>;
-
-defm NOP : NRI<(outs), (ins), [], "nop", 0x00>;
 
 let isTerminator = 1, hasCtrlDep = 1, isBarrier = 1, isReturn = 1 in {
   defm RETURN_I64 : NRI<(outs), (ins i64imm:$val), [(TVMreturn i64:$val)],
@@ -102,16 +83,45 @@ defm CONST_I64 : I<(outs I64:$res), (ins i64imm:$imm),
                    [(set I64:$res, imm:$imm)],
                    "PUSHINT\t$res, $imm", "PUSHINT\t$imm", 0x82>;
 }
+//===----------------------------------------------------------------------===//
+// Selection patterns
+//===----------------------------------------------------------------------===//
 def inc : PatFrag<(ops node:$in), (add node:$in, 1)>;
 def dec : PatFrag<(ops node:$in), (add node:$in, -1)>;
 //===----------------------------------------------------------------------===//
+// Basic stack manipulation primitives
+//===----------------------------------------------------------------------===//
+// Peudo XCHG s0, s0.
+let mayLoad = 1, isAsCheapAsAMove = 1, isCodeGenOnly = 1 in
+defm CG_XCHG : I<(outs I64:$res), (ins stack_op:$local),
+                 (outs), (ins stack_op:$local), []>;
+let mayLoad = 1, isAsCheapAsAMove = 1 in
+defm PUSH : I<(outs I64:$res), (ins stack_op:$local),
+              (outs), (ins stack_op:$local), [],
+              "PUSH\t$res, s$local", "PUSH\ts$local", 0x20>;
+
+let mayLoad = 1, isAsCheapAsAMove = 1 in
+defm XCHG : I<(outs I64:$res), (ins stack_op:$local),
+              (outs), (ins stack_op:$local), [],
+              "XCHG\t$res, $local", "XCHG\t$local", 0x10>;
+defm POP : NRI<(outs), (ins I64:$dst), [], "POP\t$dst", 0x30>;
+defm NOP : NRI<(outs), (ins), [], "NOP", 0x00>;
+//===----------------------------------------------------------------------===//
 // Arithmetic instructions
 //===----------------------------------------------------------------------===//
-let isCommutable = 1 in
+let isCommutable = 1 in {
 defm ADD      : BinaryInt<add, "ADD ", 0xa0>;
+defm MUL      : BinaryInt<mul, "MUL ", 0xa8>;
+defm AND      : BinaryInt<and, "AND ", 0xb0>;
+defm OR       : BinaryInt<or, "OR  ", 0xb1>;
+defm XOR      : BinaryInt<xor, "XOR ", 0xb2>;
+}
 defm SUB      : BinaryInt<sub, "SUB ", 0xa1>;
 defm NEGATE   : UnaryInt<ineg, "NEGATE ", 0xa3>;
 defm INC      : UnaryInt<inc, "INC ", 0xa4>;
 defm DEC      : UnaryInt<dec, "DEC ", 0xa5>;
-defm MUL      : BinaryInt<mul, "MUL ", 0xa8>;
 defm DIV      : BinaryInt<sdiv, "DIV ", 0xa904>;
+defm NOT      : UnaryInt<not, "NOT ", 0xb3>;
+defm SHL      : BinaryInt<shl, "SHL ", 0xaa>;
+defm SHR      : BinaryInt<sra, "SHR ", 0xab>;
+defm MOD      : BinaryInt<srem, "MOD ", 0x81>;

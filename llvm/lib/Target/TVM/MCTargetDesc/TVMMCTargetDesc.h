@@ -27,7 +27,7 @@ enum OperandType {
   /// Basic block label in a branch construct.
   OPERAND_BASIC_BLOCK = MCOI::OPERAND_FIRST_TARGET,
   /// Local index.
-  OPERAND_LOCAL,
+  OPERAND_STACK,
   /// 64-bit integer immediates.
   OPERAND_I64IMM,
 };

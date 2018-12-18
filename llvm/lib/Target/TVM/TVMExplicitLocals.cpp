@@ -15,25 +15,47 @@
 /// instructions.
 ///
 //===----------------------------------------------------------------------===//
-#include <iostream>
 
 #include "MCTargetDesc/TVMMCTargetDesc.h"
 #include "TVM.h"
 #include "TVMMachineFunctionInfo.h"
 #include "TVMSubtarget.h"
 #include "TVMUtilities.h"
+#include "llvm/ADT/STLExtras.h"
 #include "llvm/CodeGen/MachineBlockFrequencyInfo.h"
 #include "llvm/CodeGen/MachineInstrBuilder.h"
 #include "llvm/CodeGen/MachineRegisterInfo.h"
 #include "llvm/CodeGen/Passes.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/raw_ostream.h"
+#include <deque>
 using namespace llvm;
 
 #define DEBUG_TYPE "tvm-explicit-locals"
 
 namespace {
+
+class Stack {
+public:
+  Stack(const TargetInstrInfo *TII, size_t Size)
+      : TII(TII), Data(Size, TVMFunctionInfo::UnusedReg) {}
+  /// Insert POP instructions to clean up the stack, preserving the specified
+  /// element of it.
+  /// \par InsertPoint specify instruction to insert after.
+  /// \par Preserved virtual register needs to be kept in the stack.
+  bool clear(MachineInstr *InsertPoint,
+             unsigned Preserved = TVMFunctionInfo::UnusedReg);
+  /// Fill the specified \p Slot with \p Reg. Doesn't generate any instruction.
+  void set(size_t Slot, unsigned Reg);
+  void push(unsigned Reg) { Data.push_front(Reg); }
+
+private:
+  const TargetInstrInfo *TII;
+  std::deque<unsigned> Data;
+};
+
 class TVMExplicitLocals final : public MachineFunctionPass {
+public:
   StringRef getPassName() const override { return "TVM Explicit Locals"; }
 
   void getAnalysisUsage(AnalysisUsage &AU) const override {
@@ -43,8 +65,8 @@ class TVMExplicitLocals final : public MachineFunctionPass {
   }
 
   bool runOnMachineFunction(MachineFunction &MF) override;
+  bool processInstruction(MachineInstr &MI, Stack &TheStack);
 
-public:
   static char ID; // Pass identification, replacement for typeid
   TVMExplicitLocals() : MachineFunctionPass(ID) {}
 };
@@ -58,43 +80,57 @@ FunctionPass *llvm::createTVMExplicitLocals() {
   return new TVMExplicitLocals();
 }
 
-/// Return a local id number for the given register, assigning it a new one
-/// if it doesn't yet have one.
-static unsigned getLocalId(DenseMap<unsigned, unsigned> &Reg2Local,
-                           unsigned &CurLocal, unsigned Reg) {
-  auto P = Reg2Local.insert(std::make_pair(Reg, CurLocal));
-  if (P.second)
-    ++CurLocal;
-  return P.first->second;
-}
-
-// TODO: we need to duplicate a def prior to use if it has multiple users.
-#if 0
-/// Get the appropriate Push opcode for the given register class.
-static unsigned getPushOpcode(const TargetRegisterClass *RC) {
-  if (RC == &TVM::I64RegClass)
-    return TVM::PUSH;
-  llvm_unreachable("Unexpected register class");
-}
-#endif
-
-/// Get the appropriate Xchg opcode for the given register class.
-/// If we don't need the stack manipulation, gives XCHG s0, s0 pseudo.
-static unsigned getXchgOpcode(const TargetRegisterClass *RC,
-                              bool needStackManipulation) {
-  if (RC == &TVM::I64RegClass) {
-    if (needStackManipulation)
-      return TVM::XCHG;
-    return TVM::CG_XCHG;
-  }
-  llvm_unreachable("Unexpected register class");
-}
-
 /// Get the appropriate Pop opcode for the given register class.
 static unsigned getPopOpcode(const TargetRegisterClass *RC) {
   if (RC == &TVM::I64RegClass)
-    return TVM::POP;
+    return TVM::POP_S;
   llvm_unreachable("Unexpected register class");
+}
+
+bool Stack::clear(MachineInstr *InsertPoint, unsigned Preserved) {
+  auto It = llvm::find(Data, Preserved);
+  size_t NumDrops = 0, NumNips = 0;
+  if (It == std::end(Data)) {
+    NumDrops = Data.size();
+  } else {
+    NumDrops = std::distance(std::begin(Data), It);
+    NumNips = Data.size() - NumDrops - 1;
+  }
+  unsigned Opc = getPopOpcode(&TVM::I64RegClass);
+  // DROPs
+  for (size_t i = 0; i < NumDrops; ++i)
+    InsertPoint = BuildMI(*InsertPoint->getParent(), InsertPoint,
+                          InsertPoint->getDebugLoc(), TII->get(Opc))
+                      .addImm(0);
+  // NIPs
+  for (size_t i = 0; i < NumNips; ++i)
+    InsertPoint = BuildMI(*InsertPoint->getParent(), InsertPoint,
+                          InsertPoint->getDebugLoc(), TII->get(Opc))
+                      .addImm(1);
+  if (It == std::end(Data))
+    Data.clear();
+  else
+    Data = {Data[NumDrops]};
+  return NumDrops && NumNips;
+}
+
+void Stack::set(size_t Slot, unsigned Reg) {
+  assert(Slot < Data.size() && "Out of range access");
+  Data[Slot] = Reg;
+}
+
+bool TVMExplicitLocals::processInstruction(MachineInstr &MI, Stack &TheStack) {
+  if (MI.isReturn()) {
+    assert(MI.getNumOperands() <= 2 &&
+           "Multiple returns are not implemented yet");
+    if (MI.getNumOperands() == 0)
+      TheStack.clear(&MI);
+    else
+      TheStack.clear(&MI, MI.getOperand(0).getReg());
+    MI.eraseFromParent();
+    return true;
+  }
+  return false;
 }
 
 // TODO: For now it only stackifies function arguments. Extend.
@@ -104,12 +140,9 @@ bool TVMExplicitLocals::runOnMachineFunction(MachineFunction &MF) {
                     << MF.getName() << '\n');
 
   bool Changed = false;
-  MachineRegisterInfo &MRI = MF.getRegInfo();
   TVMFunctionInfo &MFI = *MF.getInfo<TVMFunctionInfo>();
   const auto *TII = MF.getSubtarget<TVMSubtarget>().getInstrInfo();
-
-  // Map non-stackified virtual registers to their local ids.
-  DenseMap<unsigned, unsigned> Reg2Local;
+  Stack TheStack(TII, MFI.numParams());
 
   // Handle ARGUMENTS first to ensure that they get the designated numbers.
   for (MachineBasicBlock::iterator I = MF.begin()->begin(),
@@ -120,19 +153,11 @@ bool TVMExplicitLocals::runOnMachineFunction(MachineFunction &MF) {
       break;
     unsigned Reg = MI.getOperand(0).getReg();
     assert(!MFI.isVRegStackified(Reg));
-    Reg2Local[Reg] = MI.getOperand(1).getImm();
+    unsigned ArgNo = MI.getOperand(1).getImm();
+    TheStack.set(ArgNo, Reg);
     MI.eraseFromParent();
     Changed = true;
   }
-
-  // Start assigning local numbers after the last parameter.
-  unsigned CurLocal = MFI.getParams().size();
-
-  // Precompute the set of registers that are unused, so that we can insert
-  // drops to their defs.
-  BitVector UseEmpty(MRI.getNumVirtRegs());
-  for (unsigned i = 0, e = MRI.getNumVirtRegs(); i < e; ++i)
-    UseEmpty[i] = MRI.use_empty(TargetRegisterInfo::index2VirtReg(i));
 
   // Visit each instruction in the function.
   for (MachineBasicBlock &MBB : MF) {
@@ -145,81 +170,9 @@ bool TVMExplicitLocals::runOnMachineFunction(MachineFunction &MF) {
 
       // TODO: multiple defs should be handled separately.
       assert(MI.getDesc().getNumDefs() <= 1);
-
-      // Insert set_locals for any defs that aren't stackified yet. Currently
-      // we handle at most one def.
-      if (MI.getDesc().getNumDefs() == 1) {
-        unsigned OldReg = MI.getOperand(0).getReg();
-        if (!MFI.isVRegStackified(OldReg)) {
-          const TargetRegisterClass *RC = MRI.getRegClass(OldReg);
-          unsigned NewReg = MRI.createVirtualRegister(RC);
-          auto InsertPt = std::next(MachineBasicBlock::iterator(&MI));
-          if (MI.getOpcode() == TVM::IMPLICIT_DEF) {
-            MI.eraseFromParent();
-            Changed = true;
-            continue;
-          }
-          if (UseEmpty[TargetRegisterInfo::virtReg2Index(OldReg)]) {
-            unsigned Opc = getPopOpcode(RC);
-            MachineInstr *Pop =
-                BuildMI(MBB, InsertPt, MI.getDebugLoc(), TII->get(Opc))
-                    .addReg(NewReg);
-            // After the drop instruction, this reg operand will not be used
-            Pop->getOperand(0).setIsKill();
-          }
-          MI.getOperand(0).setReg(NewReg);
-          // This register operand is now being used by the inserted drop
-          // instruction, so make it undead.
-          MI.getOperand(0).setIsDead(false);
-          MFI.stackifyVReg(NewReg);
-          Changed = true;
-        }
-      }
-
-      // Insert XCHG for any uses that aren't stackified yet.
-      MachineInstr *InsertPt = &MI;
-      for (MachineOperand &MO : reverse(MI.explicit_uses())) {
-        if (!MO.isReg())
-          continue;
-
-        unsigned OldReg = MO.getReg();
-
-        // If we see a stackified register, prepare to insert subsequent
-        // get_locals before the start of its tree.
-        if (MFI.isVRegStackified(OldReg)) {
-          llvm_unreachable("Not implemented");
-          continue;
-        }
-
-        unsigned LocalId = getLocalId(Reg2Local, CurLocal, OldReg);
-        const TargetRegisterClass *RC = MRI.getRegClass(OldReg);
-        unsigned NewReg = MRI.createVirtualRegister(RC);
-        // TODO: For now we could olny compile stackified programs.
-        unsigned Opc = getXchgOpcode(RC, false);
-        InsertPt =
-            BuildMI(MBB, InsertPt, MI.getDebugLoc(), TII->get(Opc), NewReg)
-                .addImm(LocalId);
-        MO.setReg(NewReg);
-        MFI.stackifyVReg(NewReg);
-        Changed = true;
-      }
+      Changed |= processInstruction(MI, TheStack);
     }
   }
-
-#ifndef NDEBUG
-  // Assert that all registers have been stackified at this point.
-  for (const MachineBasicBlock &MBB : MF) {
-    for (const MachineInstr &MI : MBB) {
-      if (MI.isDebugInstr() || MI.isLabel())
-        continue;
-      for (const MachineOperand &MO : MI.explicit_operands()) {
-        assert((!MO.isReg() || MRI.use_empty(MO.getReg()) ||
-                MFI.isVRegStackified(MO.getReg())) &&
-               "TVMExplicitLocals failed to stackify a register operand");
-      }
-    }
-  }
-#endif
 
   return Changed;
 }

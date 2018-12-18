@@ -134,6 +134,7 @@ SDValue TVMTargetLowering::LowerFormalArguments(
   // Set up the incoming ARGUMENTS value, which serves to represent the liveness
   // of the incoming values before they're represented by virtual registers.
   MF.getRegInfo().addLiveIn(TVM::ARGUMENTS);
+  auto *MFI = MF.getInfo<TVMFunctionInfo>();
 
   for (const ISD::InputArg &In : Ins) {
     // TODO: Copied from WASM. Chack.
@@ -152,6 +153,7 @@ SDValue TVMTargetLowering::LowerFormalArguments(
             ? DAG.getNode(TVMISD::ARGUMENT, DL, In.VT,
                           DAG.getTargetConstant(InVals.size(), DL, MVT::i64))
             : DAG.getUNDEF(In.VT));
+    MFI->addParam(In.VT);
   }
 
   return Chain;

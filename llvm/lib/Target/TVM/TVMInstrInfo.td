@@ -64,10 +64,6 @@ defm ARGUMENT : I<(outs I64:$res), (ins i64imm:$argno),
                   (outs), (ins i64imm:$argno),
                   [(set I64:$res, (TVMargument timm:$argno))]>;
 
-// Stack manipulation instructions are not supposed to be selected, instead
-// ExplicitLocal pass inserts them to manipulate with local variables.
-// They has mayLoad because it reads from a local, which is a side effect
-// not otherwise modeled in LLVM.
 
 let isTerminator = 1, hasCtrlDep = 1, isBarrier = 1, isReturn = 1 in {
   defm RETURN_I64 : NRI<(outs), (ins i64imm:$val), [(TVMreturn i64:$val)],
@@ -91,6 +87,11 @@ def dec : PatFrag<(ops node:$in), (add node:$in, -1)>;
 //===----------------------------------------------------------------------===//
 // Basic stack manipulation primitives
 //===----------------------------------------------------------------------===//
+// Stack manipulation instructions are not supposed to be selected, instead
+// ExplicitLocal pass inserts them to manipulate with local variables.
+// They has mayLoad because it reads from a local, which is a side effect
+// not otherwise modeled in LLVM.
+
 // Peudo XCHG s0, s0.
 let mayLoad = 1, isAsCheapAsAMove = 1, isCodeGenOnly = 1 in
 defm CG_XCHG : I<(outs I64:$res), (ins stack_op:$local),
@@ -104,7 +105,7 @@ let mayLoad = 1, isAsCheapAsAMove = 1 in
 defm XCHG : I<(outs I64:$res), (ins stack_op:$local),
               (outs), (ins stack_op:$local), [],
               "XCHG\t$res, $local", "XCHG\t$local", 0x10>;
-defm POP : NRI<(outs), (ins I64:$dst), [], "POP\t$dst", 0x30>;
+defm POP : NRI<(outs), (ins stack_op:$dst), [], "POP\ts$dst", 0x30>;
 defm NOP : NRI<(outs), (ins), [], "NOP", 0x00>;
 //===----------------------------------------------------------------------===//
 // Arithmetic instructions

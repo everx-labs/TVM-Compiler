@@ -323,6 +323,11 @@ if( MSVC )
     add_definitions(-D_VARIADIC_MAX=10)
   endif()
 
+  if (LLVM_ENABLE_CXX1Y)
+    check_cxx_compiler_flag("/std:c++17" CXX_SUPPORTS_CXX17)
+    append_if(CXX_SUPPORTS_CXX17 "/std:c++17" CMAKE_CXX_FLAGS)
+  endif()
+
   # Add definitions that make MSVC much less annoying.
   add_definitions(
     # For some reason MS wants to deprecate a bunch of standard functions...
@@ -411,8 +416,8 @@ elseif( LLVM_COMPILER_IS_GCC_COMPATIBLE )
   add_flag_if_supported("-Werror=date-time" WERROR_DATE_TIME)
   add_flag_if_supported("-Werror=unguarded-availability-new" WERROR_UNGUARDED_AVAILABILITY_NEW)
   if (LLVM_ENABLE_CXX1Y)
-    check_cxx_compiler_flag("-std=c++1y" CXX_SUPPORTS_CXX1Y)
-    append_if(CXX_SUPPORTS_CXX1Y "-std=c++1y" CMAKE_CXX_FLAGS)
+    check_cxx_compiler_flag("-std=c++17" CXX_SUPPORTS_CXX1Y)
+    append_if(CXX_SUPPORTS_CXX1Y "-std=c++17" CMAKE_CXX_FLAGS)
   elseif(LLVM_ENABLE_CXX1Z)
     check_cxx_compiler_flag("-std=c++1z" CXX_SUPPORTS_CXX1Z)
     append_if(CXX_SUPPORTS_CXX1Z "-std=c++1z" CMAKE_CXX_FLAGS)

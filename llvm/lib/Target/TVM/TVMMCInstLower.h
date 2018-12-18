@@ -27,7 +27,7 @@ class MachineOperand;
 class LLVM_LIBRARY_VISIBILITY TVMMCInstLower {
   MCContext &Ctx;
 
-  AsmPrinter &Printer;
+  [[maybe_unused]] AsmPrinter &Printer;
 
 public:
   TVMMCInstLower(MCContext &ctx, AsmPrinter &printer)

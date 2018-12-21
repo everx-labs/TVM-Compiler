@@ -43,6 +43,36 @@ class NI<dag oops, dag iops, list<dag> pattern, bit stack, string asmstr = "",
 // MC.
 // Every instruction should want to be based on this multi-class to guarantee
 // there is always an equivalent pair of instructions.
+
+//===----------------------------------------------------------------------===//
+// Imm value in range
+//===----------------------------------------------------------------------===//
+
+class ImmAsmOperand<int Low, int High> : AsmOperandClass {
+  let RenderMethod = "addImmOperands";
+  let PredicateMethod = "isImmediate<" # Low # "," # High # ">";
+  let DiagnosticString = "operand must be an immediate in the range [" # Low # "," # High # "]";
+}
+
+def SImm8: ImmAsmOperand<-128,127> { let Name = "SImm8"; }
+def UImm8: ImmAsmOperand<0,255> { let Name = "UImm8"; }
+
+def simm8 : Operand<i64>, ImmLeaf<i64, [{
+  return Imm >=-128 && Imm <= 127 && Imm != 1;
+}]> {
+  let ParserMatchClass = SImm8;
+}
+
+def uimm8 : Operand<i64>, ImmLeaf<i64, [{
+  return Imm >=0 && Imm <= 255;
+}]> {
+  let ParserMatchClass = UImm8;
+}
+
+//===----------------------------------------------------------------------===//
+// Multiclasses for instructions
+//===----------------------------------------------------------------------===//
+
 multiclass I<dag oops_r, dag iops_r, dag oops_s, dag iops_s,
              list<dag> pattern_r, string asmstr_r = "", string asmstr_s = "",
              bits<32> inst = -1> {
@@ -57,16 +87,23 @@ multiclass NRI<dag oops, dag iops, list<dag> pattern, string asmstr = "",
 }
 
 // Unary and binary instructions, for the local types that TVM supports.
-multiclass UnaryInt<SDNode node, string name, bits<32> i64Inst> {
+multiclass UnaryR<SDNode node, string name, bits<32> i64Inst> {
   defm "" : I<(outs I64:$dst), (ins I64:$src), (outs), (ins),
               [(set I64:$dst, (node I64:$src))],
               !strconcat(name, "\t$dst, $src"),
               name, i64Inst>;
 }
 
-multiclass BinaryInt<SDNode node, string name, bits<32> i64Inst> {
+multiclass BinaryRR<SDNode node, string name, bits<32> i64Inst> {
   defm "" : I<(outs I64:$dst), (ins I64:$lhs, I64:$rhs), (outs), (ins),
               [(set I64:$dst, (node I64:$lhs, I64:$rhs))],
+              !strconcat(name, "\t$dst, $lhs, $rhs"),
+              name, i64Inst>;
+}
+
+multiclass BinaryRI<SDNode node, string name, ImmAsmOperand immtype, bits<32> i64Inst> {
+  defm "" : I<(outs I64:$dst), (ins I64:$lhs, immtype:$rhs), (outs), (ins),
+              [(set I64:$dst, (node I64:$lhs, immtype:$rhs))],
               !strconcat(name, "\t$dst, $lhs, $rhs"),
               name, i64Inst>;
 }

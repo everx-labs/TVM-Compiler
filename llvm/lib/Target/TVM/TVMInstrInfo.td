@@ -111,18 +111,20 @@ defm NOP : NRI<(outs), (ins), [], "NOP", 0x00>;
 // Arithmetic instructions
 //===----------------------------------------------------------------------===//
 let isCommutable = 1 in {
-defm ADD      : BinaryInt<add, "ADD ", 0xa0>;
-defm MUL      : BinaryInt<mul, "MUL ", 0xa8>;
-defm AND      : BinaryInt<and, "AND ", 0xb0>;
-defm OR       : BinaryInt<or, "OR  ", 0xb1>;
-defm XOR      : BinaryInt<xor, "XOR ", 0xb2>;
+defm ADD      : BinaryRR<add, "ADD ", 0xa0>;
+defm MUL      : BinaryRR<mul, "MUL ", 0xa8>;
+defm AND      : BinaryRR<and, "AND ", 0xb0>;
+defm OR       : BinaryRR<or, "OR  ", 0xb1>;
+defm XOR      : BinaryRR<xor, "XOR ", 0xb2>;
 }
-defm SUB      : BinaryInt<sub, "SUB ", 0xa1>;
-defm NEGATE   : UnaryInt<ineg, "NEGATE ", 0xa3>;
-defm INC      : UnaryInt<inc, "INC ", 0xa4>;
-defm DEC      : UnaryInt<dec, "DEC ", 0xa5>;
-defm DIV      : BinaryInt<sdiv, "DIV ", 0xa904>;
-defm NOT      : UnaryInt<not, "NOT ", 0xb3>;
-defm SHL      : BinaryInt<shl, "SHL ", 0xaa>;
-defm SHR      : BinaryInt<sra, "SHR ", 0xab>;
-defm MOD      : BinaryInt<srem, "MOD ", 0x81>;
+defm SUB      : BinaryRR<sub, "SUB ", 0xa1>;
+defm NEGATE   : UnaryR<ineg, "NEGATE ", 0xa3>;
+defm INC      : UnaryR<inc, "INC ", 0xa4>;
+defm DEC      : UnaryR<dec, "DEC ", 0xa5>;
+defm DIV      : BinaryRR<sdiv, "DIV ", 0xa904>;
+defm NOT      : UnaryR<not, "NOT ", 0xb3>;
+defm SHL      : BinaryRR<shl, "SHL ", 0xaa>;
+defm SHR      : BinaryRR<sra, "SHR ", 0xab>;
+defm MOD      : BinaryRR<srem, "MOD ", 0x81>;
+defm ADDCONST : BinaryRI<add, "ADDCONST ", simm8, 0xa6>;
+defm MULCONST : BinaryRI<mul, "MULCONST ", simm8, 0xa7>;

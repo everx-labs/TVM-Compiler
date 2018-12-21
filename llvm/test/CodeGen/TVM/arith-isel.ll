@@ -113,3 +113,18 @@ define i64 @mod (i64 %x, i64 %y) nounwind {
   ret i64 %1
 }
 
+define i64 @addconst(i64 %x) nounwind {
+; CHECK: %[[VR0:[0-9]+]]:i64 = ARGUMENT 0
+; CHECK: %[[VR1:[0-9]+]]:i64 = ADDCONST killed %[[VR0]], 12
+  %1 = add i64 %x, 12
+; CHECK: RETURN_I64 killed %[[VR1]]
+  ret i64 %1
+}
+
+define i64 @mulconst(i64 %x) nounwind {
+; CHECK: %[[VR0:[0-9]+]]:i64 = ARGUMENT 0
+; CHECK: %[[VR1:[0-9]+]]:i64 = MULCONST killed %[[VR0]], 127
+  %1 = mul i64 %x, 127
+; CHECK: RETURN_I64 killed %[[VR1]]
+  ret i64 %1
+}

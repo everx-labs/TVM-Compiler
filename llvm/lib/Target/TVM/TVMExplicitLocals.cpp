@@ -18,10 +18,10 @@
 
 #include "MCTargetDesc/TVMMCTargetDesc.h"
 #include "TVM.h"
+#include "TVMExtras.h"
 #include "TVMMachineFunctionInfo.h"
 #include "TVMSubtarget.h"
 #include "TVMUtilities.h"
-#include "llvm/ADT/STLExtras.h"
 #include "llvm/CodeGen/MachineBlockFrequencyInfo.h"
 #include "llvm/CodeGen/MachineInstrBuilder.h"
 #include "llvm/CodeGen/MachineRegisterInfo.h"
@@ -45,9 +45,30 @@ public:
   /// \par Preserved virtual register needs to be kept in the stack.
   bool clear(MachineInstr *InsertPoint,
              unsigned Preserved = TVMFunctionInfo::UnusedReg);
+  /// PUSH the specified slot to the specified position of the stack.
+  /// Do nothing if \p Reg is already in \p Slot.
+  /// Precondition: Register is present in Data.
+  /// TODO: Stack PUSH limitations aren't handled yet.
+  /// \par InsertPoint specify instruction to insert after.
+  /// \par Slot number of stack slot (i.e. N in sN).
+  bool push(MachineInstr *InsertPoint, unsigned Reg);
   /// Fill the specified \p Slot with \p Reg. Doesn't generate any instruction.
-  void set(size_t Slot, unsigned Reg);
-  void push(unsigned Reg) { Data.push_front(Reg); }
+  void set(size_t Slot, unsigned Reg) {
+    assert(Slot < Data.size() && "Out of range access");
+    Data[Slot] = Reg;
+  }
+  /// Remove arguments an instruction consumed from the stack.
+  /// Precondition: Stack has enough Slots to consume.
+  void consumeArguments(size_t NumSlots) {
+    assert(NumSlots <= Data.size());
+    Data.erase(std::begin(Data), std::begin(Data) + NumSlots);
+  }
+  /// Pushes result of an instruction to the stack.
+  void addDef(unsigned Reg) { Data.push_front(Reg); }
+  /// TODO: we need to decide how to handle these limitations.
+  /// They shouldn't be defined in this scope.
+  /// Maximal N in a valid PUSH sN instruction.
+  static inline constexpr size_t PushLimit = 256;
 
 private:
   const TargetInstrInfo *TII;
@@ -87,6 +108,13 @@ static unsigned getPopOpcode(const TargetRegisterClass *RC) {
   llvm_unreachable("Unexpected register class");
 }
 
+/// Get the appropriate Push opcode for the given register class.
+static unsigned getPushOpcode(const TargetRegisterClass *RC) {
+  if (RC == &TVM::I64RegClass)
+    return TVM::PUSH_S;
+  llvm_unreachable("Unexpected register class");
+}
+
 bool Stack::clear(MachineInstr *InsertPoint, unsigned Preserved) {
   auto It = llvm::find(Data, Preserved);
   size_t NumDrops = 0, NumNips = 0;
@@ -99,14 +127,14 @@ bool Stack::clear(MachineInstr *InsertPoint, unsigned Preserved) {
   unsigned Opc = getPopOpcode(&TVM::I64RegClass);
   // DROPs
   for (size_t i = 0; i < NumDrops; ++i)
-    InsertPoint = BuildMI(*InsertPoint->getParent(), InsertPoint,
-                          InsertPoint->getDebugLoc(), TII->get(Opc))
-                      .addImm(0);
+    BuildMI(*InsertPoint->getParent(), InsertPoint, InsertPoint->getDebugLoc(),
+            TII->get(Opc))
+        .addImm(0);
   // NIPs
   for (size_t i = 0; i < NumNips; ++i)
-    InsertPoint = BuildMI(*InsertPoint->getParent(), InsertPoint,
-                          InsertPoint->getDebugLoc(), TII->get(Opc))
-                      .addImm(1);
+    BuildMI(*InsertPoint->getParent(), InsertPoint, InsertPoint->getDebugLoc(),
+            TII->get(Opc))
+        .addImm(1);
   if (It == std::end(Data))
     Data.clear();
   else
@@ -114,9 +142,16 @@ bool Stack::clear(MachineInstr *InsertPoint, unsigned Preserved) {
   return NumDrops && NumNips;
 }
 
-void Stack::set(size_t Slot, unsigned Reg) {
-  assert(Slot < Data.size() && "Out of range access");
-  Data[Slot] = Reg;
+bool Stack::push(MachineInstr *InsertPoint, unsigned Reg) {
+  auto It = llvm::find_or_fail(Data, Reg);
+  size_t RegSlot = std::distance(std::begin(Data), It);
+  assert(RegSlot <= PushLimit && "Unimplemented");
+  unsigned Opc = getPushOpcode(&TVM::I64RegClass);
+  BuildMI(*InsertPoint->getParent(), InsertPoint, InsertPoint->getDebugLoc(),
+          TII->get(Opc))
+      .addImm(RegSlot);
+  Data.push_front(*It);
+  return true;
 }
 
 bool TVMExplicitLocals::processInstruction(MachineInstr &MI, Stack &TheStack) {
@@ -130,7 +165,32 @@ bool TVMExplicitLocals::processInstruction(MachineInstr &MI, Stack &TheStack) {
     MI.eraseFromParent();
     return true;
   }
-  return false;
+  size_t NumDefs = MI.getNumDefs();
+  size_t NumOperands = MI.getNumOperands();
+  size_t NonStackOperands = 0;
+  bool Changed = false;
+  // Instruction format: INST %defs..., other operands...
+  for (size_t ROpNo = NumDefs; ROpNo < NumOperands; ++ROpNo) {
+    size_t OpNo = NumOperands - ROpNo;
+    const auto& Operand = MI.getOperand(OpNo);
+    if (!Operand.isReg()) {
+      ++NonStackOperands;
+      continue;
+    }
+    // For now we PUSH all arguments to the right place.
+    // TODO: If the instruction kills the argument it could be XCHG'ed instead.
+    // TODO: Commutative and Reversible (i.e. having R form e.g. SUBR) need
+    // special optimization.
+    Changed |= TheStack.push(&MI, Operand.getReg());
+  }
+  TheStack.consumeArguments(NumOperands - NonStackOperands - NumDefs);
+  for (size_t ROpNo = 0; ROpNo < NumDefs; ++ROpNo) {
+    size_t OpNo = NumDefs - ROpNo - 1;
+    const auto& Operand = MI.getOperand(OpNo);
+    assert(Operand.isReg() && "Def must be a register");
+    TheStack.addDef(Operand.getReg());
+  }
+  return Changed;
 }
 
 // TODO: For now it only stackifies function arguments. Extend.

@@ -26,6 +26,10 @@ def updateGithubCommitStatus(build) {
 DiscordURL = "https://discordapp.com/api/webhooks/496992026932543489/4exQIw18D4U_4T0H76bS3Voui4SyD7yCQzLP9IRQHKpwGRJK1-IFnyZLyYzDmcBKFTJw"
 pipeline {
     agent none
+    options {
+        buildDiscarder logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '20')
+        disableConcurrentBuilds()
+        }
     environment {
     WORKDIR = getVar(G_workdir)
     DIRDOUBLE = getVar(G_dirdouble)

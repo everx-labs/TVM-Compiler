@@ -99,13 +99,12 @@ defm CG_XCHG : I<(outs I64:$res), (ins stack_op:$local),
 let mayLoad = 1, isAsCheapAsAMove = 1 in
 defm PUSH : I<(outs I64:$res), (ins stack_op:$local),
               (outs), (ins stack_op:$local), [],
-              "PUSH\t$res, s$local", "PUSH\ts$local", 0x20>;
+              "PUSH\t$res, $local", "PUSH\t$local", 0x20>;
 
 let mayLoad = 1, isAsCheapAsAMove = 1 in
-defm XCHG : I<(outs I64:$res), (ins stack_op:$local),
-              (outs), (ins stack_op:$local), [],
-              "XCHG\t$res, $local", "XCHG\t$local", 0x10>;
-defm POP : NRI<(outs), (ins stack_op:$dst), [], "POP\ts$dst", 0x30>;
+defm XCHG : NRI<(outs), (ins stack_op:$src, stack_op:$dst), [],
+                "XCHG\t$src, $dst", 0x10>;
+defm POP : NRI<(outs), (ins stack_op:$dst), [], "POP\t$dst", 0x30>;
 defm NOP : NRI<(outs), (ins), [], "NOP", 0x00>;
 //===----------------------------------------------------------------------===//
 // Arithmetic instructions

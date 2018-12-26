@@ -28,12 +28,14 @@ FunctionPass *createTVMISelDag(TVMTargetMachine &TM,
 
 FunctionPass *createTVMArgumentMove();
 FunctionPass *createTVMReplacePhysRegs();
+FunctionPass *createTVMPrepareForLiveIntervals();
 FunctionPass *createTVMRegStackify();
 FunctionPass *createTVMRegNumbering();
 FunctionPass *createTVMExplicitLocals();
 
 void initializeTVMArgumentMovePass(PassRegistry &);
 void initializeTVMReplacePhysRegsPass(PassRegistry &);
+void initializeTVMPrepareForLiveIntervalsPass(PassRegistry &);
 void initializeTVMRegStackifyPass(PassRegistry &);
 void initializeTVMRegNumberingPass(PassRegistry &);
 void initializeTVMExplicitLocalsPass(PassRegistry &);

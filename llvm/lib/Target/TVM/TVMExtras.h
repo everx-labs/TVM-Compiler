@@ -27,4 +27,10 @@ auto find_or_fail(R &&Range, const T &Val) -> decltype(adl_begin(Range)) {
   assert(It != std::end(Range));
   return It;
 }
+
+/// Check if an element exist in a range.
+template <typename R, typename T> bool exist(R &&Range, const T &Val) {
+  auto It = llvm::find(Range, Val);
+  return It != std::end(Range);
+}
 }

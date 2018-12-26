@@ -17,6 +17,7 @@
 #include "llvm/MC/MCAsmInfo.h"
 #include "llvm/MC/MCExpr.h"
 #include "llvm/MC/MCInst.h"
+#include "llvm/MC/MCInstrInfo.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/FormattedStream.h"
 using namespace llvm;
@@ -35,7 +36,12 @@ void TVMInstPrinter::printInst(const MCInst *MI, raw_ostream &O,
 void TVMInstPrinter::printOperand(const MCInst *MI, unsigned OpNo,
                                   raw_ostream &O) {
   const MCOperand &Op = MI->getOperand(OpNo);
+  const MCInstrDesc &Desc = MII.get(MI->getOpcode());
+  const MCOperandInfo &Info = Desc.OpInfo[OpNo];
+
   if (Op.isImm()) {
+    if (Info.OperandType == TVM::OPERAND_STACK)
+      O << "s";
     O << Op.getImm();
   } else {
     unsigned TVMReg = Op.getReg();

@@ -37,8 +37,8 @@ define i64 @retai64(i64 %arg) nounwind {
 }
 
 ; CHECK-LABEL: retraai64:
-; CHECK: POP s1
-; CHECK: POP s1
+; CHECK: POP s0
+; CHECK: POP s0
 define i64 @retraai64(i64 %arg1, i64 %arg2, i64 %arg3) nounwind {
 	ret i64 %arg1
 }
@@ -51,8 +51,8 @@ define i64 @retarai64(i64 %arg1, i64 %arg2, i64 %arg3) nounwind {
 }
 
 ; CHECK-LABEL: retaari64:
-; CHECK: POP s0
-; CHECK: POP s0
+; CHECK: POP s1
+; CHECK: POP s1
 define i64 @retaari64(i64 %arg1, i64 %arg2, i64 %arg3) nounwind {
 	ret i64 %arg3
 }

@@ -28,6 +28,7 @@ extern "C" void LLVMInitializeTVMTarget() {
   auto &PR = *PassRegistry::getPassRegistry();
   initializeTVMArgumentMovePass(PR);
   initializeTVMReplacePhysRegsPass(PR);
+  initializeTVMPrepareForLiveIntervalsPass(PR);
   initializeTVMRegStackifyPass(PR);
   initializeTVMRegNumberingPass(PR);
   initializeTVMExplicitLocalsPass(PR);
@@ -109,7 +110,7 @@ void TVMPassConfig::addPreEmitPass() {
   // rewritten, eliminate SP and FP. This allows them to be stackified,
   // colored, and numbered with the rest of the registers.
   addPass(createTVMReplacePhysRegs());
-
+  addPass(createTVMPrepareForLiveIntervals());
   addPass(createTVMRegStackify());
   addPass(createTVMExplicitLocals());
 

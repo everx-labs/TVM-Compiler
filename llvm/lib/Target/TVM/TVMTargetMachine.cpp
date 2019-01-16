@@ -20,12 +20,14 @@
 #include "llvm/IR/LegacyPassManager.h"
 #include "llvm/IR/Module.h"
 #include "llvm/Support/TargetRegistry.h"
+#include "llvm/Transforms/Utils.h"
 
 namespace llvm {
 
 extern "C" void LLVMInitializeTVMTarget() {
   RegisterTargetMachine<TVMTargetMachine> X(getTheTVMTarget());
   auto &PR = *PassRegistry::getPassRegistry();
+  initializeLowerSwitchPass(PR);
   initializeTVMArgumentMovePass(PR);
   initializeTVMReplacePhysRegsPass(PR);
   initializeTVMPrepareForLiveIntervalsPass(PR);
@@ -79,6 +81,7 @@ public:
 
   FunctionPass *createTargetRegisterAllocator(bool) override;
 
+  void addIRPasses() override;
   bool addInstSelector() override;
   void addPreEmitPass() override;
   void addPostRegAlloc() override;
@@ -91,6 +94,11 @@ FunctionPass *TVMPassConfig::createTargetRegisterAllocator(bool) {
 
 TargetPassConfig *TVMTargetMachine::createPassConfig(PassManagerBase &PM) {
   return new TVMPassConfig(*this, PM);
+}
+
+void TVMPassConfig::addIRPasses() {
+  // TODO: once setcc is supported, we need to remove it.
+  addPass(createLowerSwitchPass());
 }
 
 bool TVMPassConfig::addInstSelector() {

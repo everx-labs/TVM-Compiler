@@ -135,7 +135,8 @@ public:
   /// Inserts necessary stack manipulation instructions to supply \par MI with
   /// the correct data.
   bool processInstruction(MachineInstr &MI, LiveIntervals &LIS,
-                          MachineRegisterInfo &MRI, Stack &TheStack);
+                          MachineRegisterInfo &MRI, const TargetInstrInfo *TII,
+                          Stack &TheStack);
 
   static char ID; // Pass identification, replacement for typeid
   TVMExplicitLocals() : MachineFunctionPass(ID) {}
@@ -379,6 +380,7 @@ void TVMExplicitLocals::performReorderings(const StackReorderings &Reorderings,
 
 bool TVMExplicitLocals::processInstruction(MachineInstr &MI, LiveIntervals &LIS,
                                            MachineRegisterInfo &MRI,
+                                           const TargetInstrInfo *TII,
                                            Stack &TheStack) {
   if (MI.isImplicitDef())
     return false;
@@ -400,8 +402,16 @@ bool TVMExplicitLocals::processInstruction(MachineInstr &MI, LiveIntervals &LIS,
   bool Changed = false;
   StackReorderings Reorderings =
       computeReorderings(MI, LIS, TheStack, NonStackOperands);
-  if (MI.isCommutable() && isCommutation(Reorderings, TheStack))
-    Reorderings.clear();
+  if (isCommutation(Reorderings, TheStack)) {
+    if (MI.isCommutable())
+      Reorderings.clear();
+    else if (MI.getOpcode() == TVM::SUB) {
+      BuildMI(*MI.getParent(), &MI, MI.getDebugLoc(), TII->get(TVM::SUBR_S));
+      MI.removeFromParent();
+      Reorderings.clear();
+      Changed = true;
+    }
+  }
   // TODO: Optimize for R-form (e.g. SUBR, DIVR, etc.)
   performReorderings(Reorderings, &MI, TheStack);
   TheStack.consumeArguments(NumOperands - NonStackOperands - NumDefs);
@@ -455,7 +465,7 @@ bool TVMExplicitLocals::runOnMachineFunction(MachineFunction &MF) {
 
       // TODO: multiple defs should be handled separately.
       assert(MI.getDesc().getNumDefs() <= 1);
-      Changed |= processInstruction(MI, LIS, MRI, TheStack);
+      Changed |= processInstruction(MI, LIS, MRI, TII, TheStack);
     }
   }
 

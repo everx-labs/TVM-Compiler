@@ -117,6 +117,7 @@ defm OR       : BinaryRR<or, "OR  ", 0xb1>;
 defm XOR      : BinaryRR<xor, "XOR ", 0xb2>;
 }
 defm SUB      : BinaryRR<sub, "SUB ", 0xa1>;
+defm SUBR     : BinaryRR<sub, "SUBR ", 0xa2>;
 defm NEGATE   : UnaryR<ineg, "NEGATE ", 0xa3>;
 defm INC      : UnaryR<inc, "INC ", 0xa4>;
 defm DEC      : UnaryR<dec, "DEC ", 0xa5>;

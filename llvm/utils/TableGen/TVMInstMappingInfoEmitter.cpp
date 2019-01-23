@@ -1,4 +1,4 @@
-///===- TVMInstMappingInfoEmitter.cpp - Generate an instruction selector --===//
+///===--- TVMInstMappingInfoEmitter.cpp - Generate REG to S form mapping --===//
 //
 //                     The LLVM Compiler Infrastructure
 //
@@ -25,25 +25,22 @@ using namespace llvm;
 
 namespace {
 
+/// Emit mappings needed for TVM backend passes to overwrite instructions.
 class TVMInstMappingInfoEmitter {
   CodeGenDAGPatterns CDP;
 
 public:
   TVMInstMappingInfoEmitter(RecordKeeper &R) : CDP(R) {}
 
-  // run - Output the instruction set description.
+  /// Build an array RegForm2SForm which maps Register form instruction to the
+  /// corresponding Stack form instruction.
+  /// RegForm2SForm[index of Reg-form instruction] == corresponding S-form
+  /// instruction.
   void run(raw_ostream &OS);
-
-private:
 };
 
 } // End anonymous namespace
 
-//===----------------------------------------------------------------------===//
-// Main Output.
-//===----------------------------------------------------------------------===//
-
-// run - Emit the main instruction description records for the target...
 void TVMInstMappingInfoEmitter::run(raw_ostream &OS) {
   emitSourceFileHeader("Target Instruction Enum Values and Descriptors", OS);
 
@@ -52,29 +49,29 @@ void TVMInstMappingInfoEmitter::run(raw_ostream &OS) {
 
   CodeGenTarget &Target = CDP.getTargetInfo();
 
-  ArrayRef<const CodeGenInstruction*> NumberedInstructions =
-    Target.getInstructionsByEnumValue();
+  ArrayRef<const CodeGenInstruction *> NumberedInstructions =
+      Target.getInstructionsByEnumValue();
 
   unsigned Num = 0;
   std::map<std::string, int> OpcodesMap;
   for (const CodeGenInstruction *Inst : NumberedInstructions) {
-    const Record* rec = Inst->TheDef;
-    if (rec->isSubClassOf("NI"))
-      if (rec->getValueAsBit("isStackForm"))
-        OpcodesMap[rec->getName()] = Num;
+    const Record *Rec = Inst->TheDef;
+    if (Rec->isSubClassOf("NI"))
+      if (Rec->getValueAsBit("isStackForm"))
+        OpcodesMap[Rec->getName()] = Num;
     Num++;
   }
 
-  OS << "int RForm2SForm[] = {\n";
+  OS << "int RegForm2SForm[] = {\n";
 
   Num = 0;
   for (const CodeGenInstruction *Inst : NumberedInstructions) {
-    std::string name = Inst->TheDef->getName();
-    int idx = -1;
-    auto it = OpcodesMap.find(name + "_S");
-    if (it != OpcodesMap.end())
-      idx = it->second;
-    OS << "  " << idx << ", // " << Num << " " << name << "\n";
+    std::string Name = Inst->TheDef->getName();
+    int Idx = -1;
+    auto It = OpcodesMap.find(Name + "_S");
+    if (It != OpcodesMap.end())
+      Idx = It->second;
+    OS << "  " << Idx << ", // " << Num << " " << Name << "\n";
     Num++;
   }
 
@@ -90,4 +87,4 @@ void EmitTVMInstMappingInfo(RecordKeeper &RK, raw_ostream &OS) {
   TVMInstMappingInfoEmitter(RK).run(OS);
 }
 
-} // End llvm namespace
+} // namespace llvm

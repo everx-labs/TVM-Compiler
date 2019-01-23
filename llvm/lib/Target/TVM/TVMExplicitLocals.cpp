@@ -415,7 +415,7 @@ bool TVMExplicitLocals::processInstruction(MachineInstr &MI, LiveIntervals &LIS,
   }
   if (NewOpcode < 0)
     if (MI.getOpcode() != TVM::CONST_I64)
-      NewOpcode = TVM::RForm2SForm[MI.getOpcode()];
+      NewOpcode = TVM::RegForm2SForm[MI.getOpcode()];
   performReorderings(Reorderings, &MI, TheStack);
   TheStack.consumeArguments(NumOperands - NonStackOperands - NumDefs);
   for (size_t ROpNo = 0; ROpNo < NumDefs; ++ROpNo) {

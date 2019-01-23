@@ -27,7 +27,7 @@ class NI<dag oops, dag iops, list<dag> pattern, bit stack, string asmstr = "",
     : TVMInst<inst, asmstr, stack> {
   dag OutOperandList = oops;
   dag InOperandList  = iops;
-  bit isStackForm = 0;
+  bit isStackForm    = 0;
   let Pattern        = pattern;
 }
 

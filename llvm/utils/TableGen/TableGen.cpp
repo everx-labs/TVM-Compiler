@@ -119,7 +119,7 @@ namespace {
                                "Generate X86 fold tables"),
                     clEnumValN(GenRegisterBank, "gen-register-bank",
                                "Generate registers bank descriptions"),
-                    clEnumValN(GenTVMInstMappingInfo, "gen-tvm-info",
+                    clEnumValN(GenTVMInstMappingInfo, "gen-tvm-instr-mapping-info",
                                "Generate TVM tables")));
 
   cl::OptionCategory PrintEnumsCat("Options for -print-enums");

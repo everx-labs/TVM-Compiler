@@ -6,6 +6,7 @@ tablegen(LLVM TVMGenDAGISel.inc -gen-dag-isel)
 tablegen(LLVM TVMGenInstrInfo.inc -gen-instr-info)
 tablegen(LLVM TVMGenRegisterInfo.inc -gen-register-info)
 tablegen(LLVM TVMGenSubtargetInfo.inc -gen-subtarget)
+tablegen(LLVM TVMInstMappingInfo.inc -gen-tvm-info)
 
 add_public_tablegen_target(TVMTableGen)
 

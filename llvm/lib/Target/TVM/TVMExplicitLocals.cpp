@@ -35,6 +35,8 @@
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/raw_ostream.h"
 
+#include "TVMInstMappingInfo.inc"
+
 using namespace llvm;
 
 #define DEBUG_TYPE "tvm-explicit-locals"
@@ -402,17 +404,18 @@ bool TVMExplicitLocals::processInstruction(MachineInstr &MI, LiveIntervals &LIS,
   bool Changed = false;
   StackReorderings Reorderings =
       computeReorderings(MI, LIS, TheStack, NonStackOperands);
+  int NewOpcode = -1;
   if (isCommutation(Reorderings, TheStack)) {
     if (MI.isCommutable())
       Reorderings.clear();
     else if (MI.getOpcode() == TVM::SUB) {
-      BuildMI(*MI.getParent(), &MI, MI.getDebugLoc(), TII->get(TVM::SUBR_S));
-      MI.removeFromParent();
+      NewOpcode = TVM::SUBR_S;
       Reorderings.clear();
-      Changed = true;
     }
   }
-  // TODO: Optimize for R-form (e.g. SUBR, DIVR, etc.)
+  if (NewOpcode < 0)
+    if (MI.getOpcode() != TVM::CONST_I64)
+      NewOpcode = TVM::RForm2SForm[MI.getOpcode()];
   performReorderings(Reorderings, &MI, TheStack);
   TheStack.consumeArguments(NumOperands - NonStackOperands - NumDefs);
   for (size_t ROpNo = 0; ROpNo < NumDefs; ++ROpNo) {
@@ -420,6 +423,11 @@ bool TVMExplicitLocals::processInstruction(MachineInstr &MI, LiveIntervals &LIS,
     const auto &Operand = MI.getOperand(OpNo);
     assert(Operand.isReg() && "Def must be a register");
     TheStack.addDef(Operand.getReg());
+  }
+  if (NewOpcode >= 0) {
+    BuildMI(*MI.getParent(), &MI, MI.getDebugLoc(), TII->get(NewOpcode));
+    MI.removeFromParent();
+    Changed = true;
   }
   return Changed;
 }

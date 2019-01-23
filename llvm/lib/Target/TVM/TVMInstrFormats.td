@@ -27,6 +27,7 @@ class NI<dag oops, dag iops, list<dag> pattern, bit stack, string asmstr = "",
     : TVMInst<inst, asmstr, stack> {
   dag OutOperandList = oops;
   dag InOperandList  = iops;
+  bit isStackForm = 0;
   let Pattern        = pattern;
 }
 
@@ -77,6 +78,7 @@ multiclass I<dag oops_r, dag iops_r, dag oops_s, dag iops_s,
              list<dag> pattern_r, string asmstr_r = "", string asmstr_s = "",
              bits<32> inst = -1> {
   def "" : NI<oops_r, iops_r, pattern_r, 0, asmstr_r, inst>;
+  let isStackForm = 1 in
   def _S : NI<oops_s, iops_s, [], 1, asmstr_s, inst>;
 }
 

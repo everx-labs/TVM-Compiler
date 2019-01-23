@@ -279,27 +279,32 @@ TVMExplicitLocals::computeReorderings(MachineInstr &MI, LiveIntervals &LIS,
        ++ROpNo) {
     size_t OpNo = NumOperands - ROpNo;
     const auto &Operand = MI.getOperand(OpNo);
-    if (!Operand.isReg())
-      continue;
+    assert(Operand.isReg());
     RegUsed.insert(Operand.getReg());
     LastUseOperandIndex[Operand.getReg()] = OpNo;
   }
 
-  // Instruction format: INST %defs..., %non-register args... %register args...
-  for (size_t ROpNo = NumDefs + NonStackOperands; ROpNo < NumOperands;
-       ++ROpNo) {
-    size_t OpNo = NumOperands - ROpNo;
-    const auto &Operand = MI.getOperand(OpNo);
-    if (!Operand.isReg())
-      continue;
-    unsigned RegFrom = Operand.getReg();
-    if (IsKilled(MI, Operand.getReg(), LIS) &&
-        LastUseOperandIndex[Operand.getReg()] == OpNo)
-      Result.emplace_back(RegFrom, ROpNo - NumDefs - NonStackOperands,
-                          StackReorderingKind::Xchg);
+  // Instruction format: INST %defs..., %register args... %non-register args...
+  unsigned NumRegs = NumOperands - NumDefs - NonStackOperands;
+  for (unsigned I = 0; I < NumOperands; ++I) {
+    const auto &Op = MI.getOperand(I);
+    if (I < NumDefs)
+      assert(Op.isDef() && "Expected Def");
+    else if (I < NumDefs + NumRegs)
+      assert(Op.isReg() && "Expected Reg");
     else
-      Result.emplace_back(RegFrom, ROpNo - NumDefs - NonStackOperands,
-                          StackReorderingKind::Copy);
+      assert(Op.isImm() && "Expected Imm");
+  }
+  for (size_t ROpNo = 0; ROpNo < NumRegs; ++ROpNo) {
+    size_t OpNo = NumOperands - 1 - NonStackOperands - ROpNo;
+    const auto &Operand = MI.getOperand(OpNo);
+    assert(Operand.isReg());
+    unsigned RegFrom = Operand.getReg();
+    auto Kind =
+        (IsKilled(MI, RegFrom, LIS) && LastUseOperandIndex[RegFrom] == OpNo)
+            ? StackReorderingKind::Xchg
+            : StackReorderingKind::Copy;
+    Result.emplace_back(RegFrom, ROpNo, Kind);
   }
 
   // We need to adjust XChgs to number of non-register operands together with
@@ -308,25 +313,22 @@ TVMExplicitLocals::computeReorderings(MachineInstr &MI, LiveIntervals &LIS,
   // Collect reorderings that are supposed to be removed later.
   llvm::SmallVector<const StackReordering *, 2> PseudoXchg{};
   for (auto &Reordering : Result) {
+    size_t &SlotTo = Reordering.SlotTo;
+    assert(SlotTo >= NumPushes);
+    SlotTo -= NumPushes;
     if (Reordering.ReorderingKind == StackReorderingKind::Copy) {
-      assert(Reordering.SlotTo >= NumPushes + NonStackOperands);
-      Reordering.SlotTo -= NumPushes + NonStackOperands;
       ++NumPushes;
     } else {
-      assert(Reordering.SlotTo >= NumPushes + NonStackOperands);
-      Reordering.SlotTo -= NumPushes + NonStackOperands;
       // Collect XCHG sN, sN pseudos.
-      if (Reordering.SlotTo ==
-          TheStack.position(Reordering.RegFrom) + NumPushes)
+      if (SlotTo == TheStack.position(Reordering.RegFrom) + NumPushes)
         PseudoXchg.push_back(&Reordering);
       // Collect XCHG sM, sN (M > N) if XCHG sN, sM is also present and cyclic
       // dependencies of a bigger length.
-      if (Reordering.SlotTo <
-              TheStack.position(Reordering.RegFrom) + NumPushes &&
+      if (SlotTo < TheStack.position(Reordering.RegFrom) + NumPushes &&
           TheStack.position(Reordering.RegFrom) + NumPushes <
-              NumOperands - NumDefs - NonStackOperands &&
-          exist(RegUsed, TheStack.reg(Reordering.SlotTo)) &&
-          IsKilled(MI, TheStack.reg(Reordering.SlotTo), LIS))
+              NumOperands - NumDefs &&
+          exist(RegUsed, TheStack.reg(SlotTo)) &&
+          IsKilled(MI, TheStack.reg(SlotTo), LIS))
         PseudoXchg.push_back(&Reordering);
     }
   }
@@ -425,7 +427,13 @@ bool TVMExplicitLocals::processInstruction(MachineInstr &MI, LiveIntervals &LIS,
     TheStack.addDef(Operand.getReg());
   }
   if (NewOpcode >= 0) {
-    BuildMI(*MI.getParent(), &MI, MI.getDebugLoc(), TII->get(NewOpcode));
+    MachineInstrBuilder MIB =
+        BuildMI(*MI.getParent(), &MI, MI.getDebugLoc(), TII->get(NewOpcode));
+    for (unsigned I = 0; I < NonStackOperands; I++) {
+      const auto &Op = MI.getOperand(NumOperands - NonStackOperands + I);
+      assert(Op.isImm());
+      MIB.addImm(Op.getImm());
+    }
     MI.removeFromParent();
     Changed = true;
   }

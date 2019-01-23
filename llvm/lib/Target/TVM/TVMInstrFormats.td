@@ -104,8 +104,8 @@ multiclass BinaryRR<SDNode node, string name, bits<32> i64Inst> {
 }
 
 multiclass BinaryRI<SDNode node, string name, ImmAsmOperand immtype, bits<32> i64Inst> {
-  defm "" : I<(outs I64:$dst), (ins I64:$lhs, immtype:$rhs), (outs), (ins),
+  defm "" : I<(outs I64:$dst), (ins I64:$lhs, immtype:$rhs), (outs), (ins immtype:$rhs),
               [(set I64:$dst, (node I64:$lhs, immtype:$rhs))],
               !strconcat(name, "\t$dst, $lhs, $rhs"),
-              name, i64Inst>;
+              !strconcat(name, "\t$rhs"), i64Inst>;
 }

@@ -52,6 +52,10 @@ struct StackReordering {
   size_t SlotTo;
   /// If we copy (Push) or move (Xchg) the data.
   StackReorderingKind ReorderingKind;
+  /// Checks if it is Copy.
+  bool isCopy() const { return ReorderingKind == StackReorderingKind::Copy; }
+  /// Checks if it is Xchg.
+  bool isXchg() const { return ReorderingKind == StackReorderingKind::Xchg; }
   StackReordering(unsigned RegFrom, size_t SlotTo,
                   StackReorderingKind ReorderingKind)
       : RegFrom(RegFrom), SlotTo(SlotTo), ReorderingKind(ReorderingKind) {}
@@ -86,6 +90,10 @@ public:
   /// \par SlotTo slot number to be exchanged with.
   /// Precondition: Slot number for RegFrom != SlotTo.
   bool xchg(MachineInstr *InsertPoint, unsigned RegFrom, size_t SlotTo);
+  /// A helper function for general xchg()
+  bool xchg(MachineInstr *InsertPoint, const StackReordering &Reordering) {
+    return xchg(InsertPoint, Reordering.RegFrom, Reordering.SlotTo);
+  }
   /// Return position of \par Reg in the stack.
   /// Precondition: \par Reg is in the stack.
   size_t position(unsigned Reg) const {
@@ -94,7 +102,7 @@ public:
   /// Return register for \par Slot in the stack.
   /// Precondition: Slot < Data.size().
   unsigned reg(size_t Slot) const {
-    assert(Slot < Data.size());
+    assert(Slot < Data.size() && "Out of range access");
     return Data[Slot];
   }
   /// Fill the specified \p Slot with \p Reg. Doesn't generate any instruction.
@@ -145,7 +153,7 @@ public:
 
 private:
   /// If \par MO is no longer used after \par MI.
-  bool IsKilled(const MachineInstr &MI, unsigned Register,
+  bool isKilled(const MachineInstr &MI, unsigned Register,
                 const LiveIntervals &LIS) const;
   /// Forms vector of Pushes and Xchgs to supply an instruction with the right
   /// data.
@@ -164,11 +172,9 @@ private:
 bool isCommutation(const StackReorderings &Reorderings, const Stack &TheStack) {
   if (Reorderings.size() != 1u)
     return false;
-  const StackReordering &Reordering = Reorderings[0];
-  return (Reordering.SlotTo == 1u &&
-          TheStack.position(Reordering.RegFrom) == 0u) ||
-         (Reordering.SlotTo == 0u &&
-          TheStack.position(Reordering.RegFrom) == 1u);
+  size_t SlotTo = Reorderings[0].SlotTo;
+  size_t SlotFrom = TheStack.position(Reorderings[0].RegFrom);
+  return (SlotTo == 1 && SlotFrom == 0) || (SlotTo == 0 && SlotFrom == 1);
 }
 
 } // end anonymous namespace
@@ -253,7 +259,7 @@ bool Stack::xchg(MachineInstr *InsertPoint, unsigned RegFrom, size_t SlotTo) {
   return true;
 }
 
-bool TVMExplicitLocals::IsKilled(const MachineInstr &MI, unsigned Register,
+bool TVMExplicitLocals::isKilled(const MachineInstr &MI, unsigned Register,
                                  const LiveIntervals &LIS) const {
   const LiveInterval &LI = LIS.getInterval(Register);
   // If there is no live interval starting from the current instruction
@@ -301,7 +307,7 @@ TVMExplicitLocals::computeReorderings(MachineInstr &MI, LiveIntervals &LIS,
     assert(Operand.isReg());
     unsigned RegFrom = Operand.getReg();
     auto Kind =
-        (IsKilled(MI, RegFrom, LIS) && LastUseOperandIndex[RegFrom] == OpNo)
+        (isKilled(MI, RegFrom, LIS) && LastUseOperandIndex[RegFrom] == OpNo)
             ? StackReorderingKind::Xchg
             : StackReorderingKind::Copy;
     Result.emplace_back(RegFrom, ROpNo, Kind);
@@ -316,19 +322,18 @@ TVMExplicitLocals::computeReorderings(MachineInstr &MI, LiveIntervals &LIS,
     size_t &SlotTo = Reordering.SlotTo;
     assert(SlotTo >= NumPushes);
     SlotTo -= NumPushes;
-    if (Reordering.ReorderingKind == StackReorderingKind::Copy) {
+    if (Reordering.isCopy()) {
       ++NumPushes;
     } else {
       // Collect XCHG sN, sN pseudos.
-      if (SlotTo == TheStack.position(Reordering.RegFrom) + NumPushes)
+      size_t SlotFrom = TheStack.position(Reordering.RegFrom) + NumPushes;
+      if (SlotTo == SlotFrom)
         PseudoXchg.push_back(&Reordering);
       // Collect XCHG sM, sN (M > N) if XCHG sN, sM is also present and cyclic
       // dependencies of a bigger length.
-      if (SlotTo < TheStack.position(Reordering.RegFrom) + NumPushes &&
-          TheStack.position(Reordering.RegFrom) + NumPushes <
-              NumOperands - NumDefs &&
+      if (SlotTo < SlotFrom && SlotFrom < NumOperands - NumDefs &&
           exist(RegUsed, TheStack.reg(SlotTo)) &&
-          IsKilled(MI, TheStack.reg(SlotTo), LIS))
+          isKilled(MI, TheStack.reg(SlotTo), LIS))
         PseudoXchg.push_back(&Reordering);
     }
   }
@@ -357,28 +362,24 @@ void TVMExplicitLocals::performReorderings(const StackReorderings &Reorderings,
   size_t RevIdx = 0;
   while (RevIdx < NumElements) {
     size_t Idx = NumElements - RevIdx - 1;
-    if (Reorderings[Idx].ReorderingKind == StackReorderingKind::Copy) {
+    if (Reorderings[Idx].isCopy()) {
       // If the current reordering is PUSH, execute preceding (in reverse order)
       // XCHGs
       for (size_t I = Idx + 1; I < LastPush; ++I) {
-        assert(Reorderings[I].ReorderingKind == StackReorderingKind::Xchg &&
-               "Unexpected reordering");
-        TheStack.xchg(InsertPoint, Reorderings[I].RegFrom,
-                      Reorderings[I].SlotTo);
+        assert(Reorderings[I].isXchg() && "Unexpected reordering");
+        TheStack.xchg(InsertPoint, Reorderings[I]);
       }
       TheStack.push(InsertPoint, Reorderings[Idx].RegFrom);
-      if (Reorderings[Idx].SlotTo)
-        TheStack.xchg(InsertPoint, Reorderings[Idx].RegFrom,
-                      Reorderings[Idx].SlotTo);
+      if (Reorderings[Idx].SlotTo > 0)
+        TheStack.xchg(InsertPoint, Reorderings[Idx]);
       LastPush = Idx;
     }
     ++RevIdx;
   }
   // If reorderings start with XCHGs.
   for (size_t I = 0; I < LastPush; ++I) {
-    assert(Reorderings[I].ReorderingKind == StackReorderingKind::Xchg &&
-           "Unexpected reordering");
-    TheStack.xchg(InsertPoint, Reorderings[I].RegFrom, Reorderings[I].SlotTo);
+    assert(Reorderings[I].isXchg() && "Unexpected reordering");
+    TheStack.xchg(InsertPoint, Reorderings[I]);
   }
 }
 

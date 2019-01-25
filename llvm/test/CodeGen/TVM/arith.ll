@@ -40,7 +40,7 @@ define i64 @subi64const(i64 %par) nounwind {
 
 ; CHECK-LABEL: subi64constReversed
 define i64 @subi64constReversed(i64 %par) nounwind {
-; CHECK: PUSHINT {{%[0-9]}}, 2
+; CHECK: PUSHINT 2
 ; CHECK-NEXT: SUBR
   %1 = sub i64 2, %par
   ret i64 %1

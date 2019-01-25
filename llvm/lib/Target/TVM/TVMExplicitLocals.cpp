@@ -145,8 +145,7 @@ public:
   /// Inserts necessary stack manipulation instructions to supply \par MI with
   /// the correct data.
   bool processInstruction(MachineInstr &MI, LiveIntervals &LIS,
-                          MachineRegisterInfo &MRI, const TargetInstrInfo *TII,
-                          Stack &TheStack);
+                          const TargetInstrInfo *TII, Stack &TheStack);
 
   static char ID; // Pass identification, replacement for typeid
   TVMExplicitLocals() : MachineFunctionPass(ID) {}
@@ -167,9 +166,12 @@ private:
                           MachineInstr *InsertPoint, Stack &TheStack);
 };
 
+} // end anonymous namespace
+
 // Return true if reorderings might be optimized away for a commutative
 // instruction.
-bool isCommutation(const StackReorderings &Reorderings, const Stack &TheStack) {
+static bool isCommutation(const StackReorderings &Reorderings,
+                          const Stack &TheStack) {
   if (Reorderings.size() != 1u)
     return false;
   size_t SlotTo = Reorderings[0].SlotTo;
@@ -177,7 +179,12 @@ bool isCommutation(const StackReorderings &Reorderings, const Stack &TheStack) {
   return (SlotTo == 1 && SlotFrom == 0) || (SlotTo == 0 && SlotFrom == 1);
 }
 
-} // end anonymous namespace
+// A shortcut overload for BuildMI() function
+static inline MachineInstrBuilder BuildMI(MachineInstr *InsertPoint,
+                                          const MCInstrDesc &InstrDesc) {
+  return BuildMI(*InsertPoint->getParent(), InsertPoint,
+                 InsertPoint->getDebugLoc(), InstrDesc);
+}
 
 char TVMExplicitLocals::ID = 0;
 INITIALIZE_PASS(TVMExplicitLocals, DEBUG_TYPE,
@@ -219,14 +226,10 @@ bool Stack::clear(MachineInstr *InsertPoint, unsigned Preserved) {
   unsigned Opc = getPopOpcode(&TVM::I64RegClass);
   // DROPs
   for (size_t i = 0; i < NumDrops; ++i)
-    BuildMI(*InsertPoint->getParent(), InsertPoint, InsertPoint->getDebugLoc(),
-            TII->get(Opc))
-        .addImm(0);
+    BuildMI(InsertPoint, TII->get(Opc)).addImm(0);
   // NIPs
   for (size_t i = 0; i < NumNips; ++i)
-    BuildMI(*InsertPoint->getParent(), InsertPoint, InsertPoint->getDebugLoc(),
-            TII->get(Opc))
-        .addImm(1);
+    BuildMI(InsertPoint, TII->get(Opc)).addImm(1);
   if (It == std::end(Data))
     Data.clear();
   else
@@ -238,9 +241,7 @@ bool Stack::push(MachineInstr *InsertPoint, unsigned Reg) {
   size_t RegSlot = position(Reg);
   assert(RegSlot <= PushLimit && "Unimplemented");
   unsigned Opc = getPushOpcode(&TVM::I64RegClass);
-  BuildMI(*InsertPoint->getParent(), InsertPoint, InsertPoint->getDebugLoc(),
-          TII->get(Opc))
-      .addImm(RegSlot);
+  BuildMI(InsertPoint, TII->get(Opc)).addImm(RegSlot);
   Data.push_front(Data[RegSlot]);
   return true;
 }
@@ -251,8 +252,7 @@ bool Stack::xchg(MachineInstr *InsertPoint, unsigned RegFrom, size_t SlotTo) {
   assert(RegFromSlot <= XchgLimit && "Unimplemented");
   assert(RegFromSlot != SlotTo);
   unsigned Opc = getXchgOpcode(&TVM::I64RegClass);
-  BuildMI(*InsertPoint->getParent(), InsertPoint, InsertPoint->getDebugLoc(),
-          TII->get(Opc))
+  BuildMI(InsertPoint, TII->get(Opc))
       .addImm(std::min(RegFromSlot, SlotTo))
       .addImm(std::max(RegFromSlot, SlotTo));
   std::swap(*It, Data[SlotTo]);
@@ -274,6 +274,7 @@ TVMExplicitLocals::computeReorderings(MachineInstr &MI, LiveIntervals &LIS,
   StackReorderings Result{};
   size_t NumDefs = MI.getNumDefs();
   size_t NumOperands = MI.getNumOperands();
+  size_t NumRegs = NumOperands - NumDefs - NonStackOperands;
 
   llvm::SmallSet<unsigned, 2> RegUsed{};
 
@@ -281,9 +282,8 @@ TVMExplicitLocals::computeReorderings(MachineInstr &MI, LiveIntervals &LIS,
   // the only copy of it, so we need to produce copies for each but the last
   // usage of the register even if its killed by MI.
   llvm::DenseMap<unsigned, size_t> LastUseOperandIndex(NextPowerOf2(2 * 4 / 3));
-  for (size_t ROpNo = NumDefs + NonStackOperands; ROpNo < NumOperands;
-       ++ROpNo) {
-    size_t OpNo = NumOperands - ROpNo;
+  for (size_t ROpNo = 0; ROpNo < NumRegs; ++ROpNo) {
+    size_t OpNo = NumOperands - NonStackOperands - 1 - ROpNo;
     const auto &Operand = MI.getOperand(OpNo);
     assert(Operand.isReg());
     RegUsed.insert(Operand.getReg());
@@ -291,7 +291,7 @@ TVMExplicitLocals::computeReorderings(MachineInstr &MI, LiveIntervals &LIS,
   }
 
   // Instruction format: INST %defs..., %register args... %non-register args...
-  unsigned NumRegs = NumOperands - NumDefs - NonStackOperands;
+  // Let's ensure that all instructions have expected type
   for (unsigned I = 0; I < NumOperands; ++I) {
     const auto &Op = MI.getOperand(I);
     if (I < NumDefs)
@@ -301,6 +301,7 @@ TVMExplicitLocals::computeReorderings(MachineInstr &MI, LiveIntervals &LIS,
     else
       assert(Op.isImm() && "Expected Imm");
   }
+
   for (size_t ROpNo = 0; ROpNo < NumRegs; ++ROpNo) {
     size_t OpNo = NumOperands - 1 - NonStackOperands - ROpNo;
     const auto &Operand = MI.getOperand(OpNo);
@@ -384,15 +385,17 @@ void TVMExplicitLocals::performReorderings(const StackReorderings &Reorderings,
 }
 
 bool TVMExplicitLocals::processInstruction(MachineInstr &MI, LiveIntervals &LIS,
-                                           MachineRegisterInfo &MRI,
                                            const TargetInstrInfo *TII,
                                            Stack &TheStack) {
   if (MI.isImplicitDef())
     return false;
+
+  size_t NumDefs = MI.getNumDefs();
+  size_t NumOperands = MI.getNumOperands();
+
   if (MI.isReturn()) {
-    assert(MI.getNumOperands() <= 2 &&
-           "Multiple returns are not implemented yet");
-    if (MI.getNumOperands() == 0)
+    assert(NumOperands <= 2 && "Multiple returns are not implemented yet");
+    if (NumOperands == 0)
       TheStack.clear(&MI);
     else
       TheStack.clear(&MI, MI.getOperand(0).getReg());
@@ -400,8 +403,6 @@ bool TVMExplicitLocals::processInstruction(MachineInstr &MI, LiveIntervals &LIS,
     return true;
   }
 
-  size_t NumDefs = MI.getNumDefs();
-  size_t NumOperands = MI.getNumOperands();
   size_t NonStackOperands =
       count_if(MI.operands(), [](MachineOperand MOP) { return !MOP.isReg(); });
   bool Changed = false;
@@ -417,19 +418,16 @@ bool TVMExplicitLocals::processInstruction(MachineInstr &MI, LiveIntervals &LIS,
     }
   }
   if (NewOpcode < 0)
-    if (MI.getOpcode() != TVM::CONST_I64)
-      NewOpcode = TVM::RegForm2SForm[MI.getOpcode()];
+    NewOpcode = TVM::RegForm2SForm[MI.getOpcode()];
   performReorderings(Reorderings, &MI, TheStack);
   TheStack.consumeArguments(NumOperands - NonStackOperands - NumDefs);
   for (size_t ROpNo = 0; ROpNo < NumDefs; ++ROpNo) {
-    size_t OpNo = NumDefs - ROpNo - 1;
-    const auto &Operand = MI.getOperand(OpNo);
+    const auto &Operand = MI.getOperand(NumDefs - ROpNo - 1);
     assert(Operand.isReg() && "Def must be a register");
     TheStack.addDef(Operand.getReg());
   }
   if (NewOpcode >= 0) {
-    MachineInstrBuilder MIB =
-        BuildMI(*MI.getParent(), &MI, MI.getDebugLoc(), TII->get(NewOpcode));
+    MachineInstrBuilder MIB = BuildMI(&MI, TII->get(NewOpcode));
     for (unsigned I = 0; I < NonStackOperands; I++) {
       const auto &Op = MI.getOperand(NumOperands - NonStackOperands + I);
       assert(Op.isImm());
@@ -450,11 +448,9 @@ bool TVMExplicitLocals::runOnMachineFunction(MachineFunction &MF) {
   bool Changed = false;
   TVMFunctionInfo &MFI = *MF.getInfo<TVMFunctionInfo>();
   const auto *TII = MF.getSubtarget<TVMSubtarget>().getInstrInfo();
-  Stack TheStack(TII, MFI.numParams());
   LiveIntervals &LIS = getAnalysis<LiveIntervals>();
-  MachineRegisterInfo &MRI = MF.getRegInfo();
-
   size_t NumArgs = MFI.numParams();
+  Stack TheStack(TII, NumArgs);
 
   // Handle ARGUMENTS first to ensure that they get the designated numbers.
   for (MachineBasicBlock::iterator I = MF.begin()->begin(),
@@ -482,7 +478,7 @@ bool TVMExplicitLocals::runOnMachineFunction(MachineFunction &MF) {
 
       // TODO: multiple defs should be handled separately.
       assert(MI.getDesc().getNumDefs() <= 1);
-      Changed |= processInstruction(MI, LIS, MRI, TII, TheStack);
+      Changed |= processInstruction(MI, LIS, TII, TheStack);
     }
   }
 

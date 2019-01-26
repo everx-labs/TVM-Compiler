@@ -90,12 +90,6 @@ void TVMAsmPrinter::EmitInstruction(const MachineInstr *MI) {
   case TVM::ARGUMENT:
     llvm_unreachable("CG only instruction mustn't reach ASM printer");
     break;
-  case TVM::CG_XCHG:
-    // CG_XCHG is XCHG s0, s0 pseudo.
-    if (isVerbose())
-      OutStreamer->AddComment("XCHG s0, s0");
-    OutStreamer->AddBlankLine();
-    break;
   default:
     TVMMCInstLower MCInstLowering(OutContext, *this);
 

@@ -87,25 +87,20 @@ def dec : PatFrag<(ops node:$in), (add node:$in, -1)>;
 //===----------------------------------------------------------------------===//
 // Basic stack manipulation primitives
 //===----------------------------------------------------------------------===//
+
+defm NOP : SI<(ins), "NOP", 0x00>;
+
 // Stack manipulation instructions are not supposed to be selected, instead
 // ExplicitLocal pass inserts them to manipulate with local variables.
 // They has mayLoad because it reads from a local, which is a side effect
 // not otherwise modeled in LLVM.
 
-// Peudo XCHG s0, s0.
-let mayLoad = 1, isAsCheapAsAMove = 1, isCodeGenOnly = 1 in
-defm CG_XCHG : I<(outs I64:$res), (ins stack_op:$local),
-                 (outs), (ins stack_op:$local), []>;
 let mayLoad = 1, isAsCheapAsAMove = 1 in
-defm PUSH : I<(outs I64:$res), (ins stack_op:$local),
-              (outs), (ins stack_op:$local), [],
-              "PUSH\t$res, $local", "PUSH\t$local", 0x20>;
+defm PUSH : SI<(ins stack_op:$local), "PUSH\t$local", 0x20>;
 
 let mayLoad = 1, isAsCheapAsAMove = 1 in
-defm XCHG : NRI<(outs), (ins stack_op:$src, stack_op:$dst), [],
-                "XCHG\t$src, $dst", 0x10>;
-defm POP : NRI<(outs), (ins stack_op:$dst), [], "POP\t$dst", 0x30>;
-defm NOP : NRI<(outs), (ins), [], "NOP", 0x00>;
+defm XCHG : SI<(ins stack_op:$src, stack_op:$dst), "XCHG\t$src, $dst", 0x10>;
+defm POP  : SI<(ins stack_op:$dst), "POP\t$dst", 0x30>;
 //===----------------------------------------------------------------------===//
 // Arithmetic instructions
 //===----------------------------------------------------------------------===//

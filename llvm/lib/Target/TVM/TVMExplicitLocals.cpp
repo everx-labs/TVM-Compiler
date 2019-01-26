@@ -194,26 +194,6 @@ FunctionPass *llvm::createTVMExplicitLocals() {
   return new TVMExplicitLocals();
 }
 
-/// Get the appropriate Pop opcode for the given register class.
-static unsigned getPopOpcode(const TargetRegisterClass *RC) {
-  if (RC == &TVM::I64RegClass)
-    return TVM::POP_S;
-  llvm_unreachable("Unexpected register class");
-}
-
-/// Get the appropriate Push opcode for the given register class.
-static unsigned getPushOpcode(const TargetRegisterClass *RC) {
-  if (RC == &TVM::I64RegClass)
-    return TVM::PUSH_S;
-  llvm_unreachable("Unexpected register class");
-}
-
-static unsigned getXchgOpcode(const TargetRegisterClass *RC) {
-  if (RC == &TVM::I64RegClass)
-    return TVM::XCHG;
-  llvm_unreachable("Unexpected register class");
-}
-
 bool Stack::clear(MachineInstr *InsertPoint, unsigned Preserved) {
   auto It = llvm::find(Data, Preserved);
   size_t NumDrops = 0, NumNips = 0;
@@ -223,7 +203,7 @@ bool Stack::clear(MachineInstr *InsertPoint, unsigned Preserved) {
     NumDrops = std::distance(std::begin(Data), It);
     NumNips = Data.size() - NumDrops - 1;
   }
-  unsigned Opc = getPopOpcode(&TVM::I64RegClass);
+  unsigned Opc = TVM::POP;
   // DROPs
   for (size_t i = 0; i < NumDrops; ++i)
     BuildMI(InsertPoint, TII->get(Opc)).addImm(0);
@@ -240,8 +220,7 @@ bool Stack::clear(MachineInstr *InsertPoint, unsigned Preserved) {
 bool Stack::push(MachineInstr *InsertPoint, unsigned Reg) {
   size_t RegSlot = position(Reg);
   assert(RegSlot <= PushLimit && "Unimplemented");
-  unsigned Opc = getPushOpcode(&TVM::I64RegClass);
-  BuildMI(InsertPoint, TII->get(Opc)).addImm(RegSlot);
+  BuildMI(InsertPoint, TII->get(TVM::PUSH)).addImm(RegSlot);
   Data.push_front(Data[RegSlot]);
   return true;
 }
@@ -251,8 +230,7 @@ bool Stack::xchg(MachineInstr *InsertPoint, unsigned RegFrom, size_t SlotTo) {
   size_t RegFromSlot = std::distance(std::begin(Data), It);
   assert(RegFromSlot <= XchgLimit && "Unimplemented");
   assert(RegFromSlot != SlotTo);
-  unsigned Opc = getXchgOpcode(&TVM::I64RegClass);
-  BuildMI(InsertPoint, TII->get(Opc))
+  BuildMI(InsertPoint, TII->get(TVM::XCHG))
       .addImm(std::min(RegFromSlot, SlotTo))
       .addImm(std::max(RegFromSlot, SlotTo));
   std::swap(*It, Data[SlotTo]);

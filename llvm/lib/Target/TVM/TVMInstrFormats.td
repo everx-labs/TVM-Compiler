@@ -82,6 +82,13 @@ multiclass I<dag oops_r, dag iops_r, dag oops_s, dag iops_s,
   def _S : NI<oops_s, iops_s, [], 1, asmstr_s, inst>;
 }
 
+// Stack manipulation instructions.
+// They aren't support to be selected on DAG but instead later backend passes
+// insert them.
+multiclass SI<dag iops, string asmstr, bits<32> inst = -1> {
+  def "" : NI<(outs), iops, [], 1, asmstr, inst>;
+}
+
 // For instructions that have no register ops, so both sets are the same.
 multiclass NRI<dag oops, dag iops, list<dag> pattern, string asmstr = "",
                bits<32> inst = -1> {

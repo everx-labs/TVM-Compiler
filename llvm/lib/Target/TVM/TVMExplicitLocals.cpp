@@ -17,6 +17,7 @@
 //===----------------------------------------------------------------------===//
 
 #include <deque>
+#include <variant>
 
 #include "MCTargetDesc/TVMMCTargetDesc.h"
 #include "TVM.h"
@@ -44,10 +45,11 @@ using namespace llvm;
 namespace {
 
 enum class StackReorderingKind { Copy, Xchg };
+using StackElementT = std::variant<unsigned, MachineBasicBlock *>;
 
 struct StackReordering {
-  /// The register we get data from.
-  unsigned RegFrom;
+  /// The register or the basic block we get data from.
+  StackElementT ElemFrom;
   /// The number of slot we put data to.
   size_t SlotTo;
   /// If we copy (Push) or move (Xchg) the data.
@@ -56,9 +58,9 @@ struct StackReordering {
   bool isCopy() const { return ReorderingKind == StackReorderingKind::Copy; }
   /// Checks if it is Xchg.
   bool isXchg() const { return ReorderingKind == StackReorderingKind::Xchg; }
-  StackReordering(unsigned RegFrom, size_t SlotTo,
+  StackReordering(StackElementT ElemFrom, size_t SlotTo,
                   StackReorderingKind ReorderingKind)
-      : RegFrom(RegFrom), SlotTo(SlotTo), ReorderingKind(ReorderingKind) {}
+      : ElemFrom(ElemFrom), SlotTo(SlotTo), ReorderingKind(ReorderingKind) {}
 };
 
 // Most of the instructions have at most 2 arguments.
@@ -79,36 +81,38 @@ public:
   bool clear(MachineInstr *InsertPoint,
              unsigned Preserved = TVMFunctionInfo::UnusedReg);
   /// PUSH the specified slot to the specified position of the stack.
-  /// Do nothing if \p Reg is already in \p Slot.
-  /// Precondition: Register is present in Data.
+  /// Do nothing if \p Elem is already in \p Slot.
+  /// Precondition: Elem is present in Data.
   /// TODO: Stack PUSH limitations aren't handled yet.
   /// \par InsertPoint specify instruction to insert after.
-  /// \par Reg virtual register number for the data source.
-  bool push(MachineInstr *InsertPoint, unsigned Reg);
+  /// \par Elem virtual register or basic block.
+  void push(MachineInstr *InsertPoint, StackElementT Elem);
   /// \par InsertPoint specify instruction to insert after.
-  /// \par RegFrom register number to be exchanged in the stack.
+  /// \par ElemFrom register or BB to be exchanged in the stack.
   /// \par SlotTo slot number to be exchanged with.
-  /// Precondition: Slot number for RegFrom != SlotTo.
-  bool xchg(MachineInstr *InsertPoint, unsigned RegFrom, size_t SlotTo);
+  /// Precondition: Slot number for ElemFrom != SlotTo.
+  bool xchg(MachineInstr *InsertPoint, StackElementT ElemFrom, size_t SlotTo);
   /// A helper function for general xchg()
   bool xchg(MachineInstr *InsertPoint, const StackReordering &Reordering) {
-    return xchg(InsertPoint, Reordering.RegFrom, Reordering.SlotTo);
+    return xchg(InsertPoint, Reordering.ElemFrom, Reordering.SlotTo);
   }
-  /// Return position of \par Reg in the stack.
-  /// Precondition: \par Reg is in the stack.
-  size_t position(unsigned Reg) const {
-    return std::distance(std::begin(Data), llvm::find_or_fail(Data, Reg));
+  /// Return position of \par Elem in the stack.
+  /// Precondition: \par Elem is in the stack.
+  size_t position(StackElementT Elem) const {
+    return std::distance(std::begin(Data), llvm::find_or_fail(Data, Elem));
   }
   /// Return register for \par Slot in the stack.
-  /// Precondition: Slot < Data.size().
+  /// Precondition: Slot < Data.size() && Data[Slot] is a register.
   unsigned reg(size_t Slot) const {
     assert(Slot < Data.size() && "Out of range access");
-    return Data[Slot];
+    assert(std::holds_alternative<unsigned>(Data[Slot]) &&
+           "Stack doesn't contain a register at Slot");
+    return std::get<unsigned>(Data[Slot]);
   }
-  /// Fill the specified \p Slot with \p Reg. Doesn't generate any instruction.
-  void set(size_t Slot, size_t Reg) {
+  /// Fill the specified \p Slot with \p Elem. Doesn't generate any instruction.
+  void set(size_t Slot, StackElementT Elem) {
     assert(Slot < Data.size() && "Out of range access");
-    Data[Slot] = Reg;
+    Data[Slot] = Elem;
   }
   /// Remove arguments an instruction consumed from the stack.
   /// Precondition: Stack has enough Slots to consume.
@@ -127,7 +131,7 @@ public:
 
 private:
   const TargetInstrInfo *TII;
-  std::deque<unsigned> Data;
+  std::deque<StackElementT> Data;
 };
 
 class TVMExplicitLocals final : public MachineFunctionPass {
@@ -168,14 +172,14 @@ private:
 
 } // end anonymous namespace
 
-// Return true if reorderings might be optimized away for a commutative
-// instruction.
+/// Return true if reorderings might be optimized away for a commutative
+/// instruction.
 static bool isCommutation(const StackReorderings &Reorderings,
                           const Stack &TheStack) {
   if (Reorderings.size() != 1u)
     return false;
   size_t SlotTo = Reorderings[0].SlotTo;
-  size_t SlotFrom = TheStack.position(Reorderings[0].RegFrom);
+  size_t SlotFrom = TheStack.position(Reorderings[0].ElemFrom);
   return (SlotTo == 1 && SlotFrom == 0) || (SlotTo == 0 && SlotFrom == 1);
 }
 
@@ -217,22 +221,22 @@ bool Stack::clear(MachineInstr *InsertPoint, unsigned Preserved) {
   return NumDrops && NumNips;
 }
 
-bool Stack::push(MachineInstr *InsertPoint, unsigned Reg) {
-  size_t RegSlot = position(Reg);
-  assert(RegSlot <= PushLimit && "Unimplemented");
-  BuildMI(InsertPoint, TII->get(TVM::PUSH)).addImm(RegSlot);
-  Data.push_front(Data[RegSlot]);
-  return true;
+void Stack::push(MachineInstr *InsertPoint, StackElementT Elem) {
+  size_t ElemSlot = position(Elem);
+  assert(ElemSlot <= PushLimit && "Unimplemented");
+  BuildMI(InsertPoint, TII->get(TVM::PUSH)).addImm(ElemSlot);
+  Data.push_front(Data[ElemSlot]);
 }
 
-bool Stack::xchg(MachineInstr *InsertPoint, unsigned RegFrom, size_t SlotTo) {
-  auto It = llvm::find_or_fail(Data, RegFrom);
-  size_t RegFromSlot = std::distance(std::begin(Data), It);
-  assert(RegFromSlot <= XchgLimit && "Unimplemented");
-  assert(RegFromSlot != SlotTo);
+bool Stack::xchg(MachineInstr *InsertPoint, StackElementT ElemFrom,
+                 size_t SlotTo) {
+  auto It = llvm::find_or_fail(Data, ElemFrom);
+  size_t ElemFromSlot = std::distance(std::begin(Data), It);
+  assert(ElemFromSlot <= XchgLimit && "Unimplemented");
+  assert(ElemFromSlot != SlotTo);
   BuildMI(InsertPoint, TII->get(TVM::XCHG))
-      .addImm(std::min(RegFromSlot, SlotTo))
-      .addImm(std::max(RegFromSlot, SlotTo));
+      .addImm(std::min(ElemFromSlot, SlotTo))
+      .addImm(std::max(ElemFromSlot, SlotTo));
   std::swap(*It, Data[SlotTo]);
   return true;
 }
@@ -305,7 +309,7 @@ TVMExplicitLocals::computeReorderings(MachineInstr &MI, LiveIntervals &LIS,
       ++NumPushes;
     } else {
       // Collect XCHG sN, sN pseudos.
-      size_t SlotFrom = TheStack.position(Reordering.RegFrom) + NumPushes;
+      size_t SlotFrom = TheStack.position(Reordering.ElemFrom) + NumPushes;
       if (SlotTo == SlotFrom)
         PseudoXchg.push_back(&Reordering);
       // Collect XCHG sM, sN (M > N) if XCHG sN, sM is also present and cyclic
@@ -348,7 +352,7 @@ void TVMExplicitLocals::performReorderings(const StackReorderings &Reorderings,
         assert(Reorderings[I].isXchg() && "Unexpected reordering");
         TheStack.xchg(InsertPoint, Reorderings[I]);
       }
-      TheStack.push(InsertPoint, Reorderings[Idx].RegFrom);
+      TheStack.push(InsertPoint, Reorderings[Idx].ElemFrom);
       if (Reorderings[Idx].SlotTo > 0)
         TheStack.xchg(InsertPoint, Reorderings[Idx]);
       LastPush = Idx;

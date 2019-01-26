@@ -55,6 +55,8 @@ def i64imm_op : Operand<i64>;
 let OperandType = "OPERAND_FUNCTION32" in
 def function32_op : Operand<i32>;
 
+let OperandType = "OPERAND_BASIC_BLOCK" in
+def bb_op : Operand<OtherVT>;
 }
 
 //===----------------------------------------------------------------------===//
@@ -70,14 +72,34 @@ defm ARGUMENT : I<(outs I64:$res), (ins i64imm:$argno),
                   (outs), (ins i64imm:$argno),
                   [(set I64:$res, (TVMargument timm:$argno))]>;
 
+let isTerminator = 1, hasCtrlDep = 1 in {
+  let isReturn = 1, isBarrier = 1 in {
+    defm RETURN_I64 : NRI<(outs), (ins i64imm:$val), [(TVMreturn i64:$val)],
+                          "NOP", 0x00>;
+    defm RETURN_VOID : NRI<(outs), (ins), [(TVMreturn)], "NOP", 0x00>;
+    let isCodeGenOnly = 1 in
+    defm FALLTHROUGH_RETURN_VOID : NRI<(outs), (ins), []>;
+  } // isReturn = 1, isBarrier = 1
 
-let isTerminator = 1, hasCtrlDep = 1, isBarrier = 1, isReturn = 1 in {
-  defm RETURN_I64 : NRI<(outs), (ins i64imm:$val), [(TVMreturn i64:$val)],
-                        "NOP", 0x00>;
-  defm RETURN_VOID : NRI<(outs), (ins), [(TVMreturn)], "NOP", 0x00>;
-  let isCodeGenOnly = 1 in
-  defm FALLTHROUGH_RETURN_VOID : NRI<(outs), (ins), []>;
-}
+  defm ISZERO : I<(outs I64:$dst), (ins I64:$src), (outs), (ins),
+                   [(set I64:$dst, (setcc I64:$src, 0, SETEQ))],
+                   "ISZERO\t$dst, $src", "ISZERO", 0xc000>;
+
+  let isBranch = 1 in {
+    // The condition operand is a boolean value which TVM represents as i64.
+    defm IFJMP : I<(outs), (ins I64:$cond, bb_op:$dst),
+                   (outs), (ins),
+                   [(brcond I64:$cond, bb:$dst)],
+                    "IFJMP\t$dst, $cond", "IFJMP", 0xe0>;
+
+    let isBarrier = 1 in {
+      defm JMPX  : I<(outs), (ins bb_op:$dst),
+                     (outs), (ins),
+                     [(br bb:$dst)],
+                     "JMPX\t$dst", "JMPX", 0xd9>;
+    } // isBarrier = 1
+  } // isBranch = 1
+} // isTerminator = 1, hasCtrlDep = 1
 
 let isCall = 1, hasCtrlDep = 1 in {
   defm CALL_VOID : NRI<(outs), (ins i64imm:$callee), [(TVMcall0 i64:$callee)], "CALLX", 0xD9>;
@@ -89,6 +111,8 @@ defm CONST_I64 : I<(outs I64:$res), (ins i64imm:$imm),
                    [(set I64:$res, imm:$imm)],
                    "PUSHINT\t$res, $imm", "PUSHINT\t$imm", 0x82>;
 }
+
+defm PUSHCONT : NRI<(outs), (ins bb_op:$bb), [], "PUSHCONT\t$bb", 0x8f>;
 //===----------------------------------------------------------------------===//
 // Selection patterns
 //===----------------------------------------------------------------------===//

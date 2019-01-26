@@ -43,10 +43,11 @@ void TVMInstPrinter::printOperand(const MCInst *MI, unsigned OpNo,
     if (Info.OperandType == TVM::OPERAND_STACK)
       O << "s";
     O << Op.getImm();
+  } else if (Op.isExpr()) {
+    assert(Info.OperandType == TVM::OPERAND_BASIC_BLOCK &&
+           "Unimplemented expression type");
+    Op.getExpr()->print(O, &MAI);
   } else {
-    unsigned TVMReg = Op.getReg();
-    O << "%" << TVMFunctionInfo::getTVMRegStackId(TVMReg);
-    // TODO: It should be unreacheble once stackification implemented.
-    // llvm_unreachable("unimplemented");
+    llvm_unreachable("Unexpected operand");
   }
 }

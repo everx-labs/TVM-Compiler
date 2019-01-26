@@ -58,6 +58,10 @@ TVMTargetLowering::TVMTargetLowering(const TargetMachine &TM,
 
   setMinFunctionAlignment(1);
   setPrefFunctionAlignment(1);
+
+  // Expand these forms; we pattern-match the forms that we can handle in isel.
+  for (auto Op : {ISD::BR_CC, ISD::SELECT_CC})
+    setOperationAction(Op, MVT::i64, Expand);
 }
 
 //===----------------------------------------------------------------------===//

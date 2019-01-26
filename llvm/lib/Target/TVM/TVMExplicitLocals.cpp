@@ -44,7 +44,7 @@ using namespace llvm;
 
 namespace {
 
-enum class StackReorderingKind { Copy, Xchg };
+enum class StackReorderingKind { Copy, Xchg, New };
 using StackElementT = std::variant<unsigned, MachineBasicBlock *>;
 
 struct StackReordering {
@@ -52,11 +52,13 @@ struct StackReordering {
   StackElementT ElemFrom;
   /// The number of slot we put data to.
   size_t SlotTo;
-  /// If we copy (Push) or move (Xchg) the data.
+  /// If we copy (Push), move (Xchg) or create new element (PushCont, etc).
   StackReorderingKind ReorderingKind;
-  /// Checks if it is Copy.
+  /// Check if the reordering copies an existing element to SlotTo.
   bool isCopy() const { return ReorderingKind == StackReorderingKind::Copy; }
-  /// Checks if it is Xchg.
+  /// Check if the reordering creates a new element at SlotTo.
+  bool isNew() const { return ReorderingKind == StackReorderingKind::New; }
+  /// Check if the reordering exchanges elements in a stack.
   bool isXchg() const { return ReorderingKind == StackReorderingKind::Xchg; }
   StackReordering(StackElementT ElemFrom, size_t SlotTo,
                   StackReorderingKind ReorderingKind)
@@ -81,12 +83,16 @@ public:
   bool clear(MachineInstr *InsertPoint,
              unsigned Preserved = TVMFunctionInfo::UnusedReg);
   /// PUSH the specified slot to the specified position of the stack.
-  /// Do nothing if \p Elem is already in \p Slot.
   /// Precondition: Elem is present in Data.
   /// TODO: Stack PUSH limitations aren't handled yet.
   /// \par InsertPoint specify instruction to insert after.
   /// \par Elem virtual register or basic block.
   void push(MachineInstr *InsertPoint, StackElementT Elem);
+  /// Put a continuation (represented as a pointer to a basic block) on top of
+  /// the stack. This operation doesn't depend on whether the element is already
+  /// in stack and it never results in generation of PUSH instruction. Instead,
+  /// it uses PUSHCONT.
+  void pushNew(MachineInstr *InsertPoint, MachineBasicBlock &MBB);
   /// \par InsertPoint specify instruction to insert after.
   /// \par ElemFrom register or BB to be exchanged in the stack.
   /// \par SlotTo slot number to be exchanged with.
@@ -178,9 +184,18 @@ static bool isCommutation(const StackReorderings &Reorderings,
                           const Stack &TheStack) {
   if (Reorderings.size() != 1u)
     return false;
+  if (!Reorderings[0].isXchg())
+    return false;
   size_t SlotTo = Reorderings[0].SlotTo;
   size_t SlotFrom = TheStack.position(Reorderings[0].ElemFrom);
   return (SlotTo == 1 && SlotFrom == 0) || (SlotTo == 0 && SlotFrom == 1);
+}
+
+static inline bool isStackOperand(const MachineOperand &MOP) {
+  assert((MOP.isReg() || MOP.isImm() || MOP.isMBB() || MOP.isGlobal()) &&
+         "Unexpected operand type: reconsider the predicate.");
+  // TODO: Globals should be on stack.
+  return MOP.isReg() || MOP.isMBB();
 }
 
 // A shortcut overload for BuildMI() function
@@ -228,6 +243,11 @@ void Stack::push(MachineInstr *InsertPoint, StackElementT Elem) {
   Data.push_front(Data[ElemSlot]);
 }
 
+void Stack::pushNew(MachineInstr *InsertPoint, MachineBasicBlock &MBB) {
+  BuildMI(InsertPoint, TII->get(TVM::PUSHCONT)).addMBB(&MBB);
+  Data.push_front(&MBB);
+}
+
 bool Stack::xchg(MachineInstr *InsertPoint, StackElementT ElemFrom,
                  size_t SlotTo) {
   auto It = llvm::find_or_fail(Data, ElemFrom);
@@ -256,18 +276,22 @@ TVMExplicitLocals::computeReorderings(MachineInstr &MI, LiveIntervals &LIS,
   StackReorderings Result{};
   size_t NumDefs = MI.getNumDefs();
   size_t NumOperands = MI.getNumOperands();
-  size_t NumRegs = NumOperands - NumDefs - NonStackOperands;
 
   llvm::SmallSet<unsigned, 2> RegUsed{};
+  size_t NumStackOperands = NumOperands - NumDefs - NonStackOperands;
 
   // The same register could be used multiple times, but the stack keeps
   // the only copy of it, so we need to produce copies for each but the last
   // usage of the register even if its killed by MI.
   llvm::DenseMap<unsigned, size_t> LastUseOperandIndex(NextPowerOf2(2 * 4 / 3));
-  for (size_t ROpNo = 0; ROpNo < NumRegs; ++ROpNo) {
-    size_t OpNo = NumOperands - NonStackOperands - 1 - ROpNo;
+  for (size_t ROpNo = 0; ROpNo < NumStackOperands; ++ROpNo) {
+    size_t OpNo = NumOperands - 1 - ROpNo - NonStackOperands;
     const auto &Operand = MI.getOperand(OpNo);
-    assert(Operand.isReg());
+    assert(isStackOperand(Operand) && "Wrong instruction format");
+    // Control-flow arguments mustn't be used in an instruction more than once.
+    // Thus we could omit tracking last use of it.
+    if (!Operand.isReg())
+      continue;
     RegUsed.insert(Operand.getReg());
     LastUseOperandIndex[Operand.getReg()] = OpNo;
   }
@@ -278,22 +302,29 @@ TVMExplicitLocals::computeReorderings(MachineInstr &MI, LiveIntervals &LIS,
     const auto &Op = MI.getOperand(I);
     if (I < NumDefs)
       assert(Op.isDef() && "Expected Def");
-    else if (I < NumDefs + NumRegs)
-      assert(Op.isReg() && "Expected Reg");
+    else if (I < NumDefs + NumStackOperands)
+      // TODO: should be isStackOperand(Op) once we put global address on stack.
+      assert((Op.isReg() || Op.isMBB()) &&
+             "Expected a register or a basic block");
     else
+      // TODO: should be !isStackOperand(Op) once we put global address
+      //       on stack.
       assert((Op.isImm() || Op.isGlobal()) && "Expected Imm or GlobalAddress");
   }
 
-  for (size_t ROpNo = 0; ROpNo < NumRegs; ++ROpNo) {
+  for (size_t ROpNo = 0; ROpNo < NumStackOperands; ++ROpNo) {
     size_t OpNo = NumOperands - 1 - NonStackOperands - ROpNo;
     const auto &Operand = MI.getOperand(OpNo);
-    assert(Operand.isReg());
-    unsigned RegFrom = Operand.getReg();
-    auto Kind =
-        (isKilled(MI, RegFrom, LIS) && LastUseOperandIndex[RegFrom] == OpNo)
-            ? StackReorderingKind::Xchg
-            : StackReorderingKind::Copy;
-    Result.emplace_back(RegFrom, ROpNo, Kind);
+    if (Operand.isReg()) {
+      unsigned RegFrom = Operand.getReg();
+      auto Kind =
+          (isKilled(MI, RegFrom, LIS) && LastUseOperandIndex[RegFrom] == OpNo)
+              ? StackReorderingKind::Xchg
+              : StackReorderingKind::Copy;
+      Result.emplace_back(RegFrom, ROpNo, Kind);
+    } else if (Operand.isMBB()) {
+      Result.emplace_back(Operand.getMBB(), ROpNo, StackReorderingKind::New);
+    }
   }
 
   // We need to adjust XChgs to number of non-register operands together with
@@ -305,7 +336,7 @@ TVMExplicitLocals::computeReorderings(MachineInstr &MI, LiveIntervals &LIS,
     size_t &SlotTo = Reordering.SlotTo;
     assert(SlotTo >= NumPushes);
     SlotTo -= NumPushes;
-    if (Reordering.isCopy()) {
+    if (Reordering.isCopy() || Reordering.isNew()) {
       ++NumPushes;
     } else {
       // Collect XCHG sN, sN pseudos.
@@ -345,16 +376,26 @@ void TVMExplicitLocals::performReorderings(const StackReorderings &Reorderings,
   size_t RevIdx = 0;
   while (RevIdx < NumElements) {
     size_t Idx = NumElements - RevIdx - 1;
-    if (Reorderings[Idx].isCopy()) {
+    auto &Reordering = Reorderings[Idx];
+    if (Reordering.isCopy() || Reordering.isNew()) {
       // If the current reordering is PUSH, execute preceding (in reverse order)
       // XCHGs
       for (size_t I = Idx + 1; I < LastPush; ++I) {
         assert(Reorderings[I].isXchg() && "Unexpected reordering");
         TheStack.xchg(InsertPoint, Reorderings[I]);
       }
-      TheStack.push(InsertPoint, Reorderings[Idx].ElemFrom);
-      if (Reorderings[Idx].SlotTo > 0)
-        TheStack.xchg(InsertPoint, Reorderings[Idx]);
+      auto &Elem = Reordering.ElemFrom;
+      if (Reordering.isCopy()) {
+        TheStack.push(InsertPoint, Elem);
+      } else {
+        assert(std::holds_alternative<MachineBasicBlock *>(Elem) &&
+               "Unimplemented");
+        auto *MBB = std::get<MachineBasicBlock *>(Elem);
+        assert(MBB);
+        TheStack.pushNew(InsertPoint, *MBB);
+      }
+      if (Reordering.SlotTo > 0)
+        TheStack.xchg(InsertPoint, Reordering);
       LastPush = Idx;
     }
     ++RevIdx;
@@ -385,8 +426,8 @@ bool TVMExplicitLocals::processInstruction(MachineInstr &MI, LiveIntervals &LIS,
     return true;
   }
 
-  size_t NonStackOperands =
-      count_if(MI.operands(), [](MachineOperand MOP) { return !MOP.isReg(); });
+  size_t NonStackOperands = count_if(
+      MI.operands(), [](MachineOperand MOP) { return !isStackOperand(MOP); });
   bool Changed = false;
   StackReorderings Reorderings =
       computeReorderings(MI, LIS, TheStack, NonStackOperands);

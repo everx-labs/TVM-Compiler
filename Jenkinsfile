@@ -28,6 +28,7 @@ pipeline {
     options {
         buildDiscarder logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '20')
         disableConcurrentBuilds()
+        lock('RamDrive')
         }
     environment {
         WORKDIR = getVar(G_workdir)

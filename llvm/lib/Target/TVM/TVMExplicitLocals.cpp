@@ -231,13 +231,6 @@ static inline bool isStackOperand(const MachineOperand &MOP) {
   return MOP.isReg() || MOP.isMBB();
 }
 
-// A shortcut overload for BuildMI() function
-static inline MachineInstrBuilder BuildMI(MachineInstr *InsertPoint,
-                                          const MCInstrDesc &InstrDesc) {
-  return BuildMI(*InsertPoint->getParent(), InsertPoint,
-                 InsertPoint->getDebugLoc(), InstrDesc);
-}
-
 char TVMExplicitLocals::ID = 0;
 INITIALIZE_PASS(TVMExplicitLocals, DEBUG_TYPE,
                 "Convert registers to TVM locals", false, false)
@@ -501,7 +494,6 @@ bool TVMExplicitLocals::processInstruction(MachineInstr &MI, LiveIntervals &LIS,
       TheStack.clear(&MI);
     else
       TheStack.clear(&MI, MI.getOperand(0).getReg());
-    MI.eraseFromParent();
     return true;
   }
 

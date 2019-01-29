@@ -32,6 +32,7 @@ extern "C" void LLVMInitializeTVMTarget() {
   initializeTVMRegStackifyPass(PR);
   initializeTVMRegNumberingPass(PR);
   initializeTVMExplicitLocalsPass(PR);
+  initializeTVMPeepholePass(PR);
 }
 
 static Reloc::Model getEffectiveRelocModel(Optional<Reloc::Model> RM) {
@@ -114,7 +115,11 @@ void TVMPassConfig::addPreEmitPass() {
   addPass(createTVMRegStackify());
   addPass(createTVMExplicitLocals());
 
-  // Create a mapping from LLVM CodeGen virtual registers to wasm registers.
+  // Perform the very last peephole optimizations on the code.
+  if (getOptLevel() != CodeGenOpt::None)
+    addPass(createTVMPeephole());
+
+  // Create a mapping from LLVM CodeGen virtual registers to tvm registers.
   addPass(createTVMRegNumbering());
 }
 

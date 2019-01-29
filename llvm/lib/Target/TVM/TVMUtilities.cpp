@@ -1,4 +1,4 @@
-//===-- TVMUtilities.cpp - TVM Utility Functions ----------===//
+//===------------- TVMUtilities.cpp - TVM Utility Functions ---------------===//
 //
 //                     The LLVM Compiler Infrastructure
 //
@@ -16,6 +16,7 @@
 #include "TVMMachineFunctionInfo.h"
 #include "llvm/CodeGen/MachineInstr.h"
 #include "llvm/CodeGen/MachineLoopInfo.h"
+
 using namespace llvm;
 
 bool TVM::isArgument(const MachineInstr &MI) {
@@ -25,4 +26,11 @@ bool TVM::isArgument(const MachineInstr &MI) {
   default:
     return false;
   }
+}
+
+// A shortcut overload for BuildMI() function
+MachineInstrBuilder llvm::BuildMI(MachineInstr *InsertPoint,
+                                  const MCInstrDesc &InstrDesc) {
+  return BuildMI(*InsertPoint->getParent(), InsertPoint,
+                 InsertPoint->getDebugLoc(), InstrDesc);
 }

@@ -85,7 +85,7 @@ multiclass I<dag oops_r, dag iops_r, dag oops_s, dag iops_s,
 // Stack manipulation instructions.
 // They aren't support to be selected on DAG but instead later backend passes
 // insert them.
-multiclass SI<dag iops, string asmstr, bits<32> inst = -1> {
+multiclass SI<dag iops, string asmstr = "", bits<32> inst = -1> {
   def "" : NI<(outs), iops, [], 1, asmstr, inst>;
 }
 

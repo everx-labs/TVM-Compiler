@@ -16,14 +16,20 @@
 #define LLVM_LIB_TARGET_TVM_TVMUTILITIES_H
 
 #include "llvm/CodeGen/MachineBasicBlock.h"
+#include "llvm/CodeGen/MachineInstrBuilder.h"
 
 namespace llvm {
 
 class TVMFunctionInfo;
 
+// A shortcut overload for BuildMI() function
+MachineInstrBuilder BuildMI(MachineInstr *InsertPoint,
+                            const MCInstrDesc &InstrDesc);
+
 namespace TVM {
 
 bool isArgument(const MachineInstr &MI);
+
 } // end namespace TVM
 
 } // end namespace llvm

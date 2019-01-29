@@ -32,6 +32,7 @@ FunctionPass *createTVMPrepareForLiveIntervals();
 FunctionPass *createTVMRegStackify();
 FunctionPass *createTVMRegNumbering();
 FunctionPass *createTVMExplicitLocals();
+FunctionPass *createTVMPeephole();
 
 void initializeTVMArgumentMovePass(PassRegistry &);
 void initializeTVMReplacePhysRegsPass(PassRegistry &);
@@ -39,6 +40,7 @@ void initializeTVMPrepareForLiveIntervalsPass(PassRegistry &);
 void initializeTVMRegStackifyPass(PassRegistry &);
 void initializeTVMRegNumberingPass(PassRegistry &);
 void initializeTVMExplicitLocalsPass(PassRegistry &);
+void initializeTVMPeepholePass(PassRegistry &);
 } // namespace llvm
 
 #endif // LLVM_LIB_TARGET_TVM_TVM_H

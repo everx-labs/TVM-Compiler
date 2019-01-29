@@ -78,10 +78,10 @@ defm ARGUMENT : I<(outs I64:$res), (ins i64imm:$argno),
 let isTerminator = 1, hasCtrlDep = 1 in {
   let isReturn = 1, isBarrier = 1 in {
     defm RETURN_I64 : NRI<(outs), (ins i64imm:$val), [(TVMreturn i64:$val)],
-                          "NOP", 0x00>;
-    defm RETURN_VOID : NRI<(outs), (ins), [(TVMreturn)], "NOP", 0x00>;
+                          "RETARGS\t1", 0xdb21>;
+    defm RETURN_VOID : NRI<(outs), (ins), [(TVMreturn)], "RETARGS\t0", 0xdb20>;
     let isCodeGenOnly = 1 in
-    defm FALLTHROUGH_RETURN_VOID : NRI<(outs), (ins), []>;
+    defm FALLTHROUGH_RETURN : SI<(ins)>;
   } // isReturn = 1, isBarrier = 1
 
   defm ISZERO : I<(outs I64:$dst), (ins I64:$src), (outs), (ins),
@@ -103,7 +103,6 @@ let isTerminator = 1, hasCtrlDep = 1 in {
     } // isBarrier = 1
   } // isBranch = 1
 } // isTerminator = 1, hasCtrlDep = 1
-
 
 // TODO: The approach with two CALLs was copied from WebAssembly backend.
 // We need to investigate how it works and why 2 CALLs are needed

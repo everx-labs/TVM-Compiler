@@ -8,7 +8,19 @@ define void @nop() nounwind {
 
 ; CHECK-LABEL: test0
 define void @test0() nounwind {
-; CHECK: CALLX
+; CHECK: PUSHCONT nop
+; CHECK-NEXT: CALLX
+  call void @nop()
+  ret void
+}
+
+; CHECK-LABEL: test00
+define void @test00() nounwind {
+; CHECK: PUSHCONT nop
+; CHECK-NEXT: CALLX
+; CHECK-NEXT: PUSHCONT nop
+; CHECK-NEXT: CALLX
+  call void @nop()
   call void @nop()
   ret void
 }

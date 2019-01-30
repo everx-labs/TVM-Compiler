@@ -244,7 +244,7 @@ void Stack::push(MachineInstr *InsertPoint, StackElementT Elem) {
 }
 
 void Stack::pushNew(MachineInstr *InsertPoint, MachineBasicBlock &MBB) {
-  BuildMI(InsertPoint, TII->get(TVM::PUSHCONT)).addMBB(&MBB);
+  BuildMI(InsertPoint, TII->get(TVM::PUSHCONT_MBB)).addMBB(&MBB);
   Data.push_front(&MBB);
 }
 
@@ -450,13 +450,21 @@ bool TVMExplicitLocals::processInstruction(MachineInstr &MI, LiveIntervals &LIS,
     TheStack.addDef(Operand.getReg());
   }
   if (NewOpcode >= 0) {
+    // add global addresses before the command
+    // TODO: continuation must be modelled in the stack then.
+    for (unsigned I = 0; I < NonStackOperands; I++) {
+      const auto &Op = MI.getOperand(NumOperands - NonStackOperands + I);
+      if (Op.isGlobal())
+        BuildMI(&MI, TII->get(TVM::PUSHCONT_FUNC))
+            .addGlobalAddress(Op.getGlobal(), Op.getOffset());
+    }
     MachineInstrBuilder MIB = BuildMI(&MI, TII->get(NewOpcode));
     for (unsigned I = 0; I < NonStackOperands; I++) {
       const auto &Op = MI.getOperand(NumOperands - NonStackOperands + I);
       if (Op.isImm())
         MIB.addImm(Op.getImm());
       else if (Op.isGlobal()) {
-        MIB.addGlobalAddress(Op.getGlobal(), Op.getOffset());
+        // globals are processed above
       } else
         assert(false && "Expected Imm or GlobalAddress");
     }

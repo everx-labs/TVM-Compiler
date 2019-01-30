@@ -54,8 +54,10 @@ void TVMMCInstLower::Lower(const MachineInstr *MI, MCInst &OutMI) const {
           MCSymbolRefExpr::create(MO.getMBB()->getSymbol(), Ctx));
       break;
     case MachineOperand::MO_GlobalAddress:
-      // TODO: not sure what to do here
-      MCOp = MCOperand::createImm(MO.getOffset());
+      assert(MO.getTargetFlags() == 0 &&
+             "TVM does not use target flags on GlobalAddresses");
+      MCOp = MCOperand::createExpr(
+          MCSymbolRefExpr::create(Printer.getSymbol(MO.getGlobal()), Ctx));
       break;
     case MachineOperand::MO_RegisterMask:
       continue;

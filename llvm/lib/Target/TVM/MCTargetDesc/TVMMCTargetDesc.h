@@ -30,6 +30,8 @@ enum OperandType {
   OPERAND_STACK,
   /// 64-bit integer immediates.
   OPERAND_I64IMM,
+  /// Function.
+  OPERAND_FUNCTION,
 };
 } // end namespace TVM
 

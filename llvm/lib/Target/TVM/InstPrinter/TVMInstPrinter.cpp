@@ -44,7 +44,8 @@ void TVMInstPrinter::printOperand(const MCInst *MI, unsigned OpNo,
       O << "s";
     O << Op.getImm();
   } else if (Op.isExpr()) {
-    assert(Info.OperandType == TVM::OPERAND_BASIC_BLOCK &&
+    assert((Info.OperandType == TVM::OPERAND_BASIC_BLOCK ||
+            Info.OperandType == TVM::OPERAND_FUNCTION) &&
            "Unimplemented expression type");
     Op.getExpr()->print(O, &MAI);
   } else {

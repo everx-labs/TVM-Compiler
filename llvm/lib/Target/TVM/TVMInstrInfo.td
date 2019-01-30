@@ -36,7 +36,7 @@ def TVMcallseq_end :
 def TVMreturn : SDNode<"TVMISD::RETURN",
                        SDT_TVMReturn, [SDNPHasChain]>;
 def TVMargument : SDNode<"TVMISD::ARGUMENT", SDT_TVMArgument>;
-def TVMcall0 : SDNode<"TVMISD::CALL0", SDT_TVMCall0, 
+def TVMcall0 : SDNode<"TVMISD::CALL0", SDT_TVMCall0,
                       [SDNPHasChain, SDNPVariadic]>;
 
 //===----------------------------------------------------------------------===//
@@ -52,8 +52,8 @@ def stack_op : Operand<i8>;
 let OperandType = "OPERAND_I64IMM" in
 def i64imm_op : Operand<i64>;
 
-let OperandType = "OPERAND_FUNCTION32" in
-def function32_op : Operand<i32>;
+let OperandType = "OPERAND_FUNCTION" in
+def function_op : Operand<i32>;
 
 let OperandType = "OPERAND_BASIC_BLOCK" in
 def bb_op : Operand<OtherVT>;
@@ -112,7 +112,10 @@ defm CONST_I64 : I<(outs I64:$res), (ins i64imm:$imm),
                    "PUSHINT\t$res, $imm", "PUSHINT\t$imm", 0x82>;
 }
 
-defm PUSHCONT : NRI<(outs), (ins bb_op:$bb), [], "PUSHCONT\t$bb", 0x8f>;
+defm PUSHCONT_MBB : NRI<(outs), (ins bb_op:$bb), [], "PUSHCONT\t$bb", 0x8f>;
+defm PUSHCONT_FUNC : NRI<(outs), (ins function_op:$callee), [],
+                         "PUSHCONT\t$callee", 0x8f>;
+
 //===----------------------------------------------------------------------===//
 // Selection patterns
 //===----------------------------------------------------------------------===//

@@ -22,6 +22,7 @@ def SDT_TVMCallSeqStart : SDCallSeqStart<[SDTCisVT<0, i64>,
 def SDT_TVMCallSeqEnd   : SDCallSeqEnd<[SDTCisVT<0, i64>, SDTCisVT<1, i64>]>;
 def SDT_TVMReturn       : SDTypeProfile<0, -1, []>;
 def SDT_TVMArgument     : SDTypeProfile<1, 1, [SDTCisVT<1, i64>]>;
+def SDT_TVMCall0        : SDTypeProfile<0, -1, [SDTCisPtrTy<0>]>;
 
 //===----------------------------------------------------------------------===//
 // TVM specific node definitions
@@ -35,6 +36,8 @@ def TVMcallseq_end :
 def TVMreturn : SDNode<"TVMISD::RETURN",
                        SDT_TVMReturn, [SDNPHasChain]>;
 def TVMargument : SDNode<"TVMISD::ARGUMENT", SDT_TVMArgument>;
+def TVMcall0 : SDNode<"TVMISD::CALL0", SDT_TVMCall0, 
+                      [SDNPHasChain, SDNPVariadic]>;
 
 //===----------------------------------------------------------------------===//
 // TVM-specific Operands.
@@ -48,6 +51,9 @@ def stack_op : Operand<i8>;
 
 let OperandType = "OPERAND_I64IMM" in
 def i64imm_op : Operand<i64>;
+
+let OperandType = "OPERAND_FUNCTION32" in
+def function32_op : Operand<i32>;
 
 }
 
@@ -71,6 +77,10 @@ let isTerminator = 1, hasCtrlDep = 1, isBarrier = 1, isReturn = 1 in {
   defm RETURN_VOID : NRI<(outs), (ins), [(TVMreturn)], "NOP", 0x00>;
   let isCodeGenOnly = 1 in
   defm FALLTHROUGH_RETURN_VOID : NRI<(outs), (ins), []>;
+}
+
+let isCall = 1, hasCtrlDep = 1 in {
+  defm CALL_VOID : NRI<(outs), (ins i64imm:$callee), [(TVMcall0 i64:$callee)], "CALLX", 0xD9>;
 }
 
 let isMoveImm = 1, isAsCheapAsAMove = 1, isReMaterializable = 1 in {

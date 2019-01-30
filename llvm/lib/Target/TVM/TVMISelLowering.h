@@ -50,6 +50,8 @@ public:
   const char *getTargetNodeName(unsigned Opcode) const override;
 
 private:
+  SDValue LowerCall(CallLoweringInfo &CLI,
+                    SmallVectorImpl<SDValue> &InVals) const override;
   bool CanLowerReturn(CallingConv::ID CallConv, MachineFunction &MF,
                       bool isVarArg,
                       const SmallVectorImpl<ISD::OutputArg> &Outs,
@@ -63,6 +65,9 @@ private:
                                const SmallVectorImpl<ISD::InputArg> &Ins,
                                const SDLoc &DL, SelectionDAG &DAG,
                                SmallVectorImpl<SDValue> &InVals) const override;
+
+  // Custom lowering hooks.
+  SDValue LowerGlobalAddress(SDValue Op, SelectionDAG &DAG) const;
 };
 } // namespace llvm
 

@@ -273,7 +273,7 @@ TVMExplicitLocals::computeReorderings(MachineInstr &MI, LiveIntervals &LIS,
   }
 
   // Instruction format: INST %defs..., %register args... %non-register args...
-  // Let's ensure that all instructions have expected type
+  // Let's ensure that all operands have expected type
   for (unsigned I = 0; I < NumOperands; ++I) {
     const auto &Op = MI.getOperand(I);
     if (I < NumDefs)
@@ -281,7 +281,7 @@ TVMExplicitLocals::computeReorderings(MachineInstr &MI, LiveIntervals &LIS,
     else if (I < NumDefs + NumRegs)
       assert(Op.isReg() && "Expected Reg");
     else
-      assert(Op.isImm() && "Expected Imm");
+      assert((Op.isImm() || Op.isGlobal()) && "Expected Imm or GlobalAddress");
   }
 
   for (size_t ROpNo = 0; ROpNo < NumRegs; ++ROpNo) {
@@ -412,8 +412,12 @@ bool TVMExplicitLocals::processInstruction(MachineInstr &MI, LiveIntervals &LIS,
     MachineInstrBuilder MIB = BuildMI(&MI, TII->get(NewOpcode));
     for (unsigned I = 0; I < NonStackOperands; I++) {
       const auto &Op = MI.getOperand(NumOperands - NonStackOperands + I);
-      assert(Op.isImm());
-      MIB.addImm(Op.getImm());
+      if (Op.isImm())
+        MIB.addImm(Op.getImm());
+      else if (Op.isGlobal()) {
+        MIB.addGlobalAddress(Op.getGlobal(), Op.getOffset());
+      } else
+        assert(false && "Expected Imm or GlobalAddress");
     }
     MI.removeFromParent();
     Changed = true;

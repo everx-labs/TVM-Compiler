@@ -53,6 +53,10 @@ void TVMMCInstLower::Lower(const MachineInstr *MI, MCInst &OutMI) const {
       MCOp = MCOperand::createExpr(
           MCSymbolRefExpr::create(MO.getMBB()->getSymbol(), Ctx));
       break;
+    case MachineOperand::MO_GlobalAddress:
+      // TODO: not sure what to do here
+      MCOp = MCOperand::createImm(MO.getOffset());
+      break;
     case MachineOperand::MO_RegisterMask:
       continue;
     }

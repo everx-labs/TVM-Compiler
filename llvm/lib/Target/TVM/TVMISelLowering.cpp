@@ -54,6 +54,8 @@ TVMTargetLowering::TVMTargetLowering(const TargetMachine &TM,
   // Compute derived properties from the register classes
   computeRegisterProperties(STI.getRegisterInfo());
 
+  setOperationAction(ISD::GlobalAddress, MVT::i64, Custom);
+
   setMinFunctionAlignment(1);
   setPrefFunctionAlignment(1);
 }
@@ -79,6 +81,51 @@ static bool CallingConvSupported(CallingConv::ID CallConv) {
          CallConv == CallingConv::PreserveMost ||
          CallConv == CallingConv::PreserveAll ||
          CallConv == CallingConv::CXX_FAST_TLS;
+}
+
+SDValue TVMTargetLowering::LowerCall(CallLoweringInfo &CLI,
+                                     SmallVectorImpl<SDValue> &InVals) const {
+  SelectionDAG &DAG = CLI.DAG;
+  SDLoc DL = CLI.DL;
+  SDValue Chain = CLI.Chain;
+  SDValue Callee = CLI.Callee;
+  MachineFunction &MF = DAG.getMachineFunction();
+
+  CallingConv::ID CallConv = CLI.CallConv;
+  if (!CallingConvSupported(CallConv))
+    fail(DL, DAG,
+         "TVM doesn't support language-specific or target-specific "
+         "calling conventions yet");
+  if (CLI.IsPatchPoint)
+    fail(DL, DAG, "TVM doesn't support patch point yet");
+
+  // TVM doesn't currently support explicit tail calls. If they are
+  // required, fail. Otherwise, just disable them.
+  if ((CallConv == CallingConv::Fast && CLI.IsTailCall &&
+       MF.getTarget().Options.GuaranteedTailCallOpt) ||
+      (CLI.CS && CLI.CS.isMustTailCall()))
+    fail(DL, DAG, "TVM doesn't support tail call yet");
+  CLI.IsTailCall = false;
+
+  SmallVectorImpl<ISD::InputArg> &Ins = CLI.Ins;
+  if (Ins.size() > 0)
+    fail(DL, DAG, "TVM doesn't support more than 0 returned value yet");
+
+  SmallVectorImpl<ISD::OutputArg> &Outs = CLI.Outs;
+  if (Outs.size() > 0)
+    fail(DL, DAG,
+         "TVM doesn't support more than 0 call parameters yet");
+
+  // Compute the operands for the CALLn node.
+  SmallVector<SDValue, 16> Ops;
+  Ops.push_back(Chain);
+  Ops.push_back(Callee);
+
+  SmallVector<EVT, 8> InTys;
+  InTys.push_back(MVT::Other);
+  SDVTList InTyList = DAG.getVTList(InTys);
+  SDValue Res = DAG.getNode(TVMISD::CALL0, DL, InTyList, Ops);
+  return Res;
 }
 
 bool TVMTargetLowering::CanLowerReturn(
@@ -166,9 +213,23 @@ SDValue TVMTargetLowering::LowerFormalArguments(
 
 SDValue TVMTargetLowering::LowerOperation(SDValue Op, SelectionDAG &DAG) const {
   switch (Op.getOpcode()) {
+  case ISD::GlobalAddress:
+    return LowerGlobalAddress(Op, DAG);
   default:
     llvm_unreachable("unimplemented operand");
   }
+}
+
+SDValue TVMTargetLowering::LowerGlobalAddress(SDValue Op,
+                                              SelectionDAG &DAG) const {
+  SDLoc DL(Op);
+  const auto *GA = cast<GlobalAddressSDNode>(Op);
+  EVT VT = Op.getValueType();
+  assert(GA->getTargetFlags() == 0 &&
+         "Unexpected target flags on generic GlobalAddressSDNode");
+  if (GA->getAddressSpace() != 0)
+    fail(DL, DAG, "TVM only expects the 0 address space");
+  return DAG.getTargetGlobalAddress(GA->getGlobal(), DL, VT, GA->getOffset());
 }
 
 const char *TVMTargetLowering::getTargetNodeName(unsigned Opcode) const {

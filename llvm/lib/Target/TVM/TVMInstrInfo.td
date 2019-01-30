@@ -23,6 +23,7 @@ def SDT_TVMCallSeqEnd   : SDCallSeqEnd<[SDTCisVT<0, i64>, SDTCisVT<1, i64>]>;
 def SDT_TVMReturn       : SDTypeProfile<0, -1, []>;
 def SDT_TVMArgument     : SDTypeProfile<1, 1, [SDTCisVT<1, i64>]>;
 def SDT_TVMCall0        : SDTypeProfile<0, -1, [SDTCisPtrTy<0>]>;
+def SDT_TVMCall1        : SDTypeProfile<1, -1, [SDTCisPtrTy<1>]>;
 
 //===----------------------------------------------------------------------===//
 // TVM specific node definitions
@@ -37,6 +38,8 @@ def TVMreturn : SDNode<"TVMISD::RETURN",
                        SDT_TVMReturn, [SDNPHasChain]>;
 def TVMargument : SDNode<"TVMISD::ARGUMENT", SDT_TVMArgument>;
 def TVMcall0 : SDNode<"TVMISD::CALL0", SDT_TVMCall0,
+                      [SDNPHasChain, SDNPVariadic]>;
+def TVMcall1 : SDNode<"TVMISD::CALL1", SDT_TVMCall1,
                       [SDNPHasChain, SDNPVariadic]>;
 
 //===----------------------------------------------------------------------===//
@@ -101,8 +104,15 @@ let isTerminator = 1, hasCtrlDep = 1 in {
   } // isBranch = 1
 } // isTerminator = 1, hasCtrlDep = 1
 
+
+// TODO: The approach with two CALLs was copied from WebAssembly backend.
+// We need to investigate how it works and why 2 CALLs are needed
 let isCall = 1, hasCtrlDep = 1 in {
-  defm CALL_VOID : NRI<(outs), (ins i64imm:$callee), [(TVMcall0 i64:$callee)], "CALLX", 0xD9>;
+  defm CALL_VOID : NRI<(outs), (ins i64imm:$callee),
+                       [(TVMcall0 i64:$callee)], "CALLX", 0xD9>;
+  defm CALL_1 : NRI<(outs I64:$dst), (ins i64imm:$callee),
+                    [(set I64:$dst, (TVMcall1 i64:$callee))],
+                    "CALLX", 0xD9>;
 }
 
 let isMoveImm = 1, isAsCheapAsAMove = 1, isReMaterializable = 1 in {

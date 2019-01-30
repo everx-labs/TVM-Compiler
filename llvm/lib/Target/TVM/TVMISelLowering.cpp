@@ -112,8 +112,8 @@ SDValue TVMTargetLowering::LowerCall(CallLoweringInfo &CLI,
   CLI.IsTailCall = false;
 
   SmallVectorImpl<ISD::InputArg> &Ins = CLI.Ins;
-  if (Ins.size() > 0)
-    fail(DL, DAG, "TVM doesn't support more than 0 returned value yet");
+  if (Ins.size() > 1)
+    fail(DL, DAG, "TVM doesn't support more than 1 returned value yet");
 
   SmallVectorImpl<ISD::OutputArg> &Outs = CLI.Outs;
   if (Outs.size() > 0)
@@ -126,10 +126,26 @@ SDValue TVMTargetLowering::LowerCall(CallLoweringInfo &CLI,
   Ops.push_back(Callee);
 
   SmallVector<EVT, 8> InTys;
+  for (const auto &In : Ins) {
+    // TODO: add checks for In.Flags (copy from
+    // WebAssemblyTargetLowering::LowerCall())
+    assert(In.VT.SimpleTy == MVT::SimpleValueType::i64 &&
+           "only i64 is supported");
+    InTys.push_back(In.VT);
+  }
   InTys.push_back(MVT::Other);
+
   SDVTList InTyList = DAG.getVTList(InTys);
-  SDValue Res = DAG.getNode(TVMISD::CALL0, DL, InTyList, Ops);
-  return Res;
+  SDValue Res = DAG.getNode(Ins.empty() ? TVMISD::CALL0 : TVMISD::CALL1, DL,
+                            InTyList, Ops);
+  // TODO: investigate chaining logic (copied from WebAssembly)
+  if (Ins.empty()) {
+    Chain = Res;
+  } else {
+    InVals.push_back(Res);
+    Chain = Res.getValue(1);
+  }
+  return Chain;
 }
 
 bool TVMTargetLowering::CanLowerReturn(

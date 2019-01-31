@@ -280,12 +280,37 @@ TVMExplicitLocals::computeReorderings(MachineInstr &MI, LiveIntervals &LIS,
   llvm::SmallSet<unsigned, 2> RegUsed{};
   size_t NumStackOperands = NumOperands - NumDefs - NonStackOperands;
 
+  // Expected operands order: defs, global addresses, registers or MBB,
+  // constants
+  size_t NumGlobals = 0;
+  for (unsigned I = 0; I < NumOperands; ++I)
+    if (MI.getOperand(I).isGlobal())
+      NumGlobals++;
+
+  // Let's ensure that all operands have expected type
+  for (unsigned I = 0; I < NumOperands; ++I) {
+    const auto &Op = MI.getOperand(I);
+    if (I < NumDefs)
+      assert(Op.isDef() && "Expected Def");
+    else if (I < NumDefs + NumGlobals)
+      assert(Op.isGlobal() && "Expected GlobalAddress");
+    else if (I < NumDefs + NumGlobals + NumStackOperands)
+      assert(isStackOperand(Op) && "Expected a register or a basic block");
+    else
+      // TODO: should be !isStackOperand(Op) once we put global address
+      //       on stack.
+      assert(Op.isImm() && "Expected Imm");
+  }
+
+  size_t NumImms = NumOperands - NumDefs - NumGlobals - NumStackOperands;
+  assert(NumImms + NumGlobals == NonStackOperands);
+
   // The same register could be used multiple times, but the stack keeps
   // the only copy of it, so we need to produce copies for each but the last
   // usage of the register even if its killed by MI.
   llvm::DenseMap<unsigned, size_t> LastUseOperandIndex(NextPowerOf2(2 * 4 / 3));
   for (size_t ROpNo = 0; ROpNo < NumStackOperands; ++ROpNo) {
-    size_t OpNo = NumOperands - 1 - ROpNo - NonStackOperands;
+    size_t OpNo = NumOperands - 1 - NumImms - ROpNo;
     const auto &Operand = MI.getOperand(OpNo);
     assert(isStackOperand(Operand) && "Wrong instruction format");
     // Control-flow arguments mustn't be used in an instruction more than once.
@@ -296,25 +321,10 @@ TVMExplicitLocals::computeReorderings(MachineInstr &MI, LiveIntervals &LIS,
     LastUseOperandIndex[Operand.getReg()] = OpNo;
   }
 
-  // Instruction format: INST %defs..., %register args... %non-register args...
-  // Let's ensure that all operands have expected type
-  for (unsigned I = 0; I < NumOperands; ++I) {
-    const auto &Op = MI.getOperand(I);
-    if (I < NumDefs)
-      assert(Op.isDef() && "Expected Def");
-    else if (I < NumDefs + NumStackOperands)
-      // TODO: should be isStackOperand(Op) once we put global address on stack.
-      assert((Op.isReg() || Op.isMBB()) &&
-             "Expected a register or a basic block");
-    else
-      // TODO: should be !isStackOperand(Op) once we put global address
-      //       on stack.
-      assert((Op.isImm() || Op.isGlobal()) && "Expected Imm or GlobalAddress");
-  }
-
   for (size_t ROpNo = 0; ROpNo < NumStackOperands; ++ROpNo) {
-    size_t OpNo = NumOperands - 1 - NonStackOperands - ROpNo;
+    size_t OpNo = NumOperands - 1 - NumImms - ROpNo;
     const auto &Operand = MI.getOperand(OpNo);
+    assert(isStackOperand(Operand) && "Expected Reg or MBB");
     if (Operand.isReg()) {
       unsigned RegFrom = Operand.getReg();
       auto Kind =
@@ -413,6 +423,8 @@ bool TVMExplicitLocals::processInstruction(MachineInstr &MI, LiveIntervals &LIS,
   if (MI.isImplicitDef())
     return false;
 
+  LLVM_DEBUG(dbgs() << "processInstruction:\t" << MI);
+
   size_t NumDefs = MI.getNumDefs();
   size_t NumOperands = MI.getNumOperands();
 
@@ -428,6 +440,10 @@ bool TVMExplicitLocals::processInstruction(MachineInstr &MI, LiveIntervals &LIS,
 
   size_t NonStackOperands = count_if(
       MI.operands(), [](MachineOperand MOP) { return !isStackOperand(MOP); });
+  size_t NumGlobals = 0;
+  for (unsigned I = 0; I < NumOperands; ++I)
+    if (MI.getOperand(I).isGlobal())
+      NumGlobals++;
   bool Changed = false;
   StackReorderings Reorderings =
       computeReorderings(MI, LIS, TheStack, NonStackOperands);
@@ -452,15 +468,17 @@ bool TVMExplicitLocals::processInstruction(MachineInstr &MI, LiveIntervals &LIS,
   if (NewOpcode >= 0) {
     // add global addresses before the command
     // TODO: continuation must be modelled in the stack then.
-    for (unsigned I = 0; I < NonStackOperands; I++) {
-      const auto &Op = MI.getOperand(NumOperands - NonStackOperands + I);
-      if (Op.isGlobal())
-        BuildMI(&MI, TII->get(TVM::PUSHCONT_FUNC))
-            .addGlobalAddress(Op.getGlobal(), Op.getOffset());
+    for (unsigned I = 0; I < NumGlobals; I++) {
+      const auto &Op = MI.getOperand(NumDefs + I);
+      assert(Op.isGlobal() && "Expected GlobalAddress");
+      BuildMI(&MI, TII->get(TVM::PUSHCONT_FUNC))
+          .addGlobalAddress(Op.getGlobal(), Op.getOffset());
     }
     MachineInstrBuilder MIB = BuildMI(&MI, TII->get(NewOpcode));
-    for (unsigned I = 0; I < NonStackOperands; I++) {
-      const auto &Op = MI.getOperand(NumOperands - NonStackOperands + I);
+    for (unsigned I = 0; I < NonStackOperands - NumGlobals; I++) {
+      const auto &Op =
+          MI.getOperand(NumOperands - (NonStackOperands - NumGlobals) + I);
+      assert(Op.isImm() && "Expected Imm");
       if (Op.isImm())
         MIB.addImm(Op.getImm());
       else if (Op.isGlobal()) {

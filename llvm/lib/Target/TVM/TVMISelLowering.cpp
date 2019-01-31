@@ -116,14 +116,18 @@ SDValue TVMTargetLowering::LowerCall(CallLoweringInfo &CLI,
     fail(DL, DAG, "TVM doesn't support more than 1 returned value yet");
 
   SmallVectorImpl<ISD::OutputArg> &Outs = CLI.Outs;
-  if (Outs.size() > 0)
-    fail(DL, DAG,
-         "TVM doesn't support more than 0 call parameters yet");
+  SmallVectorImpl<SDValue> &OutVals = CLI.OutVals;
+  for (unsigned i = 0; i < Outs.size(); ++i) {
+    const ISD::OutputArg &Out = Outs[i];
+    assert(Out.VT.SimpleTy == MVT::SimpleValueType::i64 &&
+           "only i64 is supported");
+  }
 
   // Compute the operands for the CALLn node.
   SmallVector<SDValue, 16> Ops;
   Ops.push_back(Chain);
   Ops.push_back(Callee);
+  Ops.append(OutVals.begin(), OutVals.end());
 
   SmallVector<EVT, 8> InTys;
   for (const auto &In : Ins) {

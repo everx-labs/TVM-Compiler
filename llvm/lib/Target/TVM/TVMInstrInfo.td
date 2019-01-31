@@ -108,9 +108,9 @@ let isTerminator = 1, hasCtrlDep = 1 in {
 // TODO: The approach with two CALLs was copied from WebAssembly backend.
 // We need to investigate how it works and why 2 CALLs are needed
 let isCall = 1, hasCtrlDep = 1 in {
-  defm CALL_VOID : NRI<(outs), (ins i64imm:$callee),
+  defm CALL_VOID : NRI<(outs), (ins i64imm:$callee, variable_ops),
                        [(TVMcall0 i64:$callee)], "CALLX", 0xD9>;
-  defm CALL_1 : NRI<(outs I64:$dst), (ins i64imm:$callee),
+  defm CALL_1 : NRI<(outs I64:$dst), (ins i64imm:$callee, variable_ops),
                     [(set I64:$dst, (TVMcall1 i64:$callee))],
                     "CALLX", 0xD9>;
 }

@@ -14,6 +14,6 @@ define i64 @divc (i64 %dvd, i64 %dvr) nounwind {
  %n_cor   = or i1 %res_neg, %no_rem
  %cor = select i1 %n_cor, i64 0, i64 1
  %qtnt_pr = sdiv i64 %dvd, %dvr
- %qtnt = add i64 %qtnt_pr, cor
+ %qtnt = add i64 %qtnt_pr, %cor
  ret i64 %qtnt
 }

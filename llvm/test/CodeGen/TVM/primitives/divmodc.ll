@@ -14,7 +14,7 @@ define { i64, i64 } @divmodc (i64 %dvd, i64 %dvr) nounwind {
  %n_cor   = or i1 %res_neg, %no_rem
  %cor = select i1 %n_cor, i64 0, i64 1
  %qtnt_pr = sdiv i64 %dvd, %dvr
- %qtnt = add i64 %qtnt_pr, cor
+ %qtnt = add i64 %qtnt_pr, %cor
  
  %qtmul = mul i64 %qtnt, %dvr
  %remf   = sub i64 %dvd, %qtmul

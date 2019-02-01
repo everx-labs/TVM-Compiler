@@ -63,6 +63,15 @@ struct StackReordering {
   StackReordering(StackElementT ElemFrom, size_t SlotTo,
                   StackReorderingKind ReorderingKind)
       : ElemFrom(ElemFrom), SlotTo(SlotTo), ReorderingKind(ReorderingKind) {}
+  /// Debug dump.
+  void dump() {
+    // TODO: implement support for MBB when needed
+    assert(std::holds_alternative<unsigned>(ElemFrom));
+    auto tag =
+        isCopy() ? "Copy" : (isXchg() ? "Xchg" : (isNew() ? "New" : "Unknown"));
+    LLVM_DEBUG(dbgs() << tag << " SlotTo = " << SlotTo);
+    LLVM_DEBUG(dbgs() << ", reg = " << std::get<unsigned>(ElemFrom) << "\n");
+  }
 };
 
 // Most of the instructions have at most 2 arguments.
@@ -122,7 +131,7 @@ public:
     return std::holds_alternative<unsigned>(Data[Slot]);
   }
   /// Fill the specified \p Slot with \p Elem. Doesn't generate any instruction.
-  void set(size_t Slot, StackElementT Elem) {
+  void set(size_t Slot, const StackElementT &Elem) {
     assert(Slot < Data.size() && "Out of range access");
     Data[Slot] = Elem;
   }
@@ -134,6 +143,11 @@ public:
   }
   /// Pushes result of an instruction to the stack.
   void addDef(unsigned Reg) { Data.push_front(Reg); }
+  /// Checks if specified \p Slot contains specified \p Elem.
+  bool slotContains(size_t Slot, const StackElementT &Elem) const {
+    assert(Slot < Data.size() && "Out of range access");
+    return Data[Slot] == Elem;
+  }
   /// Debug dump
   void dump() {
     // TODO: Align with conventional dump methods.
@@ -192,7 +206,7 @@ private:
   /// Perform the specified stack manipulations and generates code for them.
   /// Insert instructions in the position specified by \par InsertPoint.
   void performReorderings(const StackReorderings &Reorderings,
-                          MachineInstr *InsertPoint, Stack &TheStack);
+                          MachineInstr *InsertPoint, Stack &TheStack) const;
 };
 
 } // end anonymous namespace
@@ -258,12 +272,14 @@ bool Stack::clear(MachineInstr *InsertPoint, unsigned Preserved) {
 void Stack::push(MachineInstr *InsertPoint, StackElementT Elem) {
   size_t ElemSlot = position(Elem);
   assert(ElemSlot <= PushLimit && "Unimplemented");
-  BuildMI(InsertPoint, TII->get(TVM::PUSH)).addImm(ElemSlot);
+  if (InsertPoint != nullptr)
+    BuildMI(InsertPoint, TII->get(TVM::PUSH)).addImm(ElemSlot);
   Data.push_front(Data[ElemSlot]);
 }
 
 void Stack::pushNew(MachineInstr *InsertPoint, MachineBasicBlock &MBB) {
-  BuildMI(InsertPoint, TII->get(TVM::PUSHCONT_MBB)).addMBB(&MBB);
+  if (InsertPoint != nullptr)
+    BuildMI(InsertPoint, TII->get(TVM::PUSHCONT_MBB)).addMBB(&MBB);
   Data.push_front(&MBB);
 }
 
@@ -273,9 +289,10 @@ bool Stack::xchg(MachineInstr *InsertPoint, StackElementT ElemFrom,
   size_t ElemFromSlot = std::distance(std::begin(Data), It);
   assert(ElemFromSlot <= XchgLimit && "Unimplemented");
   assert(ElemFromSlot != SlotTo);
-  BuildMI(InsertPoint, TII->get(TVM::XCHG))
-      .addImm(std::min(ElemFromSlot, SlotTo))
-      .addImm(std::max(ElemFromSlot, SlotTo));
+  if (InsertPoint != nullptr)
+    BuildMI(InsertPoint, TII->get(TVM::XCHG))
+        .addImm(std::min(ElemFromSlot, SlotTo))
+        .addImm(std::max(ElemFromSlot, SlotTo));
   std::swap(*It, Data[SlotTo]);
   return true;
 }
@@ -360,8 +377,11 @@ TVMExplicitLocals::computeReorderings(MachineInstr &MI, LiveIntervals &LIS,
   // number of Pushes followed by it.
   size_t NumPushes = 0;
   // Collect reorderings that are supposed to be removed later.
+  // TODO: Extend the size of SmallVector when we support instructions with more
+  // than two operands
   llvm::SmallVector<const StackReordering *, 2> PseudoXchg{};
   for (auto &Reordering : Result) {
+    // Note that we modify records in Result below
     size_t &SlotTo = Reordering.SlotTo;
     assert(SlotTo >= NumPushes);
     SlotTo -= NumPushes;
@@ -370,6 +390,8 @@ TVMExplicitLocals::computeReorderings(MachineInstr &MI, LiveIntervals &LIS,
     } else {
       // Collect XCHG sN, sN pseudos.
       size_t SlotFrom = TheStack.position(Reordering.ElemFrom) + NumPushes;
+      // TODO: the code below is hard to understand. Please consider adding more
+      // comments and/or making code simpler.
       if (SlotTo == SlotFrom)
         PseudoXchg.push_back(&Reordering);
       // Collect XCHG sM, sN (M > N) if XCHG sN, sM is also present and cyclic
@@ -382,19 +404,35 @@ TVMExplicitLocals::computeReorderings(MachineInstr &MI, LiveIntervals &LIS,
   }
 
   // Remove redundant reorderings.
+  // TODO: this logic with PseudoXchg might be simplieifed with refactoring
   Result.erase(
       llvm::remove_if(Result,
                       [&PseudoXchg](const StackReordering &Reordering) {
-                        return llvm::find(PseudoXchg, &Reordering) !=
-                               std::end(PseudoXchg);
+                        return llvm::exist(PseudoXchg, &Reordering);
                       }),
       std::end(Result));
+
+#ifndef NDEBUG
+  // Simulate stack to ensure we have the correct operands on top
+  Stack TheStack2 = TheStack;
+  performReorderings(Result, nullptr, TheStack2);
+  for (size_t ROpNo = 0; ROpNo < NumStackOperands; ++ROpNo) {
+    size_t OpNo = NumOperands - 1 - NumImms - ROpNo;
+    const auto &Op = MI.getOperand(OpNo);
+    assert(isStackOperand(Op) && "Expected Reg or MBB");
+    if (Op.isReg())
+      assert(TheStack2.slotContains(ROpNo, Op.getReg()));
+    if (Op.isMBB())
+      assert(TheStack2.slotContains(ROpNo, Op.getMBB()));
+  }
+#endif
+
   return Result;
 }
 
 void TVMExplicitLocals::performReorderings(const StackReorderings &Reorderings,
                                            MachineInstr *InsertPoint,
-                                           Stack &TheStack) {
+                                           Stack &TheStack) const {
   if (Reorderings.empty())
     return;
   // We need to perform reorderings in reverse order except for a sequence of

@@ -115,6 +115,12 @@ public:
            "Stack doesn't contain a register at Slot");
     return std::get<unsigned>(Data[Slot]);
   }
+  /// Checks if element at \par Slot is a register.
+  /// Precondition: Slot < Data.size()
+  unsigned isReg(size_t Slot) const {
+    assert(Slot < Data.size() && "Out of range access");
+    return std::holds_alternative<unsigned>(Data[Slot]);
+  }
   /// Fill the specified \p Slot with \p Elem. Doesn't generate any instruction.
   void set(size_t Slot, StackElementT Elem) {
     assert(Slot < Data.size() && "Out of range access");
@@ -128,6 +134,19 @@ public:
   }
   /// Pushes result of an instruction to the stack.
   void addDef(unsigned Reg) { Data.push_front(Reg); }
+  /// Debug dump
+  void dump() {
+    // TODO: Align with conventional dump methods.
+    // LLVM has rules on dump(), most of the framework follows. Under debugger,
+    // a user could expect to call dump on a significant part of LLVM objects.
+    // See https://llvm.org/doxygen/AsmWriter_8cpp_source.html#l04297 for
+    // reference.
+    LLVM_DEBUG(dbgs() << "STACK: ");
+    // TODO: add support for other than register types later
+    for (const auto &elem : Data)
+      LLVM_DEBUG(dbgs() << " " << std::get<unsigned>(elem));
+    LLVM_DEBUG(dbgs() << "\n");
+  }
   /// TODO: we need to decide how to handle these limitations.
   /// They shouldn't be defined in this scope.
   /// Maximal N in a valid PUSH sN instruction.
@@ -438,12 +457,18 @@ bool TVMExplicitLocals::processInstruction(MachineInstr &MI, LiveIntervals &LIS,
     return true;
   }
 
-  size_t NonStackOperands = count_if(
-      MI.operands(), [](MachineOperand MOP) { return !isStackOperand(MOP); });
-  size_t NumGlobals = 0;
-  for (unsigned I = 0; I < NumOperands; ++I)
-    if (MI.getOperand(I).isGlobal())
+  size_t NonStackOperands =
+      count_if(MI.operands(),
+               [](const MachineOperand &MOP) { return !isStackOperand(MOP); });
+
+  size_t NumGlobals = 0, NumImms = 0;
+  for (const MachineOperand &Op : MI.operands()) {
+    if (Op.isGlobal())
       NumGlobals++;
+    if (Op.isImm())
+      NumImms++;
+  }
+  assert(NonStackOperands == NumGlobals + NumImms);
   bool Changed = false;
   StackReorderings Reorderings =
       computeReorderings(MI, LIS, TheStack, NonStackOperands);
@@ -459,7 +484,21 @@ bool TVMExplicitLocals::processInstruction(MachineInstr &MI, LiveIntervals &LIS,
   if (NewOpcode < 0)
     NewOpcode = TVM::RegForm2SForm[MI.getOpcode()];
   performReorderings(Reorderings, &MI, TheStack);
-  TheStack.consumeArguments(NumOperands - NonStackOperands - NumDefs);
+  unsigned NumToConsume = NumOperands - NonStackOperands - NumDefs;
+#ifndef NDEBUG
+  // Let's ensure that consumed registers are used in instruction
+  // TODO: Doesn't cover numerous corner cases. Covering them would require to
+  // reimplement consumption under NDEBUG or extending consumption interface.
+  for (unsigned I = 0; I < NumToConsume; I++)
+    if (TheStack.isReg(I))
+      assert(llvm::count_if(MI.operands(),
+                            [&](const MachineOperand &Op) {
+                              return Op.isReg() &&
+                                     Op.getReg() == TheStack.reg(I);
+                            }) &&
+             "Consuming register not used in instruction");
+#endif
+  TheStack.consumeArguments(NumToConsume);
   for (size_t ROpNo = 0; ROpNo < NumDefs; ++ROpNo) {
     const auto &Operand = MI.getOperand(NumDefs - ROpNo - 1);
     assert(Operand.isReg() && "Def must be a register");
@@ -475,16 +514,10 @@ bool TVMExplicitLocals::processInstruction(MachineInstr &MI, LiveIntervals &LIS,
           .addGlobalAddress(Op.getGlobal(), Op.getOffset());
     }
     MachineInstrBuilder MIB = BuildMI(&MI, TII->get(NewOpcode));
-    for (unsigned I = 0; I < NonStackOperands - NumGlobals; I++) {
-      const auto &Op =
-          MI.getOperand(NumOperands - (NonStackOperands - NumGlobals) + I);
+    for (unsigned I = 0; I < NumImms; I++) {
+      const auto &Op = MI.getOperand(NumOperands - NumImms + I);
       assert(Op.isImm() && "Expected Imm");
-      if (Op.isImm())
-        MIB.addImm(Op.getImm());
-      else if (Op.isGlobal()) {
-        // globals are processed above
-      } else
-        assert(false && "Expected Imm or GlobalAddress");
+      MIB.addImm(Op.getImm());
     }
     MI.removeFromParent();
     Changed = true;

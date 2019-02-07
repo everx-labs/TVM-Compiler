@@ -64,7 +64,7 @@ define i64 @div (i64 %x) nounwind {
 ; CHECK: %[[VR0:[0-9]+]]:i64 = ARGUMENT 0, implicit $arguments
 ; CHECK: %[[VR1:[0-9]+]]:i64 = CONST_I64 1666
 ; CHECK: %[[VR2:[0-9]+]]:i64 = DIV killed %[[VR1]], killed %[[VR0]]
- %1 = sdiv i64 1666, %x
+ %1 = call i64 @llvm.tvm.div(i64 1666, i64 %x)
 ; CHECK: RETURN_I64 killed %[[VR2]]
  ret i64 %1
 }
@@ -128,3 +128,5 @@ define i64 @mulconst(i64 %x) nounwind {
 ; CHECK: RETURN_I64 killed %[[VR1]]
   ret i64 %1
 }
+
+declare i64 @llvm.tvm.div(i64, i64) nounwind

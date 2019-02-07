@@ -12,6 +12,7 @@
 //===----------------------------------------------------------------------===//
 
 let TargetPrefix = "tvm" in {
-  def int_tvm_div : Intrinsic<[llvm_i64_ty], [llvm_i64_ty, llvm_i64_ty],
+  def int_tvm_div : GCCBuiltin<"__builtin_tvm_div">,
+                    Intrinsic<[llvm_i64_ty], [llvm_i64_ty, llvm_i64_ty],
                               [IntrNoMem]>;
 }

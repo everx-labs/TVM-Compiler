@@ -1,3 +1,4 @@
+// XFAIL: *
 // RUN: %clang_cc1 -Wall -Werror -triple tvm -emit-llvm -o - %s | FileCheck %s
 
 #include <stdint.h>

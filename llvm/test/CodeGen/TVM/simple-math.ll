@@ -130,7 +130,7 @@ define i64 @gravity_force(i64 %m1, i64 %m2, i64 %g, i64 %r2) nounwind {
 ; CHECK-NEXT: XCHG s0, s1
 ; stack: [r2, m2 * m1 * g]
 ; CHECK-NEXT: DIV
-  %3 = sdiv i64 %2, %r2
+  %3 = call i64 @llvm.tvm.div(i64 %2, i64 %r2)
 ; stack: [m2 * m1 * g / r2]
   ret i64 %3
 }
@@ -147,12 +147,14 @@ define i64 @gravity_force2(i64 %r, i64 %g, i64 %m1, i64 %m2) nounwind {
 ; CHECK-NEXT: PUSH s1
 ; stack: [r, m2 * m1 * g, r]
 ; CHECK-NEXT: DIV
-  %3 = sdiv i64 %2, %r
+  %3 = call i64 @llvm.tvm.div(i64 %2, i64 %r)
 ; stack: [m2 * m1 * g / r, r]
 ; CHECK-NEXT: XCHG s0, s1
 ; stack: [r, m2 * m1 * g / r]
 ; CHECK-NEXT: DIV
-  %4 = sdiv i64 %3, %r
+  %4 = call i64 @llvm.tvm.div(i64 %3, i64 %r)
 ; stack: [m2 * m1 * g / r / r]
   ret i64 %4
 }
+
+declare i64 @llvm.tvm.div(i64, i64) nounwind

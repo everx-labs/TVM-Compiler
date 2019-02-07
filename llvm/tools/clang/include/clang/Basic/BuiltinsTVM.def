@@ -23,6 +23,7 @@
 #endif
 
 BUILTIN(__builtin_tvm_div, "WWW", "nc")
+BUILTIN(__builtin_tvm_mod, "WWW", "nc")
 
 #undef BUILTIN
 #undef LANGBUILTIN

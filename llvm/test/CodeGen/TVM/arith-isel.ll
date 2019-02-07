@@ -108,7 +108,7 @@ define i64 @mod (i64 %x, i64 %y) nounwind {
 ; CHECK-DAG: %[[VR0:[0-9]+]]:i64 = ARGUMENT 1
 ; CHECK-DAG: %[[VR1:[0-9]+]]:i64 = ARGUMENT 0
 ; CHECK: %[[VR2:[0-9]+]]:i64 = MOD killed %[[VR1]], killed %[[VR0]]
-  %1 = srem i64 %x, %y
+  %1 = call i64 @llvm.tvm.mod(i64 %x, i64 %y)
 ; CHECK: RETURN_I64 killed %[[VR2]]
   ret i64 %1
 }
@@ -130,3 +130,4 @@ define i64 @mulconst(i64 %x) nounwind {
 }
 
 declare i64 @llvm.tvm.div(i64, i64) nounwind
+declare i64 @llvm.tvm.mod(i64, i64) nounwind

@@ -167,6 +167,6 @@ defm DIV      : BinaryRR<int_tvm_div, "DIV ", 0xa904>;
 defm NOT      : UnaryR<not, "NOT ", 0xb3>;
 defm SHL      : BinaryRR<shl, "SHL ", 0xaa>;
 defm SHR      : BinaryRR<sra, "SHR ", 0xab>;
-defm MOD      : BinaryRR<srem, "MOD ", 0x81>;
+defm MOD      : BinaryRR<int_tvm_mod, "MOD ", 0x81>;
 defm ADDCONST : BinaryRI<add, "ADDCONST ", simm8, 0xa6>;
 defm MULCONST : BinaryRI<mul, "MULCONST ", simm8, 0xa7>;

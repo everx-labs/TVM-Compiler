@@ -288,7 +288,8 @@ bool Stack::xchg(MachineInstr *InsertPoint, StackElementT ElemFrom,
   auto It = llvm::find_or_fail(Data, ElemFrom);
   size_t ElemFromSlot = std::distance(std::begin(Data), It);
   assert(ElemFromSlot <= XchgLimit && "Unimplemented");
-  assert(ElemFromSlot != SlotTo);
+  if (Data[SlotTo] == ElemFrom)
+    return false;
   if (InsertPoint != nullptr)
     BuildMI(InsertPoint, TII->get(TVM::XCHG))
         .addImm(std::min(ElemFromSlot, SlotTo))
@@ -344,7 +345,7 @@ TVMExplicitLocals::computeReorderings(MachineInstr &MI, LiveIntervals &LIS,
   // The same register could be used multiple times, but the stack keeps
   // the only copy of it, so we need to produce copies for each but the last
   // usage of the register even if its killed by MI.
-  llvm::DenseMap<unsigned, size_t> LastUseOperandIndex(NextPowerOf2(2 * 4 / 3));
+  llvm::DenseMap<unsigned, size_t> FirstUseOperandIndex(NextPowerOf2(2 * 4 / 3));
   for (size_t ROpNo = 0; ROpNo < NumStackOperands; ++ROpNo) {
     size_t OpNo = NumOperands - 1 - NumImms - ROpNo;
     const auto &Operand = MI.getOperand(OpNo);
@@ -354,7 +355,8 @@ TVMExplicitLocals::computeReorderings(MachineInstr &MI, LiveIntervals &LIS,
     if (!Operand.isReg())
       continue;
     RegUsed.insert(Operand.getReg());
-    LastUseOperandIndex[Operand.getReg()] = OpNo;
+    if (FirstUseOperandIndex.count(Operand.getReg()) == 0u)
+      FirstUseOperandIndex[Operand.getReg()] = OpNo;
   }
 
   for (size_t ROpNo = 0; ROpNo < NumStackOperands; ++ROpNo) {
@@ -364,7 +366,7 @@ TVMExplicitLocals::computeReorderings(MachineInstr &MI, LiveIntervals &LIS,
     if (Operand.isReg()) {
       unsigned RegFrom = Operand.getReg();
       auto Kind =
-          (isKilled(MI, RegFrom, LIS) && LastUseOperandIndex[RegFrom] == OpNo)
+          (isKilled(MI, RegFrom, LIS) && FirstUseOperandIndex[RegFrom] == OpNo)
               ? StackReorderingKind::Xchg
               : StackReorderingKind::Copy;
       Result.emplace_back(RegFrom, ROpNo, Kind);
@@ -380,6 +382,9 @@ TVMExplicitLocals::computeReorderings(MachineInstr &MI, LiveIntervals &LIS,
   // TODO: Extend the size of SmallVector when we support instructions with more
   // than two operands
   llvm::SmallVector<const StackReordering *, 2> PseudoXchg{};
+  size_t TotalPushes = llvm::count_if(Result, [](const StackReordering& R) {
+                                        return R.isCopy() || R.isNew();
+                                      });
   for (auto &Reordering : Result) {
     // Note that we modify records in Result below
     size_t &SlotTo = Reordering.SlotTo;
@@ -388,15 +393,20 @@ TVMExplicitLocals::computeReorderings(MachineInstr &MI, LiveIntervals &LIS,
     if (Reordering.isCopy() || Reordering.isNew()) {
       ++NumPushes;
     } else {
+      size_t SlotFrom = TheStack.position(Reordering.ElemFrom) + TotalPushes - NumPushes;
       // Collect XCHG sN, sN pseudos.
-      size_t SlotFrom = TheStack.position(Reordering.ElemFrom) + NumPushes;
-      // TODO: the code below is hard to understand. Please consider adding more
-      // comments and/or making code simpler.
       if (SlotTo == SlotFrom)
         PseudoXchg.push_back(&Reordering);
-      // Collect XCHG sM, sN (M > N) if XCHG sN, sM is also present and cyclic
-      // dependencies of a bigger length.
-      if (SlotTo < SlotFrom && SlotFrom < NumOperands - NumDefs &&
+      // Since we compute reorderings independingly rather than simulating
+      // them, an exchange of two upper stack elements would result
+      // in generating of 2 reorderings:
+      // XCHG s0, s1
+      // XCHG s1, s0
+      // Here we ensure that we breach such cyclic reorderings, by executing
+      // only ones that reorder only if SlotTo < SlotTo.
+      if (SlotTo > SlotFrom &&
+          // Ensure that SlotTo is also supposed to be reordered i.e. it's used
+          // and killed by the instruction.
           exist(RegUsed, TheStack.reg(SlotTo)) &&
           isKilled(MI, TheStack.reg(SlotTo), LIS))
         PseudoXchg.push_back(&Reordering);

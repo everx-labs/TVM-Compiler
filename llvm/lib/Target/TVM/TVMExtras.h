@@ -37,7 +37,9 @@ template <typename R, typename T> bool exist(R &&Range, const T &Val) {
   return It != std::end(Range);
 }
 
-template <typename T, typename... Ts>
+template <typename T, typename... Ts,
+          typename = std::enable_if_t<
+              !std::is_same_v<std::decay_t<T>, std::variant<Ts...>>>>
 bool operator==(const std::variant<Ts...> &Lhs, T &&Rhs) {
   using DecayT = std::decay_t<T>;
   static_assert((std::is_same_v<DecayT, Ts> || ...),

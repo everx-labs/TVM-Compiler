@@ -129,3 +129,21 @@ define i64 @test24(i64 %x, i64 %y) nounwind {
 ; CHECK-NEXT: MUL
   ret i64 %3
 }
+
+; CHECK-LABEL: test25
+define i64 @test25(i64 %x, i64 %y, i64 %z) nounwind {
+; [z, y, x]
+; CHECK: XCHG s0, s1
+; CHECK-NEXT: XCHG s1, s2
+; CHECK-NEXT: PUSHCONT sum
+; [@sum, y, x, z]
+; CHECK-NEXT: CALLX
+  %1 = call i64 @sum(i64 %x, i64 %y)
+; [x + y, z]
+; CHECK-NEXT: XCHG s0, s1
+; CHECK-NEXT: PUSHCONT sum
+; [@sum, z, x + y]
+; CHECK-NEXT: CALLX
+  %2 = call i64 @sum(i64 %1, i64 %z)
+  ret i64 %2
+}

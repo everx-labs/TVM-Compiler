@@ -1,4 +1,4 @@
-//===-- TVMExplicitLocals.cpp - Make Locals Explicit ----------------------===//
+//===--------- TVMStackModel.cpp - Rewrite Reg-forms with S-forms ---------===//
 //
 //                     The LLVM Compiler Infrastructure
 //
@@ -8,11 +8,8 @@
 //===----------------------------------------------------------------------===//
 ///
 /// \file
-/// This file converts any remaining registers into TVM locals.
-///
-/// After register stackification and register coloring, convert non-stackified
-/// registers into locals, inserting explicit get_local and set_local
-/// instructions.
+/// Introduce explicit stack manipulation. Rewrite all register forms of
+/// instructions with their stack counterparts.
 ///
 //===----------------------------------------------------------------------===//
 
@@ -40,7 +37,7 @@
 
 using namespace llvm;
 
-#define DEBUG_TYPE "tvm-explicit-locals"
+#define DEBUG_TYPE "tvm-stack-model"
 
 namespace {
 
@@ -173,9 +170,9 @@ private:
   std::deque<StackElementT> Data;
 };
 
-class TVMExplicitLocals final : public MachineFunctionPass {
+class TVMStackModel final : public MachineFunctionPass {
 public:
-  StringRef getPassName() const override { return "TVM Explicit Locals"; }
+  StringRef getPassName() const override { return "TVM Stack Model"; }
 
   void getAnalysisUsage(AnalysisUsage &AU) const override {
     AU.addRequired<LiveIntervals>();
@@ -191,7 +188,7 @@ public:
                           const TargetInstrInfo *TII, Stack &TheStack);
 
   static char ID; // Pass identification, replacement for typeid
-  TVMExplicitLocals() : MachineFunctionPass(ID) {}
+  TVMStackModel() : MachineFunctionPass(ID) {}
 
 private:
   /// If \par MO is no longer used after \par MI.
@@ -231,13 +228,11 @@ static inline bool isStackOperand(const MachineOperand &MOP) {
   return MOP.isReg() || MOP.isMBB();
 }
 
-char TVMExplicitLocals::ID = 0;
-INITIALIZE_PASS(TVMExplicitLocals, DEBUG_TYPE,
-                "Convert registers to TVM locals", false, false)
+char TVMStackModel::ID = 0;
+INITIALIZE_PASS(TVMStackModel, DEBUG_TYPE, "Stackify register instructions",
+                false, false)
 
-FunctionPass *llvm::createTVMExplicitLocals() {
-  return new TVMExplicitLocals();
-}
+FunctionPass *llvm::createTVMStackModel() { return new TVMStackModel(); }
 
 bool Stack::clear(MachineInstr *InsertPoint, unsigned Preserved) {
   auto It = llvm::find(Data, Preserved);
@@ -291,8 +286,8 @@ bool Stack::xchg(MachineInstr *InsertPoint, StackElementT ElemFrom,
   return true;
 }
 
-bool TVMExplicitLocals::isKilled(const MachineInstr &MI, unsigned Register,
-                                 const LiveIntervals &LIS) const {
+bool TVMStackModel::isKilled(const MachineInstr &MI, unsigned Register,
+                             const LiveIntervals &LIS) const {
   const LiveInterval &LI = LIS.getInterval(Register);
   // If there is no live interval starting from the current instruction
   // for the given argument, the argument is killed.
@@ -300,9 +295,9 @@ bool TVMExplicitLocals::isKilled(const MachineInstr &MI, unsigned Register,
 }
 
 StackReorderings
-TVMExplicitLocals::computeReorderings(MachineInstr &MI, LiveIntervals &LIS,
-                                      Stack &TheStack,
-                                      size_t NonStackOperands) const {
+TVMStackModel::computeReorderings(MachineInstr &MI, LiveIntervals &LIS,
+                                  Stack &TheStack,
+                                  size_t NonStackOperands) const {
   StackReorderings Result{};
   size_t NumDefs = MI.getNumDefs();
   size_t NumOperands = MI.getNumOperands();
@@ -338,7 +333,8 @@ TVMExplicitLocals::computeReorderings(MachineInstr &MI, LiveIntervals &LIS,
   // The same register could be used multiple times, but the stack keeps
   // the only copy of it, so we need to produce copies for each but the last
   // usage of the register even if its killed by MI.
-  llvm::DenseMap<unsigned, size_t> FirstUseOperandIndex(NextPowerOf2(2 * 4 / 3));
+  llvm::DenseMap<unsigned, size_t> FirstUseOperandIndex(
+      NextPowerOf2(2 * 4 / 3));
   for (size_t ROpNo = 0; ROpNo < NumStackOperands; ++ROpNo) {
     size_t OpNo = NumOperands - 1 - NumImms - ROpNo;
     const auto &Operand = MI.getOperand(OpNo);
@@ -375,9 +371,8 @@ TVMExplicitLocals::computeReorderings(MachineInstr &MI, LiveIntervals &LIS,
   // TODO: Extend the size of SmallVector when we support instructions with more
   // than two operands
   llvm::SmallVector<const StackReordering *, 2> PseudoXchg{};
-  size_t TotalPushes = llvm::count_if(Result, [](const StackReordering& R) {
-                                        return R.isCopy() || R.isNew();
-                                      });
+  size_t TotalPushes = llvm::count_if(
+      Result, [](const StackReordering &R) { return R.isCopy() || R.isNew(); });
   for (auto &Reordering : Result) {
     // Note that we modify records in Result below
     size_t &SlotTo = Reordering.SlotTo;
@@ -386,7 +381,8 @@ TVMExplicitLocals::computeReorderings(MachineInstr &MI, LiveIntervals &LIS,
     if (Reordering.isCopy() || Reordering.isNew()) {
       ++NumPushes;
     } else {
-      size_t SlotFrom = TheStack.position(Reordering.ElemFrom) + TotalPushes - NumPushes;
+      size_t SlotFrom =
+          TheStack.position(Reordering.ElemFrom) + TotalPushes - NumPushes;
       // Collect XCHG sN, sN pseudos.
       if (SlotTo == SlotFrom)
         PseudoXchg.push_back(&Reordering);
@@ -433,9 +429,9 @@ TVMExplicitLocals::computeReorderings(MachineInstr &MI, LiveIntervals &LIS,
   return Result;
 }
 
-void TVMExplicitLocals::performReorderings(const StackReorderings &Reorderings,
-                                           MachineInstr *InsertPoint,
-                                           Stack &TheStack) const {
+void TVMStackModel::performReorderings(const StackReorderings &Reorderings,
+                                       MachineInstr *InsertPoint,
+                                       Stack &TheStack) const {
   if (Reorderings.empty())
     return;
   // We need to perform reorderings in reverse order except for a sequence of
@@ -477,9 +473,9 @@ void TVMExplicitLocals::performReorderings(const StackReorderings &Reorderings,
   }
 }
 
-bool TVMExplicitLocals::processInstruction(MachineInstr &MI, LiveIntervals &LIS,
-                                           const TargetInstrInfo *TII,
-                                           Stack &TheStack) {
+bool TVMStackModel::processInstruction(MachineInstr &MI, LiveIntervals &LIS,
+                                       const TargetInstrInfo *TII,
+                                       Stack &TheStack) {
   if (MI.isImplicitDef())
     return false;
 
@@ -566,10 +562,12 @@ bool TVMExplicitLocals::processInstruction(MachineInstr &MI, LiveIntervals &LIS,
 }
 
 // TODO: For now it only stackifies function arguments. Extend.
-bool TVMExplicitLocals::runOnMachineFunction(MachineFunction &MF) {
-  LLVM_DEBUG(dbgs() << "********** Make Locals Explicit **********\n"
-                       "********** Function: "
-                    << MF.getName() << '\n');
+bool TVMStackModel::runOnMachineFunction(MachineFunction &MF) {
+  LLVM_DEBUG(
+      dbgs()
+      << "********** Rewrite Instructions in Reg-form to S-form **********\n"
+         "********** Function: "
+      << MF.getName() << '\n');
 
   bool Changed = false;
   TVMFunctionInfo &MFI = *MF.getInfo<TVMFunctionInfo>();

@@ -137,7 +137,7 @@ def dec : PatFrag<(ops node:$in), (add node:$in, -1)>;
 defm NOP : SI<(ins), "NOP", 0x00>;
 
 // Stack manipulation instructions are not supposed to be selected, instead
-// ExplicitLocal pass inserts them to manipulate with local variables.
+// Stack Model pass inserts them to manipulate with local and global variables.
 // They has mayLoad because it reads from a local, which is a side effect
 // not otherwise modeled in LLVM.
 

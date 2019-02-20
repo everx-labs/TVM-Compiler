@@ -13,15 +13,11 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#include <deque>
-#include <variant>
-
 #include "MCTargetDesc/TVMMCTargetDesc.h"
 #include "TVM.h"
-#include "TVMExtras.h"
-#include "TVMMachineFunctionInfo.h"
 #include "TVMSubtarget.h"
 #include "TVMUtilities.h"
+#include "TVMStack.h"
 
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/CodeGen/LiveIntervals.h"
@@ -30,7 +26,6 @@
 #include "llvm/CodeGen/MachineInstrBuilder.h"
 #include "llvm/CodeGen/MachineRegisterInfo.h"
 #include "llvm/CodeGen/Passes.h"
-#include "llvm/Support/Debug.h"
 #include "llvm/Support/raw_ostream.h"
 
 #include "TVMInstMappingInfo.inc"
@@ -40,135 +35,6 @@ using namespace llvm;
 #define DEBUG_TYPE "tvm-stack-model"
 
 namespace {
-
-enum class StackReorderingKind { Copy, Xchg, New };
-using StackElementT = std::variant<unsigned, MachineBasicBlock *>;
-
-struct StackReordering {
-  /// The register or the basic block we get data from.
-  StackElementT ElemFrom;
-  /// The number of slot we put data to.
-  size_t SlotTo;
-  /// If we copy (Push), move (Xchg) or create new element (PushCont, etc).
-  StackReorderingKind ReorderingKind;
-  /// Check if the reordering copies an existing element to SlotTo.
-  bool isCopy() const { return ReorderingKind == StackReorderingKind::Copy; }
-  /// Check if the reordering creates a new element at SlotTo.
-  bool isNew() const { return ReorderingKind == StackReorderingKind::New; }
-  /// Check if the reordering exchanges elements in a stack.
-  bool isXchg() const { return ReorderingKind == StackReorderingKind::Xchg; }
-  StackReordering(StackElementT ElemFrom, size_t SlotTo,
-                  StackReorderingKind ReorderingKind)
-      : ElemFrom(ElemFrom), SlotTo(SlotTo), ReorderingKind(ReorderingKind) {}
-  /// Debug dump.
-  void dump() {
-    // TODO: implement support for MBB when needed
-    assert(std::holds_alternative<unsigned>(ElemFrom));
-    auto tag =
-        isCopy() ? "Copy" : (isXchg() ? "Xchg" : (isNew() ? "New" : "Unknown"));
-    LLVM_DEBUG(dbgs() << tag << " SlotTo = " << SlotTo);
-    LLVM_DEBUG(dbgs() << ", reg = " << std::get<unsigned>(ElemFrom) << "\n");
-  }
-};
-
-// Most of the instructions have at most 2 arguments.
-using StackReorderings = SmallVector<StackReordering, 2>;
-
-/// Implement the programming model of the hardware stack and keep it in sync
-/// with the emitted code.
-/// Provide interfaces to track positions of local variables and mutate the
-/// stack.
-class Stack {
-public:
-  Stack(const TargetInstrInfo *TII, size_t Size)
-      : TII(TII), Data(Size, TVMFunctionInfo::UnusedReg) {}
-  /// Insert POP instructions to clean up the stack, preserving the specified
-  /// element of it.
-  /// \par InsertPoint specify instruction to insert after.
-  /// \par Preserved virtual register needs to be kept in the stack.
-  bool clear(MachineInstr *InsertPoint,
-             unsigned Preserved = TVMFunctionInfo::UnusedReg);
-  /// PUSH the specified slot to the specified position of the stack.
-  /// Precondition: Elem is present in Data.
-  /// TODO: Stack PUSH limitations aren't handled yet.
-  /// \par InsertPoint specify instruction to insert after.
-  /// \par Elem virtual register or basic block.
-  void push(MachineInstr *InsertPoint, StackElementT Elem);
-  /// Put a continuation (represented as a pointer to a basic block) on top of
-  /// the stack. This operation doesn't depend on whether the element is already
-  /// in stack and it never results in generation of PUSH instruction. Instead,
-  /// it uses PUSHCONT.
-  void pushNew(MachineInstr *InsertPoint, MachineBasicBlock &MBB);
-  /// \par InsertPoint specify instruction to insert after.
-  /// \par ElemFrom register or BB to be exchanged in the stack.
-  /// \par SlotTo slot number to be exchanged with.
-  /// Precondition: Slot number for ElemFrom != SlotTo.
-  bool xchg(MachineInstr *InsertPoint, StackElementT ElemFrom, size_t SlotTo);
-  /// A helper function for general xchg()
-  bool xchg(MachineInstr *InsertPoint, const StackReordering &Reordering) {
-    return xchg(InsertPoint, Reordering.ElemFrom, Reordering.SlotTo);
-  }
-  /// Return position of \par Elem in the stack.
-  /// Precondition: \par Elem is in the stack.
-  size_t position(StackElementT Elem) const {
-    return std::distance(std::begin(Data), llvm::find_or_fail(Data, Elem));
-  }
-  /// Return register for \par Slot in the stack.
-  /// Precondition: Slot < Data.size() && Data[Slot] is a register.
-  unsigned reg(size_t Slot) const {
-    assert(Slot < Data.size() && "Out of range access");
-    assert(std::holds_alternative<unsigned>(Data[Slot]) &&
-           "Stack doesn't contain a register at Slot");
-    return std::get<unsigned>(Data[Slot]);
-  }
-  /// Checks if element at \par Slot is a register.
-  /// Precondition: Slot < Data.size()
-  unsigned isReg(size_t Slot) const {
-    assert(Slot < Data.size() && "Out of range access");
-    return std::holds_alternative<unsigned>(Data[Slot]);
-  }
-  /// Fill the specified \p Slot with \p Elem. Doesn't generate any instruction.
-  void set(size_t Slot, const StackElementT &Elem) {
-    assert(Slot < Data.size() && "Out of range access");
-    Data[Slot] = Elem;
-  }
-  /// Remove arguments an instruction consumed from the stack.
-  /// Precondition: Stack has enough Slots to consume.
-  void consumeArguments(size_t NumSlots) {
-    assert(NumSlots <= Data.size());
-    Data.erase(std::begin(Data), std::begin(Data) + NumSlots);
-  }
-  /// Pushes result of an instruction to the stack.
-  void addDef(unsigned Reg) { Data.push_front(Reg); }
-  /// Checks if specified \p Slot contains specified \p Elem.
-  bool slotContains(size_t Slot, const StackElementT &Elem) const {
-    assert(Slot < Data.size() && "Out of range access");
-    return Data[Slot] == Elem;
-  }
-  /// Debug dump
-  void dump() {
-    // TODO: Align with conventional dump methods.
-    // LLVM has rules on dump(), most of the framework follows. Under debugger,
-    // a user could expect to call dump on a significant part of LLVM objects.
-    // See https://llvm.org/doxygen/AsmWriter_8cpp_source.html#l04297 for
-    // reference.
-    LLVM_DEBUG(dbgs() << "STACK: ");
-    // TODO: add support for other than register types later
-    for (const auto &elem : Data)
-      LLVM_DEBUG(dbgs() << " " << std::get<unsigned>(elem));
-    LLVM_DEBUG(dbgs() << "\n");
-  }
-  /// TODO: we need to decide how to handle these limitations.
-  /// They shouldn't be defined in this scope.
-  /// Maximal N in a valid PUSH sN instruction.
-  static inline constexpr size_t PushLimit = 255;
-  /// Maximal N, M in a valid XCHG sN, sM instruction.
-  static inline constexpr size_t XchgLimit = 15;
-
-private:
-  const TargetInstrInfo *TII;
-  std::deque<StackElementT> Data;
-};
 
 class TVMStackModel final : public MachineFunctionPass {
 public:
@@ -233,58 +99,6 @@ INITIALIZE_PASS(TVMStackModel, DEBUG_TYPE, "Stackify register instructions",
                 false, false)
 
 FunctionPass *llvm::createTVMStackModel() { return new TVMStackModel(); }
-
-bool Stack::clear(MachineInstr *InsertPoint, unsigned Preserved) {
-  auto It = llvm::find(Data, Preserved);
-  size_t NumDrops = 0, NumNips = 0;
-  if (It == std::end(Data)) {
-    NumDrops = Data.size();
-  } else {
-    NumDrops = std::distance(std::begin(Data), It);
-    NumNips = Data.size() - NumDrops - 1;
-  }
-  unsigned Opc = TVM::POP;
-  // DROPs
-  for (size_t i = 0; i < NumDrops; ++i)
-    BuildMI(InsertPoint, TII->get(Opc)).addImm(0);
-  // NIPs
-  for (size_t i = 0; i < NumNips; ++i)
-    BuildMI(InsertPoint, TII->get(Opc)).addImm(1);
-  if (It == std::end(Data))
-    Data.clear();
-  else
-    Data = {Data[NumDrops]};
-  return NumDrops && NumNips;
-}
-
-void Stack::push(MachineInstr *InsertPoint, StackElementT Elem) {
-  size_t ElemSlot = position(Elem);
-  assert(ElemSlot <= PushLimit && "Unimplemented");
-  if (InsertPoint != nullptr)
-    BuildMI(InsertPoint, TII->get(TVM::PUSH)).addImm(ElemSlot);
-  Data.push_front(Data[ElemSlot]);
-}
-
-void Stack::pushNew(MachineInstr *InsertPoint, MachineBasicBlock &MBB) {
-  if (InsertPoint != nullptr)
-    BuildMI(InsertPoint, TII->get(TVM::PUSHCONT_MBB)).addMBB(&MBB);
-  Data.push_front(&MBB);
-}
-
-bool Stack::xchg(MachineInstr *InsertPoint, StackElementT ElemFrom,
-                 size_t SlotTo) {
-  auto It = llvm::find_or_fail(Data, ElemFrom);
-  size_t ElemFromSlot = std::distance(std::begin(Data), It);
-  assert(ElemFromSlot <= XchgLimit && "Unimplemented");
-  if (Data[SlotTo] == ElemFrom)
-    return false;
-  if (InsertPoint != nullptr)
-    BuildMI(InsertPoint, TII->get(TVM::XCHG))
-        .addImm(std::min(ElemFromSlot, SlotTo))
-        .addImm(std::max(ElemFromSlot, SlotTo));
-  std::swap(*It, Data[SlotTo]);
-  return true;
-}
 
 bool TVMStackModel::isKilled(const MachineInstr &MI, unsigned Register,
                              const LiveIntervals &LIS) const {

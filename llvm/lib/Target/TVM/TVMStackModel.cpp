@@ -15,9 +15,9 @@
 
 #include "MCTargetDesc/TVMMCTargetDesc.h"
 #include "TVM.h"
+#include "TVMStack.h"
 #include "TVMSubtarget.h"
 #include "TVMUtilities.h"
-#include "TVMStack.h"
 
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/CodeGen/LiveIntervals.h"
@@ -72,12 +72,9 @@ private:
                           MachineInstr *InsertPoint, Stack &TheStack) const;
 };
 
-} // end anonymous namespace
-
 /// Return true if reorderings might be optimized away for a commutative
 /// instruction.
-static bool isCommutation(const StackReorderings &Reorderings,
-                          const Stack &TheStack) {
+bool isCommutation(const StackReorderings &Reorderings, const Stack &TheStack) {
   if (Reorderings.size() != 1u)
     return false;
   if (!Reorderings[0].isXchg())
@@ -87,12 +84,43 @@ static bool isCommutation(const StackReorderings &Reorderings,
   return (SlotTo == 1 && SlotFrom == 0) || (SlotTo == 0 && SlotFrom == 1);
 }
 
-static inline bool isStackOperand(const MachineOperand &MOP) {
+inline bool isStackOperand(const MachineOperand &MOP) {
   assert((MOP.isReg() || MOP.isImm() || MOP.isMBB() || MOP.isGlobal()) &&
          "Unexpected operand type: reconsider the predicate.");
   // TODO: Globals should be on stack.
   return MOP.isReg() || MOP.isMBB();
 }
+
+Stack &initializeStack(MachineBasicBlock &MBB,
+                       DenseMap<MachineBasicBlock *, Stack> &BBStack,
+                       Stack &Initializer) {
+  assert(BBStack.count(&MBB) == 0u && "Back edges are not supported yet");
+  auto Predecessors = MBB.predecessors();
+  auto NumPredecessors = std::end(Predecessors) - std::begin(Predecessors);
+  if (NumPredecessors == 0u) {
+    auto [It, Flag] = BBStack.try_emplace(&MBB, Initializer);
+    assert(Flag && "Insertion failed");
+    return It->second;
+  }
+  if (NumPredecessors == 1u) {
+    auto [It, Flag] =
+        BBStack.try_emplace(&MBB, element(BBStack, *std::begin(Predecessors)));
+    return It->second;
+  }
+  auto Begin = std::begin(Predecessors);
+  auto &Stack = element(BBStack, *Begin);
+  for (auto It = std::next(std::begin(Predecessors)),
+            E = std::end(Predecessors);
+       It != E; ++It) {
+    auto *Predecessor = *It;
+    Stack::join(Stack, element(BBStack, Predecessor),
+                Predecessor->instr_back());
+  }
+  auto [It, Flag] = BBStack.insert({&MBB, Stack});
+  return It->second;
+}
+
+} // end anonymous namespace
 
 char TVMStackModel::ID = 0;
 INITIALIZE_PASS(TVMStackModel, DEBUG_TYPE, "Stackify register instructions",
@@ -293,8 +321,6 @@ bool TVMStackModel::processInstruction(MachineInstr &MI, LiveIntervals &LIS,
   if (MI.isImplicitDef())
     return false;
 
-  LLVM_DEBUG(dbgs() << "processInstruction:\t" << MI);
-
   size_t NumDefs = MI.getNumDefs();
   size_t NumOperands = MI.getNumOperands();
 
@@ -405,8 +431,10 @@ bool TVMStackModel::runOnMachineFunction(MachineFunction &MF) {
     Changed = true;
   }
 
+  DenseMap<MachineBasicBlock *, Stack> BBStack;
   // Visit each instruction in the function.
   for (MachineBasicBlock &MBB : MF) {
+    Stack &CurrentStack = initializeStack(MBB, BBStack, TheStack);
     for (MachineBasicBlock::iterator I = MBB.begin(), E = MBB.end(); I != E;) {
       MachineInstr &MI = *I++;
       assert(!TVM::isArgument(MI));
@@ -416,7 +444,7 @@ bool TVMStackModel::runOnMachineFunction(MachineFunction &MF) {
 
       // TODO: multiple defs should be handled separately.
       assert(MI.getDesc().getNumDefs() <= 1);
-      Changed |= processInstruction(MI, LIS, TII, TheStack);
+      Changed |= processInstruction(MI, LIS, TII, CurrentStack);
     }
   }
 

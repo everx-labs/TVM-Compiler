@@ -18,8 +18,8 @@
 #include <deque>
 #include <variant>
 
-#include "llvm/Support/Debug.h"
 #include "llvm/CodeGen/MachineInstrBuilder.h"
+#include "llvm/Support/Debug.h"
 
 #include "TVMExtras.h"
 #include "TVMMachineFunctionInfo.h"
@@ -70,6 +70,7 @@ class Stack {
 public:
   Stack(const TargetInstrInfo *TII, size_t Size)
       : TII(TII), Data(Size, TVMFunctionInfo::UnusedReg) {}
+  Stack(const TargetInstrInfo *TII) : TII(TII) {}
   /// Insert POP instructions to clean up the stack, preserving the specified
   /// element of it.
   /// \par InsertPoint specify instruction to insert after.
@@ -133,7 +134,8 @@ public:
     assert(Slot < Data.size() && "Out of range access");
     return Data[Slot] == Elem;
   }
-  /// Debug dump
+#if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
+  /// Allow easy printing of the stack from the debugger.
   void dump() {
     // TODO: Align with conventional dump methods.
     // LLVM has rules on dump(), most of the framework follows. Under debugger,
@@ -145,6 +147,12 @@ public:
       dbgs() << " " << std::get<unsigned>(elem);
     dbgs() << "\n";
   }
+#endif
+  /// Modify \par S1 and \par S2 so that identical values are in identical
+  /// positions.
+  /// Insert necessary stack manipulation instructions to the end of basic
+  /// blocks \par S2 came from. It should be designated by \par InsertPoint.
+  static void join(Stack &S1, Stack &S2, MachineInstr &InsertPoint);
   /// TODO: we need to decide how to handle these limitations.
   /// They shouldn't be defined in this scope.
   /// Maximal N in a valid PUSH sN instruction.
@@ -157,6 +165,6 @@ private:
   std::deque<StackElementT> Data;
 };
 
-} //namespace llvm
+} // namespace llvm
 
 #endif // LLVM_LIB_TARGET_TVM_TVMSTACK_H

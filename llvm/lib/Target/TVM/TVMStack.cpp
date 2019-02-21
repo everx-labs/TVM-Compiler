@@ -14,9 +14,11 @@
 
 #include "TVMStack.h"
 
-#include "llvm/CodeGen/TargetInstrInfo.h"
-#include "llvm/CodeGen/MachineInstrBuilder.h"
+#include <algorithm>
+
 #include "TVMUtilities.h"
+#include "llvm/CodeGen/MachineInstrBuilder.h"
+#include "llvm/CodeGen/TargetInstrInfo.h"
 
 namespace llvm {
 
@@ -70,6 +72,21 @@ bool Stack::xchg(MachineInstr *InsertPoint, StackElementT ElemFrom,
         .addImm(std::max(ElemFromSlot, SlotTo));
   std::swap(*It, Data[SlotTo]);
   return true;
+}
+
+void Stack::join(Stack &S1, Stack &S2, MachineInstr &InsertPoint) {
+  size_t Slot = 0;
+  auto &Data1 = S1.Data, Data2 = S2.Data;
+  size_t Size = Data1.size();
+  assert(&InsertPoint == &InsertPoint.getParent()->back() &&
+         "Stack manipulations are supposed to be inserted at the end of a "
+         "basic block");
+  assert(Size == Data2.size() && "Not implemented");
+  /*assert(std::is_permutation(std::begin(Data1), std::end(Data2),
+                             std::begin(Data2)) &&
+         "Not implemented"); */
+  while (Slot < Size)
+    S2.xchg(&InsertPoint, Data1[Slot], Slot);
 }
 
 } // namespace llvm

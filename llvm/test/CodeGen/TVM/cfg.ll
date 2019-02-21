@@ -11,25 +11,34 @@ entry:
 ; CHECK-NEXT: JMPX
   br i1 %par, label %exit1, label %exit2
 exit1:
+; CHECK: PUSHINT 42
+; CHECK-NEXT: RETARGS 1
   ret i64 42
 exit2:
+; CHECK: PUSHINT 77
+; CHECK-NOT: RETARGS
   ret i64 77
 }
-; TODO: The test shows 3 deficiencies in our code.
-; The generated code is:
-;    PUSHINT    1
-;    AND
-;    ISZERO
-;    PUSHCONT    .LBB0_2
-;    IFJMP
-;    PUSHCONT    .LBB0_1
-;    JMPX
-;; %bb.1:          ; <-- machine basic block was removed by LLVM,
-;                  ;     but JMPX wasn't.
-;    PUSHINT    42 ; <-- fall through is incorrect, should be explicit RET.
-;.LBB0_2:
-;    PUSHINT    77
-;    POP    s1     ; <-- depending on control flow there might not be
-;                        an element at s1, so stack must be modeled separately
-;                        for each basic block.
-;.Lfunc_end0:
+
+declare void @foo()
+declare void @bar()
+
+; CHECK-LABEL: diamond
+define void @diamond(i1 %par) nounwind {
+entry:
+; CHECK: PUSHCONT .LBB{{[0-9]+}}_2
+; CHECK-NEXT: IFJMP
+; CHECK-NEXT: PUSHCONT .LBB{{[0-9]+}}_1
+; CHECK-NEXT: JMPX
+  br i1 %par, label %bb1, label %bb2
+bb1:
+  call void @foo()
+; CHECK: PUSHCONT .LBB1_3
+; CHECK-NEXT: JMPX
+  br label %exit
+bb2:
+  call void @bar()
+  br label %exit
+exit:
+  ret void
+}

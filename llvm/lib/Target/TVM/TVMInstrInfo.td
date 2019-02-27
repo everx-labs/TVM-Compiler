@@ -169,3 +169,28 @@ defm SHR      : BinaryRR<sra, "SHR ", 0xab>;
 defm MOD      : BinaryRR<int_tvm_mod, "MOD ", 0x81>;
 defm ADDCONST : BinaryRI<add, "ADDCONST ", simm8, 0xa6>;
 defm MULCONST : BinaryRI<mul, "MULCONST ", simm8, 0xa7>;
+
+//===----------------------------------------------------------------------===//
+// Integer comparison
+//===----------------------------------------------------------------------===//
+let isCommutable = 1 in {
+defm EQ : ComparisonInt<SETEQ, "EQUAL", 0xba>;
+defm NE : ComparisonInt<SETNE, "NEQ", 0xbe>;
+} // isCommutable = 1
+defm SLT : ComparisonInt<SETLT,  "LESS", 0xb9>;
+defm SGT : ComparisonInt<SETGT,  "GREATER", 0xbc>;
+defm SLE : ComparisonInt<SETLE,  "LEQ", 0xbb>;
+defm SGE : ComparisonInt<SETGE,  "GEQ", 0xbe>;
+
+defm CONDSEL : I<(outs I64:$dst), (ins I64:$lhs, I64:$rhs, I64:$cond),
+                 (outs), (ins),
+                 [(set I64:$dst, (select I64:$cond, I64:$lhs, I64:$rhs))],
+                 "COND\t$dst, $lhs, $rhs, $cond", "CONDSEL", 0xe304>;
+
+// ISD::SELECT requires its operand to conform to getBooleanContents, but
+// TVM's CONDSEL interprets any non-zero value as true, so we can fold
+// a setne and seteq with 0 into a select.
+def : Pat<(select (i64 (seteq I64:$cond, 0)), I64:$lhs, I64:$rhs),
+          (CONDSEL I64:$lhs, I64:$rhs, I64:$cond)>;
+def : Pat<(select (i64 (setne I64:$cond, 0)), I64:$lhs, I64:$rhs),
+          (CONDSEL I64:$rhs, I64:$lhs, I64:$cond)>;

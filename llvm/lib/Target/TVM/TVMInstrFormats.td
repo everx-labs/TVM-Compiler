@@ -116,3 +116,9 @@ multiclass BinaryRI<SDNode node, string name, ImmAsmOperand immtype, bits<32> i6
               !strconcat(name, "\t$dst, $lhs, $rhs"),
               !strconcat(name, "\t$rhs"), i64Inst>;
 }
+
+multiclass ComparisonInt<CondCode cond, string name, bits<32> inst> {
+  defm "" : I<(outs I64:$dst), (ins I64:$lhs, I64:$rhs), (outs), (ins),
+              [(set I64:$dst, (setcc I64:$lhs, I64:$rhs, cond))],
+              !strconcat(name, "\t$dst, $lhs, $rhs"), name, inst>;
+}

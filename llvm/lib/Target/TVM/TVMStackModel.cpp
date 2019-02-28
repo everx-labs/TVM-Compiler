@@ -120,7 +120,6 @@ Stack &initializeStack(MachineBasicBlock &MBB,
             E = std::end(Predecessors);
        It != E; ++It) {
     auto *Predecessor = *It;
-
     Stack::join(Stack, element(BBStack, Predecessor),
                 Predecessor->instr_back());
   }
@@ -129,18 +128,21 @@ Stack &initializeStack(MachineBasicBlock &MBB,
 }
 
 /// Remove dead virtual registers from a non-exit BB's stack.
-void finalizeStack(MachineBasicBlock &MBB, Stack &TheStack,
-                   const LiveIntervals &LIS, MachineInstr &LastInst) {
-  // exit BB.
+void pruneDeadRegisters(MachineBasicBlock &MBB, Stack &TheStack,
+                        const LiveIntervals &LIS) {
   if (!MBB.succ_size())
     return;
-  auto InstIt = find_if(MBB, [](auto &Inst) { return Inst.isTerminator(); });
-  auto &Inst = (InstIt != std::end(MBB)) ? *InstIt : MBB.back();
+  auto &Inst = MBB.front();
   std::vector<unsigned> DeadVR;
   for (auto &Element : TheStack) {
     if (std::holds_alternative<unsigned>(Element)) {
       auto Register = std::get<unsigned>(Element);
-      if (isKilled(LastInst, Register, LIS))
+      if (isKilled(Inst, Register, LIS) &&
+          llvm::none_of(Inst.operands(), [Register](const auto &Operand) {
+            if (!Operand.isReg())
+              return false;
+            return Operand.getReg() == Register;
+          }))
         DeadVR.push_back(Register);
     }
   }
@@ -155,7 +157,6 @@ INITIALIZE_PASS(TVMStackModel, DEBUG_TYPE, "Stackify register instructions",
                 false, false)
 
 FunctionPass *llvm::createTVMStackModel() { return new TVMStackModel(); }
-
 
 StackReorderings
 TVMStackModel::computeReorderings(MachineInstr &MI, LiveIntervals &LIS,
@@ -468,7 +469,7 @@ bool TVMStackModel::runOnMachineFunction(MachineFunction &MF) {
       if (!PredecessorsProcessed)
         continue;
       Stack &CurrentStack = initializeStack(MBB, BBStack, TheStack);
-      MachineInstr *LastProcessed;
+      pruneDeadRegisters(MBB, CurrentStack, LIS);
       for (MachineBasicBlock::iterator I = MBB.begin(), E = MBB.end();
            I != E;) {
         MachineInstr &MI = *I++;
@@ -479,11 +480,8 @@ bool TVMStackModel::runOnMachineFunction(MachineFunction &MF) {
 
         // TODO: multiple defs should be handled separately.
         assert(MI.getDesc().getNumDefs() <= 1);
-        LastProcessed = &MI;
         Changed |= processInstruction(MI, LIS, TII, CurrentStack);
       }
-      assert(LastProcessed && "Unexpected: empty BB");
-      finalizeStack(MBB, CurrentStack, LIS, *LastProcessed);
     }
     assert(BBStack.size() > Size &&
            "Not Implemented: there is a back edge in CFG.");

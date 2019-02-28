@@ -42,7 +42,6 @@ public:
 
   void getAnalysisUsage(AnalysisUsage &AU) const override {
     AU.addRequired<LiveIntervals>();
-    AU.addPreserved<LiveIntervals>();
     AU.addPreservedID(LiveVariablesID);
     MachineFunctionPass::getAnalysisUsage(AU);
   }
@@ -57,9 +56,6 @@ public:
   TVMStackModel() : MachineFunctionPass(ID) {}
 
 private:
-  /// If \par MO is no longer used after \par MI.
-  bool isKilled(const MachineInstr &MI, unsigned Register,
-                const LiveIntervals &LIS) const;
   /// Forms vector of Pushes and Xchgs to supply an instruction with the right
   /// data.
   /// The function assumes that non-register arguments always come first.
@@ -91,6 +87,17 @@ inline bool isStackOperand(const MachineOperand &MOP) {
   return MOP.isReg() || MOP.isMBB();
 }
 
+/// If \par MO is no longer used after \par MI.
+bool isKilled(const MachineInstr &MI, unsigned Register,
+              const LiveIntervals &LIS) {
+  const LiveInterval &LI = LIS.getInterval(Register);
+  // If there is no live interval starting from the current instruction
+  // for the given argument, the argument is killed.
+  return !LI.getVNInfoAt(LIS.getInstructionIndex(MI).getRegSlot());
+}
+
+/// Make predecessors' stacks coherent and initialize the stack with stacks of
+/// predecessors, or with \par Initializer if there is no predecessors.
 Stack &initializeStack(MachineBasicBlock &MBB,
                        DenseMap<MachineBasicBlock *, Stack> &BBStack,
                        Stack &Initializer) {
@@ -113,11 +120,32 @@ Stack &initializeStack(MachineBasicBlock &MBB,
             E = std::end(Predecessors);
        It != E; ++It) {
     auto *Predecessor = *It;
+
     Stack::join(Stack, element(BBStack, Predecessor),
                 Predecessor->instr_back());
   }
   auto [It, Flag] = BBStack.insert({&MBB, Stack});
   return It->second;
+}
+
+/// Remove dead virtual registers from a non-exit BB's stack.
+void finalizeStack(MachineBasicBlock &MBB, Stack &TheStack,
+                   const LiveIntervals &LIS, MachineInstr &LastInst) {
+  // exit BB.
+  if (!MBB.succ_size())
+    return;
+  auto InstIt = find_if(MBB, [](auto &Inst) { return Inst.isTerminator(); });
+  auto &Inst = (InstIt != std::end(MBB)) ? *InstIt : MBB.back();
+  std::vector<unsigned> DeadVR;
+  for (auto &Element : TheStack) {
+    if (std::holds_alternative<unsigned>(Element)) {
+      auto Register = std::get<unsigned>(Element);
+      if (isKilled(LastInst, Register, LIS))
+        DeadVR.push_back(Register);
+    }
+  }
+  for (auto Elem : DeadVR)
+    TheStack.pop(Inst, Elem);
 }
 
 } // end anonymous namespace
@@ -128,13 +156,6 @@ INITIALIZE_PASS(TVMStackModel, DEBUG_TYPE, "Stackify register instructions",
 
 FunctionPass *llvm::createTVMStackModel() { return new TVMStackModel(); }
 
-bool TVMStackModel::isKilled(const MachineInstr &MI, unsigned Register,
-                             const LiveIntervals &LIS) const {
-  const LiveInterval &LI = LIS.getInterval(Register);
-  // If there is no live interval starting from the current instruction
-  // for the given argument, the argument is killed.
-  return !LI.getVNInfoAt(LIS.getInstructionIndex(MI).getRegSlot());
-}
 
 StackReorderings
 TVMStackModel::computeReorderings(MachineInstr &MI, LiveIntervals &LIS,
@@ -432,20 +453,40 @@ bool TVMStackModel::runOnMachineFunction(MachineFunction &MF) {
   }
 
   DenseMap<MachineBasicBlock *, Stack> BBStack;
-  // Visit each instruction in the function.
-  for (MachineBasicBlock &MBB : MF) {
-    Stack &CurrentStack = initializeStack(MBB, BBStack, TheStack);
-    for (MachineBasicBlock::iterator I = MBB.begin(), E = MBB.end(); I != E;) {
-      MachineInstr &MI = *I++;
-      assert(!TVM::isArgument(MI));
-
-      if (MI.isDebugInstr() || MI.isLabel())
+  // Topological order visitation. Back edges are not yet supported.
+  while (BBStack.size() < MF.size()) {
+    size_t Size = BBStack.size();
+    for (MachineBasicBlock &MBB : MF) {
+      if (BBStack.count(&MBB) != 0u)
         continue;
+      bool PredecessorsProcessed = true;
+      for (auto *Predecessor : MBB.predecessors())
+        if (BBStack.count(Predecessor) == 0u) {
+          PredecessorsProcessed = false;
+          break;
+        }
+      if (!PredecessorsProcessed)
+        continue;
+      Stack &CurrentStack = initializeStack(MBB, BBStack, TheStack);
+      MachineInstr *LastProcessed;
+      for (MachineBasicBlock::iterator I = MBB.begin(), E = MBB.end();
+           I != E;) {
+        MachineInstr &MI = *I++;
+        assert(!TVM::isArgument(MI));
 
-      // TODO: multiple defs should be handled separately.
-      assert(MI.getDesc().getNumDefs() <= 1);
-      Changed |= processInstruction(MI, LIS, TII, CurrentStack);
+        if (MI.isDebugInstr() || MI.isLabel())
+          continue;
+
+        // TODO: multiple defs should be handled separately.
+        assert(MI.getDesc().getNumDefs() <= 1);
+        LastProcessed = &MI;
+        Changed |= processInstruction(MI, LIS, TII, CurrentStack);
+      }
+      assert(LastProcessed && "Unexpected: empty BB");
+      finalizeStack(MBB, CurrentStack, LIS, *LastProcessed);
     }
+    assert(BBStack.size() > Size &&
+           "Not Implemented: there is a back edge in CFG.");
   }
 
   return Changed;

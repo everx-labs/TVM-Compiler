@@ -71,6 +71,10 @@ public:
   Stack(const TargetInstrInfo *TII, size_t Size)
       : TII(TII), Data(Size, TVMFunctionInfo::UnusedReg) {}
   Stack(const TargetInstrInfo *TII) : TII(TII) {}
+  auto begin() { return Data.begin(); }
+  auto begin() const { return Data.begin(); }
+  auto end() { return Data.end(); }
+  auto end() const { return Data.end(); }
   /// Insert POP instructions to clean up the stack, preserving the specified
   /// element of it.
   /// \par InsertPoint specify instruction to insert after.
@@ -97,6 +101,10 @@ public:
   bool xchg(MachineInstr *InsertPoint, const StackReordering &Reordering) {
     return xchg(InsertPoint, Reordering.ElemFrom, Reordering.SlotTo);
   }
+  /// Remove \par Elem from the stack. Insert corresponding POP instruction
+  /// after \par InsertPoint.
+  /// Precondition: Elem is in the stack.
+  void pop(MachineInstr &InsertPoint, const StackElementT &Elem);
   /// Return position of \par Elem in the stack.
   /// Precondition: \par Elem is in the stack.
   size_t position(StackElementT Elem) const {

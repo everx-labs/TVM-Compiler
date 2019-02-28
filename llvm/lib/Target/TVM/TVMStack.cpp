@@ -74,6 +74,13 @@ bool Stack::xchg(MachineInstr *InsertPoint, StackElementT ElemFrom,
   return true;
 }
 
+void Stack::pop(MachineInstr &InsertPoint, const StackElementT &Elem) {
+  auto It = llvm::find_or_fail(Data, Elem);
+  size_t Slot = std::distance(std::begin(Data), It);
+  BuildMI(&InsertPoint, TII->get(TVM::POP)).addImm(Slot);
+  Data.erase(It);
+}
+
 void Stack::join(Stack &S1, Stack &S2, MachineInstr &InsertPoint) {
   size_t Slot = 0;
   auto &Data1 = S1.Data, Data2 = S2.Data;

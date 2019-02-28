@@ -31,6 +31,15 @@ auto find_or_fail(R &&Range, const T &Val) -> decltype(adl_begin(Range)) {
   return It;
 }
 
+/// Finds an element and enforces that the search was successful.
+template <typename R, typename UnaryPredicate>
+auto find_if_or_fail(R &&Range, UnaryPredicate P)
+    -> decltype(adl_begin(Range)) {
+  auto It = llvm::find_if(Range, P);
+  assert(It != std::end(Range));
+  return It;
+}
+
 /// Check if an element exist in a range.
 template <typename R, typename T> bool exist(R &&Range, const T &Val) {
   auto It = llvm::find(Range, Val);

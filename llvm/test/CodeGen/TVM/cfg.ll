@@ -22,6 +22,7 @@ exit2:
 
 declare void @foo()
 declare void @bar()
+declare void @bazz()
 
 ; CHECK-LABEL: diamond
 define void @diamond(i1 %par) nounwind {
@@ -38,6 +39,27 @@ bb1:
   br label %exit
 bb2:
   call void @bar()
+  br label %exit
+exit:
+  ret void
+}
+
+; CHECK-LABEL: diamondswitch
+define void @diamondswitch(i64 %par) nounwind {
+entry:
+  switch i64 %par, label %bb3 [ i64 0, label %bb1
+                                i64 1, label %bb2 ]
+bb1:
+; CHECK-DAG: PUSHCONT foo
+  call void @foo()
+  br label %exit
+bb2:
+; CHECK-DAG: PUSHCONT bar
+  call void @bar()
+  br label %exit
+bb3:
+; CHECK-DAG: PUSHCONT bazz
+  call void @bazz()
   br label %exit
 exit:
   ret void

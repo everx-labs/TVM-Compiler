@@ -64,3 +64,26 @@ bb3:
 exit:
   ret void
 }
+
+; CHECK-LABEL: trivial_phi
+define i64 @trivial_phi(i1 %par, i64 %val) nounwind {
+entry:
+; CHECK: PUSHCONT
+; CHECK-NEXT: IFJMP
+; CHECK-NEXT: PUSHCONT
+; CHECK-NEXT: JMPX
+  br i1 %par, label %bb1, label %bb2
+bb1:
+; CHECK: INC
+  %0 = add i64 %val, 1
+; CHECK: PUSHCONT
+; CHECK-NEXT: JMPX
+  br label %exit
+bb2:
+; CHECK: DEC
+  %1 = sub i64 %val, 1
+  br label %exit
+exit:
+  %2 = phi i64 [%0, %bb1], [%1, %bb2]
+  ret i64 %2
+}

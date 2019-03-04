@@ -103,7 +103,7 @@ Stack &initializeStack(MachineBasicBlock &MBB,
                        Stack &Initializer) {
   assert(BBStack.count(&MBB) == 0u && "Back edges are not supported yet");
   auto Predecessors = MBB.predecessors();
-  auto NumPredecessors = std::end(Predecessors) - std::begin(Predecessors);
+  auto NumPredecessors = MBB.pred_size();
   if (NumPredecessors == 0u) {
     auto [It, Flag] = BBStack.try_emplace(&MBB, Initializer);
     assert(Flag && "Insertion failed");

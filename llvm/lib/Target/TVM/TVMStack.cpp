@@ -89,11 +89,10 @@ void Stack::join(Stack &S1, Stack &S2, MachineInstr &InsertPoint) {
          "Stack manipulations are supposed to be inserted at the end of a "
          "basic block");
   assert(Size == Data2.size() && "Not implemented");
-  /*assert(std::is_permutation(std::begin(Data1), std::end(Data2),
-                             std::begin(Data2)) &&
-         "Not implemented"); */
-  while (Slot < Size)
+  while (Slot < Size) {
     S2.xchg(&InsertPoint, Data1[Slot], Slot);
+    ++Slot;
+  }
 }
 
 } // namespace llvm

@@ -75,6 +75,12 @@ defm ARGUMENT : I<(outs I64:$res), (ins i64imm:$argno),
                   (outs), (ins i64imm:$argno),
                   [(set I64:$res, (TVMargument timm:$argno))]>;
 
+// Auxiliary instruction for debugging purposes only: 
+// specifies number of arguments on stack for the function;
+// normally this number is taken from MachineInfo Param vector.
+let hasSideEffects = 1, isCodeGenOnly = 1 in
+defm ARGUMENT_NUM : I<(outs), (ins i64imm:$argnum), (outs), (ins i64imm:$argnum), []>;
+
 let isTerminator = 1, hasCtrlDep = 1 in {
   let isReturn = 1, isBarrier = 1 in {
     defm RETURN_I64 : NRI<(outs), (ins i64imm:$val), [(TVMreturn i64:$val)],

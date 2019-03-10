@@ -20,12 +20,11 @@
 using namespace llvm;
 
 bool TVM::isArgument(const MachineInstr &MI) {
-  switch (MI.getOpcode()) {
-  case TVM::ARGUMENT:
-    return true;
-  default:
-    return false;
-  }
+  return MI.getOpcode() == TVM::ARGUMENT;
+}
+
+bool TVM::isArgumentNum(const MachineInstr &MI) {
+  return MI.getOpcode() == TVM::ARGUMENT_NUM;
 }
 
 // A shortcut overload for BuildMI() function

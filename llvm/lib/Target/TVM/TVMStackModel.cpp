@@ -56,6 +56,8 @@ public:
   TVMStackModel() : MachineFunctionPass(ID) {}
 
 private:
+  bool runOnBasicBlocks(MachineFunction &MF, Stack &TheStack);
+
   /// Forms vector of Pushes and Xchgs to supply an instruction with the right
   /// data.
   /// The function assumes that non-register arguments always come first.
@@ -423,38 +425,16 @@ bool TVMStackModel::processInstruction(MachineInstr &MI, LiveIntervals &LIS,
   return Changed;
 }
 
-// TODO: For now it only stackifies function arguments. Extend.
-bool TVMStackModel::runOnMachineFunction(MachineFunction &MF) {
-  LLVM_DEBUG(
-      dbgs()
-      << "********** Rewrite Instructions in Reg-form to S-form **********\n"
-         "********** Function: "
-      << MF.getName() << '\n');
-
+// Traverse all basic blocks in machine function and rewrite all instructions
+// from R-form to S-form. All function arguments are already in stack.
+// Topological order visitation. Back edges are not yet supported.
+bool TVMStackModel::runOnBasicBlocks(MachineFunction &MF, Stack &TheStack) {
   bool Changed = false;
-  TVMFunctionInfo &MFI = *MF.getInfo<TVMFunctionInfo>();
-  const auto *TII = MF.getSubtarget<TVMSubtarget>().getInstrInfo();
+
   LiveIntervals &LIS = getAnalysis<LiveIntervals>();
-  size_t NumArgs = MFI.numParams();
-  Stack TheStack(TII, NumArgs);
-
-  // Handle ARGUMENTS first to ensure that they get the designated numbers.
-  for (MachineBasicBlock::iterator I = MF.begin()->begin(),
-                                   E = MF.begin()->end();
-       I != E;) {
-    MachineInstr &MI = *I++;
-    if (!TVM::isArgument(MI))
-      break;
-    unsigned Reg = MI.getOperand(0).getReg();
-    assert(!MFI.isVRegStackified(Reg));
-    unsigned ArgNo = NumArgs - MI.getOperand(1).getImm() - 1;
-    TheStack.set(ArgNo, Reg);
-    MI.eraseFromParent();
-    Changed = true;
-  }
-
   DenseMap<MachineBasicBlock *, Stack> BBStack;
-  // Topological order visitation. Back edges are not yet supported.
+  const auto *TII = MF.getSubtarget<TVMSubtarget>().getInstrInfo();
+
   while (BBStack.size() < MF.size()) {
     size_t Size = BBStack.size();
     for (MachineBasicBlock &MBB : MF) {
@@ -486,6 +466,56 @@ bool TVMStackModel::runOnMachineFunction(MachineFunction &MF) {
     assert(BBStack.size() > Size &&
            "Not Implemented: there is a back edge in CFG.");
   }
+
+  return Changed;
+}
+
+// TODO: For now it only stackifies function arguments. Extend.
+bool TVMStackModel::runOnMachineFunction(MachineFunction &MF) {
+  LLVM_DEBUG(
+      dbgs()
+      << "********** Rewrite Instructions in Reg-form to S-form **********\n"
+         "********** Function: "
+      << MF.getName() << '\n');
+
+  bool Changed = false;
+  TVMFunctionInfo &MFI = *MF.getInfo<TVMFunctionInfo>();
+  const auto *TII = MF.getSubtarget<TVMSubtarget>().getInstrInfo();
+
+  MachineBasicBlock &MF_first_block = *(MF.begin());
+  assert(!MF_first_block.empty());
+
+  auto &ANI = *(MF_first_block.begin());
+
+  // Process ARGUMENT_NUM instruction to adjust arguments number on stack.
+  if (TVM::isArgumentNum(ANI)) {
+    int args = ANI.getOperand(0).getImm();
+    for (int i = 0; i < args; i++)
+      MFI.addParam(MVT::i64);
+    ANI.eraseFromParent();
+    Changed = true;
+  }
+
+  size_t NumArgs = MFI.numParams();
+  Stack TheStack(TII, NumArgs);
+
+  // Handle ARGUMENTS first to ensure that they get the designated numbers.
+  for (MachineBasicBlock::iterator I = MF_first_block.begin(),
+                                   E = MF_first_block.end();
+       I != E;) {
+    MachineInstr &MI = *I++;
+    if (!TVM::isArgument(MI))
+      break;
+    unsigned Reg = MI.getOperand(0).getReg();
+    assert(!MFI.isVRegStackified(Reg));
+    unsigned ArgNo = NumArgs - MI.getOperand(1).getImm() - 1;
+    TheStack.set(ArgNo, Reg);
+    MI.eraseFromParent();
+    Changed = true;
+  }
+
+  if (runOnBasicBlocks(MF, TheStack))
+    Changed = true;
 
   return Changed;
 }

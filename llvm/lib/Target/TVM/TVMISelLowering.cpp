@@ -56,6 +56,10 @@ TVMTargetLowering::TVMTargetLowering(const TargetMachine &TM,
 
   setOperationAction(ISD::GlobalAddress, MVT::i64, Custom);
 
+  // Custom lowering for intrinsics that unrolls into more than one
+  // MIR instructions.
+  setOperationAction(ISD::INTRINSIC_W_CHAIN, MVT::Other, Custom);
+
   setMinFunctionAlignment(1);
   setPrefFunctionAlignment(1);
 
@@ -160,11 +164,12 @@ bool TVMTargetLowering::CanLowerReturn(
   return Outs.size() <= 1;
 }
 
-SDValue TVMTargetLowering::LowerReturn(
-    SDValue Chain, CallingConv::ID CallConv, bool /*IsVarArg*/,
-    const SmallVectorImpl<ISD::OutputArg> &Outs,
-    const SmallVectorImpl<SDValue> &OutVals, const SDLoc &DL,
-    SelectionDAG &DAG) const {
+SDValue
+TVMTargetLowering::LowerReturn(SDValue Chain, CallingConv::ID CallConv,
+                               bool /*IsVarArg*/,
+                               const SmallVectorImpl<ISD::OutputArg> &Outs,
+                               const SmallVectorImpl<SDValue> &OutVals,
+                               const SDLoc &DL, SelectionDAG &DAG) const {
   assert(Outs.size() <= 1 && "TVM can only return up to one value");
   if (!CallingConvSupported(CallConv))
     fail(DL, DAG, "TVM doesn't support non-C calling conventions");
@@ -219,17 +224,15 @@ SDValue TVMTargetLowering::LowerFormalArguments(
       fail(DL, DAG, "TVM hasn't implemented cons regs last arguments");
     // Ignore In.getOrigAlign() because all our arguments are passed in
     // registers.
-    InVals.push_back(
-        In.Used
-            ? DAG.getNode(TVMISD::ARGUMENT, DL, In.VT,
-                          DAG.getTargetConstant(InVals.size(), DL, MVT::i64))
-            : DAG.getUNDEF(In.VT));
+    InVals.push_back(In.Used ? DAG.getNode(TVMISD::ARGUMENT, DL, In.VT,
+                                           DAG.getTargetConstant(InVals.size(),
+                                                                 DL, MVT::i64))
+                             : DAG.getUNDEF(In.VT));
     MFI->addParam(In.VT);
   }
 
   return Chain;
 }
-
 
 //===----------------------------------------------------------------------===//
 //                      Other Lowerings
@@ -239,6 +242,8 @@ SDValue TVMTargetLowering::LowerOperation(SDValue Op, SelectionDAG &DAG) const {
   switch (Op.getOpcode()) {
   case ISD::GlobalAddress:
     return LowerGlobalAddress(Op, DAG);
+  case ISD::INTRINSIC_W_CHAIN:
+    return LowerINTRINSIC_W_CHAIN(Op, DAG);
   default:
     llvm_unreachable("unimplemented operand");
   }
@@ -258,15 +263,51 @@ SDValue TVMTargetLowering::LowerGlobalAddress(SDValue Op,
 
 const char *TVMTargetLowering::getTargetNodeName(unsigned Opcode) const {
   switch (static_cast<TVMISD::NodeType>(Opcode)) {
-    case TVMISD::FIRST_NUMBER:
-      break;
-#define HANDLE_NODETYPE(NODE) \
-  case TVMISD::NODE:  \
+  case TVMISD::FIRST_NUMBER:
+    break;
+#define HANDLE_NODETYPE(NODE)                                                  \
+  case TVMISD::NODE:                                                           \
     return "TVMISD::" #NODE;
 #include "TVMISD.def"
 #undef HANDLE_NODETYPE
   }
   return nullptr;
+}
+
+SDValue TVMTargetLowering::LowerINTRINSIC_W_CHAIN(SDValue Op,
+                                                  SelectionDAG &DAG) const {
+  unsigned IntNo = cast<ConstantSDNode>(Op.getOperand(1))->getZExtValue();
+  SDLoc DL(Op);
+  SDValue Chain = Op->getOperand(0);
+  switch (IntNo) {
+  default:
+    break;
+  /// Instrinsic operands are {chain, ID, parameters...} tuple.
+  case Intrinsic::tvm_get_persistent_data: {
+    SDValue Result =
+        DAG.getNode(TVMISD::PUSHROOT, DL, MVT::i64, Chain, Op->getOperand(2));
+    Result = DAG.getNode(TVMISD::CTOS, DL, MVT::i64, Result);
+    return DAG.getMergeValues({Result.getValue(0), Chain}, DL);
+  }
+  case Intrinsic::tvm_inttoslice: {
+    SDValue Precision = DAG.getConstant(256, DL, MVT::i64);
+    SDValue Result = DAG.getNode(TVMISD::NEWC, DL, MVT::i64);
+    Result = DAG.getNode(TVMISD::STU, DL, MVT::i64, Op->getOperand(2),
+                         Result.getValue(0), Precision);
+    Result = DAG.getNode(TVMISD::ENDC, DL, MVT::i64, Result);
+    Result = DAG.getNode(TVMISD::CTOS, DL, MVT::i64, Result);
+    return DAG.getMergeValues({Result.getValue(0), Chain}, DL);
+  }
+  case Intrinsic::tvm_ldu: {
+    SDValue Precision = DAG.getConstant(256, DL, MVT::i64);
+    SDValue Result =
+        DAG.getNode(TVMISD::LDU, DL, DAG.getVTList(MVT::i64, MVT::i64),
+                    Op->getOperand(2), Precision);
+    return DAG.getMergeValues({Result.getValue(0), Result.getValue(1), Chain},
+                              DL);
+  }
+  }
+  return SDValue();
 }
 
 //===----------------------------------------------------------------------===//

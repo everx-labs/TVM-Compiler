@@ -57,6 +57,7 @@ class ImmAsmOperand<int Low, int High> : AsmOperandClass {
 
 def SImm8: ImmAsmOperand<-128,127> { let Name = "SImm8"; }
 def UImm8: ImmAsmOperand<0,255> { let Name = "UImm8"; }
+def UImm1_256: ImmAsmOperand<1,256> { let Name = "UImm1_256"; }
 
 def simm8 : Operand<i64>, ImmLeaf<i64, [{
   return Imm >=-128 && Imm <= 127 && Imm != 1;
@@ -68,6 +69,12 @@ def uimm8 : Operand<i64>, ImmLeaf<i64, [{
   return Imm >=0 && Imm <= 255;
 }]> {
   let ParserMatchClass = UImm8;
+}
+
+def uimm1_256 : Operand<i64>, ImmLeaf<i64, [{
+  return Imm >=1 && Imm <= 256;
+}]> {
+  let ParserMatchClass = UImm1_256;
 }
 
 //===----------------------------------------------------------------------===//

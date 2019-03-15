@@ -44,6 +44,9 @@ public:
 
   /// LowerOperation - Provide custom lowering hooks for some operations.
   SDValue LowerOperation(SDValue Op, SelectionDAG &DAG) const override;
+  /// Provide custom lowering hooks for intrinsics that unroll to more than one
+  /// MIR instructions.
+  SDValue LowerINTRINSIC_W_CHAIN(SDValue Op, SelectionDAG &DAG) const;
 
   /// getTargetNodeName - This method returns the name of a target specific
   /// DAG node.

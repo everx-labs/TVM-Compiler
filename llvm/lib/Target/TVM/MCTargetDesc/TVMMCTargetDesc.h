@@ -28,6 +28,12 @@ enum OperandType {
   OPERAND_BASIC_BLOCK = MCOI::OPERAND_FIRST_TARGET,
   /// Local index.
   OPERAND_STACK,
+  /// ID
+  OPERAND_BUILDER,
+  /// ID
+  OPERAND_CELL,
+  /// ID
+  OPERAND_SLICE,
   /// 64-bit integer immediates.
   OPERAND_I64IMM,
   /// Function.

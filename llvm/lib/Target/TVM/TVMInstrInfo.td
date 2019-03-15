@@ -25,6 +25,13 @@ def SDT_TVMArgument     : SDTypeProfile<1, 1, [SDTCisVT<1, i64>]>;
 def SDT_TVMCall0        : SDTypeProfile<0, -1, [SDTCisPtrTy<0>]>;
 def SDT_TVMCall1        : SDTypeProfile<1, -1, [SDTCisPtrTy<1>]>;
 
+def SDT_TVMCtos         : SDTypeProfile<1, 1, [SDTCisVT<1, i64>]>;
+def SDT_TVMNewc         : SDTypeProfile<1, 0, []>;
+def SDT_TVMEndc         : SDTypeProfile<1, 1, [SDTCisVT<1, i64>]>;
+def SDT_TVMPushRoot     : SDTypeProfile<1, 1, [SDTCisVT<1, i64>]>;
+def SDT_TVMDictGet      : SDTypeProfile<2, 3, []>;
+def SDT_TVMDictSt       : SDTypeProfile<1, 3, []>;
+def SDT_TVMDictLd       : SDTypeProfile<2, 2, []>;
 //===----------------------------------------------------------------------===//
 // TVM specific node definitions
 //===----------------------------------------------------------------------===//
@@ -42,6 +49,15 @@ def TVMcall0 : SDNode<"TVMISD::CALL0", SDT_TVMCall0,
 def TVMcall1 : SDNode<"TVMISD::CALL1", SDT_TVMCall1,
                       [SDNPHasChain, SDNPVariadic]>;
 
+def TVMctos : SDNode<"TVMISD::CTOS", SDT_TVMCtos>;
+def TVMendc : SDNode<"TVMISD::ENDC", SDT_TVMEndc>;
+def TVMpushroot : SDNode<"TVMISD::PUSHROOT", SDT_TVMPushRoot, [SDNPHasChain]>;
+def TVMdictuget : SDNode<"TVMISD::DICTUGET", SDT_TVMDictGet, [SDNPHasChain]>;
+def TVMsti : SDNode<"TVMISD::STI", SDT_TVMDictSt, []>;
+def TVMstu : SDNode<"TVMISD::STU", SDT_TVMDictSt, []>;
+def TVMldi : SDNode<"TVMISD::LDI", SDT_TVMDictLd, []>;
+def TVMldu : SDNode<"TVMISD::LDU", SDT_TVMDictLd, []>;
+def TVMnewc : SDNode<"TVMISD::NEWC", SDT_TVMNewc, []>;
 //===----------------------------------------------------------------------===//
 // TVM-specific Operands.
 //===----------------------------------------------------------------------===//
@@ -51,6 +67,18 @@ let OperandNamespace = "TVM" in {
 // This operand represents stack slots (s0, s1, s2 etc.)
 let OperandType = "OPERAND_STACK" in
 def stack_op : Operand<i8>;
+
+// This operand represents builder argument (see A.6 Cell primitives)
+let OperandType = "OPERAND_BUILDER" in
+def builder_op : Operand<i64>;
+
+// This operand represents cell argument (see A.6 Cell primitives)
+let OperandType = "OPERAND_CELL" in
+def cell_op : Operand<i64>;
+
+// This operand represents slice argument (see A.6 Cell primitives)
+let OperandType = "OPERAND_SLICE" in
+def slice_op : Operand<i64>;
 
 let OperandType = "OPERAND_I64IMM" in
 def i64imm_op : Operand<i64>;
@@ -81,55 +109,7 @@ defm ARGUMENT : I<(outs I64:$res), (ins i64imm:$argno),
 let hasSideEffects = 1, isCodeGenOnly = 1 in
 defm ARGUMENT_NUM : I<(outs), (ins i64imm:$argnum), (outs), (ins i64imm:$argnum), []>;
 
-let isTerminator = 1, hasCtrlDep = 1 in {
-  let isReturn = 1, isBarrier = 1 in {
-    defm RETURN_I64 : NRI<(outs), (ins i64imm:$val), [(TVMreturn i64:$val)],
-                          "RETARGS\t1", 0xdb21>;
-    defm RETURN_VOID : NRI<(outs), (ins), [(TVMreturn)], "RETARGS\t0", 0xdb20>;
-    let isCodeGenOnly = 1 in
-    defm FALLTHROUGH_RETURN : SI<(ins)>;
-  } // isReturn = 1, isBarrier = 1
-
-  defm ISZERO : I<(outs I64:$dst), (ins I64:$src), (outs), (ins),
-                   [(set I64:$dst, (setcc I64:$src, 0, SETEQ))],
-                   "ISZERO\t$dst, $src", "ISZERO", 0xc000>;
-
-  let isBranch = 1 in {
-    // The condition operand is a boolean value which TVM represents as i64.
-    defm IFJMP : I<(outs), (ins I64:$cond, bb_op:$dst),
-                   (outs), (ins),
-                   [(brcond I64:$cond, bb:$dst)],
-                    "IFJMP\t$dst, $cond", "IFJMP", 0xe0>;
-
-    let isBarrier = 1 in {
-      defm JMPX  : I<(outs), (ins bb_op:$dst),
-                     (outs), (ins),
-                     [(br bb:$dst)],
-                     "JMPX\t$dst", "JMPX", 0xd9>;
-    } // isBarrier = 1
-  } // isBranch = 1
-} // isTerminator = 1, hasCtrlDep = 1
-
-// TODO: The approach with two CALLs was copied from WebAssembly backend.
-// We need to investigate how it works and why 2 CALLs are needed
-let isCall = 1, hasCtrlDep = 1 in {
-  defm CALL_VOID : NRI<(outs), (ins i64imm:$callee, variable_ops),
-                       [(TVMcall0 i64:$callee)], "CALLX", 0xD9>;
-  defm CALL_1 : NRI<(outs I64:$dst), (ins i64imm:$callee, variable_ops),
-                    [(set I64:$dst, (TVMcall1 i64:$callee))],
-                    "CALLX", 0xD9>;
-}
-
-let isMoveImm = 1, isAsCheapAsAMove = 1, isReMaterializable = 1 in {
-defm CONST_I64 : I<(outs I64:$res), (ins i64imm:$imm),
-                   (outs), (ins i64imm:$imm),
-                   [(set I64:$res, imm:$imm)],
-                   "PUSHINT\t$res, $imm", "PUSHINT\t$imm", 0x82>;
-}
-
-defm PUSHCONT_MBB : NRI<(outs), (ins bb_op:$bb), [], "PUSHCONT\t$bb", 0x8f>;
-defm PUSHCONT_FUNC : NRI<(outs), (ins function_op:$callee), [],
-                         "PUSHCONT\t$callee", 0x8f>;
+include "TVMControlFlowInstrInfo.td"
 
 //===----------------------------------------------------------------------===//
 // Selection patterns
@@ -200,3 +180,6 @@ def : Pat<(select (i64 (seteq I64:$cond, 0)), I64:$lhs, I64:$rhs),
           (CONDSEL I64:$lhs, I64:$rhs, I64:$cond)>;
 def : Pat<(select (i64 (setne I64:$cond, 0)), I64:$lhs, I64:$rhs),
           (CONDSEL I64:$rhs, I64:$lhs, I64:$cond)>;
+
+include "TVMCellInstrInfo.td"
+include "TVMDictionaryInstrInfo.td"

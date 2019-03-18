@@ -5,10 +5,10 @@ target triple = "tvm"
 ; CHECK-LABEL: brcond
 define i64 @brcond(i1 %par) nounwind {
 entry:
-; CHECK: PUSHCONT .LBB{{[0-9]+}}_2
-; CHECK-NEXT: IFJMP
-; CHECK-NEXT: PUSHCONT .LBB{{[0-9]+}}_1
-; CHECK-NEXT: JMPX
+; CHECK: PUSHCONT {{[{]}}
+; CHECK: IFJMP
+; CHECK: PUSHCONT {{[{]}}
+; CHECK: JMPX
   br i1 %par, label %exit1, label %exit2
 exit1:
 ; CHECK: PUSHINT 42
@@ -27,15 +27,15 @@ declare void @bazz()
 ; CHECK-LABEL: diamond
 define void @diamond(i1 %par) nounwind {
 entry:
-; CHECK: PUSHCONT .LBB{{[0-9]+}}_2
-; CHECK-NEXT: IFJMP
-; CHECK-NEXT: PUSHCONT .LBB{{[0-9]+}}_1
-; CHECK-NEXT: JMPX
+; CHECK: PUSHCONT {{[{]}}
+; CHECK: IFJMP
+; CHECK: PUSHCONT {{[{]}}
+; CHECK: JMPX
   br i1 %par, label %bb1, label %bb2
 bb1:
   call void @foo()
-; CHECK: PUSHCONT .LBB1_3
-; CHECK-NEXT: JMPX
+; CHECK: PUSHCONT {{[{]}}
+; CHECK: JMPX
   br label %exit
 bb2:
   call void @bar()
@@ -69,15 +69,15 @@ exit:
 define i64 @trivial_phi(i1 %par, i64 %val) nounwind {
 entry:
 ; CHECK: PUSHCONT
-; CHECK-NEXT: IFJMP
+; CHECK: IFJMP
 ; CHECK-NEXT: PUSHCONT
-; CHECK-NEXT: JMPX
+; CHECK: JMPX
   br i1 %par, label %bb1, label %bb2
 bb1:
 ; CHECK: INC
   %0 = add i64 %val, 1
-; CHECK: PUSHCONT
-; CHECK-NEXT: JMPX
+; CHECK: PUSHCONT {{[{]}}
+; CHECK: JMPX
   br label %exit
 bb2:
 ; CHECK: DEC

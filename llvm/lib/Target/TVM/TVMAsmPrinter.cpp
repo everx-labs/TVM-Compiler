@@ -100,7 +100,7 @@ void TVMAsmPrinter::EmitInstruction(const MachineInstr *MI) {
     TVMMCInstLower MCInstLowering(OutContext, *this);
 
     MCInst TmpInst;
-    MCInstLowering.Lower(MI, TmpInst);
+    MCInstLowering.lower(MI, TmpInst);
     EmitToStreamer(*OutStreamer, TmpInst);
   }
 }

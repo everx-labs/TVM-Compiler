@@ -11,6 +11,8 @@
 #define LLVM_LIB_TARGET_TVM_TVMMCINSTLOWER_H
 
 #include "llvm/Support/Compiler.h"
+#include <memory>
+#include <vector>
 
 namespace llvm {
 class AsmPrinter;
@@ -26,13 +28,14 @@ class MachineOperand;
 /// into an MCInst.
 class LLVM_LIBRARY_VISIBILITY TVMMCInstLower {
   MCContext &Ctx;
+  std::vector<std::shared_ptr<MCInst>> ContinuationInstructionStorage;
 
   [[maybe_unused]] AsmPrinter &Printer;
 
 public:
   TVMMCInstLower(MCContext &ctx, AsmPrinter &printer)
       : Ctx(ctx), Printer(printer) {}
-  void Lower(const MachineInstr *MI, MCInst &OutMI) const;
+  void lower(const MachineInstr *MI, MCInst &OutMI);
 };
 
 } // namespace llvm

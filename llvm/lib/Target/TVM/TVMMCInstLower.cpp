@@ -13,6 +13,8 @@
 //===----------------------------------------------------------------------===//
 
 #include "TVMMCInstLower.h"
+#include "InstPrinter/TVMInstPrinter.h"
+#include "TVMTargetMachine.h"
 #include "llvm/ADT/SmallString.h"
 #include "llvm/CodeGen/AsmPrinter.h"
 #include "llvm/CodeGen/MachineBasicBlock.h"
@@ -25,11 +27,10 @@
 #include "llvm/MC/MCInst.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/raw_ostream.h"
-#include "llvm/Target/TargetMachine.h"
 
 using namespace llvm;
 
-void TVMMCInstLower::Lower(const MachineInstr *MI, MCInst &OutMI) const {
+void TVMMCInstLower::lower(const MachineInstr *MI, MCInst &OutMI) {
   OutMI.setOpcode(MI->getOpcode());
 
   for (unsigned i = 0, e = MI->getNumOperands(); i != e; ++i) {
@@ -50,9 +51,17 @@ void TVMMCInstLower::Lower(const MachineInstr *MI, MCInst &OutMI) const {
       MCOp = MCOperand::createImm(MO.getImm());
       break;
     case MachineOperand::MO_MachineBasicBlock:
-      MCOp = MCOperand::createExpr(
-          MCSymbolRefExpr::create(MO.getMBB()->getSymbol(), Ctx));
-      break;
+      for (auto &I : *MO.getMBB()) {
+        // todo: combine this with code in AsmPrinter::EmitInstruction
+        if (I.getOpcode() == TVM::FALLTHROUGH_RETURN)
+          continue;
+
+        std::shared_ptr<MCInst> Inst = std::make_shared<MCInst>();
+        ContinuationInstructionStorage.push_back(Inst);
+        lower(&I, *Inst);
+        OutMI.addOperand(MCOperand::createInst(Inst.get()));
+      }
+      continue;
     case MachineOperand::MO_GlobalAddress:
       assert(MO.getTargetFlags() == 0 &&
              "TVM does not use target flags on GlobalAddresses");

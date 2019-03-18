@@ -58,7 +58,8 @@ defm CONST_I64 : I<(outs I64:$res), (ins i64imm:$imm),
                    "PUSHINT\t$res, $imm", "PUSHINT\t$imm", 0x82>;
 }
 
-defm PUSHCONT_MBB : NRI<(outs), (ins bb_op:$bb), [], "PUSHCONT\t$bb", 0x8f>;
+defm PUSHCONT_MBB : I<(outs), (ins bb_op:$bb), (outs), (ins bb_op:$bb), 
+                    [], "PUSHCONT", "PUSHCONT", 0x8f>;
 defm PUSHCONT_FUNC : NRI<(outs), (ins function_op:$callee), [],
                          "PUSHCONT\t$callee", 0x8f>;
 

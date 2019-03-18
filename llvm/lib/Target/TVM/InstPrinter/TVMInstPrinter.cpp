@@ -14,6 +14,8 @@
 #include "TVMInstPrinter.h"
 #include "TVM.h"
 #include "TVMMachineFunctionInfo.h"
+#include "llvm/CodeGen/MachineBasicBlock.h"
+#include "llvm/CodeGen/MachineInstr.h"
 #include "llvm/MC/MCAsmInfo.h"
 #include "llvm/MC/MCExpr.h"
 #include "llvm/MC/MCInst.h"
@@ -30,6 +32,23 @@ using namespace llvm;
 void TVMInstPrinter::printInst(const MCInst *MI, raw_ostream &O,
                                StringRef Annot, const MCSubtargetInfo &STI) {
   printInstruction(MI, O);
+
+  if (MI->getOpcode() == TVM::PUSHCONT_MBB) {
+    O << " {\n";
+    depth++;
+
+    for (const auto &op : *MI) {
+      if (op.isInst()) {
+        O << std::string(depth, '\t');
+        printInst(op.getInst(), O, "", STI);
+        O << "\n";
+      }
+    }
+
+    depth--;
+    O << std::string(depth, '\t') << "\t}";
+  }
+
   printAnnotation(O, Annot);
 }
 
@@ -44,8 +63,7 @@ void TVMInstPrinter::printOperand(const MCInst *MI, unsigned OpNo,
       O << "s";
     O << Op.getImm();
   } else if (Op.isExpr()) {
-    assert((Info.OperandType == TVM::OPERAND_BASIC_BLOCK ||
-            Info.OperandType == TVM::OPERAND_FUNCTION) &&
+    assert((Info.OperandType == TVM::OPERAND_FUNCTION) &&
            "Unimplemented expression type");
     Op.getExpr()->print(O, &MAI);
   } else {

@@ -26,6 +26,7 @@ def SDT_TVMCall0        : SDTypeProfile<0, -1, [SDTCisPtrTy<0>]>;
 def SDT_TVMCall1        : SDTypeProfile<1, -1, [SDTCisPtrTy<1>]>;
 
 def SDT_TVMCtos         : SDTypeProfile<1, 1, [SDTCisVT<1, i64>]>;
+def SDT_TVMStSlice      : SDTypeProfile<1, 2, []>;
 def SDT_TVMNewc         : SDTypeProfile<1, 0, []>;
 def SDT_TVMEndc         : SDTypeProfile<1, 1, [SDTCisVT<1, i64>]>;
 def SDT_TVMPushRoot     : SDTypeProfile<1, 1, [SDTCisVT<1, i64>]>;
@@ -49,15 +50,16 @@ def TVMcall0 : SDNode<"TVMISD::CALL0", SDT_TVMCall0,
 def TVMcall1 : SDNode<"TVMISD::CALL1", SDT_TVMCall1,
                       [SDNPHasChain, SDNPVariadic]>;
 
-def TVMctos : SDNode<"TVMISD::CTOS", SDT_TVMCtos>;
-def TVMendc : SDNode<"TVMISD::ENDC", SDT_TVMEndc>;
+def TVMctos     : SDNode<"TVMISD::CTOS", SDT_TVMCtos>;
+def TVMstslice  : SDNode<"TVMISD::STSLICE", SDT_TVMStSlice>;
+def TVMendc     : SDNode<"TVMISD::ENDC", SDT_TVMEndc>;
 def TVMpushroot : SDNode<"TVMISD::PUSHROOT", SDT_TVMPushRoot, [SDNPHasChain]>;
 def TVMdictuget : SDNode<"TVMISD::DICTUGET", SDT_TVMDictGet, [SDNPHasChain]>;
-def TVMsti : SDNode<"TVMISD::STI", SDT_TVMDictSt, []>;
-def TVMstu : SDNode<"TVMISD::STU", SDT_TVMDictSt, []>;
-def TVMldi : SDNode<"TVMISD::LDI", SDT_TVMDictLd, []>;
-def TVMldu : SDNode<"TVMISD::LDU", SDT_TVMDictLd, []>;
-def TVMnewc : SDNode<"TVMISD::NEWC", SDT_TVMNewc, []>;
+def TVMsti      : SDNode<"TVMISD::STI", SDT_TVMDictSt, []>;
+def TVMstu      : SDNode<"TVMISD::STU", SDT_TVMDictSt, []>;
+def TVMldi      : SDNode<"TVMISD::LDI", SDT_TVMDictLd, []>;
+def TVMldu      : SDNode<"TVMISD::LDU", SDT_TVMDictLd, []>;
+def TVMnewc     : SDNode<"TVMISD::NEWC", SDT_TVMNewc, []>;
 //===----------------------------------------------------------------------===//
 // TVM-specific Operands.
 //===----------------------------------------------------------------------===//

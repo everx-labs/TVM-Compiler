@@ -36,7 +36,11 @@ let TargetPrefix = "tvm" in {
   def int_tvm_ldu :
     GCCBuiltin<"__builtin_tvm_ldu">,
                Intrinsic<[llvm_i64_ty, llvm_i64_ty], [llvm_i64_ty]>;
+  // TODO: Fix inconsitsency.
   def int_tvm_ctos :
     GCCBuiltin<"__builtin_tvm_ctos">,
                Intrinsic<[llvm_i64_ty], [llvm_i64_ty]>;
+  def int_tvm_stslice :
+    GCCBuiltin<"__builtin_tvm_stslice">,
+               Intrinsic<[llvm_i64_ty], [llvm_i64_ty, llvm_i64_ty]>;
 }

@@ -27,6 +27,14 @@ define i64 @itos(i64 %arg) nounwind {
   ret i64 %1
 }
 
+; CHECK-LABEL: stslice
+define i64 @stslice(i64 %slice, i64 %builder) nounwind {
+; CHECK: STSLICE
+  %1 = call i64 @llvm.tvm.stslice(i64 %slice, i64 %builder)
+  ret i64 %1
+}
+
 declare i64 @llvm.tvm.newdict() nounwind
 declare i64 @llvm.tvm.get.persistent.data(i64 %index) nounwind
 declare i64 @llvm.tvm.inttoslice(i64 %val) nounwind
+declare i64 @llvm.tvm.stslice(i64 %slice, i64 %builder) nounwind

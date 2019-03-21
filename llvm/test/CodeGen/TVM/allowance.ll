@@ -22,7 +22,7 @@ bb2:
   br label %bb3
 bb3:
   %dict = phi i64 [%dict_bb1, %bb1], [%dict_bb2, %bb2]
-  %spender_amount_status = call {i64, i64} @llvm.tvm.dictuget(i64 %spender, i64 %persistent_root, i64 256)
+  %spender_amount_status = call {i64, i64} @llvm.tvm.dictuget(i64 %spender, i64 %dict, i64 256)
   %amount = extractvalue {i64, i64} %spender_amount_status, 0
   %status1 = extractvalue {i64, i64} %spender_amount_status, 1
   %cond1 = icmp eq i64 %status1, 0

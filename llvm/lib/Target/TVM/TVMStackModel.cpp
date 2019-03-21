@@ -139,6 +139,10 @@ void pruneDeadRegisters(MachineBasicBlock &MBB, Stack &TheStack,
   for (auto &Element : TheStack) {
     if (std::holds_alternative<unsigned>(Element)) {
       auto Register = std::get<unsigned>(Element);
+      if (Register == TVMFunctionInfo::UnusedReg) {
+        DeadVR.push_back(Register);
+        continue;
+      }
       if (isKilled(Inst, Register, LIS) &&
           llvm::none_of(Inst.operands(), [Register](const auto &Operand) {
             if (!Operand.isReg())
@@ -150,6 +154,16 @@ void pruneDeadRegisters(MachineBasicBlock &MBB, Stack &TheStack,
   }
   for (auto Elem : DeadVR)
     TheStack.pop(Inst, Elem);
+}
+
+/// If \p MI result is not used remove it right away.
+void pruneDeadDefinitions(MachineInstr &MI, LiveIntervals &LIS,
+                          Stack &TheStack) {
+  for (size_t I = 0, E = MI.getNumDefs(); I < E; ++I) {
+    MachineOperand& MO = MI.getOperand(I);
+    if (MO.isReg() && MO.isDead())
+      TheStack.pop(MI, MO.getReg());
+  }
 }
 
 } // end anonymous namespace
@@ -419,6 +433,7 @@ bool TVMStackModel::processInstruction(MachineInstr &MI, LiveIntervals &LIS,
       assert(Op.isImm() && "Expected Imm");
       MIB.addImm(Op.getImm());
     }
+    pruneDeadDefinitions(MI, LIS, TheStack);
     MI.removeFromParent();
     Changed = true;
   }
@@ -458,8 +473,6 @@ bool TVMStackModel::runOnBasicBlocks(MachineFunction &MF, Stack &TheStack) {
         if (MI.isDebugInstr() || MI.isLabel())
           continue;
 
-        // TODO: multiple defs should be handled separately.
-        assert(MI.getDesc().getNumDefs() <= 1);
         Changed |= processInstruction(MI, LIS, TII, CurrentStack);
       }
     }

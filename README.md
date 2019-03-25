@@ -1,31 +1,56 @@
-Testing your code
-To test the LLVM compiler (https://llvm.org/docs/TestingGuide.html), it is supposed to use integrated tools LIT (https://llvm.org/docs/CommandGuide/lit.html) and FileCheck (https://llvm.org /docs/CommandGuide/FileCheck.html).
-Below is an example of the test, that can be executed by the LIT tool.
+# LLVM-based Toolchain for TVM
+`Toolchain for TVM 0.1.0 based on LLVM 7.0.0`.
+Note: this is an alpha version of the toolchain which is under active development. Many C and C++ features are not yet supported.
+To learn more about the architecture of TVM, please refer to TBD.
+## Prerequesites
+To build the toolchain, you need a recent C++ toolchain supporting C++17:
+- MSVC 2017 or newer
+- Clang 6.0.0 or newer
+- GCC 7.3.0 or newer
+Older versions of toolchains might work, but it's not guaranteed.
+You also need zlib 1.2.3.4 or newer. Python 2.7 is required to run tests. We recommend using ninja-build, though it's not necessary. You could find more about software requirements to build LLVM at https://llvm.org/docs/GettingStarted.html.
+## Supported operation systems
+The project expects to be buildable on any Linux distribution, FreeBSD, Mac OS X and Windows platforms supporting the required software. The following configurations were tested:
+- Ubuntu 16.04, 18.04
+- Mac OS Mojave 10.14.3
+- Windows 10
+## Building
+At the moment TVM toolchain contains no specific flags and you can build it as an ordinary LLVM-based project except for `LLVM_EXPERIMENTAL_TARGETS_TO_BUILD=TVM` which enables TVM backend in LLVM.
+Sample build scenario:
+```
+$ git clone git@github.com:tonlabs/TON-Compiler.git
+$ mkdir build
+$ cd build
+$ cmake -DLLVM_EXPERIMENTAL_TARGETS_TO_BUILD=TVM -DLLVM_TARGETS_TO_BUILD=X86 -GNinja ../TON-Compiler/llvm
+$ ninja
+```
+To learn more about available CMake options, please refer to https://llvm.org/docs/CMake.html
+## Running tests
+To run tests, execute
+```
+$ ninja check
+```
+Tests are described in more detail in [testing.md](https://github.com/tonlabs/TON-Compiler/blob/readme/testing.md).
+## Example of usage
+TBD
+## Known issues
+At the moment C specification support is limited. In particular, there is no support for:
+- Loops, goto
+- Memory operations
+- Non-integer types including pointers
+- Recursive calls
+Aside from that, TVM specific functionality is limited to:
+- Creation of a dictionary
+- Getting and setting a value in a dictionary
+- Minimal manipulations with slices, builders, and cells
+Samples of the current state of the compiler are available at TBD.
+## Getting support
+TBD
+## Contribution policy
+The project strives to follow LLVM coding standards and policies as well as C++ Core Guidelines, so before contributing, we recommend you to familiarize with the following documents:
+- [LLVM Developer Policy](https://llvm.org/docs/DeveloperPolicy.html)
+- [LLVM Coding Standards](https://llvm.org/docs/CodingStandards.html)
+- [LLVM Programmer’s Manual](http://llvm.org/docs/ProgrammersManual.html)
+- [C++ Core Guidelines](https://github.com/isocpp/CppCoreGuidelines/blob/master/CppCoreGuidelines.md)
 
-; RUN: llc < %s -march=tvm | FileCheck %s
-target datalayout = "E-S1024-i256:256:256"
-target triple = "tvm"
-
-; CHECK-LABEL: icmpeq
-define i64 @icmpeq(i64 %par1, i64 %par2) nounwind {
-; CHECK: EQUAL
-; CHECK-NEXT: PUSHINT 77
-; CHECK-NEXT: PUSHINT 42
-; CHECK-NEXT: XCHG s0, s2
-; CHECK: CONDSEL
-  %1 = icmp eq i64 %par1, %par2
-  %2 = select i1 %1, i64 42, i64 77
-  ret i64 %2
-}
-
-Analyzing the comment in the test file header, LIT preforms compilation of the test file into the target architecture and pass result into the FileCheck tool to check the compliance of the code generated in the target architecture with the expected one.
-
-Executing your program.
-To execute your compiled code a TVM installation is required.
-At first you should clone the repository https://github.com/tonlabs/sdk-emulator to a preferred folder. Then go to the '<git clone directory>/tvm' and follow the installation instructions described in the README.md file.
-
-To execute your code and see the execution information, run in console
-
-cargo run --bin demo --features verbose -- <path to your TVM ASM file>
-
-This command execute your code in the node emulator and writes all execution process messages into the standart output. It might be helpful to see execution flow and stack state before and after your code execution and also before and after each of TVM instruction in your code.
+Note: Since TVM backend uses C++17 which is not yet fully supported in LLVM, the guidelines could be reasonably adjusted for cases of C++17 usages. C++17 data structures are preferred over LLVM counterparts, for instance, `std::optional<T>` is better to use w.r.t. `llvm::Optional<T>`.

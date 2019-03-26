@@ -424,7 +424,7 @@ bool TVMStackModel::processInstruction(MachineInstr &MI, LiveIntervals &LIS,
     for (unsigned I = 0; I < NumGlobals; I++) {
       const auto &Op = MI.getOperand(NumDefs + I);
       assert(Op.isGlobal() && "Expected GlobalAddress");
-      BuildMI(&MI, TII->get(TVM::PUSHCONT_FUNC))
+      BuildMI(&MI, TII->get(TVM::PUSHCONT_LABEL))
           .addGlobalAddress(Op.getGlobal(), Op.getOffset());
     }
     MachineInstrBuilder MIB = BuildMI(&MI, TII->get(NewOpcode));

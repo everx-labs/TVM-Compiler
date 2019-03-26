@@ -65,7 +65,13 @@ void TVMInstPrinter::printOperand(const MCInst *MI, unsigned OpNo,
   } else if (Op.isExpr()) {
     assert((Info.OperandType == TVM::OPERAND_FUNCTION) &&
            "Unimplemented expression type");
+
+    // The actual label address is not known at the moment of
+    // code generation; to simplify further linking, the label name
+    // is surrounded with dollar signs ($callee$).
+    O << "$";
     Op.getExpr()->print(O, &MAI);
+    O << "$";
   } else {
     llvm_unreachable("Unexpected operand");
   }

@@ -92,7 +92,7 @@ void TVMAsmPrinter::EmitInstruction(const MachineInstr *MI) {
     break;
   case TVM::FALLTHROUGH_RETURN:
     if (isVerbose()) {
-      OutStreamer->AddComment("RET");
+      OutStreamer->AddComment("fallthrough return");
       OutStreamer->AddBlankLine();
     }
     break;

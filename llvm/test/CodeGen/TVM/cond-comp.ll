@@ -16,7 +16,7 @@ define i64 @cond_comp(i64 %sel, i64 %par) nounwind {
 ; CHECK-NEXT:			PUSH	s0
 ; CHECK-NEXT:			MUL 
 ; CHECK-NEXT:			MUL 
-; CHECK-NEXT:			RETARGS	1
+; CHECK-NEXT:			RET
 ; CHECK-NEXT:		}
 ; CHECK-NEXT:		IFJMP
 ; CHECK-NEXT:		PUSHCONT 
@@ -28,14 +28,14 @@ define i64 @cond_comp(i64 %sel, i64 %par) nounwind {
 ; CHECK-NEXT:		PUSHCONT 
 ; CHECK-NEXT:			PUSH	s0
 ; CHECK-NEXT:			MUL 
-; CHECK-NEXT:			RETARGS	1
+; CHECK-NEXT:			RET
 ; CHECK:		IFJMP
 ; CHECK-NEXT:		PUSHCONT 
 ; CHECK-NEXT:			PUSH	s0
 ; CHECK-NEXT:			PUSH	s0
 ; CHECK-NEXT:			MUL 
 ; CHECK-NEXT:			MUL 
-; CHECK-NEXT:			RETARGS	1
+; CHECK-NEXT:			RET
 ; CHECK:		JMPX
 ; CHECK:	JMPX
 bb1:

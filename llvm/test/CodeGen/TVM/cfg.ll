@@ -12,11 +12,11 @@ entry:
   br i1 %par, label %exit1, label %exit2
 exit1:
 ; CHECK: PUSHINT 42
-; CHECK-NEXT: RETARGS 1
+; CHECK-NEXT: RET
   ret i64 42
 exit2:
 ; CHECK: PUSHINT 77
-; CHECK-NOT: RETARGS
+; CHECK-NOT: {{\tRET}}
   ret i64 77
 }
 
@@ -50,15 +50,15 @@ entry:
   switch i64 %par, label %bb3 [ i64 0, label %bb1
                                 i64 1, label %bb2 ]
 bb1:
-; CHECK-DAG: PUSHCONT foo
+; CHECK-DAG: PUSHINT $foo$
   call void @foo()
   br label %exit
 bb2:
-; CHECK-DAG: PUSHCONT bar
+; CHECK-DAG: PUSHINT $bar$
   call void @bar()
   br label %exit
 bb3:
-; CHECK-DAG: PUSHCONT bazz
+; CHECK-DAG: PUSHINT $bazz$
   call void @bazz()
   br label %exit
 exit:

@@ -15,8 +15,8 @@
 let isTerminator = 1, hasCtrlDep = 1 in {
   let isReturn = 1, isBarrier = 1 in {
     defm RETURN_I64 : NRI<(outs), (ins i64imm:$val), [(TVMreturn i64:$val)],
-                          "RETARGS\t1", 0xdb21>;
-    defm RETURN_VOID : NRI<(outs), (ins), [(TVMreturn)], "RETARGS\t0", 0xdb20>;
+                          "RET", 0xdb30>;
+    defm RETURN_VOID : NRI<(outs), (ins), [(TVMreturn)], "RET", 0xdb30>;
     let isCodeGenOnly = 1 in
     defm FALLTHROUGH_RETURN : SI<(ins)>;
   } // isReturn = 1, isBarrier = 1
@@ -43,12 +43,16 @@ let isTerminator = 1, hasCtrlDep = 1 in {
 
 // TODO: The approach with two CALLs was copied from WebAssembly backend.
 // We need to investigate how it works and why 2 CALLs are needed
+//
+// TODO: If a function is called in many places, we may cosider a special
+// "short" library variant, so that some common functions would not get
+// long call: "PUSHINT x; CALL 1", but a short one: "CALL x"
 let isCall = 1, hasCtrlDep = 1 in {
   defm CALL_VOID : NRI<(outs), (ins i64imm:$callee, variable_ops),
-                       [(TVMcall0 i64:$callee)], "CALLX", 0xD9>;
+                       [(TVMcall0 i64:$callee)], "CALL\t1", 0xF0>;
   defm CALL_1 : NRI<(outs I64:$dst), (ins i64imm:$callee, variable_ops),
                     [(set I64:$dst, (TVMcall1 i64:$callee))],
-                    "CALLX", 0xD9>;
+                    "CALL\t1", 0xF0>;
 }
 
 let isMoveImm = 1, isAsCheapAsAMove = 1, isReMaterializable = 1 in {
@@ -59,9 +63,14 @@ defm CONST_I64 : I<(outs I64:$res), (ins i64imm:$imm),
 }
 
 defm PUSHCONT_MBB : I<(outs), (ins bb_op:$bb), (outs), (ins bb_op:$bb), 
-                    [], "PUSHCONT", "PUSHCONT", 0x8f>;
+                      [], "PUSHCONT", "PUSHCONT", 0x8f>;
 defm PUSHCONT_FUNC : NRI<(outs), (ins function_op:$callee), [],
                          "PUSHCONT\t$callee", 0x8f>;
+
+// There are no labels in TVM, so this functionality is emulated
+// using ```PUSHINT label; CALL 1```
+defm PUSHCONT_LABEL: NRI<(outs), (ins function_op:$callee), [],
+                     "PUSHINT\t$callee", 0x82>;
 
 // TODO: Generalize to PUSH ci
 defm PUSHROOT : I<(outs I64 : $root), (ins I64 : $index),

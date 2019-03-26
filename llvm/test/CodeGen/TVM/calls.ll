@@ -8,18 +8,18 @@ define void @nop() nounwind {
 
 ; CHECK-LABEL: test0
 define void @test0() nounwind {
-; CHECK: PUSHCONT nop
-; CHECK-NEXT: CALLX
+; CHECK: PUSHINT $nop$
+; CHECK-NEXT: CALL 1
   call void @nop()
   ret void
 }
 
 ; CHECK-LABEL: test00
 define void @test00() nounwind {
-; CHECK: PUSHCONT nop
-; CHECK-NEXT: CALLX
-; CHECK-NEXT: PUSHCONT nop
-; CHECK-NEXT: CALLX
+; CHECK: PUSHINT $nop$
+; CHECK-NEXT: CALL 1
+; CHECK-NEXT: PUSHINT $nop$
+; CHECK-NEXT: CALL 1
   call void @nop()
   call void @nop()
   ret void
@@ -35,11 +35,11 @@ define i64 @one() nounwind {
 
 ; CHECK-LABEL: test11
 define i64 @test11() nounwind {
-; CHECK: PUSHCONT one
-; CHECK-NEXT: CALLX
+; CHECK: PUSHINT $one$
+; CHECK-NEXT: CALL 1
   %1 = call i64 @one()
-; CHECK-NEXT: PUSHCONT one
-; CHECK-NEXT: CALLX
+; CHECK-NEXT: PUSHINT $one$
+; CHECK-NEXT: CALL 1
   %2 = call i64 @one()
 ; CHECK-NEXT: ADD
   %3 = add i64 %1, %2
@@ -56,14 +56,14 @@ define void @nop1(i64 %x) nounwind {
 
 ; CHECK-LABEL: test21
 define i64 @test21(i64 %x) nounwind {
-; CHECK: PUSHCONT nop
-; CHECK-NEXT: CALLX
+; CHECK: PUSHINT $nop$
+; CHECK-NEXT: CALL 1
   call void @nop()
 ; CHECK-NEXT: PUSH s0
 ; CHECK-NEXT: ADD
   %1 = add i64 %x, %x
-; CHECK: PUSHCONT nop1
-; CHECK-NEXT: CALLX
+; CHECK: PUSHINT $nop1$
+; CHECK-NEXT: CALL 1
   call void @nop1(i64 %1)
   ret i64 %1
 }
@@ -82,8 +82,8 @@ define i64 @test22(i64 %x) nounwind {
 ; CHECK: PUSH s0
 ; CHECK-NEXT: ADD
   %1 = add i64 %x, %x
-; CHECK: PUSHCONT pow2
-; CHECK-NEXT: CALLX
+; CHECK: PUSHINT $pow2$
+; CHECK-NEXT: CALL 1
   %2 = call i64 @pow2(i64 %1)
   ret i64 %2
 }
@@ -91,12 +91,12 @@ define i64 @test22(i64 %x) nounwind {
 ; CHECK-LABEL: test23
 define i64 @test23(i64 %x, i64 %y) nounwind {
 ; CHECK: XCHG s0, s1
-; CHECK-NEXT: PUSHCONT pow2
-; CHECK-NEXT: CALLX
+; CHECK-NEXT: PUSHINT $pow2$
+; CHECK-NEXT: CALL 1
   %1 = call i64 @pow2(i64 %x)
 ; CHECK-NEXT: XCHG s0, s1
-; CHECK-NEXT: PUSHCONT pow2
-; CHECK-NEXT: CALLX
+; CHECK-NEXT: PUSHINT $pow2$
+; CHECK-NEXT: CALL 1
   %2 = call i64 @pow2(i64 %y)
 ; CHECK-NEXT: ADD
   %3 = add i64 %1, %2
@@ -115,14 +115,14 @@ define i64 @test24(i64 %x, i64 %y) nounwind {
 ; [x, y, x]
 ; CHECK-NEXT: PUSH s1
 ; [x, y, x, y]
-; CHECK-NEXT: PUSHCONT sum
-; CHECK-NEXT: CALLX
+; CHECK-NEXT: PUSHINT $sum$
+; CHECK-NEXT: CALL 1
 ; [x, y, x + y]
   %1 = call i64 @sum(i64 %x, i64 %y)
 ; CHECK-NEXT: XCHG s0, s2
 ; [x + y, y, x]
-; CHECK-NEXT: PUSHCONT sum
-; CHECK-NEXT: CALLX
+; CHECK-NEXT: PUSHINT $sum$
+; CHECK-NEXT: CALL 1
 ; [x + y, y + x]
   %2 = call i64 @sum(i64 %y, i64 %x)
   %3 = mul i64 %1, %2
@@ -135,15 +135,15 @@ define i64 @test25(i64 %x, i64 %y, i64 %z) nounwind {
 ; [z, y, x]
 ; CHECK: XCHG s0, s1
 ; CHECK-NEXT: XCHG s1, s2
-; CHECK-NEXT: PUSHCONT sum
+; CHECK-NEXT: PUSHINT $sum$
 ; [@sum, y, x, z]
-; CHECK-NEXT: CALLX
+; CHECK-NEXT: CALL 1
   %1 = call i64 @sum(i64 %x, i64 %y)
 ; [x + y, z]
 ; CHECK-NEXT: XCHG s0, s1
-; CHECK-NEXT: PUSHCONT sum
+; CHECK-NEXT: PUSHINT $sum$
 ; [@sum, z, x + y]
-; CHECK-NEXT: CALLX
+; CHECK-NEXT: CALL 1
   %2 = call i64 @sum(i64 %1, i64 %z)
   ret i64 %2
 }

@@ -89,6 +89,7 @@ add_clang_library(clangBasic
   Targets/SystemZ.cpp
   Targets/TCE.cpp
   Targets/WebAssembly.cpp
+  Targets/TVM.cpp
   Targets/X86.cpp
   Targets/XCore.cpp
   TokenKinds.cpp

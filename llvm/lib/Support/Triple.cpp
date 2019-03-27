@@ -119,6 +119,8 @@ StringRef Triple::getArchTypePrefix(ArchType Kind) {
 
   case systemz:     return "s390";
 
+  case tvm:         return "tvm";
+
   case x86:
   case x86_64:      return "x86";
 

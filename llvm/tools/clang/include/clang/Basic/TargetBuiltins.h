@@ -210,6 +210,16 @@ namespace clang {
     };
   }
 
+  /// TVM builtins
+  namespace TVM {
+  enum {
+    LastTIBuiltin = clang::Builtin::FirstTSBuiltin - 1,
+#define BUILTIN(ID, TYPE, ATTRS) BI##ID,
+#include "clang/Basic/BuiltinsTVM.def"
+    LastTSBuiltin
+  };
+  } // namespace TVM
+
 } // end namespace clang.
 
 #endif

@@ -14,17 +14,12 @@
 
 // The format of this database matches clang/Basic/Builtins.def.
 
-#if defined(BUILTIN) && !defined(LANGBUILTIN)
-#   define LANGBUILTIN(ID, TYPE, ATTRS, BUILTIN_LANG) BUILTIN(ID, TYPE, ATTRS)
-#endif
-
-#if defined(BUILTIN) && !defined(TARGET_HEADER_BUILTIN)
-#  define TARGET_HEADER_BUILTIN(ID, TYPE, ATTRS, HEADER, LANG, FEATURE) BUILTIN(ID, TYPE, ATTRS)
-#endif
-
-BUILTIN(__builtin_tvm_div, "WWW", "nc")
-BUILTIN(__builtin_tvm_mod, "WWW", "nc")
+BUILTIN(__builtin_tvm_div, "WiWiWi", "nc")
+BUILTIN(__builtin_tvm_mod, "WiWiWi", "nc")
+BUILTIN(__builtin_tvm_newdict, "Wi", "nc")
+BUILTIN(__builtin_tvm_get_persistent_data, "WiWi", "nc")
+BUILTIN(__builtin_tvm_inttoslice, "WiWi", "nc")
+BUILTIN(__builtin_tvm_ctos, "WiWi", "nc")
+BUILTIN(__builtin_tvm_stslice, "WiWiWi", "nc")
 
 #undef BUILTIN
-#undef LANGBUILTIN
-#undef TARGET_HEADER_BUILTIN

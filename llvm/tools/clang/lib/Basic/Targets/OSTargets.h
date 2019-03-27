@@ -740,6 +740,29 @@ public:
   }
 };
 
+// TVM target
+template <typename Target>
+class LLVM_LIBRARY_VISIBILITY TVMOSTargetInfo : public OSTargetInfo<Target> {
+  void getOSDefines(const LangOptions &Opts, const llvm::Triple &Triple,
+                    MacroBuilder &Builder) const final {
+    // A common platform macro.
+    if (Opts.POSIXThreads)
+      Builder.defineMacro("_REENTRANT");
+    // Follow g++ convention and predefine _GNU_SOURCE for C++.
+    if (Opts.CPlusPlus)
+      Builder.defineMacro("_GNU_SOURCE");
+  }
+
+public:
+  explicit TVMOSTargetInfo(const llvm::Triple &Triple,
+                           const TargetOptions &Opts)
+      : OSTargetInfo<Target>(Triple, Opts) {
+    this->MCountName = "__mcount";
+    // TODO: Temporary. We need to define TVM ABI later on.
+    this->TheCXXABI.set(TargetCXXABI::WebAssembly);
+  }
+};
+
 } // namespace targets
 } // namespace clang
 #endif // LLVM_CLANG_LIB_BASIC_TARGETS_OSTARGETS_H

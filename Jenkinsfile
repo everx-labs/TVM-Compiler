@@ -121,7 +121,7 @@ pipeline {
                     }
                     stage('Tests') {
                         steps{
-                            sh 'cd ${WORKDIR}/llvm/build && cmake --build . --target check'
+                            sh 'cd ${WORKDIR}/llvm/build && cmake --build . --target check-all'
                         }
                         post {
                             success {script{G_teststatus = "success"}}

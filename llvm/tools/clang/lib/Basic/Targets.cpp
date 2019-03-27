@@ -34,6 +34,7 @@
 #include "Targets/Sparc.h"
 #include "Targets/SystemZ.h"
 #include "Targets/TCE.h"
+#include "Targets/TVM.h"
 #include "Targets/WebAssembly.h"
 #include "Targets/X86.h"
 #include "Targets/XCore.h"
@@ -579,6 +580,13 @@ TargetInfo *AllocateTarget(const llvm::Triple &Triple,
         !(Triple.isOSBinFormatELF() || Triple.isOSBinFormatWasm()))
       return nullptr;
     return new WebAssemblyOSTargetInfo<WebAssembly64TargetInfo>(Triple, Opts);
+  case llvm::Triple::tvm:
+    if (Triple.getSubArch() != llvm::Triple::NoSubArch ||
+        Triple.getVendor() != llvm::Triple::UnknownVendor ||
+        Triple.getOS() != llvm::Triple::UnknownOS ||
+        Triple.getEnvironment() != llvm::Triple::UnknownEnvironment)
+      return nullptr;
+    return new TVMOSTargetInfo<TVMTargetInfo>(Triple, Opts);
 
   case llvm::Triple::renderscript32:
     return new LinuxTargetInfo<RenderScript32TargetInfo>(Triple, Opts);

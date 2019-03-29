@@ -201,25 +201,29 @@ pipeline {
     }
     post {
         always {
-            script {
-                currentBuild.description = C_TEXT
-                string DiscordFooter = "Build duration is " + currentBuild.durationString
-                DiscordTitle = "Job ${JOB_NAME} from GitHub " + C_PROJECT
-                DiscordDescription = C_COMMITER + " pushed commit " + C_HASH + " by " + C_AUTHOR + " with a message '" + C_TEXT + "'" + "\n" \
-                + "Build number ${BUILD_NUMBER}" + "\n" \
-                + "__**Linux**__\n" \
-                + "Configure: **" + G_buildstatus + "**" + "\n" \
-                + "Clang: **" + G_clangstatus + "**" + "\n" \
-                + "Llvm: **" + G_llvmstatus + "**" + "\n" \
-                + "Tests: **" + G_teststatus + "**" + "\n" \
-                + "Format: **" + G_clangformat + "**\n" \
-                + "__**Windows**__\n" \
-                + "Configure: **" + G_Wbuildstatus + "**" + "\n" \
-                + "Clang: **" + G_Wclangstatus + "**" + "\n" \
-                + "Llvm: **" + G_Wllvmstatus + "**" + "\n" \
-                + "Tests: **" + G_Wteststatus + "**"
-                discordSend description: DiscordDescription, footer: DiscordFooter, link: RUN_DISPLAY_URL, successful: currentBuild.resultIsBetterOrEqualTo('SUCCESS'), title: DiscordTitle, webhookURL: DiscordURL
+            node ('master') {
+                script {
+                    cleanWs notFailBuild: true
+                    currentBuild.description = C_TEXT
+                    string DiscordFooter = "Build duration is " + currentBuild.durationString
+                    DiscordTitle = "Job ${JOB_NAME} from GitHub " + C_PROJECT
+                    DiscordDescription = C_COMMITER + " pushed commit " + C_HASH + " by " + C_AUTHOR + " with a message '" + C_TEXT + "'" + "\n" \
+                    + "Build number ${BUILD_NUMBER}" + "\n" \
+                    + "__**Linux**__\n" \
+                    + "Configure: **" + G_buildstatus + "**" + "\n" \
+                    + "Clang: **" + G_clangstatus + "**" + "\n" \
+                    + "Llvm: **" + G_llvmstatus + "**" + "\n" \
+                    + "Tests: **" + G_teststatus + "**" + "\n" \
+                    + "Format: **" + G_clangformat + "**\n" \
+                    + "__**Windows**__\n" \
+                    + "Configure: **" + G_Wbuildstatus + "**" + "\n" \
+                    + "Clang: **" + G_Wclangstatus + "**" + "\n" \
+                    + "Llvm: **" + G_Wllvmstatus + "**" + "\n" \
+                    + "Tests: **" + G_Wteststatus + "**"
+                    discordSend description: DiscordDescription, footer: DiscordFooter, link: RUN_DISPLAY_URL, successful: currentBuild.resultIsBetterOrEqualTo('SUCCESS'), title: DiscordTitle, webhookURL: DiscordURL
+                }
             }
+            node ('Win01') {script{cleanWs notFailBuild: true}}
         }
         failure {
             step([$class: 'GitHubIssueNotifier',

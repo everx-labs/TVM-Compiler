@@ -37,9 +37,8 @@ class TVMTargetLowering : public TargetLowering {
 public:
   explicit TVMTargetLowering(const TargetMachine &TM, const TVMSubtarget &STI);
 
-  // TODO: Copied from MSP430. Check.
   MVT getScalarShiftAmountTy(const DataLayout &, EVT) const override {
-    return MVT::i8;
+    return MVT::i64;
   }
 
   /// LowerOperation - Provide custom lowering hooks for some operations.

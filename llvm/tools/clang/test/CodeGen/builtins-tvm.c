@@ -17,9 +17,9 @@ int64_t newdict() {
   return __builtin_tvm_newdict();
 }
 
-int64_t get_persistent_data(int64_t n) {
+int64_t get_persistent_data() {
   // CHECK: call {{.*}} @llvm.tvm.get.persistent.data
-  return __builtin_tvm_get_persistent_data(n);
+  return __builtin_tvm_get_persistent_data();
 }
 
 int64_t inttoslice(int64_t n) {

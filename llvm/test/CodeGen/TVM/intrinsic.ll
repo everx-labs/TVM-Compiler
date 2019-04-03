@@ -10,10 +10,10 @@ define i64 @newdict() nounwind {
 }
 
 ; CHECK-LABEL: persistent_root
-define i64 @persistent_root(i64 %arg) nounwind {
+define i64 @persistent_root() nounwind {
 ; CHECK: PUSHROOT
 ; CHECK-NEXT: CTOS
-  %1 = call i64 @llvm.tvm.get.persistent.data(i64 %arg)
+  %1 = call i64 @llvm.tvm.get.persistent.data()
   ret i64 %1
 }
 
@@ -35,6 +35,6 @@ define i64 @stslice(i64 %slice, i64 %builder) nounwind {
 }
 
 declare i64 @llvm.tvm.newdict() nounwind
-declare i64 @llvm.tvm.get.persistent.data(i64 %index) nounwind
+declare i64 @llvm.tvm.get.persistent.data() nounwind
 declare i64 @llvm.tvm.inttoslice(i64 %val) nounwind
 declare i64 @llvm.tvm.stslice(i64 %slice, i64 %builder) nounwind

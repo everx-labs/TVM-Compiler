@@ -31,6 +31,7 @@ extern "C" void LLVMInitializeTVMTarget() {
   initializeTVMArgumentMovePass(PR);
   initializeTVMReplacePhysRegsPass(PR);
   initializeTVMPrepareForLiveIntervalsPass(PR);
+  initializeTVMRematerializePass(PR);
   initializeTVMRegStackifyPass(PR);
   initializeTVMRegNumberingPass(PR);
   initializeTVMPeepholePass(PR);
@@ -120,6 +121,7 @@ void TVMPassConfig::addPreEmitPass() {
   // colored, and numbered with the rest of the registers.
   addPass(createTVMReplacePhysRegs());
   addPass(createTVMPrepareForLiveIntervals());
+  addPass(createTVMRematerialize());
   addPass(createTVMRegStackify());
   addPass(createTVMStackModel());
 

@@ -17,7 +17,7 @@
 BUILTIN(__builtin_tvm_div, "WiWiWi", "nc")
 BUILTIN(__builtin_tvm_mod, "WiWiWi", "nc")
 BUILTIN(__builtin_tvm_newdict, "Wi", "nc")
-BUILTIN(__builtin_tvm_get_persistent_data, "WiWi", "nc")
+BUILTIN(__builtin_tvm_get_persistent_data, "Wi", "nc")
 BUILTIN(__builtin_tvm_inttoslice, "WiWi", "nc")
 BUILTIN(__builtin_tvm_ctos, "WiWi", "nc")
 BUILTIN(__builtin_tvm_stslice, "WiWiWi", "nc")

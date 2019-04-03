@@ -23,6 +23,7 @@ add_llvm_target(TVMCodeGen
   TVMMachineFunctionInfo.cpp
   TVMAsmPrinter.cpp
   TVMMCInstLower.cpp
+  TVMRematerialize.cpp
   TVMReplacePhysRegs.cpp
   TVMRegStackify.cpp
   TVMRegNumbering.cpp

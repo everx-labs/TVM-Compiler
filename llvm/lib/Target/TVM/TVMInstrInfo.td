@@ -29,7 +29,7 @@ def SDT_TVMCtos         : SDTypeProfile<1, 1, [SDTCisVT<1, i64>]>;
 def SDT_TVMStSlice      : SDTypeProfile<1, 2, []>;
 def SDT_TVMNewc         : SDTypeProfile<1, 0, []>;
 def SDT_TVMEndc         : SDTypeProfile<1, 1, [SDTCisVT<1, i64>]>;
-def SDT_TVMPushRoot     : SDTypeProfile<1, 1, [SDTCisVT<1, i64>]>;
+def SDT_TVMPushRoot     : SDTypeProfile<1, 0, []>;
 def SDT_TVMDictGet      : SDTypeProfile<2, 3, []>;
 def SDT_TVMDictSt       : SDTypeProfile<1, 3, []>;
 def SDT_TVMDictLd       : SDTypeProfile<2, 2, []>;
@@ -139,25 +139,25 @@ defm POP  : SI<(ins stack_op:$dst), "POP\t$dst", 0x30>;
 // Arithmetic instructions
 //===----------------------------------------------------------------------===//
 let isCommutable = 1 in {
-defm ADD      : BinaryRR<add, "ADD ", 0xa0>;
-defm MUL      : BinaryRR<mul, "MUL ", 0xa8>;
-defm AND      : BinaryRR<and, "AND ", 0xb0>;
-defm OR       : BinaryRR<or, "OR  ", 0xb1>;
-defm XOR      : BinaryRR<xor, "XOR ", 0xb2>;
+defm ADD      : BinaryRR<add, "ADD", 0xa0>;
+defm MUL      : BinaryRR<mul, "MUL", 0xa8>;
+defm AND      : BinaryRR<and, "AND", 0xb0>;
+defm OR       : BinaryRR<or, "OR", 0xb1>;
+defm XOR      : BinaryRR<xor, "XOR", 0xb2>;
 }
-defm SUB      : BinaryRR<sub, "SUB ", 0xa1>;
-defm SUBR     : BinaryRR<sub, "SUBR ", 0xa2>;
-defm NEGATE   : UnaryR<ineg, "NEGATE ", 0xa3>;
-defm INC      : UnaryR<inc, "INC ", 0xa4>;
-defm DEC      : UnaryR<dec, "DEC ", 0xa5>;
-defm DIV      : BinaryRR<int_tvm_div, "DIV ", 0xa904>;
-defm NOT      : UnaryR<not, "NOT ", 0xb3>;
+defm SUB      : BinaryRR<sub, "SUB", 0xa1>;
+defm SUBR     : BinaryRR<sub, "SUBR", 0xa2>;
+defm NEGATE   : UnaryR<ineg, "NEGATE", 0xa3>;
+defm INC      : UnaryR<inc, "INC", 0xa4>;
+defm DEC      : UnaryR<dec, "DEC", 0xa5>;
+defm DIV      : BinaryRR<int_tvm_div, "DIV", 0xa904>;
+defm NOT      : UnaryR<not, "NOT", 0xb3>;
 defm SHL      : BinaryRR<shl, "LSHIFT", 0xac>;
-defm SHLCONST : BinaryRI<shl, "LSHIFT ", simm8, 0xaa00>;
+defm SHLCONST : BinaryRI<shl, "LSHIFT", simm8, 0xaa00>;
 defm SHR      : BinaryRR<sra, "RSHIFT", 0xab>;
-defm MOD      : BinaryRR<int_tvm_mod, "MOD ", 0x81>;
-defm ADDCONST : BinaryRI<add, "ADDCONST ", simm8, 0xa6>;
-defm MULCONST : BinaryRI<mul, "MULCONST ", simm8, 0xa7>;
+defm MOD      : BinaryRR<int_tvm_mod, "MOD", 0x81>;
+defm ADDCONST : BinaryRI<add, "ADDCONST", simm8, 0xa6>;
+defm MULCONST : BinaryRI<mul, "MULCONST", simm8, 0xa7>;
 
 //===----------------------------------------------------------------------===//
 // Integer comparison

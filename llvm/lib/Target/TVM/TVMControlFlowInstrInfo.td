@@ -73,7 +73,7 @@ defm PUSHCONT_LABEL: NRI<(outs), (ins function_op:$callee), [],
                      "PUSHINT\t$callee", 0x82>;
 
 // TODO: Generalize to PUSH ci
-defm PUSHROOT : I<(outs I64 : $root), (ins I64 : $index),
+defm PUSHROOT : I<(outs I64 : $root), (ins),
                   (outs), (ins),
-                  [(set I64 : $root, (TVMpushroot I64 : $index))],
-                  "PUSHROOT\t $root", "PUSHROOT", 0xed44>;
+                  [(set I64 : $root, (TVMpushroot))],
+                  "PUSHROOT", "PUSHROOT", 0xed44>;

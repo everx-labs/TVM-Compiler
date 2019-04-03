@@ -1,5 +1,3 @@
-; XFAIL: *
-
 ; RUN: llc < %s -march=tvm | FileCheck %s
 target datalayout = "E-S1024-i256:256:256"
 target triple = "tvm"
@@ -7,7 +5,7 @@ target triple = "tvm"
 ; CHECK-LABEL: allowance
 define i64 @allowance(i64 %tokenOwner, i64 %spender) nounwind {
 entry:
-  %persistent_root = call i64 @llvm.tvm.get.persistent.data(i64 1);
+  %persistent_root = call i64 @llvm.tvm.get.persistent.data();
   %result = call {i64, i64} @llvm.tvm.dictuget(i64 1, i64 %persistent_root, i64 256)
   %data = extractvalue {i64, i64} %result, 0
   %status = extractvalue {i64, i64} %result, 1
@@ -38,7 +36,7 @@ bb5:
 }
 
 declare i64 @llvm.tvm.newdict() nounwind
-declare i64 @llvm.tvm.get.persistent.data(i64 %index) nounwind
+declare i64 @llvm.tvm.get.persistent.data() nounwind
 declare {i64, i64} @llvm.tvm.dictuget(i64 %key, i64 %dict_id, i64 %keylen) nounwind
 declare {i64, i64} @llvm.tvm.ldrefrtos(i64 %slice) nounwind
 declare i64 @llvm.tvm.inttoslice(i64 %val) nounwind

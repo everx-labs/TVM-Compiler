@@ -160,10 +160,49 @@ void pruneDeadRegisters(MachineBasicBlock &MBB, Stack &TheStack,
 void pruneDeadDefinitions(MachineInstr &MI, LiveIntervals &LIS,
                           Stack &TheStack) {
   for (size_t I = 0, E = MI.getNumDefs(); I < E; ++I) {
-    MachineOperand& MO = MI.getOperand(I);
+    MachineOperand &MO = MI.getOperand(I);
     if (MO.isReg() && MO.isDead())
       TheStack.pop(MI, MO.getReg());
   }
+}
+
+/// Compute how to break a loop in stack reorderings for an instruction.
+/// Since reorderings are computed independently there are possible XCHG loops
+/// E.g. XCHG s0, s1; XCHG s1, s0. If to execute both instructions, the order
+/// of elements in a stack won't change. The function compute which reordering
+/// is to remove to break 2- or 3-loop.
+/// \return Pointer to a reordering to remove.
+const StackReordering *breakCycle(const StackReorderings &Reorderings,
+                                  const std::vector<size_t> SlotsFrom) {
+  assert(Reorderings.size() < 4 &&
+         "Instructions with 4 or more stack arguments are not supported");
+  if (Reorderings.size() < 2)
+    return nullptr;
+
+  size_t Size = Reorderings.size();
+
+  // 2-cycles
+  for (size_t I1 = 1; I1 < Size; ++I1)
+    for (size_t I2 = 0; I2 < I1; ++I2)
+      if (Reorderings[I1].SlotTo == SlotsFrom[I2] &&
+          SlotsFrom[I1] == Reorderings[I2].SlotTo)
+        return &Reorderings[I2];
+
+  // 3-cycles
+  // We excluded 2-cycles possibility, hovewer we have to check against
+  // self-cycles.
+  auto It = llvm::find(SlotsFrom, Reorderings[0].SlotTo);
+  if (It == std::end(SlotsFrom) || It == std::begin(SlotsFrom))
+    return nullptr;
+  auto It2 = llvm::find(SlotsFrom, Reorderings[*It].SlotTo);
+  if (It2 == std::end(SlotsFrom) || It == It2)
+    return nullptr;
+  auto It3 = llvm::find(SlotsFrom, Reorderings[*It2].SlotTo);
+  if (It3 != std::begin(SlotsFrom))
+    return nullptr;
+
+  // A cycle with 3 reordering could be done with 2 XCHG, so break it on It2.
+  return &Reorderings[*It2];
 }
 
 } // end anonymous namespace
@@ -182,7 +221,7 @@ TVMStackModel::computeReorderings(MachineInstr &MI, LiveIntervals &LIS,
   size_t NumDefs = MI.getNumDefs();
   size_t NumOperands = MI.getNumOperands();
 
-  llvm::SmallSet<unsigned, 2> RegUsed{};
+  llvm::SmallSet<unsigned, 3> RegUsed{};
   size_t NumStackOperands = NumOperands - NumDefs - NonStackOperands;
 
   // Expected operands order: defs, global addresses, registers or MBB,
@@ -247,12 +286,9 @@ TVMStackModel::computeReorderings(MachineInstr &MI, LiveIntervals &LIS,
   // We need to adjust XChgs to number of non-register operands together with
   // number of Pushes followed by it.
   size_t NumPushes = 0;
-  // Collect reorderings that are supposed to be removed later.
-  // TODO: Extend the size of SmallVector when we support instructions with more
-  // than two operands
-  llvm::SmallVector<const StackReordering *, 2> PseudoXchg{};
   size_t TotalPushes = llvm::count_if(
       Result, [](const StackReordering &R) { return R.isCopy() || R.isNew(); });
+  std::vector<size_t> SlotsFrom;
   for (auto &Reordering : Result) {
     // Note that we modify records in Result below
     size_t &SlotTo = Reordering.SlotTo;
@@ -260,36 +296,27 @@ TVMStackModel::computeReorderings(MachineInstr &MI, LiveIntervals &LIS,
     SlotTo -= NumPushes;
     if (Reordering.isCopy() || Reordering.isNew()) {
       ++NumPushes;
+      // We don't care about pushes, so put a sentinel.
+      // The maximal slot number is 255 by the specification.
+      SlotsFrom.push_back(std::numeric_limits<size_t>::max());
     } else {
       size_t SlotFrom =
           TheStack.position(Reordering.ElemFrom) + TotalPushes - NumPushes;
-      // Collect XCHG sN, sN pseudos.
-      if (SlotTo == SlotFrom)
-        PseudoXchg.push_back(&Reordering);
-      // Since we compute reorderings independingly rather than simulating
-      // them, an exchange of two upper stack elements would result
-      // in generating of 2 reorderings:
-      // XCHG s0, s1
-      // XCHG s1, s0
-      // Here we ensure that we breach such cyclic reorderings, by executing
-      // only ones that reorder only if SlotTo < SlotTo.
-      if (SlotTo > SlotFrom &&
-          // Ensure that SlotTo is also supposed to be reordered i.e. it's used
-          // and killed by the instruction.
-          exist(RegUsed, TheStack.reg(SlotTo)) &&
-          isKilled(MI, TheStack.reg(SlotTo), LIS))
-        PseudoXchg.push_back(&Reordering);
+      SlotsFrom.push_back(SlotFrom);
     }
   }
 
-  // Remove redundant reorderings.
-  // TODO: this logic with PseudoXchg might be simplieifed with refactoring
-  Result.erase(
-      llvm::remove_if(Result,
-                      [&PseudoXchg](const StackReordering &Reordering) {
-                        return llvm::exist(PseudoXchg, &Reordering);
-                      }),
-      std::end(Result));
+  // Break 2- and 3- cycles.
+  // We don't care about self-cycles here because xchg implementation checks
+  // against them.
+  if (const StackReordering *BreakCycle = breakCycle(Result, SlotsFrom)) {
+    Result.erase(
+        llvm::remove_if(Result,
+                        [BreakCycle](const StackReordering &Reordering) {
+                          return &Reordering == BreakCycle;
+                        }),
+        std::end(Result));
+  }
 
 #ifndef NDEBUG
   // Simulate stack to ensure we have the correct operands on top

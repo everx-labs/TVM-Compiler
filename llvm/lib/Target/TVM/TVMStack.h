@@ -49,7 +49,10 @@ struct StackReordering {
   /// Allow easy printing of a stack reordering from the debugger.
   void dump() {
     // TODO: implement support for MBB when needed.
-    assert(std::holds_alternative<unsigned>(ElemFrom));
+    if (!std::holds_alternative<unsigned>(ElemFrom)) {
+      dbgs() << "Non reg\n";
+      return;
+    }
     auto tag =
         isCopy() ? "Copy" : (isXchg() ? "Xchg" : (isNew() ? "New" : "Unknown"));
     dbgs() << tag << " SlotTo = " << SlotTo;
@@ -151,8 +154,12 @@ public:
     // See https://llvm.org/doxygen/AsmWriter_8cpp_source.html#l04297 for
     // reference.
     // TODO: add support for other than register types later
-    for (const auto &elem : Data)
-      dbgs() << " " << std::get<unsigned>(elem);
+    for (const auto &Elem : Data) {
+      if (std::holds_alternative<unsigned>(Elem))
+        dbgs() << " " << std::get<unsigned>(Elem);
+      else
+        dbgs() << " [not reg]";
+    }
     dbgs() << "\n";
   }
 #endif

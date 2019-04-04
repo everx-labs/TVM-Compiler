@@ -49,10 +49,10 @@ defm LDU : I<(outs I64 : $x, I64  : $sliceo),
              "LDU\t $precision, $slicei, $x, $sliceo",
              "LDU\t $precision", 0xd3ff>;
 /// TODO: It should be a pipehole optimization for LDREF; SWAP; CTOS
-defm LDREFCTOS : I<(outs I64 : $cellslice, I64 : $sliceo), (ins I64 : $slicei),
+defm LDREFRTOS : I<(outs I64 : $cellslice, I64 : $sliceo), (ins I64 : $slicei),
                    (outs), (ins),
-                   [(set I64 : $cellslice, I64 : $sliceo, (int_tvm_ldrefctos I64 : $slicei))],
-                   "LDREF\t $cellslice, $sliceo, $slicei", "LDREF", 0xd4>;
+                   [(set I64 : $cellslice, I64 : $sliceo, (int_tvm_ldrefrtos I64 : $slicei))],
+                   "LDREFRTOS\t $cellslice, $sliceo, $slicei", "LDREFRTOS", 0xd5>;
 defm STSLICE : I<(outs I64 : $sliceo), (ins I64 : $slicei, I64 : $bldr),
                  (outs), (ins),
                  [(set I64 : $sliceo, (int_tvm_stslice I64 : $slicei, I64 : $bldr))],

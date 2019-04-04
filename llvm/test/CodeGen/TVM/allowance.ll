@@ -17,8 +17,8 @@ bb1:
   %dict_bb1 = call i64 @llvm.tvm.newdict()
   br label %bb3
 bb2:
-  %ref_ctos = call {i64, i64} @llvm.tvm.ldrefctos(i64 %data)
-  %dict_bb2 = extractvalue {i64, i64} %ref_ctos, 0
+  %ref_rtos = call {i64, i64} @llvm.tvm.ldrefrtos(i64 %data)
+  %dict_bb2 = extractvalue {i64, i64} %ref_rtos, 0
   br label %bb3
 bb3:
   %dict = phi i64 [%dict_bb1, %bb1], [%dict_bb2, %bb2]
@@ -40,6 +40,6 @@ bb5:
 declare i64 @llvm.tvm.newdict() nounwind
 declare i64 @llvm.tvm.get.persistent.data(i64 %index) nounwind
 declare {i64, i64} @llvm.tvm.dictuget(i64 %key, i64 %dict_id, i64 %keylen) nounwind
-declare {i64, i64} @llvm.tvm.ldrefctos(i64 %slice) nounwind
+declare {i64, i64} @llvm.tvm.ldrefrtos(i64 %slice) nounwind
 declare i64 @llvm.tvm.inttoslice(i64 %val) nounwind
 declare {i64, i64} @llvm.tvm.ldu(i64 %slice) nounwind

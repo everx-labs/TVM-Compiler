@@ -10,7 +10,7 @@ entry:
   %data = extractvalue {i64, i64} %result, 0
   %status = extractvalue {i64, i64} %result, 1
   %cond = icmp eq i64 %status, 0
-  br i1 %cond, label %bb1, label %bb2
+  br i1 %cond, label %bb2, label %bb1
 bb1:
   %dict_bb1 = call i64 @llvm.tvm.newdict()
   br label %bb3
@@ -24,7 +24,7 @@ bb3:
   %amount = extractvalue {i64, i64} %spender_amount_status, 0
   %status1 = extractvalue {i64, i64} %spender_amount_status, 1
   %cond1 = icmp eq i64 %status1, 0
-  br i1 %cond1, label %bb4, label %bb5
+  br i1 %cond1, label %bb5, label %bb4
 bb4:
   %new_slice = call i64 @llvm.tvm.inttoslice(i64 0)
   br label %bb5

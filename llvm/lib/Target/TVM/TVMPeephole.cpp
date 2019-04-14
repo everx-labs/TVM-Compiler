@@ -61,25 +61,6 @@ MaybeOptimizeReturn(MachineInstr &MI, const TargetInstrInfo& TII) {
     return false;
 
   assert(!MBB->empty() && "Empty BBs must already have been removed");
-  auto InstIt = std::rbegin(*MBB), InstEnd = std::rend(*MBB);
-  if (&MI != &*InstIt)
-    return false;
-
-  ++InstIt;
-  // Explicit stack manipulations to clean up the stack.
-  std::vector<MachineInstr*> PopS1;
-  while (InstIt != InstEnd && InstIt->getOpcode() == TVM::POP &&
-         InstIt->getOperand(0).getImm() == 1) {
-    PopS1.push_back(&*InstIt++);
-  }
-
-  // TODO: Stack cleanup is not needed for RETARGS, but outher forms of return
-  // might need it.
-  if (!PopS1.empty()) {
-    for (auto* Inst : PopS1)
-      Inst->eraseFromParent();
-    return true;
-  }
 
   if (MBB != &MF->back())
     return false;

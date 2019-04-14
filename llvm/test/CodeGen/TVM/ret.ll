@@ -71,7 +71,7 @@ define i64 @retraai64(i64 %arg1, i64 %arg2, i64 %arg3) nounwind {
 ; NOOPT-LABEL: retarai64:
 define i64 @retarai64(i64 %arg1, i64 %arg2, i64 %arg3) nounwind {
 ; CHECK: POP s0
-; CHECK: RET
+; CHECK: POP s1
 ; NOOPT: POP s0
 ; NOOPT: POP s1
 ; NOOPT: RET
@@ -81,7 +81,8 @@ define i64 @retarai64(i64 %arg1, i64 %arg2, i64 %arg3) nounwind {
 ; CHECK-LABEL: retaari64:
 ; NOOPT-LABEL: retaari64:
 define i64 @retaari64(i64 %arg1, i64 %arg2, i64 %arg3) nounwind {
-; CHECK: RET
+; CHECK: POP s1
+; CHECK: POP s1
 ; NOOPT: POP s1
 ; NOOPT: POP s1
 ; NOOPT: RET

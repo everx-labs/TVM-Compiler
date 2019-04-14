@@ -42,7 +42,7 @@ define i64 @kill_first(i64 %killed, i64 %reused, i64 %dummy) nounwind {
 ; CHECK-NEXT: SUBR
   %2 = sub i64 %1, %reused
 ; stack: [killed - reused - reused, dummy]
-; CHECK-NEXT: RET
+; CHECK-NEXT: POP s1
 ; stack: [killed - reused - reused]
   ret i64 %2
 }
@@ -64,7 +64,7 @@ define i64 @kill_first_rev(i64 %reused, i64 %killed, i64 %dummy) nounwind {
 ; CHECK-NEXT: SUB
   %2 = sub i64 %1, %reused
 ; stack: [killed - reused - reused, dummy]
-; CHECK-NEXT: RET
+; CHECK-NEXT: POP s1
 ; stack: [killed - reused - reused]
   ret i64 %2
 }
@@ -84,7 +84,7 @@ define i64 @kill_last(i64 %killed, i64 %reused, i64 %dummy) nounwind {
 ; CHECK-NEXT: SUBR
   %2 = sub i64 %1, %reused
 ; stack: [reused - killed - reused, dummy]
-; CHECK-NEXT: RET
+; CHECK-NEXT: POP s1
 ; stack: [reused - killed - reused]
   ret i64 %2
 }
@@ -108,7 +108,7 @@ define i64 @kill_last_rev(i64 %reused, i64 %killed, i64 %dummy) nounwind {
 ; CHECK-NEXT: SUB
   %2 = sub i64 %1, %reused
 ; stack: [reused - killed - reused, dummy]
-; CHECK-NEXT: RET
+; CHECK-NEXT: POP s1
 ; stack: [reused - killed - reused]
   ret i64 %2
 }

@@ -9,7 +9,7 @@ entry:
   %allowance = call {i64, i64} @llvm.tvm.dictuget(i64 1, i64 %root, i64 256)
   %al_dict_ref = extractvalue {i64, i64} %allowance, 0
   %al_dict_st = extractvalue {i64, i64} %allowance, 1
-  %cond = icmp eq i64 %al_dict_st, 0
+  %cond = icmp ne i64 %al_dict_st, 0
   br i1 %cond, label %unpack_adict, label %add_adict
 add_adict: ; create allowance dict
   %al_dict_new = call i64 @llvm.tvm.newdict()
@@ -23,7 +23,7 @@ a_dict: ; find owner in alowance subdict
   %0 = call {i64, i64} @llvm.tvm.dictuget(i64 %owner, i64 %al_dict, i64 256)
   %al_sdict_ref = extractvalue {i64, i64} %0, 0
   %al_sdict_st = extractvalue {i64, i64} %0, 1
-  %cond1 = icmp eq i64 %al_sdict_st, 0
+  %cond1 = icmp ne i64 %al_sdict_st, 0
   br i1 %cond1, label %unpack_asdict, label %add_asdict
 unpack_asdict: ; unpack owner's alowance subdict
   %ref_ctos1 = call {i64, i64} @llvm.tvm.ldrefctos(i64 %al_sdict_ref)

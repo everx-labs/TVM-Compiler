@@ -9,7 +9,7 @@ entry:
   %result = call {i64, i64} @llvm.tvm.dictuget(i64 1, i64 %persistent_root, i64 256)
   %data = extractvalue {i64, i64} %result, 0
   %status = extractvalue {i64, i64} %result, 1
-  %cond = icmp eq i64 %status, 0
+  %cond = icmp ne i64 %status, 0
   br i1 %cond, label %bb2, label %bb1
 bb1:
   %dict_bb1 = call i64 @llvm.tvm.newdict()
@@ -23,7 +23,7 @@ bb3:
   %spender_amount_status = call {i64, i64} @llvm.tvm.dictuget(i64 %spender, i64 %dict, i64 256)
   %amount = extractvalue {i64, i64} %spender_amount_status, 0
   %status1 = extractvalue {i64, i64} %spender_amount_status, 1
-  %cond1 = icmp eq i64 %status1, 0
+  %cond1 = icmp ne i64 %status1, 0
   br i1 %cond1, label %bb5, label %bb4
 bb4:
   %new_slice = call i64 @llvm.tvm.inttoslice(i64 0)

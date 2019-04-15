@@ -78,6 +78,12 @@ defm PUSHROOT : I<(outs I64 : $root), (ins),
                   [(set I64 : $root, (TVMpushroot))],
                   "PUSHROOT", "PUSHROOT", 0xed44>;
 
+// TODO: Generalize to POP ci
+defm POPROOT : I<(outs), (ins I64 : $root),
+                 (outs), (ins),
+                 [(int_tvm_set_persistent_data I64 : $root)],
+                 "POPROOT\t$root", "POPROOT", 0xed54>;
+
 defm THROWIF : I<(outs), (ins I64 : $cond, uimm6 : $exception),
                  (outs), (ins uimm6 : $exception),
                  [(int_tvm_throwif I64 : $cond, uimm6 : $exception)],

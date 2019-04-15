@@ -40,7 +40,7 @@ a_sdict:
   %new_al_dict = call i64 @llvm.tvm.dictuset(i64 %new_al_sdict_ref, i64 %owner, i64 %al_dict, i64 256)
   %new_al_dict_ref = call i64 @llvm.tvm.cellrefdict(i64 %new_al_dict)
   %new_root = call i64 @llvm.tvm.dictuset(i64 %new_al_dict_ref, i64 1, i64 %root, i64 256)
-  %1 = call i64 @llvm.tvm.set.persistent.data(i64 %new_root)
+  call void @llvm.tvm.set.persistent.data(i64 %new_root)
 
   ret i1 -1
 }
@@ -52,4 +52,4 @@ declare {i64, i64} @llvm.tvm.ldrefctos(i64 %slice) nounwind
 declare i64 @llvm.tvm.inttoslice(i64 %val) nounwind
 declare i64 @llvm.tvm.dictuset(i64 %value, i64 %ind, i64 %dict, i64 %ind_bit) nounwind
 declare i64 @llvm.tvm.cellrefdict(i64 %dict) nounwind
-declare i64 @llvm.tvm.set.persistent.data(i64 %index) nounwind
+declare void @llvm.tvm.set.persistent.data(i64 %index) nounwind

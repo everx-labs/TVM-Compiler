@@ -23,6 +23,9 @@ let TargetPrefix = "tvm" in {
   def int_tvm_get_persistent_data :
     GCCBuiltin<"__builtin_tvm_get_persistent_data">,
                Intrinsic<[llvm_i64_ty], []>;
+  def int_tvm_set_persistent_data :
+    GCCBuiltin<"__builtin_tvm_set_persistent_data">,
+               Intrinsic<[], [llvm_i64_ty]>;
   def int_tvm_dictuget :
     GCCBuiltin<"__builtin_tvm_dictuget">,
                Intrinsic<[llvm_i64_ty, llvm_i64_ty],

@@ -42,13 +42,13 @@ process_transaction:
    %bal_dict2 = call i64 @llvm.tvm.dictuset(i64 %bal_target_new_slice, i64 %target, i64 %bal_dict1, i64 256)
    %bal_dict_packed = call i64 @llvm.tvm.cellrefdict(i64 %bal_dict2)
    %root_new = call i64 @llvm.tvm.dictuset(i64 %bal_dict_packed, i64 0, i64 %root, i64 256)
-   %final = call i64 @llvm.tvm.set.persistent.data()
+   call i64 @llvm.tvm.set.persistent.data(i64 %root_new)
    ret i64 -1
 exit_fail:
    ret i64 0
 }
 declare i64 @llvm.tvm.newdict() nounwind
-declare i64 @llvm.tvm.set.persistent.data() nounwind
+declare void @llvm.tvm.set.persistent.data(i64 %root) nounwind
 declare i64 @llvm.tvm.get.persistent.data() nounwind
 declare i64 @llvm.tvm.dictuset(i64 %value, i64 %ind, i64 %dict, i64 %ind_bit) nounwind
 declare {i64, i64} @llvm.tvm.dictuget(i64 %key, i64 %dict_id, i64 %keylen) nounwind

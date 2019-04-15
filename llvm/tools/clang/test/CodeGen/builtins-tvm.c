@@ -22,6 +22,11 @@ int64_t get_persistent_data() {
   return __builtin_tvm_get_persistent_data();
 }
 
+void set_persistent_data() {
+  // CHECK: call {{.*}} @llvm.tvm.set.persistent.data
+  __builtin_tvm_set_persistent_data(__builtin_tvm_get_persistent_data());
+}
+
 int64_t inttoslice(int64_t n) {
   // CHECK: call {{.*}} @llvm.tvm.inttoslice
   return __builtin_tvm_inttoslice(n);

@@ -77,3 +77,13 @@ defm PUSHROOT : I<(outs I64 : $root), (ins),
                   (outs), (ins),
                   [(set I64 : $root, (TVMpushroot))],
                   "PUSHROOT", "PUSHROOT", 0xed44>;
+
+defm THROWIF : I<(outs), (ins I64 : $cond, uimm6 : $exception),
+                 (outs), (ins uimm6 : $exception),
+                 [(int_tvm_throwif I64 : $cond, uimm6 : $exception)],
+                 "THROWIF\t$exception, $cond", "THROWIF\t$exception", 0xf26>;
+
+defm THROWIFNOT : I<(outs), (ins I64 : $cond, uimm6 : $exception),
+                    (outs), (ins uimm6 : $exception),
+                    [(int_tvm_throwif (not I64 : $cond), uimm6 : $exception)],
+                    "THROWIFNOT\t$cond", "THROWIFNOT", 0xf2a>;

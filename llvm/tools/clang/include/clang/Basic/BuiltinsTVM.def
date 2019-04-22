@@ -21,5 +21,6 @@ BUILTIN(__builtin_tvm_get_persistent_data, "Wi", "nc")
 BUILTIN(__builtin_tvm_inttoslice, "WiWi", "nc")
 BUILTIN(__builtin_tvm_ctos, "WiWi", "nc")
 BUILTIN(__builtin_tvm_stslice, "WiWiWi", "nc")
+BUILTIN(__builtin_tvm_throwif, "vWiWi", "c")
 
 #undef BUILTIN

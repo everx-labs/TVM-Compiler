@@ -34,7 +34,23 @@ define i64 @stslice(i64 %slice, i64 %builder) nounwind {
   ret i64 %1
 }
 
+; CHECK-LABEL: throws
+define void @throws(i64 %cond) {
+; CHEC: THROWIF 42
+  call void @llvm.tvm.throwif(i64 %cond, i64 42)
+  ret void
+}
+
+; CHECK-LABEL: throws_neg
+define void @throws_neg(i64 %cond) {
+; CHEC: THROWIFNOT 42
+  %1 = xor i64 %cond, -1
+  call void @llvm.tvm.throwif(i64 %1, i64 42)
+  ret void
+}
+
 declare i64 @llvm.tvm.newdict() nounwind
 declare i64 @llvm.tvm.get.persistent.data() nounwind
 declare i64 @llvm.tvm.inttoslice(i64 %val) nounwind
 declare i64 @llvm.tvm.stslice(i64 %slice, i64 %builder) nounwind
+declare void @llvm.tvm.throwif(i64 %cond, i64 %exception)

@@ -36,3 +36,8 @@ int64_t stslice(int64_t n, int64_t slice) {
   // CHECK: call {{.*}} @llvm.tvm.stslice
   return __builtin_tvm_stslice(n, slice);
 }
+
+void throws(int64_t cond) {
+  // CHECK: call void @llvm.tvm.throwif
+  __builtin_tvm_throwif(cond, 42);
+}

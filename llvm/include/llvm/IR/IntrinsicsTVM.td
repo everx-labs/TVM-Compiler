@@ -32,6 +32,18 @@ let TargetPrefix = "tvm" in {
     GCCBuiltin<"__builtin_tvm_dictuget">,
                Intrinsic<[llvm_i64_ty, llvm_i64_ty],
                          [llvm_i64_ty, llvm_i64_ty, llvm_i64_ty]>;
+  def int_tvm_dictiget :
+    GCCBuiltin<"__builtin_tvm_dictiget">,
+               Intrinsic<[llvm_i64_ty, llvm_i64_ty],
+                         [llvm_i64_ty, llvm_i64_ty, llvm_i64_ty]>;
+  def int_tvm_dictuset :
+    GCCBuiltin<"__builtin_tvm_dictuset">,
+               Intrinsic<[llvm_i64_ty],
+                         [llvm_i64_ty, llvm_i64_ty, llvm_i64_ty, llvm_i64_ty]>;
+  def int_tvm_dictiset :
+    GCCBuiltin<"__builtin_tvm_dictiset">,
+               Intrinsic<[llvm_i64_ty],
+                         [llvm_i64_ty, llvm_i64_ty, llvm_i64_ty, llvm_i64_ty]>;
   def int_tvm_ldrefrtos :
     GCCBuiltin<"__builtin_tvm_ldrefrtos">,
                Intrinsic<[llvm_i64_ty, llvm_i64_ty], [llvm_i64_ty]>;
@@ -60,4 +72,10 @@ let TargetPrefix = "tvm" in {
   def int_tvm_throwif :
     GCCBuiltin<"__builtin_tvm_throwif">,
                Intrinsic<[], [llvm_i64_ty, llvm_i64_ty]>;
+  def int_tvm_pdload :
+    GCCBuiltin<"__builtin_tvm_pdload">,
+               Intrinsic<[llvm_i64_ty], [llvm_i64_ty]>;
+  def int_tvm_pdstore :
+    GCCBuiltin<"__builtin_tvm_pdstore">,
+               Intrinsic<[llvm_i64_ty], [llvm_i64_ty, llvm_i64_ty]>;
 }

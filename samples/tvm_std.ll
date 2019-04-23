@@ -6,8 +6,9 @@ define i64 @tvm_pdload(i64 %index) {
   %RefRtos = call {i64, i64} @llvm.tvm.ldrefrtos(i64 %Root)
   %Dict = extractvalue {i64, i64} %RefRtos, 0
   %CellStatus = call {i64, i64} @llvm.tvm.dictuget(i64 %index, i64 %Dict, i64 256)
-  %Cell = extractvalue {i64, i64} %CellStatus, 0
-  %Status = extractvalue {i64, i64} %CellStatus, 1
+  %Cell = extractvalue {i64, i64} %CellStatus, 1
+  %Status.Neg = extractvalue {i64, i64} %CellStatus, 0
+  %Status = xor i64 %Status.Neg, -1
   call void @llvm.tvm.throwif(i64 %Status, i64 1)
   %ValueStatus = call {i64, i64} @llvm.tvm.ldu(i64 %Cell)
   %Value = extractvalue {i64, i64} %ValueStatus, 0

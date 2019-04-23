@@ -17,25 +17,31 @@ let mayLoad = 1 in {
                     (ins I64 : $key, I64 : $slice, I64 : $precision),
                     (outs), (ins),
                     [(set I64 : $result, I64 : $status,
-                        (int_tvm_dictuget I64 : $key, I64 : $slice, I64 : $precision))],
+                        (int_tvm_dictiget I64 : $key, I64 : $slice, I64 : $precision))],
                     "DICTIGET\t$result, $status, $key, $slice, $precision",
                     "DICTIGET", 0xf40c>;
   defm DICTUGET : I<(outs I64 : $result, I64 : $status),
-                    (ins I64 : $key, slice_op : $slice, I64 : $precision),
-                    (outs), (ins), [],
+                    (ins I64 : $key, I64 : $slice, I64 : $precision),
+                    (outs), (ins),
+                    [(set I64 : $result, I64 : $status,
+                        (int_tvm_dictuget I64 : $key, I64 : $slice, I64 : $precision))],
                     "DICTUGET\t$result, $status, $key, $slice, $precision",
                     "DICTUGET", 0xf40e>;
 }
 
 let mayStore = 1 in {
-  defm DICTISET : I<(outs slice_op : $sliceo),
-                    (ins I64 : $val, I64 : $key, slice_op : $slicei, I64 : $precision),
-                    (outs), (ins), [],
+  defm DICTISET : I<(outs I64 : $sliceo),
+                    (ins I64 : $val, I64 : $key, I64 : $slicei, I64 : $precision),
+                    (outs), (ins),
+                    [(set I64 : $sliceo,
+                        (int_tvm_dictiset I64 : $val, I64 : $key, I64 : $slicei, I64 : $precision))],
                     "DICTISET\t$sliceo, $val, $key, $slicei, $precision",
                     "DICTISET", 0xf414>;
-  defm DICTUSET : I<(outs slice_op : $sliceo),
-                    (ins I64 : $val, I64 : $key, slice_op : $slicei, I64 : $precision),
-                    (outs), (ins), [],
+  defm DICTUSET : I<(outs I64 : $sliceo),
+                    (ins I64 : $val, I64 : $key, I64 : $slicei, I64 : $precision),
+                    (outs), (ins),
+                    [(set I64 : $sliceo,
+                        (int_tvm_dictuset I64 : $val, I64 : $key, I64 : $slicei, I64 : $precision))],
                     "DICTUSET\t$sliceo, $val, $key, $slicei, $precision",
                     "DICTUSET", 0xf416>;
   defm NEWDICT : I<(outs I64 : $slice), (ins), (outs), (ins),

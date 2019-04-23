@@ -174,8 +174,7 @@ void pruneDeadDefinitions(MachineInstr &MI, LiveIntervals &LIS,
 /// \return Pointer to a reordering to remove.
 const StackReordering *breakCycle(const StackReorderings &Reorderings,
                                   const std::vector<size_t> SlotsFrom) {
-  assert(Reorderings.size() < 4 &&
-         "Instructions with 4 or more stack arguments are not supported");
+  // TODO: Common case probably requires simulation.
   if (Reorderings.size() < 2)
     return nullptr;
 

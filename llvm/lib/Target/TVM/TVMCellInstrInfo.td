@@ -12,9 +12,12 @@
 //
 //===----------------------------------------------------------------------===//
 
+/// TODO: If to remove the following line Pat doesn't work. Investigate why.
+let hasSideEffects = 1 in
 defm NEWC : I<(outs I64 : $bldr), (ins), (outs), (ins),
               [(set I64 : $bldr, (TVMnewc))],
               "NEWC\t$bldr", "NEWC", 0xc8>;
+def : Pat<(int_tvm_newc), (NEWC)>;
 
 defm ENDC : I<(outs I64 : $cell), (ins I64 : $bldr), (outs), (ins),
               [(set I64 : $cell, (TVMendc I64 : $bldr))],

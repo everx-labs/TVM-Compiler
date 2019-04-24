@@ -9,6 +9,13 @@ define i64 @newdict() nounwind {
   ret i64 %1
 }
 
+; CHECK-LABEL: newc
+define i64 @newc() nounwind {
+; CHECK: NEWC
+  %1 = call i64 @llvm.tvm.newc()
+  ret i64 %1
+}
+
 ; CHECK-LABEL: persistent_root
 define i64 @persistent_root() nounwind {
 ; CHECK: PUSHROOT
@@ -84,6 +91,7 @@ define void @throws_neg(i64 %cond) {
 }
 
 declare i64 @llvm.tvm.newdict() nounwind
+declare i64 @llvm.tvm.newc() nounwind
 declare i64 @llvm.tvm.get.persistent.data() nounwind
 declare void @llvm.tvm.set.persistent.data(i64 %root) nounwind
 declare i64 @llvm.tvm.inttoslice(i64 %val) nounwind

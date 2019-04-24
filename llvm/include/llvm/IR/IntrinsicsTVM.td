@@ -20,6 +20,8 @@ let TargetPrefix = "tvm" in {
                               [IntrNoMem]>;
   def int_tvm_newdict : GCCBuiltin<"__builtin_tvm_newdict">,
                         Intrinsic<[llvm_i64_ty], []>;
+  def int_tvm_newc : GCCBuiltin<"__builtin_tvm_newc">,
+                        Intrinsic<[llvm_i64_ty], []>;
   def int_tvm_get_persistent_data :
     GCCBuiltin<"__builtin_tvm_get_persistent_data">,
                Intrinsic<[llvm_i64_ty], []>;

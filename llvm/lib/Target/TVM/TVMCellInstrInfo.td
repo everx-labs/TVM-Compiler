@@ -35,6 +35,10 @@ defm STU : I<(outs I64 : $obldr),
              (outs), (ins uimm8 : $precision),
              [(set I64 : $obldr, (TVMstu I64 : $val, I64 : $bldr, uimm1_256 : $precision))],
              "STU\t $precision, $obldr, $val, $bldr", "STU\t $precision", 0xcbff>;
+defm STREF : I<(outs I64 : $obldr), (ins I64 : $icell, I64 : $ibldr),
+               (outs), (ins),
+               [(set I64 : $obldr, (int_tvm_stref I64 : $icell, I64 : $ibldr))],
+               "STREF\t$obldr, $icell, $ibldr", "STREF", 0xcc>;
 
 /// TODO: Support other integer types.
 defm LDI : I<(outs I64 : $x, I64 : $sliceo),
@@ -54,6 +58,10 @@ defm LDREFRTOS : I<(outs I64 : $cellslice, I64 : $sliceo), (ins I64 : $slicei),
                    (outs), (ins),
                    [(set I64 : $cellslice, I64 : $sliceo, (int_tvm_ldrefrtos I64 : $slicei))],
                    "LDREFRTOS\t $cellslice, $sliceo, $slicei", "LDREFRTOS", 0xd5>;
+defm LDREF : I<(outs I64 : $ocell, I64 : $oslice), (ins I64 : $icell),
+               (outs), (ins),
+               [(set I64 : $ocell, I64 : $oslice, (int_tvm_ldref I64 : $icell))],
+               "LDREF\t$ocell, $oslice, $icell", "LDREF", 0xd4>;
 
 /// TODO: If to remove the following line Pat doesn't work. Investigate why.
 let hasSideEffects = 1 in

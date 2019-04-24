@@ -45,11 +45,27 @@ define i64 @stoc(i64 %cell) nounwind {
   %1 = call i64 @llvm.tvm.stoc(i64 %cell)
   ret i64 %1
 }
+
 ; CHECK-LABEL: stslice
 define i64 @stslice(i64 %slice, i64 %builder) nounwind {
 ; CHECK: STSLICE
   %1 = call i64 @llvm.tvm.stslice(i64 %slice, i64 %builder)
   ret i64 %1
+}
+
+; CHECK-LABEL: stref
+define i64 @stref(i64 %cell, i64 %builder) nounwind {
+; CHECK: STREF
+  %1 = call i64 @llvm.tvm.stref(i64 %cell, i64 %builder)
+  ret i64 %1
+}
+
+; CHECK-LABEL: ldref
+define i64 @ldref(i64 %cell) nounwind {
+; CHECK: LDREF
+  %1 = call {i64, i64} @llvm.tvm.ldref(i64 %cell)
+  %2 = extractvalue {i64, i64} %1, 0
+  ret i64 %2
 }
 
 ; CHECK-LABEL: throws
@@ -73,4 +89,6 @@ declare void @llvm.tvm.set.persistent.data(i64 %root) nounwind
 declare i64 @llvm.tvm.inttoslice(i64 %val) nounwind
 declare i64 @llvm.tvm.stslice(i64 %slice, i64 %builder) nounwind
 declare i64 @llvm.tvm.stoc(i64 %slice) nounwind
+declare {i64, i64} @llvm.tvm.ldref(i64 %cell) nounwind
+declare i64 @llvm.tvm.stref(i64 %cell, i64 %builder) nounwind
 declare void @llvm.tvm.throwif(i64 %cond, i64 %exception)

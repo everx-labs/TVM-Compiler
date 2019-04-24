@@ -37,6 +37,14 @@ define i64 @itos(i64 %arg) nounwind {
   ret i64 %1
 }
 
+; CHECK-LABEL: stoc
+define i64 @stoc(i64 %cell) nounwind {
+; CHECK: NEWC
+; CHECK-NEXT: STSLICE
+; CHECK-NEXT: ENDC
+  %1 = call i64 @llvm.tvm.stoc(i64 %cell)
+  ret i64 %1
+}
 ; CHECK-LABEL: stslice
 define i64 @stslice(i64 %slice, i64 %builder) nounwind {
 ; CHECK: STSLICE
@@ -64,4 +72,5 @@ declare i64 @llvm.tvm.get.persistent.data() nounwind
 declare void @llvm.tvm.set.persistent.data(i64 %root) nounwind
 declare i64 @llvm.tvm.inttoslice(i64 %val) nounwind
 declare i64 @llvm.tvm.stslice(i64 %slice, i64 %builder) nounwind
+declare i64 @llvm.tvm.stoc(i64 %slice) nounwind
 declare void @llvm.tvm.throwif(i64 %cond, i64 %exception)

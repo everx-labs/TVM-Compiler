@@ -297,6 +297,12 @@ SDValue TVMTargetLowering::LowerINTRINSIC_W_CHAIN(SDValue Op,
     Result = DAG.getNode(TVMISD::CTOS, DL, MVT::i64, Result);
     return DAG.getMergeValues({Result.getValue(0), Chain}, DL);
   }
+  case Intrinsic::tvm_stoc: {
+    SDValue Result = DAG.getNode(TVMISD::NEWC, DL, MVT::i64);
+    Result = DAG.getNode(TVMISD::STSLICE, DL, MVT::i64, Op->getOperand(2), Result);
+    Result = DAG.getNode(TVMISD::ENDC, DL, MVT::i64, Result);
+    return DAG.getMergeValues({Result.getValue(0), Chain}, DL);
+  }
   case Intrinsic::tvm_ldu: {
     SDValue Precision = DAG.getConstant(256, DL, MVT::i64);
     SDValue Result =

@@ -15,6 +15,7 @@
 defm NEWC : I<(outs I64 : $bldr), (ins), (outs), (ins),
               [(set I64 : $bldr, (TVMnewc))],
               "NEWC\t$bldr", "NEWC", 0xc8>;
+
 defm ENDC : I<(outs I64 : $cell), (ins I64 : $bldr), (outs), (ins),
               [(set I64 : $cell, (TVMendc I64 : $bldr))],
               "ENDC\t $cell, $bldr", "ENDC", 0xc9>;
@@ -53,7 +54,13 @@ defm LDREFRTOS : I<(outs I64 : $cellslice, I64 : $sliceo), (ins I64 : $slicei),
                    (outs), (ins),
                    [(set I64 : $cellslice, I64 : $sliceo, (int_tvm_ldrefrtos I64 : $slicei))],
                    "LDREFRTOS\t $cellslice, $sliceo, $slicei", "LDREFRTOS", 0xd5>;
+
+/// TODO: If to remove the following line Pat doesn't work. Investigate why.
+let hasSideEffects = 1 in
 defm STSLICE : I<(outs I64 : $sliceo), (ins I64 : $slicei, I64 : $bldr),
                  (outs), (ins),
-                 [(set I64 : $sliceo, (int_tvm_stslice I64 : $slicei, I64 : $bldr))],
+                 [(set I64 : $sliceo, (TVMstslice I64 : $slicei, I64 : $bldr))],
                  "STSLICE\t $slicei, $sliceo, $bldr", "STSLICE", 0xce>;
+
+def : Pat<(int_tvm_stslice I64 : $slicei, I64 : $bldr),
+          (STSLICE I64 : $slicei, I64 : $bldr)>;

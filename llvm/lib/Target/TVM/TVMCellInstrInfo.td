@@ -19,25 +19,32 @@ defm NEWC : I<(outs I64 : $bldr), (ins), (outs), (ins),
               "NEWC\t$bldr", "NEWC", 0xc8>;
 def : Pat<(int_tvm_newc), (NEWC)>;
 
+let hasSideEffects = 1 in
 defm ENDC : I<(outs I64 : $cell), (ins I64 : $bldr), (outs), (ins),
               [(set I64 : $cell, (TVMendc I64 : $bldr))],
-              "ENDC\t $cell, $bldr", "ENDC", 0xc9>;
+              "ENDC\t$cell, $bldr", "ENDC", 0xc9>;
+def : Pat<(int_tvm_endc I64 : $bldr), (ENDC I64 : $bldr)>;
 
 defm CTOS : I<(outs I64 : $slice), (ins I64 : $cell), (outs), (ins),
               [(set I64 : $slice, (TVMctos I64 : $cell))],
-              "CTOS\t $slice, $cell", "CTOS", 0xd0>;
+              "CTOS\t$slice, $cell", "CTOS", 0xd0>;
 
 /// TODO: Support other integer types.
 defm STI : I<(outs I64 : $obldr),
              (ins I64 : $val, I64 : $bldr, uimm1_256 : $precision),
              (outs), (ins uimm8 : $precision),
              [(set I64 : $obldr, (TVMsti I64 : $val, I64 : $bldr, uimm1_256 : $precision))],
-             "STI\t $precision, $obldr, $val, $bldr", "STI\t $precision", 0xcaff>;
+             "STI\t $precision, $obldr, $val, $bldr", "STI\t$precision", 0xcaff>;
+
+let hasSideEffects = 1 in
 defm STU : I<(outs I64 : $obldr),
              (ins I64 : $val, I64 : $bldr, uimm1_256 : $precision),
              (outs), (ins uimm8 : $precision),
              [(set I64 : $obldr, (TVMstu I64 : $val, I64 : $bldr, uimm1_256 : $precision))],
-             "STU\t $precision, $obldr, $val, $bldr", "STU\t $precision", 0xcbff>;
+             "STU\t $precision, $obldr, $val, $bldr", "STU\t$precision", 0xcbff>;
+def : Pat<(int_tvm_stu I64 : $val, I64 : $bldr, uimm1_256 : $precision), 
+          (STU I64 : $val, I64 : $bldr, uimm1_256 : $precision)>;
+
 defm STREF : I<(outs I64 : $obldr), (ins I64 : $icell, I64 : $ibldr),
                (outs), (ins),
                [(set I64 : $obldr, (int_tvm_stref I64 : $icell, I64 : $ibldr))],
@@ -76,7 +83,12 @@ let hasSideEffects = 1 in
 defm STSLICE : I<(outs I64 : $sliceo), (ins I64 : $slicei, I64 : $bldr),
                  (outs), (ins),
                  [(set I64 : $sliceo, (TVMstslice I64 : $slicei, I64 : $bldr))],
-                 "STSLICE\t $slicei, $sliceo, $bldr", "STSLICE", 0xce>;
+                 "STSLICE\t$slicei, $sliceo, $bldr", "STSLICE", 0xce>;
 
 def : Pat<(int_tvm_stslice I64 : $slicei, I64 : $bldr),
           (STSLICE I64 : $slicei, I64 : $bldr)>;
+
+defm SENDRAWMSG : I<(outs), (ins I64 : $slice, I64 : $flags),
+                    (outs), (ins),
+                    [(int_tvm_sendrawmsg I64 : $slice, I64 : $flags)],
+                    "SENDRAWMSG\t$slice, $flags", "SENDRAWMSG", 0xfb00>;

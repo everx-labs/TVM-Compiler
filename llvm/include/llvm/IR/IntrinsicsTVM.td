@@ -84,4 +84,13 @@ let TargetPrefix = "tvm" in {
   def int_tvm_pdstore :
     GCCBuiltin<"__builtin_tvm_pdstore">,
                Intrinsic<[llvm_i64_ty], [llvm_i64_ty, llvm_i64_ty]>;
+  def int_tvm_endc :
+    GCCBuiltin<"__builtin_tvm_endc">,
+               Intrinsic<[llvm_i64_ty], [llvm_i64_ty]>;
+  def int_tvm_stu :
+    GCCBuiltin<"__builtin_tvm_stu">,
+               Intrinsic<[llvm_i64_ty], [llvm_i64_ty, llvm_i64_ty, llvm_i64_ty]>;
+  def int_tvm_sendrawmsg :
+    GCCBuiltin<"__builtin_tvm_sendrawmsg">,
+               Intrinsic<[], [llvm_i64_ty, llvm_i64_ty]>;
 }

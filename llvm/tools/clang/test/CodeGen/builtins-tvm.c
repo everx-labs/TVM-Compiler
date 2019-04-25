@@ -46,3 +46,23 @@ void throws(int64_t cond) {
   // CHECK: call void @llvm.tvm.throwif
   __builtin_tvm_throwif(cond, 42);
 }
+
+int64_t stu(int64_t slice, int64_t value, int64_t precision) {
+  // CHECK: call {{.*}} @llvm.tvm.stu
+  return __builtin_tvm_stu(slice, value, precision);
+}
+
+int64_t newc() {
+  // CHECK: call {{.*}} @llvm.tvm.newc
+  return __builtin_tvm_newc();
+}
+
+int64_t endc(int64_t slice) {
+  // CHECK: call {{.*}} @llvm.tvm.endc
+  return __builtin_tvm_endc(slice);
+}
+
+void sendrawmsg(int64_t cell, int64_t flags) {
+  // CHECK: call {{.*}} @llvm.tvm.sendrawmsg
+  __builtin_tvm_sendrawmsg(cell, flags);
+}

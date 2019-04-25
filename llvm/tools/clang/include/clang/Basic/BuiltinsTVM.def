@@ -23,5 +23,9 @@ BUILTIN(__builtin_tvm_inttoslice, "WiWi", "nc")
 BUILTIN(__builtin_tvm_ctos, "WiWi", "nc")
 BUILTIN(__builtin_tvm_stslice, "WiWiWi", "nc")
 BUILTIN(__builtin_tvm_throwif, "vWiWi", "c")
+BUILTIN(__builtin_tvm_newc, "Wi", "nc")
+BUILTIN(__builtin_tvm_endc, "WiWi", "nc")
+BUILTIN(__builtin_tvm_stu, "WiWiWiWi", "nc")
+BUILTIN(__builtin_tvm_sendrawmsg, "vWiWi", "nc")
 
 #undef BUILTIN

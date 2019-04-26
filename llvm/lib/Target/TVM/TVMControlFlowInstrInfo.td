@@ -72,11 +72,12 @@ defm PUSHCONT_FUNC : NRI<(outs), (ins function_op:$callee), [],
 defm PUSHCONT_LABEL: NRI<(outs), (ins function_op:$callee), [],
                      "PUSHINT\t$callee", 0x82>;
 
-// TODO: Generalize to PUSH ci
-defm PUSHROOT : I<(outs I64 : $root), (ins),
-                  (outs), (ins),
-                  [(set I64 : $root, (TVMpushroot))],
-                  "PUSHROOT", "PUSHROOT", 0xed44>;
+defm PUSHC : I<(outs I64 : $root), (ins uimm8 : $regno),
+               (outs), (ins uimm8 : $regno),
+               [(set I64 : $root, (int_tvm_getreg uimm8 : $regno))],
+               "PUSH\tc$regno", "PUSH\tc$regno", 0xed4>;
+
+def : Pat<(TVMpushroot), (PUSHC (i64 4))>;
 
 // TODO: Generalize to POP ci
 defm POPROOT : I<(outs), (ins I64 : $root),

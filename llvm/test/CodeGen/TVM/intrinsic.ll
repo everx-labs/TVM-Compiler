@@ -18,7 +18,7 @@ define i64 @newc() nounwind {
 
 ; CHECK-LABEL: persistent_root
 define i64 @persistent_root() nounwind {
-; CHECK: PUSHROOT
+; CHECK: PUSH c4
 ; CHECK-NEXT: CTOS
   %1 = call i64 @llvm.tvm.get.persistent.data()
   ret i64 %1
@@ -26,12 +26,19 @@ define i64 @persistent_root() nounwind {
 
 ; CHECK-LABEL: set_persistent_root
 define void @set_persistent_root() nounwind {
-; CHECK: PUSHROOT
+; CHECK: PUSH c4
 ; CHECK-NEXT: CTOS
 ; CHECK-NEXT: POPROOT
   %1 = call i64 @llvm.tvm.get.persistent.data()
   call void @llvm.tvm.set.persistent.data(i64 %1)
   ret void
+}
+
+; CHECK-LABEL: getreg
+define i64 @getreg() nounwind {
+; CHECK: PUSH c2
+  %1 = call i64 @llvm.tvm.getreg(i64 2)
+  ret i64 %1
 }
 
 ; CHECK-LABEL: itos
@@ -93,6 +100,7 @@ define void @throws_neg(i64 %cond) {
 declare i64 @llvm.tvm.newdict() nounwind
 declare i64 @llvm.tvm.newc() nounwind
 declare i64 @llvm.tvm.get.persistent.data() nounwind
+declare i64 @llvm.tvm.getreg(i64 %regno) nounwind
 declare void @llvm.tvm.set.persistent.data(i64 %root) nounwind
 declare i64 @llvm.tvm.inttoslice(i64 %val) nounwind
 declare i64 @llvm.tvm.stslice(i64 %slice, i64 %builder) nounwind

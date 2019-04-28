@@ -82,6 +82,14 @@ define i64 @ldref(i64 %cell) nounwind {
   ret i64 %2
 }
 
+; CHECK-LABEL: ldslicex
+define i64 @ldslicex(i64 %slice, i64 %size) nounwind {
+; CHECK: LDSLICEX
+  %1 = call {i64, i64} @llvm.tvm.ldslicex(i64 %slice, i64 %size)
+  %2 = extractvalue {i64, i64} %1, 0
+  ret i64 %2
+}
+
 ; CHECK-LABEL: throws
 define void @throws(i64 %cond) {
 ; CHEC: THROWIF 42
@@ -105,6 +113,7 @@ declare void @llvm.tvm.set.persistent.data(i64 %root) nounwind
 declare i64 @llvm.tvm.inttoslice(i64 %val) nounwind
 declare i64 @llvm.tvm.stslice(i64 %slice, i64 %builder) nounwind
 declare i64 @llvm.tvm.stoc(i64 %slice) nounwind
+declare {i64, i64} @llvm.tvm.ldslicex(i64 %slice, i64 %size) nounwind
 declare {i64, i64} @llvm.tvm.ldref(i64 %cell) nounwind
 declare i64 @llvm.tvm.stref(i64 %cell, i64 %builder) nounwind
 declare void @llvm.tvm.throwif(i64 %cond, i64 %exception)

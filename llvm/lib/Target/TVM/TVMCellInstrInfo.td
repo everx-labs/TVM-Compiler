@@ -65,6 +65,11 @@ defm LDREF : I<(outs I64 : $ocell, I64 : $oslice), (ins I64 : $icell),
                (outs), (ins),
                [(set I64 : $ocell, I64 : $oslice, (int_tvm_ldref I64 : $icell))],
                "LDREF\t$ocell, $oslice, $icell", "LDREF", 0xd4>;
+defm LDSLICEX : I<(outs I64 : $result, I64 : $remainder), (ins I64 : $slice, I64 : $size),
+                  (outs), (ins),
+                  [(set I64 : $result, I64 : $remainder,
+                      (int_tvm_ldslicex I64 : $slice, I64 : $size))],
+                  "LDSLICEX\t$result, $remainder, $slice, $size", "LDSLICEX", 0xd718>;
 
 /// TODO: If to remove the following line Pat doesn't work. Investigate why.
 let hasSideEffects = 1 in

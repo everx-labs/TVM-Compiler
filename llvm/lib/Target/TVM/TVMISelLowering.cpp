@@ -313,6 +313,33 @@ SDValue TVMTargetLowering::LowerINTRINSIC_W_CHAIN(SDValue Op,
     return DAG.getMergeValues({Result.getValue(0), Result.getValue(1), Chain},
                               DL);
   }
+  case Intrinsic::tvm_retrieve_signed: {
+    // arguments: slice, from, len
+    SDValue Skip1 =
+        DAG.getNode(TVMISD::LDSLICEX, DL, DAG.getVTList(MVT::i64, MVT::i64),
+                    Op->getOperand(2), Op->getOperand(3));
+    SDValue Result =
+        DAG.getNode(TVMISD::LDIX, DL, DAG.getVTList(MVT::i64, MVT::i64),
+                    Skip1.getValue(0), Op->getOperand(4));
+    return DAG.getMergeValues({Result.getValue(0), Chain}, DL);
+  }
+  case Intrinsic::tvm_retrieve_unsigned: {
+    // arguments: slice, from, len
+    SDValue Skip1 =
+        DAG.getNode(TVMISD::LDSLICEX, DL, DAG.getVTList(MVT::i64, MVT::i64),
+                    Op->getOperand(2), Op->getOperand(3));
+    SDValue Result =
+        DAG.getNode(TVMISD::LDUX, DL, DAG.getVTList(MVT::i64, MVT::i64),
+                    Skip1.getValue(0), Op->getOperand(4));
+    return DAG.getMergeValues({Result.getValue(0), Chain}, DL);
+  }
+  case Intrinsic::tvm_retrieve_ref: {
+    // arguments: slice
+    SDValue Result =
+        DAG.getNode(TVMISD::LDREF, DL, DAG.getVTList(MVT::i64, MVT::i64),
+                    Op->getOperand(2));
+    return DAG.getMergeValues({Result.getValue(1), Chain}, DL);
+  }
   }
   return SDValue();
 }

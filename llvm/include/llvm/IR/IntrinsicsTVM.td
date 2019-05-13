@@ -93,4 +93,13 @@ let TargetPrefix = "tvm" in {
   def int_tvm_sendrawmsg :
     GCCBuiltin<"__builtin_tvm_sendrawmsg">,
                Intrinsic<[], [llvm_i64_ty, llvm_i64_ty]>;
+  def int_tvm_retrieve_signed :
+    GCCBuiltin<"__builtin_tvm_retrieve_signed">,
+               Intrinsic<[llvm_i64_ty], [llvm_i64_ty, llvm_i64_ty, llvm_i64_ty]>;
+  def int_tvm_retrieve_unsigned :
+    GCCBuiltin<"__builtin_tvm_retrieve_unsigned">,
+               Intrinsic<[llvm_i64_ty], [llvm_i64_ty, llvm_i64_ty, llvm_i64_ty]>;
+  def int_tvm_retrieve_ref :
+    GCCBuiltin<"__builtin_tvm_retrieve_ref">,
+               Intrinsic<[llvm_i64_ty], [llvm_i64_ty]>;
 }

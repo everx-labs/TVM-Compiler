@@ -25,9 +25,11 @@ defm ENDC : I<(outs I64 : $cell), (ins I64 : $bldr), (outs), (ins),
               "ENDC\t$cell, $bldr", "ENDC", 0xc9>;
 def : Pat<(int_tvm_endc I64 : $bldr), (ENDC I64 : $bldr)>;
 
+let hasSideEffects = 1 in
 defm CTOS : I<(outs I64 : $slice), (ins I64 : $cell), (outs), (ins),
               [(set I64 : $slice, (TVMctos I64 : $cell))],
               "CTOS\t$slice, $cell", "CTOS", 0xd0>;
+def : Pat<(int_tvm_ctos I64 : $cell), (CTOS I64 : $cell)>;
 
 /// TODO: Support other integer types.
 defm STI : I<(outs I64 : $obldr),
@@ -50,33 +52,48 @@ defm STREF : I<(outs I64 : $obldr), (ins I64 : $icell, I64 : $ibldr),
                [(set I64 : $obldr, (int_tvm_stref I64 : $icell, I64 : $ibldr))],
                "STREF\t$obldr, $icell, $ibldr", "STREF", 0xcc>;
 
-/// TODO: Support other integer types.
-defm LDI : I<(outs I64 : $x, I64 : $sliceo),
-             (ins I64 : $slicei, uimm1_256 : $precision),
-             (outs), (ins uimm1_256 : $precision),
-             [(set I64 : $x, I64 : $sliceo, (TVMldi I64 : $slicei, uimm1_256 : $precision))],
-             "LDI\t $precision, $slicei, $x, $sliceo",
-             "LDI\t $precision", 0xd2ff>;
 defm LDU : I<(outs I64 : $x, I64  : $sliceo),
              (ins I64 : $slicei, uimm8 : $precision),
              (outs), (ins uimm8 : $precision),
              [(set I64 : $x, I64 : $sliceo, (TVMldu I64 : $slicei, uimm1_256 : $precision))],
              "LDU\t $precision, $slicei, $x, $sliceo",
              "LDU\t $precision", 0xd3ff>;
+
+defm LDIX : I<(outs I64 : $x, I64 : $sliceo),
+              (ins I64 : $slicei, I64 : $precision),
+              (outs), (ins),
+              [(set I64 : $x, I64 : $sliceo, (TVMldix I64 : $slicei, I64 : $precision))],
+              "LDIX\t $precision, $slicei, $x, $sliceo",
+              "LDIX", 0xd700>;
+
+defm LDUX : I<(outs I64 : $x, I64  : $sliceo),
+              (ins I64 : $slicei, I64 : $precision),
+              (outs), (ins),
+              [(set I64 : $x, I64 : $sliceo, (TVMldux I64 : $slicei, I64 : $precision))],
+              "LDUX\t$precision, $slicei, $x, $sliceo",
+              "LDUX", 0xd701>;
+
 /// TODO: It should be a pipehole optimization for LDREF; SWAP; CTOS
 defm LDREFRTOS : I<(outs I64 : $cellslice, I64 : $sliceo), (ins I64 : $slicei),
                    (outs), (ins),
                    [(set I64 : $cellslice, I64 : $sliceo, (int_tvm_ldrefrtos I64 : $slicei))],
                    "LDREFRTOS\t $cellslice, $sliceo, $slicei", "LDREFRTOS", 0xd5>;
+
+let hasSideEffects = 1 in
 defm LDREF : I<(outs I64 : $ocell, I64 : $oslice), (ins I64 : $icell),
                (outs), (ins),
-               [(set I64 : $ocell, I64 : $oslice, (int_tvm_ldref I64 : $icell))],
+               [(set I64 : $ocell, I64 : $oslice, (TVMldref I64 : $icell))],
                "LDREF\t$ocell, $oslice, $icell", "LDREF", 0xd4>;
+def : Pat<(int_tvm_ldref I64 : $icell), (LDREF I64 : $icell)>;
+
+let hasSideEffects = 1 in
 defm LDSLICEX : I<(outs I64 : $result, I64 : $remainder), (ins I64 : $slice, I64 : $size),
                   (outs), (ins),
                   [(set I64 : $result, I64 : $remainder,
-                      (int_tvm_ldslicex I64 : $slice, I64 : $size))],
+                      (TVMldslicex I64 : $slice, I64 : $size))],
                   "LDSLICEX\t$result, $remainder, $slice, $size", "LDSLICEX", 0xd718>;
+def : Pat<(int_tvm_ldslicex I64 : $slice, I64 : $size),
+          (LDSLICEX I64 : $slice, I64 : $size)>;
 
 /// TODO: If to remove the following line Pat doesn't work. Investigate why.
 let hasSideEffects = 1 in
@@ -88,7 +105,10 @@ defm STSLICE : I<(outs I64 : $sliceo), (ins I64 : $slicei, I64 : $bldr),
 def : Pat<(int_tvm_stslice I64 : $slicei, I64 : $bldr),
           (STSLICE I64 : $slicei, I64 : $bldr)>;
 
+let hasSideEffects = 1 in
 defm SENDRAWMSG : I<(outs), (ins I64 : $slice, I64 : $flags),
                     (outs), (ins),
-                    [(int_tvm_sendrawmsg I64 : $slice, I64 : $flags)],
+                    [(TVMsendrawmsg I64 : $slice, I64 : $flags)],
                     "SENDRAWMSG\t$slice, $flags", "SENDRAWMSG", 0xfb00>;
+def : Pat<(int_tvm_sendrawmsg I64 : $slice, I64 : $flags),
+          (SENDRAWMSG I64 : $slice, I64 : $flags)>;

@@ -60,6 +60,8 @@ TVMTargetLowering::TVMTargetLowering(const TargetMachine &TM,
   // MIR instructions.
   setOperationAction(ISD::INTRINSIC_W_CHAIN, MVT::Other, Custom);
   setOperationAction(ISD::ABS, MVT::i64, Legal);
+  setOperationAction(ISD::SMAX, MVT::i64, Legal);
+  setOperationAction(ISD::SMIN, MVT::i64, Legal);
 
   setMinFunctionAlignment(1);
   setPrefFunctionAlignment(1);

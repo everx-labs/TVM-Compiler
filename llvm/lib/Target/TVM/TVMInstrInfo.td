@@ -151,6 +151,8 @@ defm MUL      : BinaryRR<mul, "MUL", 0xa8>;
 defm AND      : BinaryRR<and, "AND", 0xb0>;
 defm OR       : BinaryRR<or, "OR", 0xb1>;
 defm XOR      : BinaryRR<xor, "XOR", 0xb2>;
+defm MIN      : BinaryRR<smin, "MIN", 0xb608>;
+defm MAX      : BinaryRR<smax, "MAX", 0xb609>;
 }
 defm SUB      : BinaryRR<sub, "SUB", 0xa1>;
 defm SUBR     : BinaryRR<sub, "SUBR", 0xa2>;

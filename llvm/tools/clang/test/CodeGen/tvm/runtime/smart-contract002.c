@@ -1,4 +1,3 @@
-// XFAIL: *
 // RUN: %clang -O3 -S -c -target tvm %s -o %t
 // RUN: %clang -O3 -S -c -target tvm %S/../../../../../../../samples/sdk-prototype/transfer-80000001.c -o %t.transfer-80000001
 // RUN: %clang -O3 -S -c -target tvm %S/../../../../../../../samples/sdk-prototype/ton-sdk/messages.c -o %t.messages

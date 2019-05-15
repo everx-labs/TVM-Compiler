@@ -521,15 +521,16 @@ memcpy:
 memset:
      ; ( addr value size -- )
      ;
-     XCHG s1,s2           ; ( value addr size )  
+     PUSH s2              ; ( addr value size addr )
+     XCHG s0,s1           ; ( addr value addr size )
      PUSHINT 8
-     DIVC                 ; ( value addr size/8 )
-     PUSHCONT {           ; ( value addr -- value addr' )
-         PUSH s0          ; ( value addr addr )
-         PUSH s2          ; ( value addr addr value )
+     DIVC                 ; ( addr value addr size/8 )
+     PUSHCONT {           ; ( addr value addr -- value addr' )
+         PUSH s0          ; ( addr value addr addr )
+         PUSH s2          ; ( addr value addr addr value )
          CALL $:store$
-         ADDCONST 8       ; ( value addr )
+         ADDCONST 8       ; ( addr value addr )
      }
-     REPEAT               ; ( value addr size/8 cont -- value addr )
-     DROP                 ; ( value )
-     DROP                 ; ( )
+     REPEAT               ; ( addr value addr size/8 cont -- addr value addr' )
+     DROP                 ; ( addr value )
+     DROP                 ; ( addr )

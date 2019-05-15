@@ -37,7 +37,8 @@ void TVMInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
                                MachineBasicBlock::iterator I,
                                const DebugLoc &DL, unsigned DestReg,
                                unsigned SrcReg, bool KillSrc) const {
-  llvm_unreachable("Impossible reg-to-reg copy");
+  BuildMI(MBB, I, DL, get(TVM::REG_TO_REG_COPY), DestReg)
+      .addReg(SrcReg, KillSrc ? RegState::Kill : 0);
 }
 
 unsigned TVMInstrInfo::getInstSizeInBytes(const MachineInstr &MI) const {

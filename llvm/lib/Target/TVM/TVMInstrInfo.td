@@ -144,6 +144,10 @@ defm PUSH : SI<(ins stack_op:$local), "PUSH\t$local", 0x20>;
 let mayLoad = 1, isAsCheapAsAMove = 1 in
 defm XCHG : SI<(ins stack_op:$src, stack_op:$dst), "XCHG\t$src, $dst", 0x10>;
 defm POP  : SI<(ins stack_op:$dst), "POP\t$dst", 0x30>;
+
+let isCodeGenOnly = 1 in
+defm REG_TO_REG_COPY : I<(outs I64:$dst), (ins I64:$src), (outs), (ins), []>;
+
 //===----------------------------------------------------------------------===//
 // Arithmetic instructions
 //===----------------------------------------------------------------------===//

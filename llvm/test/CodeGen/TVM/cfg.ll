@@ -6,9 +6,8 @@ target triple = "tvm"
 define i64 @brcond(i1 %par) nounwind {
 entry:
 ; CHECK: PUSHCONT {{[{]}}
-; CHECK: IFJMP
 ; CHECK: PUSHCONT {{[{]}}
-; CHECK: JMPX
+; CHECK: IFELSE
   br i1 %par, label %exit1, label %exit2
 exit1:
 ; CHECK: PUSHINT 42
@@ -28,9 +27,8 @@ declare void @bazz()
 define void @diamond(i1 %par) nounwind {
 entry:
 ; CHECK: PUSHCONT {{[{]}}
-; CHECK: IFJMP
 ; CHECK: PUSHCONT {{[{]}}
-; CHECK: JMPX
+; CHECK: IFELSE
   br i1 %par, label %bb1, label %bb2
 bb1:
   call void @foo()
@@ -69,9 +67,8 @@ exit:
 define i64 @trivial_phi(i1 %par, i64 %val) nounwind {
 entry:
 ; CHECK: PUSHCONT
-; CHECK: IFJMP
-; CHECK-NEXT: PUSHCONT
-; CHECK: JMPX
+; CHECK: PUSHCONT
+; CHECK: IFELSE
   br i1 %par, label %bb1, label %bb2
 bb1:
 ; CHECK: INC

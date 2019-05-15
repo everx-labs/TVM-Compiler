@@ -39,6 +39,13 @@ let isTerminator = 1, hasCtrlDep = 1 in {
                     "IFJMP\t$dst, $cond", "IFJMP", 0xe0>;
 
     let isBarrier = 1 in {
+    defm IFELSE : I<(outs), (ins I64:$cond, bb_op:$branch1, bb_op:$branch2),
+                   (outs), (ins),
+                   [(TVMifelse I64:$cond, bb:$branch1, bb:$branch2)],
+                    "IFELSE\t$branch1, $branch2, $cond", "IFELSE", 0xe2>;
+    } // isBarrier = 1
+
+    let isBarrier = 1 in {
       defm JMPX  : I<(outs), (ins bb_op:$dst),
                      (outs), (ins),
                      [(br bb:$dst)],

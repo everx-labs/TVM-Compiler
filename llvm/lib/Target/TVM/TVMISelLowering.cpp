@@ -91,6 +91,9 @@ TVMTargetLowering::TVMTargetLowering(const TargetMachine &TM,
   // Support of truncate, sext, zext
   setTargetDAGCombine(ISD::TRUNCATE);
 
+  // Continuations support
+  setTargetDAGCombine(ISD::BR);
+
   // Expand these forms; we pattern-match the forms that we can handle in isel.
   for (auto Op : {ISD::BR_CC, ISD::SELECT_CC})
     setOperationAction(Op, MVT::i64, Expand);
@@ -319,6 +322,22 @@ SDValue TVMTargetLowering::PerformDAGCombine(SDNode *N,
     DCI.CombineTo(N, Replacement, false);
 
     break;
+  }
+  case ISD::BR: {
+    if (!DCI.isAfterLegalizeDAG())
+      break;
+
+    SDValue Chain = N->getOperand(0);
+
+    if (!Chain || Chain.getOpcode() != ISD::BRCOND ||
+        !Chain.getOperand(1).getSimpleValueType().isInteger())
+      break; // we are interested only in replacing of a chain brcond, br
+
+    SDValue PrevChain = Chain->getOperand(0), Cond = Chain->getOperand(1),
+            ThenBranch = N->getOperand(1), ElseBranch = Chain->getOperand(2);
+
+    return DAG.getNode(TVMISD::IFELSE, DL, MVT::Other, PrevChain, Cond,
+                       ThenBranch, ElseBranch);
   }
   }
 

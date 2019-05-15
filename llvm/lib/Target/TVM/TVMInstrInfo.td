@@ -35,6 +35,7 @@ def SDT_TVMDictSt       : SDTypeProfile<1, 3, []>;
 def SDT_TVMDictLd       : SDTypeProfile<2, 2, []>;
 def SDT_TVMLdRef        : SDTypeProfile<2, 1, []>;
 def SDT_TVMSendRawMsg   : SDTypeProfile<0, 2, []>;
+def SDT_TVMIfElse       : SDTypeProfile<0, 3, [SDTCisVT<0, i64>, SDTCisPtrTy<1>, SDTCisPtrTy<2>]>;
 //===----------------------------------------------------------------------===//
 // TVM specific node definitions
 //===----------------------------------------------------------------------===//
@@ -66,6 +67,7 @@ def TVMldux     : SDNode<"TVMISD::LDUX", SDT_TVMDictLd, []>;
 def TVMnewc     : SDNode<"TVMISD::NEWC", SDT_TVMNewc, []>;
 def TVMldslicex : SDNode<"TVMISD::LDSLICEX", SDT_TVMDictLd, []>;
 def TVMsendrawmsg : SDNode<"TVMISD::SENDRAWMSG", SDT_TVMSendRawMsg, []>;
+def TVMifelse : SDNode<"TVMISD::IFELSE", SDT_TVMIfElse, [SDNPHasChain]>;
 
 //===----------------------------------------------------------------------===//
 // TVM-specific Operands.

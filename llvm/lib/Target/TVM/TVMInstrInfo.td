@@ -150,6 +150,7 @@ defm SUBR     : BinaryRR<sub, "SUBR", 0xa2>;
 defm NEGATE   : UnaryR<ineg, "NEGATE", 0xa3>;
 defm INC      : UnaryR<inc, "INC", 0xa4>;
 defm DEC      : UnaryR<dec, "DEC", 0xa5>;
+defm ABS      : UnaryR<abs, "ABS", 0xb60b>;
 defm DIV      : BinaryRR<int_tvm_div, "DIV", 0xa904>;
 defm NOT      : UnaryR<not, "NOT", 0xb3>;
 defm SHL      : BinaryRR<shl, "LSHIFT", 0xac>;

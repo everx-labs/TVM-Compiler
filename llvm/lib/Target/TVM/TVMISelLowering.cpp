@@ -59,6 +59,7 @@ TVMTargetLowering::TVMTargetLowering(const TargetMachine &TM,
   // Custom lowering for intrinsics that unrolls into more than one
   // MIR instructions.
   setOperationAction(ISD::INTRINSIC_W_CHAIN, MVT::Other, Custom);
+  setOperationAction(ISD::ABS, MVT::i64, Legal);
 
   setMinFunctionAlignment(1);
   setPrefFunctionAlignment(1);

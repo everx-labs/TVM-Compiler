@@ -7,8 +7,8 @@ target triple = "tvm"
 
 ; CHECK-LABEL: test
 define i64 @test() {
-; CHECK:      PUSHINT	$w+8$
-; CHECK-NEXT: CALL	$:load$
+; CHECK: PUSHINT $w+8$
+; CHECK: CALL $:load$
   %1 = load i64, i64* getelementptr inbounds (%struct.w, %struct.w* @w, i64 0, i32 1), align 8
   ret i64 %1
 }

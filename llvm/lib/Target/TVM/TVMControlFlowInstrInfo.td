@@ -148,3 +148,12 @@ defm CALL_ENTER : I<(outs), (ins I64 : $framesize), (outs), (ins),
 
 defm CALL_LEAVE : I<(outs), (ins I64 : $framesize), (outs), (ins),
                     [], "CALL_LEAVE\t$framesize", "CALL\t$$:leave$$", 0xF0>;
+
+defm PUSH_GLOBAL_ADDRESS : I<(outs I64 : $res), (ins I64 : $in),
+                             (outs), (ins I64 : $in),
+                             [], "PUSHINT\t$res, $in", "PUSHINT\t$in", 0x82>;
+
+def : Pat<(i64 (TVMGlobalAddressWrapper tglobaladdr : $addr)),
+          (PUSH_GLOBAL_ADDRESS tglobaladdr : $addr)>;
+def : Pat<(i64 (TVMGlobalAddressWrapper texternalsym : $addr)),
+          (PUSH_GLOBAL_ADDRESS texternalsym : $addr)>;

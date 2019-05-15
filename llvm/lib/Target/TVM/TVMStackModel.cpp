@@ -211,15 +211,14 @@ bool TVMStackModel::processInstruction(MachineInstr &MI, Stack &TheStack) {
       const auto &Op = MI.getOperand(NumDefs + I);
       assert((Op.isGlobal() || Op.isSymbol()) &&
              "Expected GlobalAddress/ExternalSymbol");
+      assert(NewOpcode == TVM::PUSH_GLOBAL_ADDRESS_S &&
+             "Only PUSH_GLOBAL_ADDRESS can have operand with global address");
       if (Op.isGlobal()) {
         BuildMI(&MI, TII->get(TVM::PUSHCONT_LABEL))
             .addGlobalAddress(Op.getGlobal(), Op.getOffset());
       } else {
         BuildMI(&MI, TII->get(TVM::PUSHCONT_LABEL))
             .addExternalSymbol(Op.getSymbolName(), Op.getOffset());
-      }
-      if (NewOpcode == TVM::CALL_STORE_S) {
-        BuildMI(&MI, TII->get(TVM::XCHG)).addImm(0).addImm(1);
       }
     }
 

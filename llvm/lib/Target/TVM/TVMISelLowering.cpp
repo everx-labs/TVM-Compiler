@@ -396,7 +396,9 @@ SDValue TVMTargetLowering::LowerGlobalAddress(SDValue Op,
          "Unexpected target flags on generic GlobalAddressSDNode");
   if (GA->getAddressSpace() != 0)
     fail(DL, DAG, "TVM only expects the 0 address space");
-  return DAG.getTargetGlobalAddress(GA->getGlobal(), DL, VT, GA->getOffset());
+  return DAG.getNode(
+      TVMISD::GLOBAL_ADDRESS_WRAPPER, DL, VT,
+      DAG.getTargetGlobalAddress(GA->getGlobal(), DL, VT, GA->getOffset()));
 }
 
 SDValue TVMTargetLowering::LowerExternalSymbol(SDValue Op,
@@ -412,8 +414,9 @@ SDValue TVMTargetLowering::LowerExternalSymbol(SDValue Op,
   // we don't know anything about the symbol other than its name, because all
   // external symbols used in target-independent SelectionDAG code are for
   // functions.
-  return DAG.getTargetExternalSymbol(ES->getSymbol(), VT,
-                                     /*TargetFlags=*/0x1); //);
+  return DAG.getNode(TVMISD::GLOBAL_ADDRESS_WRAPPER, DL, VT,
+                     DAG.getTargetExternalSymbol(ES->getSymbol(), VT,
+                                                 /*TargetFlags=*/0x1));
 }
 
 SDValue TVMTargetLowering::LowerBR(SDValue Op,

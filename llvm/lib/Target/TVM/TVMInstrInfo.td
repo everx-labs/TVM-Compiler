@@ -52,6 +52,7 @@ def SDT_TVMMul          : SDTypeProfile<1, 2, []>;
 def SDT_TVMRShift       : SDTypeProfile<1, 2, []>;
 def SDT_TVMConstU64     : SDTypeProfile<1, 1,
                           [SDTCisVT<0, i64>, SDTCisVT<1, i64>]>;
+def SDT_TVMGlobalAddressWrapper : SDTypeProfile<1, 1, [SDTCisPtrTy<0>]>;
 
 //===----------------------------------------------------------------------===//
 // TVM specific node definitions
@@ -92,6 +93,9 @@ def BBWrapper   : SDNode<"TVMISD::BBWrapper", SDT_TVMBBWrapper>;
 def TVMmul       : SDNode<"TVMISD::MUL", SDT_TVMMul, []>;
 def TVMrshift    : SDNode<"TVMISD::RSHIFT", SDT_TVMRShift, []>;
 def TVMconst_u64 : SDNode<"TVMISD::CONST_U64", SDT_TVMConstU64, []>;
+
+def TVMGlobalAddressWrapper
+    : SDNode<"TVMISD::GLOBAL_ADDRESS_WRAPPER", SDT_TVMGlobalAddressWrapper>;
 
 //===----------------------------------------------------------------------===//
 // TVM-specific Operands.

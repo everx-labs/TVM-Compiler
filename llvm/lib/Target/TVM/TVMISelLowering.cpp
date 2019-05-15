@@ -65,6 +65,12 @@ TVMTargetLowering::TVMTargetLowering(const TargetMachine &TM,
 
   setMinFunctionAlignment(1);
   setPrefFunctionAlignment(1);
+  
+  // Support of truncate, sext, zext
+  setOperationAction(ISD::SIGN_EXTEND_INREG, MVT::i1, Expand);
+  setOperationAction(ISD::SIGN_EXTEND_INREG, MVT::i8, Expand);
+  setOperationAction(ISD::SIGN_EXTEND_INREG, MVT::i16, Expand);
+  setOperationAction(ISD::SIGN_EXTEND_INREG, MVT::i32, Expand);
 
   // Expand these forms; we pattern-match the forms that we can handle in isel.
   for (auto Op : {ISD::BR_CC, ISD::SELECT_CC})

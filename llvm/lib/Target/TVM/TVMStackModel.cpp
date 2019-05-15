@@ -217,6 +217,9 @@ bool TVMStackModel::processInstruction(MachineInstr &MI, LiveIntervals &LIS,
         BuildMI(&MI, TII->get(TVM::PUSHCONT_LABEL))
             .addExternalSymbol(Op.getSymbolName(), Op.getOffset());
       }
+      if (NewOpcode == TVM::CALL_STORE_S) {
+        BuildMI(&MI, TII->get(TVM::XCHG)).addImm(0).addImm(1);
+      }
     }
 
     MachineInstrBuilder MIB = BuildMI(&MI, TII->get(NewOpcode));

@@ -41,6 +41,8 @@ define i64 @test11() nounwind {
 ; CHECK-NEXT: PUSHINT $one$
 ; CHECK-NEXT: CALL 1
   %2 = call i64 @one()
+; CHECK-NEXT: XCHG s0, s2
+; CHECK-NEXT: POP c0
 ; CHECK-NEXT: ADD
   %3 = add i64 %1, %2
   ret i64 %3
@@ -59,6 +61,7 @@ define i64 @test21(i64 %x) nounwind {
 ; CHECK: PUSHINT $nop$
 ; CHECK-NEXT: CALL 1
   call void @nop()
+; CHECK-NEXT: XCHG s0, s1
 ; CHECK-NEXT: PUSH s0
 ; CHECK-NEXT: ADD
   %1 = add i64 %x, %x
@@ -90,7 +93,7 @@ define i64 @test22(i64 %x) nounwind {
 
 ; CHECK-LABEL: test23
 define i64 @test23(i64 %x, i64 %y) nounwind {
-; CHECK: XCHG s0, s1
+; CHECK: XCHG s0, s2
 ; CHECK-NEXT: PUSHINT $pow2$
 ; CHECK-NEXT: CALL 1
   %1 = call i64 @pow2(i64 %x)
@@ -98,6 +101,8 @@ define i64 @test23(i64 %x, i64 %y) nounwind {
 ; CHECK-NEXT: PUSHINT $pow2$
 ; CHECK-NEXT: CALL 1
   %2 = call i64 @pow2(i64 %y)
+; CHECK-NEXT: XCHG s0, s2
+; CHECK-NEXT: POP c0
 ; CHECK-NEXT: ADD
   %3 = add i64 %1, %2
   ret i64 %3
@@ -111,21 +116,24 @@ define i64 @sum(i64 %x, i64 %y) nounwind {
 ; CHECK-LABEL: test24
 define i64 @test24(i64 %x, i64 %y) nounwind {
 ; [x, y]
-; CHECK: PUSH s1
+; CHECK: PUSH s2
 ; [x, y, x]
-; CHECK-NEXT: PUSH s1
+; CHECK-NEXT: PUSH s2
 ; [x, y, x, y]
 ; CHECK-NEXT: PUSHINT $sum$
 ; CHECK-NEXT: CALL 1
 ; [x, y, x + y]
   %1 = call i64 @sum(i64 %x, i64 %y)
-; CHECK-NEXT: XCHG s0, s2
+; CHECK-NEXT: XCHG s0, s3
+; CHECK-NEXT: XCHG s1, s2
 ; [x + y, y, x]
 ; CHECK-NEXT: PUSHINT $sum$
 ; CHECK-NEXT: CALL 1
 ; [x + y, y + x]
   %2 = call i64 @sum(i64 %y, i64 %x)
   %3 = mul i64 %1, %2
+; CHECK-NEXT: XCHG s0, s1
+; CHECK-NEXT: POP c0
 ; CHECK-NEXT: MUL
   ret i64 %3
 }
@@ -133,14 +141,15 @@ define i64 @test24(i64 %x, i64 %y) nounwind {
 ; CHECK-LABEL: test25
 define i64 @test25(i64 %x, i64 %y, i64 %z) nounwind {
 ; [z, y, x]
-; CHECK: XCHG s0, s1
-; CHECK-NEXT: XCHG s1, s2
+; CHECK: XCHG s0, s2
+; CHECK-NEXT: XCHG s1, s3
 ; CHECK-NEXT: PUSHINT $sum$
 ; [@sum, y, x, z]
 ; CHECK-NEXT: CALL 1
   %1 = call i64 @sum(i64 %x, i64 %y)
 ; [x + y, z]
-; CHECK-NEXT: XCHG s0, s1
+; CHECK-NEXT: XCHG s0, s2
+; CHECK-NEXT: XCHG s1, s2
 ; CHECK-NEXT: PUSHINT $sum$
 ; [@sum, z, x + y]
 ; CHECK-NEXT: CALL 1

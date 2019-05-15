@@ -6,7 +6,7 @@ target triple = "tvm"
 ; Function Attrs: noinline norecurse nounwind
 define dso_local void @f(i64* nocapture %val) local_unnamed_addr noinline norecurse nounwind {
 ; CHECK-LABEL: f:
-; CHECK:	PUSH	s0
+; CHECK:	PUSH	s1
 ; CHECK:	CALL	$:load$
 ; CHECK:	INC
 ; CHECK:	CALL	$:store$

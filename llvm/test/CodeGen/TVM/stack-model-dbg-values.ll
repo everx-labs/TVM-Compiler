@@ -7,27 +7,27 @@ target triple = "tvm"
 ; Function Attrs: nounwind readnone
 define dso_local i64 @test_ifelse(i64 %a, i64 %b, i64 %c) local_unnamed_addr #0 !dbg !7 {
 entry:
-    ; CHECK: XCHG	s0, s2                  ; { %0(a) | %1(b) | %3(c) }
-    ; CHECK: ADD                            ; %2 = ADD %1(b), %0(a)
-    ; CHECK-NEXT:                           ; { %2 | %3(c) }
-    ; CHECK: ADD                            ; %4(sum) = ADD %2, %3(c)
-    ; CHECK-NEXT:                           ; { %4(sum) }
-    ; CHECK: PUSHINT	1000                ; %11 = CONST_I64 1000
-    ; CHECK-NEXT:                           ; { %11 | %4(sum) }
-    ; CHECK: PUSH	s1                      ; { %4(sum) | %11 | %4(sum) }
-    ; CHECK: XCHG	s0, s1                  ; { %11 | %4(sum) | %4(sum) }
-    ; CHECK: GREATER                        ; %6 = SGT %4(sum), %11
-    ; CHECK-NEXT:                           ; { %6 | %4(sum) }
-    ; CHECK: PUSHINT	100                 ; %12 = CONST_I64 100
-    ; CHECK-NEXT:                           ; { %12 | %6 | %4(sum) }
-    ; CHECK: PUSHINT	-200                ; %13 = CONST_I64 -200
-    ; CHECK-NEXT:                           ; { %13 | %12 | %6 | %4(sum) }
-    ; CHECK: XCHG	s0, s2                  ; { %6 | %12 | %13 | %4(sum) }
-    ; CHECK: XCHG	s1, s2                  ; { %6 | %13 | %12 | %4(sum) }
-    ; CHECK: CONDSEL                        ; %9 = CONDSEL %12, %13, %6
-    ; CHECK-NEXT:                           ; { %9 | %4(sum) }
-    ; CHECK: ADD                            ; %10 = ADD %9, %4(sum)
-    ; CHECK-NEXT:                           ; { %10 }
+    ; CHECK: XCHG	s0, s2                  ; { %1(a) | %2(b) | %4(c) }
+    ; CHECK: ADD                            ; %3 = ADD %2(b), %1(a)
+    ; CHECK-NEXT:                           ; { %3 | %4(c) }
+    ; CHECK: ADD                            ; %5(sum) = ADD %3, %4(c)
+    ; CHECK-NEXT:                           ; { %5(sum) }
+    ; CHECK: PUSHINT	1000                ; %12 = CONST_I64 1000
+    ; CHECK-NEXT:                           ; { %12 | %5(sum) }
+    ; CHECK: PUSH	s1                      ; { %5(sum) | %12 | %5(sum) }
+    ; CHECK: XCHG	s0, s1                  ; { %12 | %5(sum) | %5(sum) }
+    ; CHECK: GREATER                        ; %7 = SGT %5(sum), %12
+    ; CHECK-NEXT:                           ; { %7 | %5(sum) }
+    ; CHECK: PUSHINT	100                 ; %13 = CONST_I64 100
+    ; CHECK-NEXT:                           ; { %13 | %7 | %5(sum) }
+    ; CHECK: PUSHINT	-200                ; %14 = CONST_I64 -200
+    ; CHECK-NEXT:                           ; { %14 | %13 | %7 | %5(sum) }
+    ; CHECK: XCHG	s0, s2                  ; { %7 | %13 | %14 | %5(sum) }
+    ; CHECK: XCHG	s1, s2                  ; { %7 | %14 | %13 | %5(sum) }
+    ; CHECK: CONDSEL                        ; %10 = CONDSEL %13, %14, %7
+    ; CHECK-NEXT:                           ; { %10 | %5(sum) }
+    ; CHECK: ADD                            ; %11 = ADD %10, %5(sum)
+    ; CHECK-NEXT:                           ; { %11 }
 
   call void @llvm.dbg.value(metadata i64 %a, metadata !13, metadata !DIExpression()), !dbg !17
   call void @llvm.dbg.value(metadata i64 %b, metadata !14, metadata !DIExpression()), !dbg !18

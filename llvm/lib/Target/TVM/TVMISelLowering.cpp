@@ -210,7 +210,11 @@ TVMTargetLowering::LowerReturn(SDValue Chain, CallingConv::ID CallConv,
   if (!CallingConvSupported(CallConv))
     fail(DL, DAG, "TVM doesn't support non-C calling conventions");
 
-  SmallVector<SDValue, 4> RetOps(1, Chain);
+  // Restore C0 for returning to correct continuation
+  SDValue SetC0 = RestoreC0(Chain, DL, DAG);
+
+  // Lower outputs
+  SmallVector<SDValue, 4> RetOps(1, SetC0);
   RetOps.append(OutVals.begin(), OutVals.end());
   Chain = DAG.getNode(TVMISD::RETURN, DL, MVT::Other, RetOps);
 
@@ -246,7 +250,7 @@ SDValue TVMTargetLowering::LowerFormalArguments(
   // Set up the incoming ARGUMENTS value, which serves to represent the liveness
   // of the incoming values before they're represented by virtual registers.
   MF.getRegInfo().addLiveIn(TVM::ARGUMENTS);
-  auto *MFI = MF.getInfo<TVMFunctionInfo>();
+  auto *FI = MF.getInfo<TVMFunctionInfo>();
 
   for (const ISD::InputArg &In : Ins) {
     // TODO: Copied from WASM. Chack.
@@ -264,10 +268,48 @@ SDValue TVMTargetLowering::LowerFormalArguments(
                                            DAG.getTargetConstant(InVals.size(),
                                                                  DL, MVT::i64))
                              : DAG.getUNDEF(In.VT));
-    MFI->addParam(In.VT);
+    FI->addParam(In.VT);
   }
 
-  return Chain;
+  // Save C0 for returning to correct continuation
+  return SaveC0(Chain, DL, DAG);
+}
+
+SDValue TVMTargetLowering::SaveC0(SDValue Chain, const SDLoc &DL,
+                                  SelectionDAG &DAG) const {
+  MachineFunction &MF = DAG.getMachineFunction();
+  auto *FI = MF.getInfo<TVMFunctionInfo>();
+
+  SDValue GetC0Ops[] = {
+      Chain, DAG.getTargetConstant(Intrinsic::tvm_getreg, DL, MVT::i64),
+      DAG.getConstant(0, DL, MVT::i64)};
+  SDVTList VTs = DAG.getVTList(MVT::i64, MVT::Other);
+  SDValue GetC0 = DAG.getNode(ISD::INTRINSIC_W_CHAIN, DL, VTs, GetC0Ops);
+
+  MachineRegisterInfo &MRI = MF.getRegInfo();
+  unsigned C0VirtReg = MRI.createVirtualRegister(&TVM::I64RegClass);
+  SDValue C0VirtRegNode = DAG.getCopyToReg(Chain, DL, C0VirtReg, GetC0);
+
+  FI->setC0VirtReg(C0VirtReg);
+
+  return C0VirtRegNode;
+}
+
+SDValue TVMTargetLowering::RestoreC0(SDValue Chain, const SDLoc &DL,
+                                     SelectionDAG &DAG) const {
+  MachineFunction &MF = DAG.getMachineFunction();
+  auto *FI = MF.getInfo<TVMFunctionInfo>();
+
+  assert(FI->hasC0VirtReg() && "C0 virtual register has not been saved");
+
+  unsigned C0VirtReg = FI->getC0VirtReg();
+  SDValue GetC0VirtReg = DAG.getCopyFromReg(Chain, DL, C0VirtReg, MVT::i64);
+  SDValue SetC0Ops[] = {
+      Chain, DAG.getTargetConstant(Intrinsic::tvm_setreg, DL, MVT::i64),
+      DAG.getConstant(0, DL, MVT::i64), GetC0VirtReg};
+  SDValue SetC0 = DAG.getNode(ISD::INTRINSIC_VOID, DL, MVT::Other, SetC0Ops);
+
+  return SetC0;
 }
 
 //===----------------------------------------------------------------------===//

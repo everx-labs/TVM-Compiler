@@ -7,12 +7,12 @@ define i64 @brcond(i1 %par) nounwind {
 entry:
 ; CHECK:      PUSHCONT {
 ; CHECK:        PUSHINT	77
-; CHECK:      } ; { {{.*}} | %[[VR0:[0-9]+]] }
+; CHECK:      } ; { {{.*}} | %[[VR0:[0-9]+]] | %0 }
 ; CHECK:      PUSHCONT {
 ; CHECK:        PUSHINT	42
 ; CHECK:        RET
-; CHECK:      } ; { {{.*}} | {{.*}} | %0 }
-; CHECK:      IFELSE            ; {  }
+; CHECK:      } ; { {{.*}} | {{.*}} | %1 | %0 }
+; CHECK:      IFELSE            ; { %0 }
   br i1 %par, label %exit1, label %exit2
 exit1:
 ; CHECK: PUSHINT 42       ; %[[VR1:[0-9]+]] = CONST_I64 42

@@ -7,12 +7,12 @@ define i64 @cond_comp(i64 %sel, i64 %par) nounwind {
   switch i64 %sel, label %bb3 [ i64 0, label %bb1
                                 i64 1, label %bb2 ]
 ; CHECK:	PUSHINT	1
-; CHECK-NEXT:	PUSH s2
+; CHECK-NEXT:	PUSH s3
 ; CHECK-NEXT:	XCHG s0, s1
 ; CHECK-NEXT:	LESS
 ; CHECK-NEXT: PUSHCONT
 ; CHECK:        PUSHINT 1
-; CHECK-NEXT:   XCHG  s1, s2
+; CHECK-NEXT:   XCHG  s1, s3
 ; CHECK-NEXT:   EQUAL
 ; CHECK:        PUSHCONT
 ; CHECK:          PUSH  s0
@@ -30,7 +30,7 @@ define i64 @cond_comp(i64 %sel, i64 %par) nounwind {
 ; CHECK-NEXT:   }
 ; CHECK:      }
 ; CHECK:      PUSHCONT
-; CHECK:        XCHG  s0, s1
+; CHECK:        XCHG  s0, s2
 ; CHECK-NEXT:   ISZERO
 ; CHECK:        PUSHCONT
 ; CHECK:          PUSH  s0

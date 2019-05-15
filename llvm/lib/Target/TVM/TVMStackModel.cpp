@@ -521,10 +521,10 @@ bool TVMStackModel::runOnMachineFunction(MachineFunction &MF) {
   TVMFunctionInfo &MFI = *MF.getInfo<TVMFunctionInfo>();
   const auto *TII = MF.getSubtarget<TVMSubtarget>().getInstrInfo();
 
-  MachineBasicBlock &MF_first_block = *(MF.begin());
-  assert(!MF_first_block.empty());
+  MachineBasicBlock &FirstBB = MF.front();
+  assert(!FirstBB.empty());
 
-  auto &ANI = *(MF_first_block.begin());
+  auto &ANI = FirstBB.front();
 
   // Process ARGUMENT_NUM instruction to adjust arguments number on stack.
   if (TVM::isArgumentNum(ANI)) {
@@ -539,8 +539,8 @@ bool TVMStackModel::runOnMachineFunction(MachineFunction &MF) {
   Stack TheStack(TII, NumArgs);
 
   // Handle ARGUMENTS first to ensure that they get the designated numbers.
-  for (MachineBasicBlock::iterator I = MF_first_block.begin(),
-                                   E = MF_first_block.end();
+  for (MachineBasicBlock::iterator I = FirstBB.begin(),
+                                   E = FirstBB.end();
        I != E;) {
     MachineInstr &MI = *I++;
     if (!TVM::isArgument(MI))

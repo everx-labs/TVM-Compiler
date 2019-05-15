@@ -51,6 +51,8 @@ public:
   /// DAG node.
   const char *getTargetNodeName(unsigned Opcode) const override;
 
+  SDValue PerformDAGCombine(SDNode *N, DAGCombinerInfo &DCI) const override;
+
 private:
   SDValue LowerCall(CallLoweringInfo &CLI,
                     SmallVectorImpl<SDValue> &InVals) const override;

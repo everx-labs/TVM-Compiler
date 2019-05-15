@@ -43,6 +43,21 @@ using namespace llvm;
 
 #define DEBUG_TYPE "tvm-lower"
 
+//===----------------------------------------------------------------------===//
+// Command line options for TVM
+//===----------------------------------------------------------------------===//
+// Standard semantic for trunc operation is to extract a subregister and do not
+// care about bits that doesn't belong to it. TVM doesn't have subregisters and
+// all arithmetic operations are 257 bits wide. However, in some cases the
+// numbers that guaranteed to fit in less than 257 bits may be used.
+// The option UseTruncMasks emulates trunc using AND operation. It's a hack and
+// might not work well with LLVM optimizations that assume another semantic
+// for trunc.
+static cl::opt<bool> UseTruncMasks(
+    "tvm-trunc-masks", cl::Hidden,
+    cl::desc("Simulate trunc operation for integer values using masks"),
+    cl::init(false));
+
 TVMTargetLowering::TVMTargetLowering(const TargetMachine &TM,
                                      const TVMSubtarget &STI)
     : TargetLowering(TM) {
@@ -65,12 +80,15 @@ TVMTargetLowering::TVMTargetLowering(const TargetMachine &TM,
 
   setMinFunctionAlignment(1);
   setPrefFunctionAlignment(1);
-  
+
   // Support of truncate, sext, zext
   setOperationAction(ISD::SIGN_EXTEND_INREG, MVT::i1, Expand);
   setOperationAction(ISD::SIGN_EXTEND_INREG, MVT::i8, Expand);
   setOperationAction(ISD::SIGN_EXTEND_INREG, MVT::i16, Expand);
   setOperationAction(ISD::SIGN_EXTEND_INREG, MVT::i32, Expand);
+
+  // Support of truncate, sext, zext
+  setTargetDAGCombine(ISD::TRUNCATE);
 
   // Expand these forms; we pattern-match the forms that we can handle in isel.
   for (auto Op : {ISD::BR_CC, ISD::SELECT_CC})
@@ -256,6 +274,52 @@ SDValue TVMTargetLowering::LowerOperation(SDValue Op, SelectionDAG &DAG) const {
   default:
     llvm_unreachable("unimplemented operand");
   }
+}
+
+SDValue TVMTargetLowering::PerformDAGCombine(SDNode *N,
+                                             DAGCombinerInfo &DCI) const {
+  SelectionDAG &DAG = DCI.DAG;
+  SDLoc DL(N);
+  switch (N->getOpcode()) {
+  case ISD::TRUNCATE: {
+    // TVM uses only one value type for all operations. This leads to folding
+    // of all truncate nodes during legalization because there is no truncation
+    // if the types are same. To prevent this TVM replaces 'truncate' nodes
+    // with chain of two nodes: 'and' with corresponding truncation mask and
+    // new 'truncate' node. This method also uses non usual call to
+    // DAGCombinerInfo::CombineTo method instead of returning of new SDValue.
+    // This is done to prevent further folding of replaced 'truncate' node
+    // during the current stage.
+    if (!UseTruncMasks)
+      break;
+
+    if (!DCI.isBeforeLegalizeOps())
+      break;
+
+    MVT ResultType = N->getSimpleValueType(0);
+    MVT OperandType = N->getOperand(0).getSimpleValueType();
+
+    if (!ResultType.isInteger() || !OperandType.isInteger())
+      break;
+
+    if (OperandType.getSizeInBits() == ResultType.getSizeInBits())
+      break;
+
+    APInt TruncateMask(OperandType.getSizeInBits(), 0);
+    TruncateMask.setLowBits(ResultType.getSizeInBits());
+
+    SDValue AndNode =
+        DAG.getNode(ISD::AND, DL, OperandType, N->getOperand(0),
+                    DAG.getConstant(TruncateMask, DL, OperandType));
+    SDValue Replacement = DAG.getNode(ISD::TRUNCATE, DL, ResultType, AndNode);
+
+    DCI.CombineTo(N, Replacement, false);
+
+    break;
+  }
+  }
+
+  return SDValue();
 }
 
 SDValue TVMTargetLowering::LowerGlobalAddress(SDValue Op,

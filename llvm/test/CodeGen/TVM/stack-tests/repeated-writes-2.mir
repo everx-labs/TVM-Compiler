@@ -21,22 +21,14 @@ body: |
 
     ; CHECK-ID: repeated_writes
     ; CHECK: CONST_I64_S 0
-    ; CHECK: PUSH 1
-    ; CHECK: PUSH 1
-    ; CHECK: ADD_S
-    ; CHECK: PUSH 0
-    ; CHECK: PUSH 2
-    ; CHECK: ADD_S
-    ; CHECK: PUSH 0
-    ; CHECK: PUSH 3
-    ; CHECK: ADD_S
-    ; CHECK: PUSH 1
-    ; CHECK: ADD_S
-    ; CHECK: POP 1
-    ; CHECK: POP 1
-    ; CHECK: POP 1
-    ; CHECK: POP 1
-    ; CHECK: RETURN_I64 %0:i64
-
+    ; CHECK-NEXT: XCHG 0, 1
+    ; CHECK-NEXT: PUSH 1
+    ; CHECK-NEXT: ADD_S
+    ; CHECK-NEXT: PUSH 1
+    ; CHECK-NEXT: ADD_S
+    ; CHECK-NEXT: PUSH 0
+    ; CHECK-NEXT: XCHG 0, 2
+    ; CHECK-NEXT: ADD_S
+    ; CHECK_NEXT: ADD_S
     RETURN_I64 %0:i64
 ...

@@ -41,6 +41,10 @@ let isTerminator = 1, hasCtrlDep = 1 in {
   } // isBranch = 1
 } // isTerminator = 1, hasCtrlDep = 1
 
+let isBarrier = 1, isTerminator = 1 in
+defm UNTIL : I<(outs), (ins I64 : $cond, bb_op : $dst), (outs), (ins),
+               [], "UNTIL\t$cond, $dst", "UNTIL", 0xe6>;
+
 // TODO: The approach with two CALLs was copied from WebAssembly backend.
 // We need to investigate how it works and why 2 CALLs are needed
 //

@@ -56,7 +56,7 @@ void TVMMCInstLower::lower(const MachineInstr *MI, MCInst &OutMI) {
         if (I.getOpcode() == TVM::FALLTHROUGH_RETURN)
           continue;
 
-        std::shared_ptr<MCInst> Inst = std::make_shared<MCInst>();
+        auto Inst = std::make_shared<MCInst>();
         ContinuationInstructionStorage.push_back(Inst);
         lower(&I, *Inst);
         OutMI.addOperand(MCOperand::createInst(Inst.get()));

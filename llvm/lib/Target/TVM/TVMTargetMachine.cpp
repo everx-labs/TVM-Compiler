@@ -36,6 +36,7 @@ extern "C" void LLVMInitializeTVMTarget() {
   initializeTVMRegNumberingPass(PR);
   initializeTVMPeepholePass(PR);
   initializeTVMStackModelPass(PR);
+  initializeTVMLoopInstructionsPass(PR);
 }
 
 static Reloc::Model getEffectiveRelocModel(Optional<Reloc::Model> RM) {
@@ -123,6 +124,7 @@ void TVMPassConfig::addPreEmitPass() {
   addPass(createTVMPrepareForLiveIntervals());
   addPass(createTVMRematerialize());
   addPass(createTVMRegStackify());
+  addPass(createTVMLoopInstructions());
   addPass(createTVMStackModel());
 
   // Perform the very last peephole optimizations on the code.

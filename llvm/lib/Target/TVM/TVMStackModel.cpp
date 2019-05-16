@@ -95,14 +95,19 @@ bool isKilled(const MachineInstr &MI, unsigned Register,
   const LiveInterval &LI = LIS.getInterval(Register);
   // If there is no live interval starting from the current instruction
   // for the given argument, the argument is killed.
-  return !LI.getVNInfoAt(LIS.getInstructionIndex(MI).getRegSlot());
+  if (!LI.getVNInfoAt(LIS.getInstructionIndex(MI).getRegSlot()))
+    return true;
+  for (size_t I = 0, E = MI.getNumDefs(); I < E; ++I)
+    if (MI.getOperand(I).isReg() && MI.getOperand(I).getReg() == Register)
+      return true;
+  return false;
 }
 
 /// Make predecessors' stacks coherent and initialize the stack with stacks of
 /// predecessors, or with \par Initializer if there is no predecessors.
 Stack &initializeStack(MachineBasicBlock &MBB,
                        DenseMap<MachineBasicBlock *, Stack> &BBStack,
-                       Stack &Initializer) {
+                       Stack &Initializer, MachineBasicBlock *LoopPredecessor) {
   assert(BBStack.count(&MBB) == 0u && "Back edges are not supported yet");
   auto Predecessors = MBB.predecessors();
   auto NumPredecessors = MBB.pred_size();
@@ -116,6 +121,8 @@ Stack &initializeStack(MachineBasicBlock &MBB,
             E = std::end(Predecessors);
        It != E; ++It) {
     auto *Predecessor = *It;
+    if (Predecessor == LoopPredecessor)
+      continue;
     Stack::join(Stack, element(BBStack, Predecessor),
                 Predecessor->instr_back());
   }
@@ -378,6 +385,13 @@ bool TVMStackModel::processInstruction(MachineInstr &MI, LiveIntervals &LIS,
   if (MI.isImplicitDef())
     return false;
 
+  if (MI.getOpcode() == TVM::UNTIL) {
+    TheStack.consumeArguments(1);
+    BuildMI(&MI, TII->get(TVM::UNTIL_S));
+    MI.eraseFromParent();
+    return true;
+  }
+
   size_t NumDefs = MI.getNumDefs();
   size_t NumOperands = MI.getNumOperands();
 
@@ -461,7 +475,7 @@ bool TVMStackModel::processInstruction(MachineInstr &MI, LiveIntervals &LIS,
 
 // Traverse all basic blocks in machine function and rewrite all instructions
 // from R-form to S-form. All function arguments are already in stack.
-// Topological order visitation. Back edges are not yet supported.
+// Topological order visitation, back edges of UNTIL terminators are ignored.
 bool TVMStackModel::runOnBasicBlocks(MachineFunction &MF, Stack &TheStack) {
   bool Changed = false;
 
@@ -475,14 +489,23 @@ bool TVMStackModel::runOnBasicBlocks(MachineFunction &MF, Stack &TheStack) {
       if (BBStack.count(&MBB) != 0u)
         continue;
       bool PredecessorsProcessed = true;
+      MachineBasicBlock *LoopPredecessor = nullptr;
       for (auto *Predecessor : MBB.predecessors())
         if (BBStack.count(Predecessor) == 0u) {
-          PredecessorsProcessed = false;
-          break;
+          auto TermInstIt = Predecessor->getFirstTerminator();
+          if (TermInstIt->getOpcode() == TVM::UNTIL &&
+              TermInstIt->getOperand(1).isMBB() &&
+              TermInstIt->getOperand(1).getMBB() == &MBB) {
+            LoopPredecessor = &MBB;
+          } else {
+            PredecessorsProcessed = false;
+            break;
+          }
         }
       if (!PredecessorsProcessed)
         continue;
-      Stack CurrentStack = initializeStack(MBB, BBStack, TheStack);
+      Stack CurrentStack =
+          initializeStack(MBB, BBStack, TheStack, LoopPredecessor);
       pruneDeadRegisters(MBB, CurrentStack, LIS);
       for (MachineBasicBlock::iterator I = MBB.begin(), E = MBB.end();
            I != E;) {

@@ -66,3 +66,13 @@ void sendrawmsg(int64_t cell, int64_t flags) {
   // CHECK: call {{.*}} @llvm.tvm.sendrawmsg
   __builtin_tvm_sendrawmsg(cell, flags);
 }
+
+int64_t bitsize(int64_t n) {
+  // CHECK: call {{.*}} @llvm.tvm.bitsize
+  return __builtin_tvm_bitsize(n);
+}
+
+int64_t ubitsize(int64_t n) {
+  // CHECK: call {{.*}} @llvm.tvm.ubitsize
+  return __builtin_tvm_ubitsize(n);
+}

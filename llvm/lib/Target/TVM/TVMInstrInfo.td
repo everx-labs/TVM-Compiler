@@ -168,6 +168,8 @@ defm SHR      : BinaryRR<sra, "RSHIFT", 0xab>;
 defm MOD      : BinaryRR<int_tvm_mod, "MOD", 0x81>;
 defm ADDCONST : BinaryRI<add, "ADDCONST", simm8, 0xa6>;
 defm MULCONST : BinaryRI<mul, "MULCONST", simm8, 0xa7>;
+defm BITSIZE  : UnaryR<int_tvm_bitsize, "BITSIZE", 0xb602>;
+defm UBITSIZE : UnaryR<int_tvm_ubitsize, "UBITSIZE", 0xb603>;
 
 //===----------------------------------------------------------------------===//
 // Integer comparison

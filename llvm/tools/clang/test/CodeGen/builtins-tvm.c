@@ -76,3 +76,13 @@ int64_t ubitsize(int64_t n) {
   // CHECK: call {{.*}} @llvm.tvm.ubitsize
   return __builtin_tvm_ubitsize(n);
 }
+
+int64_t fitsx(int64_t n, int64_t c) {
+  // CHECK: call {{.*}} @llvm.tvm.fitsx
+  return __builtin_tvm_fitsx(n, c);
+}
+
+int64_t ufitsx(int64_t n, int64_t c) {
+  // CHECK: call {{.*}} @llvm.tvm.ufitsx
+  return __builtin_tvm_ufitsx(n, c);
+}

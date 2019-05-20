@@ -33,5 +33,7 @@ BUILTIN(__builtin_tvm_ubitsize, "WiWi", "nc")
 BUILTIN(__builtin_tvm_retrieve_signed, "WiWiWiWi", "nc")
 BUILTIN(__builtin_tvm_retrieve_unsigned, "WiWiWiWi", "nc")
 BUILTIN(__builtin_tvm_retrieve_ref, "WiWi", "nc")
+BUILTIN(__builtin_tvm_fitsx, "WiWiWi", "nc")
+BUILTIN(__builtin_tvm_ufitsx, "WiWiWi", "nc")
 
 #undef BUILTIN

@@ -24,6 +24,12 @@ let TargetPrefix = "tvm" in {
   def int_tvm_ubitsize : GCCBuiltin<"__builtin_tvm_ubitsize">,
                     Intrinsic<[llvm_i64_ty], [llvm_i64_ty],
                               []>;
+  def int_tvm_fitsx : GCCBuiltin<"__builtin_tvm_fitsx">,
+                    Intrinsic<[llvm_i64_ty], [llvm_i64_ty, llvm_i64_ty],
+                              []>;
+  def int_tvm_ufitsx : GCCBuiltin<"__builtin_tvm_ufitsx">,
+                    Intrinsic<[llvm_i64_ty], [llvm_i64_ty, llvm_i64_ty],
+                              []>;
   def int_tvm_newdict : GCCBuiltin<"__builtin_tvm_newdict">,
                         Intrinsic<[llvm_i64_ty], []>;
   def int_tvm_newc : GCCBuiltin<"__builtin_tvm_newc">,

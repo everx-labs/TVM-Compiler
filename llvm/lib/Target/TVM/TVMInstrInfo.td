@@ -172,6 +172,21 @@ defm BITSIZE  : UnaryR<int_tvm_bitsize, "BITSIZE", 0xb602>;
 defm UBITSIZE : UnaryR<int_tvm_ubitsize, "UBITSIZE", 0xb603>;
 
 //===----------------------------------------------------------------------===//
+// Fits
+//===----------------------------------------------------------------------===//
+def chkbool : PatFrag<(ops node:$in), (int_tvm_fitsx node:$in, 1)>;
+def chkbit  : PatFrag<(ops node:$in), (int_tvm_ufitsx node:$in, 1)>;
+
+let hasSideEffects = 1 in {
+  defm FITSX   : BinaryRR<int_tvm_fitsx, "FITSX", 0xb600>;
+  defm UFITSX  : BinaryRR<int_tvm_ufitsx, "UFITSX", 0xb601>;
+  defm FITS    : BinaryRI<int_tvm_fitsx, "FITS", uimm8, 0xb4>;
+  defm UFITS   : BinaryRI<int_tvm_ufitsx, "UFITS", uimm8, 0xb5>;
+  defm CHKBOOL : UnaryR<chkbool, "CHKBOOL", 0xb400>;
+  defm CHKBIT  : UnaryR<chkbit, "CHKBIT", 0xb500>;
+}
+
+//===----------------------------------------------------------------------===//
 // Integer comparison
 //===----------------------------------------------------------------------===//
 let isCommutable = 1 in {

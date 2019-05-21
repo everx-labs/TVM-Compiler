@@ -106,16 +106,10 @@ Stack &initializeStack(MachineBasicBlock &MBB,
   assert(BBStack.count(&MBB) == 0u && "Back edges are not supported yet");
   auto Predecessors = MBB.predecessors();
   auto NumPredecessors = MBB.pred_size();
-  if (NumPredecessors == 0u) {
-    auto [It, Flag] = BBStack.try_emplace(&MBB, Initializer);
-    assert(Flag && "Insertion failed");
-    return It->second;
-  }
-  if (NumPredecessors == 1u) {
-    auto [It, Flag] =
-        BBStack.try_emplace(&MBB, element(BBStack, *std::begin(Predecessors)));
-    return It->second;
-  }
+  if (NumPredecessors == 0u)
+    return Initializer;
+  if (NumPredecessors == 1u)
+    return element(BBStack, *std::begin(Predecessors));
   auto Begin = std::begin(Predecessors);
   auto &Stack = element(BBStack, *Begin);
   for (auto It = std::next(std::begin(Predecessors)),
@@ -125,8 +119,7 @@ Stack &initializeStack(MachineBasicBlock &MBB,
     Stack::join(Stack, element(BBStack, Predecessor),
                 Predecessor->instr_back());
   }
-  auto [It, Flag] = BBStack.insert({&MBB, Stack});
-  return It->second;
+  return Stack;
 }
 
 /// Remove dead virtual registers from a non-exit BB's stack.
@@ -489,7 +482,7 @@ bool TVMStackModel::runOnBasicBlocks(MachineFunction &MF, Stack &TheStack) {
         }
       if (!PredecessorsProcessed)
         continue;
-      Stack &CurrentStack = initializeStack(MBB, BBStack, TheStack);
+      Stack CurrentStack = initializeStack(MBB, BBStack, TheStack);
       pruneDeadRegisters(MBB, CurrentStack, LIS);
       for (MachineBasicBlock::iterator I = MBB.begin(), E = MBB.end();
            I != E;) {
@@ -501,9 +494,11 @@ bool TVMStackModel::runOnBasicBlocks(MachineFunction &MF, Stack &TheStack) {
 
         Changed |= processInstruction(MI, LIS, TII, CurrentStack);
       }
+      auto [It, Flag] = BBStack.insert({&MBB, CurrentStack});
+      assert(Flag && "Can't update stack info");
     }
     assert(BBStack.size() > Size &&
-           "Not Implemented: there is a back edge in CFG.");
+           "Back edges in CFG are not supposed to reach StackModel pass.");
   }
 
   return Changed;

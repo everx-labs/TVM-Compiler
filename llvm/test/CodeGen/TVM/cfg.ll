@@ -87,3 +87,20 @@ exit:
   %2 = phi i64 [%0, %bb1], [%1, %bb2]
   ret i64 %2
 }
+
+define i64 @cfg0(i1 %cond, i1 %cond2, i64 %par) nounwind {
+entry:
+  br i1 %cond, label %bb1, label %bb4
+bb1:
+  %0 = add i64 %par, 1
+  br i1 %cond2, label %bb2, label %bb3
+bb2:
+  %1 = add i64 %0, 2
+  ret i64 %1
+bb3:
+  %2 = add i64 %0, 3
+  ret i64 %2
+bb4:
+  %3 = add i64 %par, 4
+  ret i64 %3
+}

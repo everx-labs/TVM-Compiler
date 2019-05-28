@@ -35,7 +35,7 @@ DictINext tvm_dictugetnext(Dict dict, int64_t start_key, int64_t keylen);
 Pair tvm_ldrefrtos(int64_t slice);
 Slice tvm_ldref(Slice* data);
 Pair tvm_ldu(int64_t slice);
-
+void tvm_ldslice(Slice* slice, void* buf, int64_t len);
 //Memory
 int64_t tvm_pdload(int64_t index);
 int64_t tvm_pdstore(int64_t index, int64_t value);

@@ -31,6 +31,12 @@ using namespace llvm;
 
 void TVMInstPrinter::printInst(const MCInst *MI, raw_ostream &O,
                                StringRef Annot, const MCSubtargetInfo &STI) {
+  // TODO: A hack, we have the same logic in AsmPrinter, but it's not triggered
+  // for instructions in TVM::PUSHCONT_MBB. Need to find a better solution.
+  if (MI->getOpcode() == TVM::BACKEDGE_S ||
+      MI->getOpcode() == TVM::FALLTHROUGH_RETURN)
+    return;
+
   printInstruction(MI, O);
 
   if (MI->getOpcode() == TVM::PUSHCONT_MBB) {

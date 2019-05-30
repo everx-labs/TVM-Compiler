@@ -90,6 +90,8 @@ void TVMAsmPrinter::EmitInstruction(const MachineInstr *MI) {
   case TVM::ARGUMENT:
     llvm_unreachable("CG only instruction mustn't reach ASM printer");
     break;
+  case TVM::BACKEDGE_S:
+    break;
   case TVM::FALLTHROUGH_RETURN:
     if (isVerbose()) {
       OutStreamer->AddComment("fallthrough return");

@@ -9,6 +9,12 @@
 //
 /// \file
 /// This file describes Control Flow TVM instructions (A.7) in TableGen format.
+/// Control flow in TVM is different from conventional one:
+/// - there is no function scope, the is only nested continuations.
+/// - jumps are more similar to call or invoke, after a continuation jump on
+///   is executed, the control flow returns back to 'caller' BB.
+/// - there are loops in ISA, not only for loops with fixed number
+///   of iterations.
 //
 //===----------------------------------------------------------------------===//
 
@@ -41,9 +47,18 @@ let isTerminator = 1, hasCtrlDep = 1 in {
   } // isBranch = 1
 } // isTerminator = 1, hasCtrlDep = 1
 
-let isBarrier = 1, isTerminator = 1 in
-defm UNTIL : I<(outs), (ins I64 : $cond, bb_op : $dst), (outs), (ins),
-               [], "UNTIL\t$cond, $dst", "UNTIL", 0xe6>;
+// Loop terminators
+let isBarrier = 1, isTerminator = 1 in {
+  defm UNTIL : I<(outs), (ins I64 : $cond, bb_op : $dst), (outs), (ins),
+                 [], "UNTIL\t$cond, $dst", "UNTIL", 0xe6>;
+  // Pseudo instruction representing a backedge in a loop.
+  // It needs to identify backedges in MIR. When modeling stack BACKEDGES
+  // are ignored for the sake of topological ordering of BBs.
+  // BACKEDGE also keeps loop exit condition alive.
+  let isCodeGenOnly = 1 in
+  defm BACKEDGE :  I<(outs), (ins I64 : $cond, bb_op : $dst), (outs), (ins), []>;
+
+}
 
 // TODO: The approach with two CALLs was copied from WebAssembly backend.
 // We need to investigate how it works and why 2 CALLs are needed

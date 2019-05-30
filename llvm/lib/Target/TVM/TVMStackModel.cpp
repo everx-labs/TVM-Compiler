@@ -379,22 +379,33 @@ void TVMStackModel::performReorderings(const StackReorderings &Reorderings,
   }
 }
 
+// BACKEDGE does not follow a common rule on REG -> Stack form corrspondence.
+// Although it has MBB as an argument it's always the basic block containg the
+// BACKEDGE. It mustn't be represented in the stack form because it ends up with
+// a cyclic dependency between continuations.
+static void processBackedge(MachineInstr &MI, const TargetInstrInfo *TII,
+                            Stack &TheStack) {
+  TheStack.consumeArguments(1);
+  BuildMI(&MI, TII->get(TVM::BACKEDGE_S));
+  MI.eraseFromParent();
+}
+
 bool TVMStackModel::processInstruction(MachineInstr &MI, LiveIntervals &LIS,
                                        const TargetInstrInfo *TII,
                                        Stack &TheStack) {
   if (MI.isImplicitDef())
     return false;
 
-  if (MI.getOpcode() == TVM::UNTIL) {
-    TheStack.consumeArguments(1);
-    BuildMI(&MI, TII->get(TVM::UNTIL_S));
-    MI.eraseFromParent();
+  if (MI.getOpcode() == TVM::BACKEDGE) {
+    processBackedge(MI, TII, TheStack);
     return true;
   }
 
   size_t NumDefs = MI.getNumDefs();
   size_t NumOperands = MI.getNumOperands();
 
+  // FIXME: wrong assumption. There is no function scope in TVM so RET
+  // terminates the current continuation - not necessary a function.
   if (MI.isReturn()) {
     assert(NumOperands <= 2 && "Multiple returns are not implemented yet");
     if (NumOperands == 0)
@@ -493,7 +504,7 @@ bool TVMStackModel::runOnBasicBlocks(MachineFunction &MF, Stack &TheStack) {
       for (auto *Predecessor : MBB.predecessors())
         if (BBStack.count(Predecessor) == 0u) {
           auto TermInstIt = Predecessor->getFirstTerminator();
-          if (TermInstIt->getOpcode() == TVM::UNTIL &&
+          if (TermInstIt->getOpcode() == TVM::BACKEDGE &&
               TermInstIt->getOperand(1).isMBB() &&
               TermInstIt->getOperand(1).getMBB() == &MBB) {
             LoopPredecessor = &MBB;
@@ -557,8 +568,7 @@ bool TVMStackModel::runOnMachineFunction(MachineFunction &MF) {
   Stack TheStack(TII, NumArgs);
 
   // Handle ARGUMENTS first to ensure that they get the designated numbers.
-  for (MachineBasicBlock::iterator I = FirstBB.begin(),
-                                   E = FirstBB.end();
+  for (MachineBasicBlock::iterator I = FirstBB.begin(), E = FirstBB.end();
        I != E;) {
     MachineInstr &MI = *I++;
     if (!TVM::isArgument(MI))

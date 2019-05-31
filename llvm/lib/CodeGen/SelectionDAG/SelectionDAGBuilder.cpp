@@ -2099,10 +2099,15 @@ void SelectionDAGBuilder::visitSwitchCase(CaseBlock &CB,
 
   // If the lhs block is the next block, invert the condition so that we can
   // fall through to the lhs instead of the rhs block.
-  if (CB.TrueBB == NextBlock(SwitchBB)) {
-    std::swap(CB.TrueBB, CB.FalseBB);
-    SDValue True = DAG.getConstant(1, dl, Cond.getValueType());
-    Cond = DAG.getNode(ISD::XOR, dl, Cond.getValueType(), Cond, True);
+  // TVM Local change: we need true successor to be the loop header,
+  // an IR pass ensures that, so we don't need to reorder when building DAG.
+  const auto &Triple = DAG.getTarget().getTargetTriple();
+  if (Triple.getArch() != Triple::tvm) {
+    if (CB.TrueBB == NextBlock(SwitchBB)) {
+      std::swap(CB.TrueBB, CB.FalseBB);
+      SDValue True = DAG.getConstant(1, dl, Cond.getValueType());
+      Cond = DAG.getNode(ISD::XOR, dl, Cond.getValueType(), Cond, True);
+    }
   }
 
   SDValue BrCond = DAG.getNode(ISD::BRCOND, dl,

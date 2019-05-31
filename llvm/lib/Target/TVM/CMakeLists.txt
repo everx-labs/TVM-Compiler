@@ -22,6 +22,7 @@ add_llvm_target(TVMCodeGen
   TVMISelDAGToDAG.cpp
   TVMMachineFunctionInfo.cpp
   TVMAsmPrinter.cpp
+  TVMLoopEntry.cpp
   TVMLoopInstructions.cpp
   TVMMCInstLower.cpp
   TVMRematerialize.cpp

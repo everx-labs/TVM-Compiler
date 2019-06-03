@@ -52,5 +52,30 @@ TVMRegisterInfo::getCalleeSavedRegs(const MachineFunction *MF) const {
 void TVMRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
                                           int SPAdj, unsigned FIOperandNum,
                                           RegScavenger *RS) const {
-  llvm_unreachable("Unimplemented");
+  assert(SPAdj == 0);
+  MachineInstr &MI = *II;
+
+  MachineBasicBlock &MBB = *MI.getParent();
+  MachineFunction &MF = *MBB.getParent();
+  MachineRegisterInfo &MRI = MF.getRegInfo();
+  int FrameIndex = MI.getOperand(FIOperandNum).getIndex();
+  const MachineFrameInfo &MFI = MF.getFrameInfo();
+  const auto *TII = MF.getSubtarget<TVMSubtarget>().getInstrInfo();
+
+  int64_t FrameOffset = MFI.getStackSize() + MFI.getObjectOffset(FrameIndex);
+
+  assert(MFI.getObjectSize(FrameIndex) != 0 &&
+         "We assume that variable-sized objects have already been lowered, "
+         "and don't use FrameIndex operands.");
+
+  unsigned OffsetOperand = MRI.createVirtualRegister(&TVM::I64RegClass);
+  BuildMI(MBB, *II, II->getDebugLoc(), TII->get(TVM::CONST_I64), OffsetOperand)
+      .addImm(FrameOffset);
+
+  unsigned FIRegOperand = MRI.createVirtualRegister(&TVM::I64RegClass);
+  BuildMI(MBB, *II, II->getDebugLoc(), TII->get(TVM::CALL_FRAMEIDX),
+          FIRegOperand)
+      .addReg(OffsetOperand);
+
+  MI.getOperand(FIOperandNum).ChangeToRegister(FIRegOperand, false);
 }

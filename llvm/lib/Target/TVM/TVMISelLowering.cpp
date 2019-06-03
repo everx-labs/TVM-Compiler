@@ -70,6 +70,7 @@ TVMTargetLowering::TVMTargetLowering(const TargetMachine &TM,
   computeRegisterProperties(STI.getRegisterInfo());
 
   setOperationAction(ISD::GlobalAddress, MVT::i64, Custom);
+  setOperationAction(ISD::FrameIndex, MVT::i64, Custom);
 
   // Custom lowering for intrinsics that unrolls into more than one
   // MIR instructions.
@@ -269,6 +270,8 @@ SDValue TVMTargetLowering::LowerOperation(SDValue Op, SelectionDAG &DAG) const {
   switch (Op.getOpcode()) {
   case ISD::GlobalAddress:
     return LowerGlobalAddress(Op, DAG);
+  case ISD::FrameIndex:
+    return LowerFrameIndex(Op, DAG);
   case ISD::INTRINSIC_W_CHAIN:
     return LowerINTRINSIC_W_CHAIN(Op, DAG);
   default:
@@ -345,6 +348,12 @@ const char *TVMTargetLowering::getTargetNodeName(unsigned Opcode) const {
 #undef HANDLE_NODETYPE
   }
   return nullptr;
+}
+
+SDValue TVMTargetLowering::LowerFrameIndex(SDValue Op,
+                                           SelectionDAG &DAG) const {
+  int FI = cast<FrameIndexSDNode>(Op)->getIndex();
+  return DAG.getTargetFrameIndex(FI, Op.getValueType());
 }
 
 SDValue TVMTargetLowering::LowerINTRINSIC_W_CHAIN(SDValue Op,

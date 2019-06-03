@@ -101,10 +101,22 @@ defm THROWIFNOT : I<(outs), (ins I64 : $cond, uimm6 : $exception),
 
 // Load and store subroutine calls
 defm CALL_LOAD : I<(outs I64 : $value), (ins I64 : $addr),
-                   (outs), (ins), [], "CALL_LOAD\t$addr", "CALL\t3", 0xF0>;
+                   (outs), (ins),
+                   [], "CALL_LOAD\t$addr", "CALL\t$$:load$$", 0xF0>;
 def : Pat<(load I64 : $addr), (CALL_LOAD I64 : $addr)>;
 
 defm CALL_STORE : I<(outs), (ins I64 : $addr, I64 : $value),
-                    (outs), (ins), [], "CALL_STORE\t$addr, $value", "CALL\t4", 0xF0>;
-def : Pat<(store I64 : $value, I64 : $addr), (CALL_STORE I64 : $addr, I64 : $value)>;
+                    (outs), (ins),
+                    [], "CALL_STORE\t$addr, $value", "CALL\t$$:store$$", 0xF0>;
+def : Pat<(store I64 : $value, I64 : $addr),
+          (CALL_STORE I64 : $addr, I64 : $value)>;
 
+defm CALL_FRAMEIDX : I<(outs I64 : $offset), (ins I64 : $idx),
+                       (outs), (ins), [],
+                       "CALL_FRAMEIDX\t$idx", "CALL\t$$:frameidx$$", 0xF0>;
+
+defm CALL_ENTER : I<(outs), (ins I64 : $framesize), (outs), (ins),
+                    [], "CALL_ENTER\t$framesize", "CALL\t$$:enter$$", 0xF0>;
+
+defm CALL_LEAVE : I<(outs), (ins I64 : $framesize), (outs), (ins),
+                    [], "CALL_LEAVE\t$framesize", "CALL\t$$:leave$$", 0xF0>;

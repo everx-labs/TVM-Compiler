@@ -1,0 +1,169 @@
+	.internal-alias :main_external,     -1
+	.internal-alias :main_internal,     0
+	.internal-alias :general_purpose,   1
+	.internal-alias :authenticate,      2
+	.internal-alias :parse_msg,         3
+
+	.internal-alias :init_fstack,       4
+	.internal-alias :enter,             5
+	.internal-alias :leave,             6
+	.internal-alias :load,              7
+	.internal-alias :store,             8
+	.internal-alias :frameidx,          9
+
+	.internal-alias :load_bp,           10
+	.internal-alias :store_bp,          12
+
+    .selector
+    ; s0 - func_id
+    ; s1.. - other data
+    SETCP0
+    PUSHREFSLICE        ; dictionary of methods in first reference
+    OVER
+    NEQINT 1
+    PUSHCONT {          ; if func_id negative or zero - direct call to method
+        PUSHINT 32
+        DICTIGETJMP     ; execute method and return
+    }
+    PUSHCONT {          ; get dictionary with methods
+        PUSHINT 32
+        DICTIGET
+        THROWIFNOT 52   ; no dictionary of methods
+        PUSHINT 32
+        DICTUGETJMP     ; execute method and return
+        THROW 51
+    }
+    IFELSE
+
+    .internal   :authenticate
+    ;ref0 must contains auth dictionary
+    ;args: 
+    ;   s0 - body slice
+    ;ret: 
+    ;   s0 - body slice (modified: without ref0)
+    ;throws exception if ABI version is unsupported
+    ;throws exception if auth flag is not found in authentication dictionary.
+    ;throws exception if signature is invalid
+
+    DUP
+    PUSHINT 40          ;preload ABI ver and func_id in separate slice
+    PLDSLICEX
+    LDU 8               ;load ABI version
+    LDU 32              ;load func id
+    ENDS
+    SWAP
+    THROWIF 55
+    PUSHREFSLICE
+    DUP
+    SEMPTY
+    IFRET
+    PUSHINT 32          ;key len in auth dictionary
+    DICTUGET            ;load method's flag 
+    THROWIFNOT 41       ;not found exception
+    PLDU 1
+    PUSHCONT {
+        DUP
+        SREMPTY         ;body must have reference, if not - throw exception
+        THROWIF 40      ;access denied exception
+        LDREFRTOS       ;detach signature slice
+        OVER
+        HASHSU
+        SWAP    
+        PUSHROOT        ;load persistent data
+        CTOS            
+        LDU 256         ;load public key
+        DROP            ;drop remaining data slice
+        CHKSIGNU
+        THROWIFNOT 40   ;access denied exception
+    }
+    IF
+
+    .internal   :main_external
+    ; s0 - msg body: slice
+    ; s1 - msg: cell
+    ; s2 - gram balance of msg: int
+    ; s3 - gram balance of contract: int
+
+    ;call signature checker (can throw exception if signature is invalid)
+    CALL $:authenticate$ ;assume that function returns nothing
+    
+    ;call msg parser
+    PUSH s1     ;push msg cell on top
+    CALL $:parse_msg$    ;assume thar parser returns slice - dictionary with msg fields
+    
+    ; Initialize C stack
+    CALL $:init_fstack$
+
+    SWAP
+    ;parse ABI version (1 byte) and load function id (4 bytes)
+    LDU 8       ;load ABI version
+    SWAP  
+    THROWIF 55  ; only version 0 is supported now
+    LDU 32      ;load func id
+    SWAP
+    CALL 1      ;public method call
+
+    .internal   :main_internal
+    RET         ;contract ignores internal msgs by default 
+
+    .internal   :parse_msg
+    CTOS        ;TODO: use parser from contract_api library
+
+
+; Functions for C
+; -100000: BP pointer
+    .internal   :load_bp
+    PUSHINT -100000
+    CALL $:load$
+
+    .internal   :store_bp
+    PUSHINT -100000
+    XCHG s0, s1
+    CALL $:store$
+
+    .internal   :init_fstack
+    ; Initialize stack
+    NEWDICT
+    NEWC STSLICE ENDC
+    POP c5
+    PUSHINT 1000000000
+    CALL $:store_bp$
+    RET
+
+    .internal   :enter
+    CALL $:load_bp$
+    SWAP
+    SUB
+    CALL $:store_bp$
+
+    .internal   :leave
+    CALL $:load_bp$
+    ADD
+    CALL $:store_bp$
+
+    .internal   :load
+    PUSH c5
+    CTOS
+    PUSHINT 64
+    DICTIGET ; (addr dict-slice key-width -- value-slice flag)
+
+    THROWIFNOT 60
+    LDI 256 ENDS
+
+    .internal   :store
+    ; (addr val -- )
+    NEWC STI 256 ENDC
+    CTOS     ; (addr val-slice)
+    XCHG s0, s1
+
+    PUSH c5
+    CTOS     ; (val-slice addr dict-slice)
+    PUSHINT 64
+    DICTISET ; (val-slice addr dict-slice key-width -- dict-slice')
+    NEWC STSLICE ENDC
+    POP c5
+
+    .internal   :frameidx
+    CALL $:load_bp$
+    ;PUSHINT 10 ; arbitrary value
+    ADD

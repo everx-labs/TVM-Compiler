@@ -93,7 +93,7 @@ let OperandType = "OPERAND_I64IMM" in
 def i64imm_op : Operand<i64>;
 
 let OperandType = "OPERAND_FUNCTION" in
-def function_op : Operand<i32>;
+def function_op : Operand<i64>;
 
 let OperandType = "OPERAND_BASIC_BLOCK" in
 def bb_op : Operand<OtherVT>;

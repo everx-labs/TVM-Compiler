@@ -37,7 +37,14 @@ public:
     SigAtomicType = SignedLong;
     LongDoubleWidth = LongDoubleAlign = 128;
     LongDoubleFormat = &llvm::APFloat::IEEEquad();
+
     MaxAtomicPromoteWidth = MaxAtomicInlineWidth = 64;
+    PointerWidth = PointerAlign = 64;
+    BoolWidth = BoolAlign = 64;
+    IntWidth = IntAlign = 64;
+    LongWidth = LongAlign = 64;
+    LongLongWidth = LongLongAlign = 64;
+
     SizeType = UnsignedLong;
     PtrDiffType = SignedLong;
     IntPtrType = SignedLong;

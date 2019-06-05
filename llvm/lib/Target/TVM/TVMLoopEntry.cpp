@@ -10,6 +10,8 @@
 /// \file
 /// Ensure that for a loop predecessor terminating with conditional br
 /// true successor is the loop header.
+/// Ensure that the first teminator of the loop header is a conditional br to
+/// itself.
 ///
 //===----------------------------------------------------------------------===//
 
@@ -56,10 +58,24 @@ INITIALIZE_PASS_END(TVMLoopEntry, DEBUG_TYPE,
 
 FunctionPass *llvm::createTVMLoopEntry() { return new TVMLoopEntry(); }
 
+static bool canonicalizeTerminator(BranchInst *Term, Loop &L,
+                                   const LoopInfo &LI, bool IsBackedge) {
+  BasicBlock *BrSucc = Term->getSuccessor(0);
+  if (Term->isUnconditional() || LI.getLoopFor(BrSucc) == &L)
+    return false;
+  Term->swapSuccessors();
+  Value *Cond = Term->getCondition();
+  IRBuilder<> Builder(Term);
+  Cond = Builder.CreateNot(Cond);
+  Term->setCondition(Cond);
+  return true;
+}
+
 bool TVMLoopEntry::runOnFunction(Function &F) {
   LLVM_DEBUG(dbgs() << "runnning TVMLoopEntry on " << F.getName() << "\n");
   const LoopInfo &LI = getAnalysis<LoopInfoWrapperPass>().getLoopInfo();
   DenseMap<Loop *, bool> LoopsProcessed;
+  bool Changed = false;
   for (auto &BB : F) {
     Loop *L = LI.getLoopFor(&BB);
     if (!L || LoopsProcessed[L])
@@ -68,16 +84,13 @@ bool TVMLoopEntry::runOnFunction(Function &F) {
     BasicBlock *Predecessor = L->getLoopPredecessor();
     assert(Predecessor && "Unexpected shape of a loop");
     Instruction *Term = Predecessor->getTerminator();
-    if (auto *Br = dyn_cast<BranchInst>(Term)) {
-      BasicBlock *BrSucc = Br->getSuccessor(0);
-      if (LI.getLoopFor(BrSucc) == L || Br->isUnconditional())
-        continue;
-      Br->swapSuccessors();
-      Value *Cond = Br->getCondition();
-      IRBuilder<> Builder(Br);
-      Cond = Builder.CreateNot(Cond);
-      Br->setCondition(Cond);
-    }
+    if (auto *Br = dyn_cast<BranchInst>(Term))
+      Changed |= canonicalizeTerminator(Br, *L, LI, false);
+    BasicBlock *Header = L->getHeader();
+    assert(Header);
+    Term = Header->getTerminator();
+    if (auto *Br = dyn_cast<BranchInst>(Term))
+      Changed |= canonicalizeTerminator(Br, *L, LI, true);
   }
-  return false;
+  return Changed;
 }

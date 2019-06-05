@@ -385,6 +385,8 @@ void TVMStackModel::performReorderings(const StackReorderings &Reorderings,
 // a cyclic dependency between continuations.
 static void processBackedge(MachineInstr &MI, const TargetInstrInfo *TII,
                             Stack &TheStack) {
+  unsigned Reg = MI.getOperand(0).getReg();
+  TheStack.xchg(&MI, Reg, 0);
   TheStack.consumeArguments(1);
   BuildMI(&MI, TII->get(TVM::BACKEDGE_S));
   MI.eraseFromParent();

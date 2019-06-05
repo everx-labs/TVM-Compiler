@@ -4,8 +4,7 @@ target datalayout = "E-S1024-i256:256:256"
 target triple = "tvm"
 
 ; Function Attrs: nounwind uwtable
-define i64 @func(i64, i64, i64) nounwind 
- {
+define i64 @func(i64, i64, i64) nounwind {
   %4 = icmp sgt i64 %1, 0
   %5 = icmp sgt i64 %2, 0
   br i1 %4, label %6, label %26

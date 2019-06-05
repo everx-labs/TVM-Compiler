@@ -1,11 +1,10 @@
 ; XFAIL: *
-; RUN: llc < %s -march=tvm | FileCheck %s
+; RUN: llc < %s -march=tvm
 target datalayout = "E-S1024-i256:256:256"
 target triple = "tvm"
 
 ; Function Attrs: nounwind uwtable
-define i64 @func(i64, i64, i64) nounwind 
- {
+define i64 @func(i64, i64, i64) nounwind {
   %4 = icmp sgt i64 %0, 0
   %5 = icmp sgt i64 %1, 0
   %6 = and i1 %4, %5
@@ -45,4 +44,4 @@ define i64 @func(i64, i64, i64) nounwind
   ret i64 %27
 }
 
-declare i64 @foo(i64, i64, i64) nounwind 
+declare i64 @foo(i64, i64, i64) nounwind

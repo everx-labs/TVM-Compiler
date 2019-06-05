@@ -1,11 +1,9 @@
-; XFAIL: *
-; RUN: llc < %s -march=tvm | FileCheck %s
+; RUN: llc < %s -march=tvm
 target datalayout = "E-S1024-i256:256:256"
 target triple = "tvm"
 
 ; Function Attrs: norecurse nounwind readnone uwtable
-define i64 @func(i64) nounwind 
- {
+define i64 @func(i64) nounwind {
   %2 = icmp slt i64 %0, 1
   br i1 %2, label %9, label %3
 

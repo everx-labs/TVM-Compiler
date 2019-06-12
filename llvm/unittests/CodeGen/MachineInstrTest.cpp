@@ -270,7 +270,7 @@ TEST(MachineInstrPrintingTest, DebugLocPrinting) {
   ASSERT_TRUE(
       StringRef(OS.str()).startswith("$noreg = UNKNOWN debug-location "));
   ASSERT_TRUE(
-      StringRef(OS.str()).endswith("filename:1:5"));
+      StringRef(OS.str()).endswith("filename:1:5\n"));
 }
 
 } // end namespace

@@ -32,6 +32,13 @@ class TVMFunctionInfo final : public MachineFunctionInfo {
   /// A mapping from CodeGen vreg index to TVM register number.
   std::vector<unsigned> TVMRegs;
 
+  /// A mapping from MachineInstr to stack model commentaries
+  ///  (for stack model after this instruction)
+  std::map<const MachineInstr *, std::vector<std::string>> StackModelComments;
+
+  /// Function's start stack model comment
+  std::string StartStackModelComment;
+
   /// A mapping from CodeGen vreg index to a boolean value indicating whether
   /// the given register is considered to be "stackified", meaning it has been
   /// determined or made to meet the stack requirements:
@@ -41,7 +48,7 @@ class TVMFunctionInfo final : public MachineFunctionInfo {
   BitVector VRegStackified;
 
 public:
-  explicit TVMFunctionInfo(MachineFunction &MF) : MF(MF) {}
+  explicit TVMFunctionInfo(MachineFunction &MF);
   ~TVMFunctionInfo() override;
 
   void addParam(MVT VT) { Params.push_back(VT); }
@@ -88,6 +95,25 @@ public:
     auto I = TargetRegisterInfo::virtReg2Index(VReg);
     assert(I < TVMRegs.size());
     return TVMRegs[I];
+  }
+
+  void addStackModelComment(const MachineInstr *MI, const std::string &val) {
+    StackModelComments[MI].push_back(val);
+  }
+  const std::vector<std::string> &
+  getStackModelComments(const MachineInstr *MI) const {
+    auto it = StackModelComments.find(MI);
+    if (it != StackModelComments.end())
+      return it->second;
+    it = StackModelComments.find(nullptr);
+    assert(it != StackModelComments.end());
+    return it->second; // empty vector
+  }
+  void setStartStackModelComment(const std::string &val) {
+    StartStackModelComment = val;
+  }
+  const std::string &getStartStackModelComment() const {
+    return StartStackModelComment;
   }
 
   // For a given stackified WAReg, return the id number to print with push/pop.

@@ -18,6 +18,10 @@
 #include "llvm/CodeGen/Analysis.h"
 using namespace llvm;
 
+TVMFunctionInfo::TVMFunctionInfo(MachineFunction &MF) : MF(MF) {
+  StackModelComments[nullptr]; // Empty vector reservation
+}
+
 TVMFunctionInfo::~TVMFunctionInfo() = default;
 
 void TVMFunctionInfo::initTVMRegs() {

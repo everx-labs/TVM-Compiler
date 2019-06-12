@@ -26,6 +26,7 @@
 #include "llvm/CodeGen/MachineInstrBuilder.h"
 #include "llvm/CodeGen/MachineRegisterInfo.h"
 #include "llvm/CodeGen/Passes.h"
+#include "llvm/IR/DebugInfoMetadata.h"
 #include "llvm/Support/raw_ostream.h"
 
 #include "TVMInstMappingInfo.inc"
@@ -50,13 +51,17 @@ public:
   /// Inserts necessary stack manipulation instructions to supply \par MI with
   /// the correct data.
   bool processInstruction(MachineInstr &MI, LiveIntervals &LIS,
-                          const TargetInstrInfo *TII, Stack &TheStack);
+                          Stack &TheStack);
 
   static char ID; // Pass identification, replacement for typeid
   TVMStackModel() : MachineFunctionPass(ID) {}
 
 private:
   bool runOnBasicBlocks(MachineFunction &MF, Stack &TheStack);
+
+  const DILocalVariable *findDebugValue(const MachineInstr &MI,
+                                        unsigned Vreg) const;
+  std::string prepareInstructionComment(const MachineInstr &MI) const;
 
   /// Forms vector of Pushes and Xchgs to supply an instruction with the right
   /// data.
@@ -68,6 +73,9 @@ private:
   /// Insert instructions in the position specified by \par InsertPoint.
   void performReorderings(const StackReorderings &Reorderings,
                           MachineInstr *InsertPoint, Stack &TheStack) const;
+
+  TVMFunctionInfo *MFI;
+  const TargetInstrInfo *TII;
 };
 
 /// Return true if reorderings might be optimized away for a commutative
@@ -137,8 +145,8 @@ void pruneDeadRegisters(MachineBasicBlock &MBB, Stack &TheStack,
   auto &Inst = MBB.front();
   std::vector<unsigned> DeadVR;
   for (auto &Element : TheStack) {
-    if (std::holds_alternative<unsigned>(Element)) {
-      auto Register = std::get<unsigned>(Element);
+    if (std::holds_alternative<StackVreg>(Element)) {
+      auto Register = std::get<StackVreg>(Element).VirtReg;
       if (Register == TVMFunctionInfo::UnusedReg) {
         DeadVR.push_back(Register);
         continue;
@@ -153,7 +161,7 @@ void pruneDeadRegisters(MachineBasicBlock &MBB, Stack &TheStack,
     }
   }
   for (auto Elem : DeadVR)
-    TheStack.pop(Inst, Elem);
+    TheStack.pop(Inst, StackVreg(Elem));
 }
 
 /// If \p MI result is not used remove it right away.
@@ -162,7 +170,7 @@ void pruneDeadDefinitions(MachineInstr &MI, LiveIntervals &LIS,
   for (size_t I = 0, E = MI.getNumDefs(); I < E; ++I) {
     MachineOperand &MO = MI.getOperand(I);
     if (MO.isReg() && MO.isDead())
-      TheStack.pop(MI, MO.getReg());
+      TheStack.pop(MI, StackVreg(MO.getReg()));
   }
 }
 
@@ -211,6 +219,15 @@ INITIALIZE_PASS(TVMStackModel, DEBUG_TYPE, "Stackify register instructions",
                 false, false)
 
 FunctionPass *llvm::createTVMStackModel() { return new TVMStackModel(); }
+
+const DILocalVariable *TVMStackModel::findDebugValue(const MachineInstr &MI,
+                                                     unsigned Vreg) const {
+  auto it = llvm::find_if(*MI.getParent(), [Vreg](const MachineInstr &DI) {
+    return DI.isDebugValue() &&
+           (DI.getOperand(0).isReg() && DI.getOperand(0).getReg() == Vreg);
+  });
+  return (it != MI.getParent()->end()) ? it->getDebugVariable() : nullptr;
+}
 
 StackReorderings
 TVMStackModel::computeReorderings(MachineInstr &MI, LiveIntervals &LIS,
@@ -276,7 +293,7 @@ TVMStackModel::computeReorderings(MachineInstr &MI, LiveIntervals &LIS,
           (isKilled(MI, RegFrom, LIS) && FirstUseOperandIndex[RegFrom] == OpNo)
               ? StackReorderingKind::Xchg
               : StackReorderingKind::Copy;
-      Result.emplace_back(RegFrom, ROpNo, Kind);
+      Result.emplace_back(StackVreg(RegFrom), ROpNo, Kind);
     } else if (Operand.isMBB()) {
       Result.emplace_back(Operand.getMBB(), ROpNo, StackReorderingKind::New);
     }
@@ -326,13 +343,49 @@ TVMStackModel::computeReorderings(MachineInstr &MI, LiveIntervals &LIS,
     const auto &Op = MI.getOperand(OpNo);
     assert(isStackOperand(Op) && "Expected Reg or MBB");
     if (Op.isReg())
-      assert(TheStack2.slotContains(ROpNo, Op.getReg()));
+      assert(TheStack2.slotContains(ROpNo, StackVreg(Op.getReg())));
     if (Op.isMBB())
       assert(TheStack2.slotContains(ROpNo, Op.getMBB()));
   }
 #endif
 
   return Result;
+}
+
+std::string
+TVMStackModel::prepareInstructionComment(const MachineInstr &MI) const {
+  if (!MI.getNumExplicitDefs())
+    return std::string();
+
+  std::string rv;
+  raw_string_ostream OS(rv);
+
+  auto OpPrinter = [&OS, &MI, this](const MachineOperand &Operand) {
+    if (Operand.isReg()) {
+      OS << printReg(Operand.getReg());
+      if (auto DbgVar = findDebugValue(MI, Operand.getReg()))
+        OS << "(" << DbgVar->getName() << ")";
+    } else {
+      OS << Operand;
+    }
+  };
+  auto CommaOpPrinter = [&OS, &OpPrinter](const MachineOperand &Operand) {
+    OS << ", ";
+    OpPrinter(Operand);
+  };
+
+  OpPrinter(*MI.defs().begin());
+  llvm::for_each(drop_begin(MI.defs(), 1), CommaOpPrinter);
+
+  OS << " = " << TII->getName(MI.getOpcode()) << " ";
+
+  auto Uses = MI.uses();
+  if (Uses.begin() != Uses.end()) {
+    OpPrinter(*MI.uses().begin());
+    llvm::for_each(drop_begin(MI.uses(), 1), CommaOpPrinter);
+  }
+  OS.flush();
+  return OS.str();
 }
 
 void TVMStackModel::performReorderings(const StackReorderings &Reorderings,
@@ -386,14 +439,13 @@ void TVMStackModel::performReorderings(const StackReorderings &Reorderings,
 static void processBackedge(MachineInstr &MI, const TargetInstrInfo *TII,
                             Stack &TheStack) {
   unsigned Reg = MI.getOperand(0).getReg();
-  TheStack.xchg(&MI, Reg, 0);
+  TheStack.xchg(&MI, StackVreg(Reg), 0);
   TheStack.consumeArguments(1);
   BuildMI(&MI, TII->get(TVM::BACKEDGE_S));
   MI.eraseFromParent();
 }
 
 bool TVMStackModel::processInstruction(MachineInstr &MI, LiveIntervals &LIS,
-                                       const TargetInstrInfo *TII,
                                        Stack &TheStack) {
   if (MI.isImplicitDef())
     return false;
@@ -462,7 +514,7 @@ bool TVMStackModel::processInstruction(MachineInstr &MI, LiveIntervals &LIS,
   for (size_t ROpNo = 0; ROpNo < NumDefs; ++ROpNo) {
     const auto &Operand = MI.getOperand(NumDefs - ROpNo - 1);
     assert(Operand.isReg() && "Def must be a register");
-    TheStack.addDef(Operand.getReg());
+    TheStack.addDef(Operand.getReg(), findDebugValue(MI, Operand.getReg()));
   }
   if (NewOpcode >= 0) {
     // add global addresses before the command
@@ -480,6 +532,11 @@ bool TVMStackModel::processInstruction(MachineInstr &MI, LiveIntervals &LIS,
       MIB.addImm(Op.getImm());
     }
     pruneDeadDefinitions(MI, LIS, TheStack);
+
+    if (NumDefs)
+      MFI->addStackModelComment(MIB.getInstr(), prepareInstructionComment(MI));
+    MFI->addStackModelComment(MIB.getInstr(), TheStack.toString());
+
     MI.removeFromParent();
     Changed = true;
   }
@@ -494,7 +551,6 @@ bool TVMStackModel::runOnBasicBlocks(MachineFunction &MF, Stack &TheStack) {
 
   LiveIntervals &LIS = getAnalysis<LiveIntervals>();
   DenseMap<MachineBasicBlock *, Stack> BBStack;
-  const auto *TII = MF.getSubtarget<TVMSubtarget>().getInstrInfo();
 
   while (BBStack.size() < MF.size()) {
     size_t Size = BBStack.size();
@@ -528,7 +584,7 @@ bool TVMStackModel::runOnBasicBlocks(MachineFunction &MF, Stack &TheStack) {
         if (MI.isDebugInstr() || MI.isLabel())
           continue;
 
-        Changed |= processInstruction(MI, LIS, TII, CurrentStack);
+        Changed |= processInstruction(MI, LIS, CurrentStack);
       }
       auto [It, Flag] = BBStack.insert({&MBB, CurrentStack});
       assert(Flag && "Can't update stack info");
@@ -549,8 +605,8 @@ bool TVMStackModel::runOnMachineFunction(MachineFunction &MF) {
       << MF.getName() << '\n');
 
   bool Changed = false;
-  TVMFunctionInfo &MFI = *MF.getInfo<TVMFunctionInfo>();
-  const auto *TII = MF.getSubtarget<TVMSubtarget>().getInstrInfo();
+  MFI = MF.getInfo<TVMFunctionInfo>();
+  TII = MF.getSubtarget<TVMSubtarget>().getInstrInfo();
 
   MachineBasicBlock &FirstBB = MF.front();
   assert(!FirstBB.empty());
@@ -561,13 +617,13 @@ bool TVMStackModel::runOnMachineFunction(MachineFunction &MF) {
   if (TVM::isArgumentNum(ANI)) {
     int args = ANI.getOperand(0).getImm();
     for (int i = 0; i < args; i++)
-      MFI.addParam(MVT::i64);
+      MFI->addParam(MVT::i64);
     ANI.eraseFromParent();
     Changed = true;
   }
 
-  size_t NumArgs = MFI.numParams();
-  Stack TheStack(TII, NumArgs);
+  size_t NumArgs = MFI->numParams();
+  Stack TheStack(MF, NumArgs);
 
   // Handle ARGUMENTS first to ensure that they get the designated numbers.
   for (MachineBasicBlock::iterator I = FirstBB.begin(), E = FirstBB.end();
@@ -576,12 +632,14 @@ bool TVMStackModel::runOnMachineFunction(MachineFunction &MF) {
     if (!TVM::isArgument(MI))
       break;
     unsigned Reg = MI.getOperand(0).getReg();
-    assert(!MFI.isVRegStackified(Reg));
+    assert(!MFI->isVRegStackified(Reg));
     unsigned ArgNo = NumArgs - MI.getOperand(1).getImm() - 1;
-    TheStack.set(ArgNo, Reg);
+    TheStack.set(ArgNo, StackVreg(Reg, findDebugValue(MI, Reg)));
     MI.eraseFromParent();
     Changed = true;
   }
+
+  MFI->setStartStackModelComment(TheStack.toString());
 
   if (runOnBasicBlocks(MF, TheStack))
     Changed = true;

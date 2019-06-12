@@ -16,14 +16,22 @@
 
 #include <algorithm>
 
+#include "TVMSubtarget.h"
 #include "TVMUtilities.h"
 #include "llvm/CodeGen/MachineInstrBuilder.h"
 #include "llvm/CodeGen/TargetInstrInfo.h"
+#include "llvm/IR/DebugInfoMetadata.h"
 
 namespace llvm {
 
+Stack::Stack(MachineFunction &MF, size_t Size)
+    : TII(MF.getSubtarget<TVMSubtarget>().getInstrInfo()),
+      TRI(MF.getSubtarget<TVMSubtarget>().getRegisterInfo()),
+      MRI(&MF.getRegInfo()), MFI(MF.getInfo<TVMFunctionInfo>()),
+      Data(Size, StackVreg(TVMFunctionInfo::UnusedReg)) {}
+
 bool Stack::clear(MachineInstr *InsertPoint, unsigned Preserved) {
-  auto It = llvm::find(Data, Preserved);
+  auto It = llvm::find(Data, StackVreg(Preserved));
   size_t NumDrops = 0, NumNips = 0;
   if (It == std::end(Data)) {
     NumDrops = Data.size();
@@ -45,18 +53,29 @@ bool Stack::clear(MachineInstr *InsertPoint, unsigned Preserved) {
   return NumDrops && NumNips;
 }
 
+void Stack::addDef(unsigned Reg, const DILocalVariable *DbgVar) {
+  Data.push_front(StackVreg(Reg, DbgVar));
+}
+
 void Stack::push(MachineInstr *InsertPoint, StackElementT Elem) {
   size_t ElemSlot = position(Elem);
   assert(ElemSlot <= PushLimit && "Unimplemented");
-  if (InsertPoint != nullptr)
-    BuildMI(InsertPoint, TII->get(TVM::PUSH)).addImm(ElemSlot);
   Data.push_front(Data[ElemSlot]);
+  if (InsertPoint != nullptr) {
+    auto *MI =
+        BuildMI(InsertPoint, TII->get(TVM::PUSH)).addImm(ElemSlot).getInstr();
+    MFI->addStackModelComment(MI, toString());
+  }
 }
 
 void Stack::pushNew(MachineInstr *InsertPoint, MachineBasicBlock &MBB) {
-  if (InsertPoint != nullptr)
-    BuildMI(InsertPoint, TII->get(TVM::PUSHCONT_MBB)).addMBB(&MBB);
   Data.push_front(&MBB);
+  if (InsertPoint != nullptr) {
+    auto *MI = BuildMI(InsertPoint, TII->get(TVM::PUSHCONT_MBB))
+                   .addMBB(&MBB)
+                   .getInstr();
+    MFI->addStackModelComment(MI, toString());
+  }
 }
 
 bool Stack::xchg(MachineInstr *InsertPoint, StackElementT ElemFrom,
@@ -66,19 +85,23 @@ bool Stack::xchg(MachineInstr *InsertPoint, StackElementT ElemFrom,
   assert(ElemFromSlot <= XchgLimit && "Unimplemented");
   if (Data[SlotTo] == ElemFrom)
     return false;
-  if (InsertPoint != nullptr)
-    BuildMI(InsertPoint, TII->get(TVM::XCHG))
-        .addImm(std::min(ElemFromSlot, SlotTo))
-        .addImm(std::max(ElemFromSlot, SlotTo));
   std::swap(*It, Data[SlotTo]);
+  if (InsertPoint != nullptr) {
+    auto *MI = BuildMI(InsertPoint, TII->get(TVM::XCHG))
+                   .addImm(std::min(ElemFromSlot, SlotTo))
+                   .addImm(std::max(ElemFromSlot, SlotTo))
+                   .getInstr();
+    MFI->addStackModelComment(MI, toString());
+  }
   return true;
 }
 
 void Stack::pop(MachineInstr &InsertPoint, const StackElementT &Elem) {
   auto It = llvm::find_or_fail(Data, Elem);
   size_t Slot = std::distance(std::begin(Data), It);
-  BuildMI(&InsertPoint, TII->get(TVM::POP)).addImm(Slot);
   Data.erase(It);
+  auto *MI = BuildMI(&InsertPoint, TII->get(TVM::POP)).addImm(Slot).getInstr();
+  MFI->addStackModelComment(MI, toString());
 }
 
 void Stack::join(Stack &S1, Stack &S2, MachineInstr &InsertPoint) {
@@ -93,6 +116,51 @@ void Stack::join(Stack &S1, Stack &S2, MachineInstr &InsertPoint) {
     S2.xchg(&InsertPoint, Data1[Slot], Slot);
     ++Slot;
   }
+}
+
+void Stack::print(raw_ostream &OS) const {
+  OS << "{ ";
+  if (!Data.empty()) {
+    printElement(OS, *Data.begin());
+    llvm::for_each(drop_begin(Data, 1), [&OS, this](const StackElementT &Elem) {
+      OS << " | ";
+      printElement(OS, Elem);
+    });
+  }
+  OS << " }";
+}
+
+std::string Stack::toString() const {
+  std::string buf;
+  raw_string_ostream os(buf);
+  print(os);
+  os.flush();
+  return buf;
+}
+
+#if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
+/// Allow easy printing of the stack from the debugger.
+void Stack::dump() {
+  print(dbgs());
+  dbgs() << "\n";
+  dbgs().flush();
+}
+#endif
+
+void Stack::printElement(raw_ostream &OS, const StackElementT &Elem) const {
+  std::visit(overloaded{[this, &OS](const StackVreg &Vreg) {
+                          OS << printReg(Vreg.VirtReg, TRI, 0, MRI);
+                          if (Vreg.DbgVar) {
+                            OS << "(" << Vreg.DbgVar->getName() << ")";
+                          }
+                        },
+                        [&OS](MachineBasicBlock *mbb) {
+                          OS << "bb." << mbb->getNumber();
+                          if (const auto *BB = mbb->getBasicBlock())
+                            if (BB->hasName())
+                              OS << "." << BB->getName();
+                        }},
+             Elem);
 }
 
 } // namespace llvm

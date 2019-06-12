@@ -1,4 +1,4 @@
-; RUN: llc < %s -march=tvm -O0 | FileCheck %s
+; RUN: llc < %s -march=tvm -O0 -asm-verbose=false | FileCheck %s
 target triple = "tvm"
 
 ; CHECK-LABEL: test

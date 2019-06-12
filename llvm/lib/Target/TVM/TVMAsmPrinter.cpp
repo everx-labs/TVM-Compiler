@@ -49,6 +49,7 @@ public:
                     const char *Modifier = nullptr);
   void EmitInstruction(const MachineInstr *MI) override;
   std::string regToString(const MachineOperand &MO);
+  void EmitFunctionBodyStart() override;
   bool runOnMachineFunction(MachineFunction &MF) override;
 
 private:
@@ -86,6 +87,10 @@ void TVMAsmPrinter::printOperand(const MachineInstr *MI, int OpNum,
 //===----------------------------------------------------------------------===//
 void TVMAsmPrinter::EmitInstruction(const MachineInstr *MI) {
   LLVM_DEBUG(dbgs() << "EmitInstruction: " << *MI << '\n');
+  if (isVerbose())
+    for (auto Comment : MFI->getStackModelComments(MI)) {
+      OutStreamer->AddComment(Comment);
+    }
   switch (MI->getOpcode()) {
   case TVM::ARGUMENT:
     llvm_unreachable("CG only instruction mustn't reach ASM printer");
@@ -105,6 +110,11 @@ void TVMAsmPrinter::EmitInstruction(const MachineInstr *MI) {
     MCInstLowering.lower(MI, TmpInst);
     EmitToStreamer(*OutStreamer, TmpInst);
   }
+}
+
+void TVMAsmPrinter::EmitFunctionBodyStart() {
+  if (isVerbose())
+    OutStreamer->emitRawComment(" " + MFI->getStartStackModelComment(), false);
 }
 
 bool TVMAsmPrinter::runOnMachineFunction(MachineFunction &MF) {

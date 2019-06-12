@@ -61,6 +61,9 @@ bool operator==(const std::variant<Ts...> &Lhs, T &&Rhs) {
   return std::get<DecayT>(Lhs) == Rhs;
 }
 
+template <class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
+template <class... Ts> overloaded(Ts...)->overloaded<Ts...>;
+
 } // namespace llvm
 
 #endif // LLVM_LIB_TARGET_TVM_TVMEXTRAS_H

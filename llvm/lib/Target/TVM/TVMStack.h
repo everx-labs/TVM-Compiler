@@ -27,7 +27,22 @@
 namespace llvm {
 
 enum class StackReorderingKind { Copy, Xchg, New };
-using StackElementT = std::variant<unsigned, MachineBasicBlock *>;
+
+struct StackVreg {
+  unsigned VirtReg = 0;
+  const DILocalVariable *DbgVar = nullptr;
+
+  explicit StackVreg(unsigned VirtReg, const DILocalVariable *DbgVar = nullptr)
+    : VirtReg(VirtReg), DbgVar(DbgVar) {}
+
+  bool operator < (const StackVreg &R) const {
+    return VirtReg < R.VirtReg;
+  }
+  bool operator == (const StackVreg &R) const {
+    return VirtReg == R.VirtReg;
+  }
+};
+using StackElementT = std::variant<StackVreg, MachineBasicBlock *>;
 
 struct StackReordering {
   /// The register or the basic block we get data from.
@@ -47,18 +62,7 @@ struct StackReordering {
       : ElemFrom(ElemFrom), SlotTo(SlotTo), ReorderingKind(ReorderingKind) {}
 #if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
   /// Allow easy printing of a stack reordering from the debugger.
-  void dump() {
-    // TODO: implement support for MBB when needed.
-    if (!std::holds_alternative<unsigned>(ElemFrom)) {
-      dbgs() << "Non reg\n";
-      return;
-    }
-    auto tag =
-        isCopy() ? "Copy" : (isXchg() ? "Xchg" : (isNew() ? "New" : "Unknown"));
-    dbgs() << tag << " SlotTo = " << SlotTo;
-    // TODO: Implement proper register printing.
-    dbgs() << ", reg = " << std::get<unsigned>(ElemFrom) << "\n";
-  }
+  void dump();
 #endif
 };
 
@@ -71,9 +75,7 @@ using StackReorderings = SmallVector<StackReordering, 2>;
 /// stack.
 class Stack {
 public:
-  Stack(const TargetInstrInfo *TII, size_t Size)
-      : TII(TII), Data(Size, TVMFunctionInfo::UnusedReg) {}
-  Stack(const TargetInstrInfo *TII) : TII(TII) {}
+  Stack(MachineFunction &MF, size_t Size);
   auto begin() { return Data.begin(); }
   auto begin() const { return Data.begin(); }
   auto end() { return Data.end(); }
@@ -117,15 +119,15 @@ public:
   /// Precondition: Slot < Data.size() && Data[Slot] is a register.
   unsigned reg(size_t Slot) const {
     assert(Slot < Data.size() && "Out of range access");
-    assert(std::holds_alternative<unsigned>(Data[Slot]) &&
+    assert(std::holds_alternative<StackVreg>(Data[Slot]) &&
            "Stack doesn't contain a register at Slot");
-    return std::get<unsigned>(Data[Slot]);
+    return std::get<StackVreg>(Data[Slot]).VirtReg;
   }
   /// Checks if element at \par Slot is a register.
   /// Precondition: Slot < Data.size()
   unsigned isReg(size_t Slot) const {
     assert(Slot < Data.size() && "Out of range access");
-    return std::holds_alternative<unsigned>(Data[Slot]);
+    return std::holds_alternative<StackVreg>(Data[Slot]);
   }
   /// Fill the specified \p Slot with \p Elem. Doesn't generate any instruction.
   void set(size_t Slot, const StackElementT &Elem) {
@@ -139,29 +141,18 @@ public:
     Data.erase(std::begin(Data), std::begin(Data) + NumSlots);
   }
   /// Pushes result of an instruction to the stack.
-  void addDef(unsigned Reg) { Data.push_front(Reg); }
+  void addDef(unsigned Reg, const DILocalVariable *DbgVar);
   /// Checks if specified \p Slot contains specified \p Elem.
   bool slotContains(size_t Slot, const StackElementT &Elem) const {
     assert(Slot < Data.size() && "Out of range access");
     return Data[Slot] == Elem;
   }
+  void print(raw_ostream &OS) const;
+  void printElement(raw_ostream &OS, const StackElementT &Elem) const;
+  std::string toString() const;
 #if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
   /// Allow easy printing of the stack from the debugger.
-  void dump() {
-    // TODO: Align with conventional dump methods.
-    // LLVM has rules on dump(), most of the framework follows. Under debugger,
-    // a user could expect to call dump on a significant part of LLVM objects.
-    // See https://llvm.org/doxygen/AsmWriter_8cpp_source.html#l04297 for
-    // reference.
-    // TODO: add support for other than register types later
-    for (const auto &Elem : Data) {
-      if (std::holds_alternative<unsigned>(Elem))
-        dbgs() << " " << std::get<unsigned>(Elem);
-      else
-        dbgs() << " [not reg]";
-    }
-    dbgs() << "\n";
-  }
+  void dump();
 #endif
   /// Modify \par S1 and \par S2 so that identical values are in identical
   /// positions.
@@ -177,6 +168,9 @@ public:
 
 private:
   const TargetInstrInfo *TII;
+  const TargetRegisterInfo *TRI;
+  const MachineRegisterInfo *MRI;
+  TVMFunctionInfo *MFI;
   std::deque<StackElementT> Data;
 };
 

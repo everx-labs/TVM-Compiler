@@ -17,6 +17,9 @@
 // TODO: Consider to upstream case by case to STLExtras.h or wherever it
 // appropriate.
 
+#ifndef LLVM_LIB_TARGET_TVM_TVMEXTRAS_H
+#define LLVM_LIB_TARGET_TVM_TVMEXTRAS_H
+
 #include <type_traits>
 #include <variant>
 
@@ -59,3 +62,5 @@ bool operator==(const std::variant<Ts...> &Lhs, T &&Rhs) {
 }
 
 } // namespace llvm
+
+#endif // LLVM_LIB_TARGET_TVM_TVMEXTRAS_H

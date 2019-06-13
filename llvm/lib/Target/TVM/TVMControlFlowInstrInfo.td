@@ -105,6 +105,11 @@ defm PUSHC : I<(outs I64 : $root), (ins uimm8 : $regno),
 
 def : Pat<(TVMpushroot), (PUSHC (i64 4))>;
 
+defm POPC : I<(outs), (ins I64 : $root, uimm8 : $regno),
+              (outs), (ins uimm8 : $regno),
+              [(int_tvm_setreg uimm8 : $regno, I64 : $root)],
+              "POP\tc$regno, $root", "POP\tc$regno", 0xed5>;
+
 // TODO: Generalize to POP ci
 defm POPROOT : I<(outs), (ins I64 : $root),
                  (outs), (ins),

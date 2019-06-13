@@ -41,6 +41,15 @@ define i64 @getreg() nounwind {
   ret i64 %1
 }
 
+; CHECK-LABEL: setreg
+define void @setreg() nounwind {
+; CHECK: PUSH c2
+; CHECK: POP c2
+  %1 = call i64 @llvm.tvm.getreg(i64 2)
+  call void @llvm.tvm.setreg(i64 2, i64 %1)
+  ret void
+}
+
 ; CHECK-LABEL: itos
 define i64 @itos(i64 %arg) nounwind {
 ; CHECK: NEWC
@@ -109,6 +118,7 @@ declare i64 @llvm.tvm.newdict() nounwind
 declare i64 @llvm.tvm.newc() nounwind
 declare i64 @llvm.tvm.get.persistent.data() nounwind
 declare i64 @llvm.tvm.getreg(i64 %regno) nounwind
+declare void @llvm.tvm.setreg(i64 %regno, i64 %value) nounwind
 declare void @llvm.tvm.set.persistent.data(i64 %root) nounwind
 declare i64 @llvm.tvm.inttoslice(i64 %val) nounwind
 declare i64 @llvm.tvm.stslice(i64 %slice, i64 %builder) nounwind

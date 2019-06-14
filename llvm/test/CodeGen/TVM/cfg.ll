@@ -85,6 +85,7 @@ exit:
   ret i64 %2
 }
 
+; CHECK-LABEL: cfg1
 define i64 @cfg0(i1 %cond, i1 %cond2, i64 %par) nounwind {
 entry:
   br i1 %cond, label %bb1, label %bb4
@@ -100,4 +101,18 @@ bb3:
 bb4:
   %3 = add i64 %par, 4
   ret i64 %3
+}
+
+; CHECK-LABEL: cfg1
+define i64 @cfg1(i1 %cond1, i1 %cond2, i64 %ret1) nounwind {
+entry:
+  br i1 %cond1, label %bb1, label %bb2
+bb1:
+  br label %exit1
+bb2:
+  br i1 %cond2, label %exit1, label %exit2
+exit1:
+  ret i64 0
+exit2:
+  ret i64 %ret1
 }

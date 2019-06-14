@@ -13,6 +13,7 @@ add_public_tablegen_target(TVMTableGen)
 add_llvm_target(TVMCodeGen
   TVMAssemblyPrepareForLiveIntervals.cpp
   TVMArgumentMove.cpp
+  TVMControlFlowPrepare.cpp
   TVMSubtarget.cpp
   TVMTargetMachine.cpp
   TVMISelLowering.cpp

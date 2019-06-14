@@ -147,6 +147,10 @@ public:
     assert(Slot < Data.size() && "Out of range access");
     return Data[Slot] == Elem;
   }
+  /// Checks if specified \p Elem present.
+  bool exist(const StackElementT &Elem) const {
+    return llvm::exist(Data, Elem);
+  }
   void print(raw_ostream &OS) const;
   void printElement(raw_ostream &OS, const StackElementT &Elem) const;
   std::string toString() const;

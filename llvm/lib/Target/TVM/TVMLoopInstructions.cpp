@@ -116,7 +116,7 @@ static void processLoop(MachineLoop &Loop, const MachineLoopInfo &MLI,
     MachineOperand ThenBB = FirstTerminator.getOperand(2);
     MachineOperand ElseBB = FirstTerminator.getOperand(1);
     assert(ThenBB.isMBB() && ElseBB.isMBB() && "Must be a basic block");
-    assert((ThenBB.getMBB() == Header || ElseBB.getMBB() == Header) &&
+    assert((MLI.getLoopFor(ThenBB.getMBB()) == &Loop || MLI.getLoopFor(ElseBB.getMBB()) == &Loop) &&
            "The backedge must be the first terminator, otherwise "
            "unimplemented yet.");
     BuildMI(&FirstTerminator, TII.get(TVM::BACKEDGE))

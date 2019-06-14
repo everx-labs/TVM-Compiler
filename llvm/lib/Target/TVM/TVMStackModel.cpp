@@ -448,6 +448,12 @@ static void processBackedge(MachineInstr &MI, const TargetInstrInfo *TII,
   MI.eraseFromParent();
 }
 
+static void removeDefinitions(MachineInstr& MI, Stack& TheStack) {
+  for (MachineOperand& Operand : MI.defs())
+    if (TheStack.exist(StackVreg(Operand.getReg())))
+      TheStack.pop(MI, StackVreg(Operand.getReg()));
+}
+
 bool TVMStackModel::processInstruction(MachineInstr &MI, LiveIntervals &LIS,
                                        Stack &TheStack) {
   if (MI.isImplicitDef())
@@ -457,6 +463,9 @@ bool TVMStackModel::processInstruction(MachineInstr &MI, LiveIntervals &LIS,
     processBackedge(MI, TII, TheStack);
     return true;
   }
+
+  if (MI.getOpcode() == TVM::CONST_I64)
+    removeDefinitions(MI, TheStack);
 
   size_t NumDefs = MI.getNumDefs();
   size_t NumOperands = MI.getNumOperands();

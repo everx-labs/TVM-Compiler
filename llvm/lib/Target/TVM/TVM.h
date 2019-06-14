@@ -28,6 +28,7 @@ FunctionPass *createTVMISelDag(TVMTargetMachine &TM,
                                CodeGenOpt::Level OptLevel);
 
 FunctionPass *createTVMArgumentMove();
+FunctionPass *createTVMControlFlowPrepare();
 FunctionPass *createTVMReplacePhysRegs();
 FunctionPass *createTVMPrepareForLiveIntervals();
 FunctionPass *createTVMRematerialize();
@@ -39,6 +40,7 @@ FunctionPass *createTVMLoopInstructions();
 FunctionPass *createTVMLoopEntry();
 
 void initializeTVMArgumentMovePass(PassRegistry &);
+void initializeTVMControlFlowPreparePass(PassRegistry &);
 void initializeTVMReplacePhysRegsPass(PassRegistry &);
 void initializeTVMPrepareForLiveIntervalsPass(PassRegistry &);
 void initializeTVMRematerializePass(PassRegistry &);

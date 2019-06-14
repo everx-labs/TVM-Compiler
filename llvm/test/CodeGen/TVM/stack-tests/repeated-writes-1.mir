@@ -14,9 +14,8 @@ body: |
     %0:i64 = CONST_I64 2345
 
     ; CHECK-ID: repeated_writes
+    ; CHECK: POP 0
     ; CHECK: CONST_I64_S 2345
-    ; CHECK: POP 1
     ; CHECK: RETURN_I64 %0:i64
-
     RETURN_I64 %0:i64
 ...

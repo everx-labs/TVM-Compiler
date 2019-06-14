@@ -29,6 +29,7 @@ extern "C" void LLVMInitializeTVMTarget() {
   auto &PR = *PassRegistry::getPassRegistry();
   initializeLowerSwitchPass(PR);
   initializeTVMArgumentMovePass(PR);
+  initializeTVMControlFlowPreparePass(PR);
   initializeTVMReplacePhysRegsPass(PR);
   initializeTVMPrepareForLiveIntervalsPass(PR);
   initializeTVMRematerializePass(PR);
@@ -103,6 +104,7 @@ void TVMPassConfig::addIRPasses() {
   // TODO: once setcc is supported, we need to remove it.
   addPass(createLowerSwitchPass());
   addPass(createTVMLoopEntry());
+  addPass(createTVMControlFlowPrepare());
 }
 
 bool TVMPassConfig::addInstSelector() {

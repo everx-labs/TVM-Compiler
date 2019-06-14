@@ -15,11 +15,14 @@ define i64 @cond_comp(i64 %sel, i64 %par) nounwind {
 ; CHECK-NEXT:   XCHG  s1, s2
 ; CHECK-NEXT:   EQUAL
 ; CHECK-NEXT:   PUSHCONT
+; CHECK-NEXT:   PUSHCONT
 ; CHECK-NEXT:     PUSH  s0
 ; CHECK-NEXT:     PUSH  s0
 ; CHECK-NEXT:     MUL
 ; CHECK-NEXT:     MUL
 ; CHECK-NEXT:     RET
+; CHECK-NEXT:     }
+; CHECK-NEXT:     JMPX
 ; CHECK-NEXT:     }
 ; CHECK-NEXT:   PUSHCONT
 ; CHECK-NEXT:     PUSH  s0
@@ -32,13 +35,19 @@ define i64 @cond_comp(i64 %sel, i64 %par) nounwind {
 ; CHECK-NEXT:   XCHG  s0, s1
 ; CHECK-NEXT:   ISZERO
 ; CHECK-NEXT:   PUSHCONT
+; CHECK-NEXT:   PUSHCONT
 ; CHECK-NEXT:     PUSH  s0
 ; CHECK-NEXT:     PUSH  s0
 ; CHECK-NEXT:     MUL
 ; CHECK-NEXT:     MUL
 ; CHECK-NEXT:     RET
 ; CHECK-NEXT:     }
+; CHECK-NEXT:     JMPX
+; CHECK-NEXT:     }
 ; CHECK-NEXT:   PUSHCONT
+; CHECK-NEXT:   PUSHCONT
+; CHECK-NEXT:   }
+; CHECK-NEXT:   JMPX
 ; CHECK-NEXT:   }
 ; CHECK-NEXT:   IFELSE
 ; CHECK-NEXT:   }

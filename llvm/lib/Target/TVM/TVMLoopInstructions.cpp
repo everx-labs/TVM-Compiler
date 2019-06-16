@@ -103,13 +103,13 @@ FunctionPass *llvm::createTVMLoopInstructions() {
 
 static void processLoop(MachineLoop &Loop, const MachineLoopInfo &MLI,
                         const TargetInstrInfo &TII) {
-  MachineBasicBlock *Header = Loop.findLoopControlBlock();
-  assert(Header && "Unexpected loop shape");
-  auto FirstTerminatorIt = Header->getFirstTerminator();
+  MachineBasicBlock *Latch = Loop.findLoopControlBlock();
+  assert(Latch && "Unexpected loop shape");
+  auto FirstTerminatorIt = Latch->getFirstTerminator();
   MachineInstr &FirstTerminator = *FirstTerminatorIt;
   std::vector<MachineInstr *> InstructionsToErase;
 
-  for (auto It = FirstTerminatorIt, E = Header->end(); It != E; ++It)
+  for (auto It = FirstTerminatorIt, E = Latch->end(); It != E; ++It)
     InstructionsToErase.push_back(&*It);
 
   if (FirstTerminator.getOpcode() == TVM::IFELSE) {
@@ -125,7 +125,7 @@ static void processLoop(MachineLoop &Loop, const MachineLoopInfo &MLI,
   } else if (FirstTerminator.getOpcode() == TVM::IFJMP) {
     MachineOperand ArgBB = FirstTerminator.getOperand(1);
     assert(ArgBB.isMBB() && "Must be a basic block");
-    assert(ArgBB.getMBB() == Header &&
+    assert(ArgBB.getMBB() == Latch &&
            "The backedge must be the first terminator, otherwise "
            "unimplemented yet.");
     BuildMI(&FirstTerminator, TII.get(TVM::BACKEDGE))
@@ -138,20 +138,25 @@ static void processLoop(MachineLoop &Loop, const MachineLoopInfo &MLI,
   for (auto *Inst : InstructionsToErase)
     Inst->eraseFromParent();
 
-  auto *LoopPredecessor = [&Loop, Header, &MLI]() {
-    MachineBasicBlock *Pred1 = *Header->pred_begin();
-    MachineBasicBlock *Pred2 = *std::next(Header->pred_begin());
-    if (MLI.getLoopFor(Pred1) != &Loop)
-      return Pred1;
-    assert(MLI.getLoopFor(Pred2) != &Loop);
-    return Pred2;
+  auto *LoopPredecessor = [&Loop, Latch, &MLI]() {
+    MachineBasicBlock *Header = *Latch->succ_begin();
+    if (MLI.getLoopFor(Header) != &Loop)
+      Header = *std::next(Latch->succ_begin());
+    assert(MLI.getLoopFor(Header) == &Loop && "Unexpected loop shape");
+
+    MachineBasicBlock *Predecessor = *Header->pred_begin();
+    if (MLI.getLoopFor(Predecessor) != &Loop)
+      return Predecessor;
+    Predecessor = *std::next(Header->pred_begin());
+    assert(MLI.getLoopFor(Predecessor) != &Loop);
+    return Predecessor;
   }();
   for (MachineInstr &Term : LoopPredecessor->terminators()) {
     if (Term.getOpcode() == TVM::IFJMP) {
       MachineOperand ArgBB = Term.getOperand(1);
       assert(ArgBB.isMBB() && "Must be a basic block");
-      if (ArgBB.getMBB() != Header)
-        continue;
+      assert(MLI.getLoopFor(ArgBB.getMBB()) == &Loop &&
+             "Unexpected loop shape");
       BuildMI(&Term, TII.get(TVM::UNTIL))
           .addReg(Term.getOperand(0).getReg())
           .addMBB(Term.getOperand(1).getMBB());
@@ -161,8 +166,8 @@ static void processLoop(MachineLoop &Loop, const MachineLoopInfo &MLI,
       MachineOperand ThenBB = Term.getOperand(2);
       MachineOperand ElseBB = Term.getOperand(1);
       assert(ThenBB.isMBB() && ElseBB.isMBB() && "Must be a basic block");
-      if (ThenBB.getMBB() != Header && ElseBB.getMBB() != Header)
-        continue;
+      assert(MLI.getLoopFor(ThenBB.getMBB()) == &Loop ||
+             MLI.getLoopFor(ElseBB.getMBB()) == &Loop);
       BuildMI(&Term, TII.get(TVM::UNTIL))
           .addReg(Term.getOperand(0).getReg())
           .addMBB(ThenBB.getMBB());

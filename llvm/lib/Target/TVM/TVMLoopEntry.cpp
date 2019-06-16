@@ -86,9 +86,9 @@ bool TVMLoopEntry::runOnFunction(Function &F) {
     Instruction *Term = Predecessor->getTerminator();
     if (auto *Br = dyn_cast<BranchInst>(Term))
       Changed |= canonicalizeTerminator(Br, *L, LI, false);
-    BasicBlock *Header = L->getHeader();
-    assert(Header);
-    Term = Header->getTerminator();
+    BasicBlock *Latch = L->getLoopLatch();
+    assert(Latch);
+    Term = Latch->getTerminator();
     if (auto *Br = dyn_cast<BranchInst>(Term))
       Changed |= canonicalizeTerminator(Br, *L, LI, true);
   }

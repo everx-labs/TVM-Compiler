@@ -124,12 +124,13 @@ Stack &initializeStack(MachineBasicBlock &MBB,
   if (NumPredecessors == 1u)
     return element(BBStack, *std::begin(Predecessors));
   auto Begin = std::begin(Predecessors);
+  if (*Begin == LoopPredecessor)
+    Begin = std::next(Begin);
   auto &Stack = element(BBStack, *Begin);
-  for (auto It = std::next(std::begin(Predecessors)),
-            E = std::end(Predecessors);
-       It != E; ++It) {
+  for (auto It = std::begin(Predecessors), E = std::end(Predecessors); It != E;
+       ++It) {
     auto *Predecessor = *It;
-    if (Predecessor == LoopPredecessor)
+    if (Predecessor == LoopPredecessor || Predecessor == *Begin)
       continue;
     Stack::join(Stack, element(BBStack, Predecessor),
                 Predecessor->instr_back());
@@ -571,18 +572,19 @@ bool TVMStackModel::runOnBasicBlocks(MachineFunction &MF, Stack &TheStack) {
         continue;
       bool PredecessorsProcessed = true;
       MachineBasicBlock *LoopPredecessor = nullptr;
-      for (auto *Predecessor : MBB.predecessors())
+      for (auto *Predecessor : MBB.predecessors()) {
         if (BBStack.count(Predecessor) == 0u) {
           auto TermInstIt = Predecessor->getFirstTerminator();
           if (TermInstIt->getOpcode() == TVM::BACKEDGE &&
               TermInstIt->getOperand(1).isMBB() &&
               TermInstIt->getOperand(1).getMBB() == &MBB) {
-            LoopPredecessor = &MBB;
+            LoopPredecessor = Predecessor;
           } else {
             PredecessorsProcessed = false;
             break;
           }
         }
+      }
       if (!PredecessorsProcessed)
         continue;
       Stack CurrentStack =

@@ -83,3 +83,10 @@ void TVMInstPrinter::printOperand(const MCInst *MI, unsigned OpNo,
     llvm_unreachable("Unexpected operand");
   }
 }
+
+void TVMInstPrinter::printUimm64(const MCInst *MI, unsigned OpNo,
+                                 raw_ostream &O) {
+  const MCOperand &Op = MI->getOperand(OpNo);
+  assert(Op.isImm() && "Wrong operand type in printUimm64");
+  O << static_cast<uint64_t>(Op.getImm());
+}

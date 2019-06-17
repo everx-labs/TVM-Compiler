@@ -86,6 +86,11 @@ defm CONST_I64 : I<(outs I64:$res), (ins i64imm:$imm),
                    (outs), (ins i64imm:$imm),
                    [(set I64:$res, imm:$imm)],
                    "PUSHINT\t$res, $imm", "PUSHINT\t$imm", 0x82>;
+
+defm CONST_U64 : I<(outs I64:$res), (ins UImm64:$uimm),
+                   (outs), (ins UImm64:$uimm),
+                   [(set I64:$res, imm:$uimm)],
+                   "PUSHINT\t$res, $uimm", "PUSHINT\t$uimm", 0x82>;
 }
 
 defm PUSHCONT_MBB : I<(outs), (ins bb_op:$bb), (outs), (ins bb_op:$bb), 

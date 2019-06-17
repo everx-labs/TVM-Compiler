@@ -170,12 +170,16 @@ defm DIV      : BinaryRR<int_tvm_div, "DIV", 0xa904>;
 defm NOT      : UnaryR<not, "NOT", 0xb3>;
 defm SHL      : BinaryRR<shl, "LSHIFT", 0xac>;
 defm SHLCONST : BinaryRI<shl, "LSHIFT", simm8, 0xaa00>;
-defm SHR      : BinaryRR<sra, "RSHIFT", 0xab>;
+defm SHR      : BinaryRR<sra, "RSHIFT", 0xad>;
+defm SHRCONST : BinaryRI<sra, "RSHIFT", simm8, 0xab00>;
 defm MOD      : BinaryRR<int_tvm_mod, "MOD", 0x81>;
 defm ADDCONST : BinaryRI<add, "ADDCONST", simm8, 0xa6>;
 defm MULCONST : BinaryRI<mul, "MULCONST", simm8, 0xa7>;
 defm BITSIZE  : UnaryR<int_tvm_bitsize, "BITSIZE", 0xb602>;
 defm UBITSIZE : UnaryR<int_tvm_ubitsize, "UBITSIZE", 0xb603>;
+
+def : Pat<(srl I64:$val, imm:$off),
+          (SHRCONST (AND I64:$val, (CONST_U64 0xFFFFFFFFFFFFFFFF)), imm:$off)>;
 
 //===----------------------------------------------------------------------===//
 // Fits

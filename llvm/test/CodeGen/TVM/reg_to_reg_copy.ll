@@ -5,11 +5,8 @@ target triple = "tvm"
     
 define dso_local i64 @reg_to_reg_copy(i64 %c) {
 ; CHECK-LABEL: reg_to_reg_copy:
+; CHECK: GREATER
 ; CHECK: LESS
-; CHECK-NEXT: XCHG  s0, s1
-; CHECK: PUSH  s2
-; CHECK: XCHG  s0, s2
-; CHECK: }
 ; CHECK: UNTIL
 entry:
   %cmp4 = icmp sgt i64 %c, 0

@@ -449,10 +449,17 @@ static void processBackedge(MachineInstr &MI, const TargetInstrInfo *TII,
   MI.eraseFromParent();
 }
 
-static void removeDefinitions(MachineInstr& MI, Stack& TheStack) {
+static void removeUnusedDefinitions(MachineInstr& MI, Stack& TheStack) {
   for (MachineOperand& Operand : MI.defs())
-    if (TheStack.exist(StackVreg(Operand.getReg())))
-      TheStack.pop(MI, StackVreg(Operand.getReg()));
+    if (TheStack.exist(StackVreg(Operand.getReg()))) {
+      bool Used = false;
+      for (MachineOperand& Use : MI.uses()) {
+        if (Use.isReg() && Operand.isReg() && Operand.getReg() == Use.getReg())
+          Used = true;
+      }
+      if (!Used)
+        TheStack.pop(MI, StackVreg(Operand.getReg()));
+    }
 }
 
 bool TVMStackModel::processInstruction(MachineInstr &MI, LiveIntervals &LIS,
@@ -465,8 +472,7 @@ bool TVMStackModel::processInstruction(MachineInstr &MI, LiveIntervals &LIS,
     return true;
   }
 
-  if (MI.getOpcode() == TVM::CONST_I64)
-    removeDefinitions(MI, TheStack);
+  removeUnusedDefinitions(MI, TheStack);
 
   size_t NumDefs = MI.getNumDefs();
   size_t NumOperands = MI.getNumOperands();
@@ -538,12 +544,14 @@ bool TVMStackModel::processInstruction(MachineInstr &MI, LiveIntervals &LIS,
       BuildMI(&MI, TII->get(TVM::PUSHCONT_LABEL))
           .addGlobalAddress(Op.getGlobal(), Op.getOffset());
     }
+
     MachineInstrBuilder MIB = BuildMI(&MI, TII->get(NewOpcode));
     for (unsigned I = 0; I < NumImms; I++) {
       const auto &Op = MI.getOperand(NumOperands - NumImms + I);
       assert(Op.isImm() && "Expected Imm");
       MIB.addImm(Op.getImm());
     }
+
     pruneDeadDefinitions(MI, LIS, TheStack);
 
     if (NumDefs)

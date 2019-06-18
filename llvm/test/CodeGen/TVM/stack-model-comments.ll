@@ -6,12 +6,12 @@ target triple = "tvm"
 define i64 @brcond(i1 %par) nounwind {
 entry:
 ; CHECK:      PUSHCONT {
-; CHECK-NEXT:   PUSHINT	77
-; CHECK-NEXT: } ; { bb.2.exit2 | %[[VR0:[0-9]+]] }
+; CHECK:        PUSHINT	77
+; CHECK:      } ; { {{.*}} | %[[VR0:[0-9]+]] }
 ; CHECK:      PUSHCONT {
-; CHECK-NEXT:   PUSHINT	42
-; CHECK-NEXT:   RET
-; CHECK-NEXT: } ; { bb.1.exit1 | bb.2.exit2 | %0 }
+; CHECK:        PUSHINT	42
+; CHECK:        RET
+; CHECK:      } ; { {{.*}} | {{.*}} | %0 }
 ; CHECK:      IFELSE            ; {  }
   br i1 %par, label %exit1, label %exit2
 exit1:

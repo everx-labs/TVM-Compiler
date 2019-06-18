@@ -76,13 +76,15 @@ pipeline {
                                 dir ('sdk-emulator') {
                                     git branch: 'dev', credentialsId: G_gitcred, url: 'git@github.com:tonlabs/sdk-emulator.git'
                                 }
-                                sh '''
-                                wget  https://sh.rustup.rs -O rust.sh && bash rust.sh -y && rm rust.sh
-                                export PATH="${HOME}/.cargo/bin:${PATH}"
-                                rustup component add rustfmt-preview && rustup target add i686-unknown-linux-gnu
-                                cd ${WORKSPACE}/sdk-emulator/tvm
-                                cargo build
-                                '''
+                                sshagent([G_gitcred]) {
+									sh '''
+									wget  https://sh.rustup.rs -O rust.sh && bash rust.sh -y && rm rust.sh
+									export PATH="${HOME}/.cargo/bin:${PATH}"
+									rustup component add rustfmt-preview && rustup target add i686-unknown-linux-gnu
+									cd ${WORKSPACE}/sdk-emulator/tvm
+									cargo build
+									'''
+								}
                                 sh 'rm -rf ${WORKDIR}/llvm/*'
                                 sh 'cp -R llvm/* ${WORKDIR}/llvm'
                                 sh 'mkdir ${WORKDIR}/llvm/build'

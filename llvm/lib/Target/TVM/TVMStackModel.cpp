@@ -142,7 +142,10 @@ void pruneDeadRegisters(MachineBasicBlock &MBB, Stack &TheStack,
                         const LiveIntervals &LIS) {
   if (!MBB.succ_size())
     return;
-  auto &Inst = MBB.front();
+  auto InstIt = MBB.getFirstNonDebugInstr();
+  if (InstIt == MBB.end())
+    return;
+  auto &Inst = *InstIt;
   std::vector<unsigned> DeadVR;
   for (auto &Element : TheStack) {
     if (std::holds_alternative<StackVreg>(Element)) {

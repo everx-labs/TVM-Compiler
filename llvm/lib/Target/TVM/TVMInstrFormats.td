@@ -60,7 +60,7 @@ def UImm8: ImmAsmOperand<0,255> { let Name = "UImm8"; }
 def UImm6: ImmAsmOperand<0,63> { let Name = "UImm6"; }
 def UImm1_256: ImmAsmOperand<1,256> { let Name = "UImm1_256"; }
 
-def UImm64 : Operand<i64> {
+def UImm64 : Operand<i64>, ImmLeaf<i64, [{ (void)Imm; return true; }]> {
   let PrintMethod = "printUimm64";
 }
 

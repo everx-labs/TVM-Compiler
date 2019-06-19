@@ -79,6 +79,9 @@ TVMTargetLowering::TVMTargetLowering(const TargetMachine &TM,
   setOperationAction(ISD::SMAX, MVT::i64, Legal);
   setOperationAction(ISD::SMIN, MVT::i64, Legal);
 
+  setOperationAction(ISD::SMUL_LOHI, MVT::i64, Custom);
+  setOperationAction(ISD::UMUL_LOHI, MVT::i64, Custom);
+
   setMinFunctionAlignment(1);
   setPrefFunctionAlignment(1);
 
@@ -275,6 +278,10 @@ SDValue TVMTargetLowering::LowerOperation(SDValue Op, SelectionDAG &DAG) const {
     return LowerGlobalAddress(Op, DAG);
   case ISD::FrameIndex:
     return LowerFrameIndex(Op, DAG);
+  case ISD::SMUL_LOHI:
+    return LowerSMUL_LOHI(Op, DAG);
+  case ISD::UMUL_LOHI:
+    return LowerUMUL_LOHI(Op, DAG);
   case ISD::INTRINSIC_W_CHAIN:
     return LowerINTRINSIC_W_CHAIN(Op, DAG);
   default:
@@ -373,6 +380,51 @@ SDValue TVMTargetLowering::LowerFrameIndex(SDValue Op,
                                            SelectionDAG &DAG) const {
   int FI = cast<FrameIndexSDNode>(Op)->getIndex();
   return DAG.getTargetFrameIndex(FI, Op.getValueType());
+}
+
+SDValue TVMTargetLowering::LowerSMUL_LOHI(SDValue Op, SelectionDAG &DAG) const {
+  EVT VT = Op.getValueType();
+  SDLoc DL(Op);
+  SDValue Ops[2];
+
+  auto L = Op.getOperand(0);
+  auto R = Op.getOperand(1);
+
+  // Mul = L * R
+  // Op0 = Mul & (uint64)-1.
+  // Op1 = Mul >> 64
+  SDValue Mul = DAG.getNode(TVMISD::MUL, DL, VT, L, R);
+  SDValue U64Mask = DAG.getTargetConstant((uint64_t)-1, DL, VT);
+  SDValue Offset = DAG.getTargetConstant(64, DL, VT);
+  SDValue U64 = DAG.getNode(TVMISD::CONST_U64, DL, VT, U64Mask);
+  Ops[0] = DAG.getNode(ISD::AND, DL, VT, Mul, U64);
+  Ops[1] = DAG.getNode(TVMISD::RSHIFT, DL, VT, Mul, Offset);
+  return DAG.getMergeValues(Ops, DL);
+}
+
+SDValue TVMTargetLowering::LowerUMUL_LOHI(SDValue Op, SelectionDAG &DAG) const {
+  EVT VT = Op.getValueType();
+  SDLoc DL(Op);
+  SDValue Ops[2];
+
+  auto L = Op.getOperand(0);
+  auto R = Op.getOperand(1);
+
+  // UMul = (L & (uint64)-1) * (R & (uint64)-1)
+  // Op0 = Mul & (uint64)-1.
+  // Op1 = Mul >> 64
+
+  SDValue U64Mask = DAG.getTargetConstant((uint64_t)-1, DL, VT);
+  SDValue U64 = DAG.getNode(TVMISD::CONST_U64, DL, VT, U64Mask);
+  L = DAG.getNode(ISD::AND, DL, VT, L, U64);
+  R = DAG.getNode(ISD::AND, DL, VT, R, U64);
+
+  SDValue Mul = DAG.getNode(TVMISD::MUL, DL, VT, L, R);
+  SDValue Offset = DAG.getTargetConstant(64, DL, VT);
+
+  Ops[0] = DAG.getNode(ISD::AND, DL, VT, Mul, U64);
+  Ops[1] = DAG.getNode(TVMISD::RSHIFT, DL, VT, Mul, Offset);
+  return DAG.getMergeValues(Ops, DL);
 }
 
 SDValue TVMTargetLowering::LowerINTRINSIC_W_CHAIN(SDValue Op,

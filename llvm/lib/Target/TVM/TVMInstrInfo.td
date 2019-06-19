@@ -36,6 +36,12 @@ def SDT_TVMDictLd       : SDTypeProfile<2, 2, []>;
 def SDT_TVMLdRef        : SDTypeProfile<2, 1, []>;
 def SDT_TVMSendRawMsg   : SDTypeProfile<0, 2, []>;
 def SDT_TVMIfElse       : SDTypeProfile<0, 3, [SDTCisVT<0, i64>, SDTCisPtrTy<1>, SDTCisPtrTy<2>]>;
+
+def SDT_TVMMul          : SDTypeProfile<1, 2, []>;
+def SDT_TVMRShift       : SDTypeProfile<1, 2, []>;
+def SDT_TVMConstU64     : SDTypeProfile<1, 1,
+                          [SDTCisVT<0, i64>, SDTCisVT<1, i64>]>;
+
 //===----------------------------------------------------------------------===//
 // TVM specific node definitions
 //===----------------------------------------------------------------------===//
@@ -68,6 +74,10 @@ def TVMnewc     : SDNode<"TVMISD::NEWC", SDT_TVMNewc, []>;
 def TVMldslicex : SDNode<"TVMISD::LDSLICEX", SDT_TVMDictLd, []>;
 def TVMsendrawmsg : SDNode<"TVMISD::SENDRAWMSG", SDT_TVMSendRawMsg, []>;
 def TVMifelse : SDNode<"TVMISD::IFELSE", SDT_TVMIfElse, [SDNPHasChain]>;
+
+def TVMmul       : SDNode<"TVMISD::MUL", SDT_TVMMul, []>;
+def TVMrshift    : SDNode<"TVMISD::RSHIFT", SDT_TVMRShift, []>;
+def TVMconst_u64 : SDNode<"TVMISD::CONST_U64", SDT_TVMConstU64, []>;
 
 //===----------------------------------------------------------------------===//
 // TVM-specific Operands.
@@ -180,6 +190,19 @@ defm UBITSIZE : UnaryR<int_tvm_ubitsize, "UBITSIZE", 0xb603>;
 
 def : Pat<(srl I64:$val, imm:$off),
           (SHRCONST (AND I64:$val, (CONST_U64 0xFFFFFFFFFFFFFFFF)), imm:$off)>;
+
+// mulhs a, b = (mul a, b) >> 64
+def : Pat<(mulhs I64:$a, I64:$b), (SHRCONST (MUL I64:$a, I64:$b), 64)>;
+
+// mulhu a, b = (mul truncU64(a), truncU64(b)) >> 64
+def : Pat<(mulhu I64:$a, I64:$b),
+          (SHRCONST (MUL (AND I64:$a, (CONST_U64 0xFFFFFFFFFFFFFFFF)),
+                         (AND I64:$b, (CONST_U64 0xFFFFFFFFFFFFFFFF))), 64)>;
+
+def : Pat<(TVMmul I64:$a, I64:$b), (MUL I64:$a, I64:$b)>;
+def : Pat<(TVMrshift I64:$a, simm8:$b), (SHR I64:$a, simm8:$b)>;
+def : Pat<(TVMrshift I64:$a, I64:$b), (SHR I64:$a, I64:$b)>;
+def : Pat<(TVMconst_u64 UImm64:$uimm), (CONST_U64 UImm64:$uimm)>;
 
 //===----------------------------------------------------------------------===//
 // Fits

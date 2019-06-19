@@ -73,6 +73,9 @@ private:
   // Custom lowering hooks.
   SDValue LowerGlobalAddress(SDValue Op, SelectionDAG &DAG) const;
   SDValue LowerFrameIndex(SDValue Op, SelectionDAG &DAG) const;
+
+  SDValue LowerSMUL_LOHI(SDValue Op, SelectionDAG &DAG) const;
+  SDValue LowerUMUL_LOHI(SDValue Op, SelectionDAG &DAG) const;
 };
 } // namespace llvm
 

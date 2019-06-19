@@ -62,12 +62,20 @@ void TVMMCInstLower::lower(const MachineInstr *MI, MCInst &OutMI) {
         OutMI.addOperand(MCOperand::createInst(Inst.get()));
       }
       continue;
-    case MachineOperand::MO_GlobalAddress:
+    case MachineOperand::MO_GlobalAddress: {
       assert(MO.getTargetFlags() == 0 &&
              "TVM does not use target flags on GlobalAddresses");
-      MCOp = MCOperand::createExpr(
-          MCSymbolRefExpr::create(Printer.getSymbol(MO.getGlobal()), Ctx));
+      const MCExpr *Expr =
+          MCSymbolRefExpr::create(Printer.getSymbol(MO.getGlobal()), Ctx);
+      int64_t Offset = MO.getOffset();
+
+      if (Offset)
+        Expr = MCBinaryExpr::createAdd(
+            Expr, MCConstantExpr::create(Offset, Ctx), Ctx);
+
+      MCOp = MCOperand::createExpr(Expr);
       break;
+    }
     case MachineOperand::MO_RegisterMask:
       continue;
     }

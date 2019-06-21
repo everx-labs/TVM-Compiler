@@ -208,6 +208,16 @@ defm SGT : ComparisonInt<SETGT,  "GREATER", 0xbc>;
 defm SLE : ComparisonInt<SETLE,  "LEQ", 0xbb>;
 defm SGE : ComparisonInt<SETGE,  "GEQ", 0xbe>;
 
+// Unsigned comparison a ult b = (a & -1) slt (b & -1)
+class ComparisonUint<CondCode cond, Instruction instr> :
+  Pat<(setcc I64:$a, I64:$b, cond),
+      (instr (AND I64:$a, (CONST_U64 0xFFFFFFFFFFFFFFFF)),
+             (AND I64:$b, (CONST_U64 0xFFFFFFFFFFFFFFFF)))>;
+def : ComparisonUint<SETULT, SLT>;
+def : ComparisonUint<SETUGT, SGT>;
+def : ComparisonUint<SETULE, SLE>;
+def : ComparisonUint<SETUGE, SGE>;
+
 defm CONDSEL : I<(outs I64:$dst), (ins I64:$lhs, I64:$rhs, I64:$cond),
                  (outs), (ins),
                  [(set I64:$dst, (select I64:$cond, I64:$lhs, I64:$rhs))],

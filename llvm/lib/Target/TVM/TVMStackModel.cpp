@@ -91,7 +91,8 @@ bool isCommutation(const StackReorderings &Reorderings, const Stack &TheStack) {
 }
 
 inline bool isStackOperand(const MachineOperand &MOP) {
-  assert((MOP.isReg() || MOP.isImm() || MOP.isMBB() || MOP.isGlobal()) &&
+  assert((MOP.isReg() || MOP.isImm() || MOP.isMBB() || MOP.isGlobal() ||
+          MOP.isSymbol()) &&
          "Unexpected operand type: reconsider the predicate.");
   // TODO: Globals should be on stack.
   return MOP.isReg() || MOP.isMBB();
@@ -248,7 +249,7 @@ TVMStackModel::computeReorderings(MachineInstr &MI, LiveIntervals &LIS,
   // constants
   size_t NumGlobals = 0;
   for (unsigned I = 0; I < NumOperands; ++I)
-    if (MI.getOperand(I).isGlobal())
+    if (MI.getOperand(I).isGlobal() || MI.getOperand(I).isSymbol())
       NumGlobals++;
 
   // Let's ensure that all operands have expected type
@@ -257,7 +258,8 @@ TVMStackModel::computeReorderings(MachineInstr &MI, LiveIntervals &LIS,
     if (I < NumDefs)
       assert(Op.isDef() && "Expected Def");
     else if (I < NumDefs + NumGlobals)
-      assert(Op.isGlobal() && "Expected GlobalAddress");
+      assert((Op.isGlobal() || Op.isSymbol()) &&
+             "Expected Global/External Address");
     else if (I < NumDefs + NumGlobals + NumStackOperands)
       assert(isStackOperand(Op) && "Expected a register or a basic block");
     else
@@ -494,7 +496,7 @@ bool TVMStackModel::processInstruction(MachineInstr &MI, LiveIntervals &LIS,
 
   size_t NumGlobals = 0, NumImms = 0;
   for (const MachineOperand &Op : MI.operands()) {
-    if (Op.isGlobal())
+    if (Op.isGlobal() || Op.isSymbol())
       NumGlobals++;
     if (Op.isImm())
       NumImms++;
@@ -540,9 +542,15 @@ bool TVMStackModel::processInstruction(MachineInstr &MI, LiveIntervals &LIS,
     // TODO: continuation must be modelled in the stack then.
     for (unsigned I = 0; I < NumGlobals; I++) {
       const auto &Op = MI.getOperand(NumDefs + I);
-      assert(Op.isGlobal() && "Expected GlobalAddress");
-      BuildMI(&MI, TII->get(TVM::PUSHCONT_LABEL))
-          .addGlobalAddress(Op.getGlobal(), Op.getOffset());
+      assert((Op.isGlobal() || Op.isSymbol()) &&
+             "Expected GlobalAddress/ExternalSymbol");
+      if (Op.isGlobal()) {
+        BuildMI(&MI, TII->get(TVM::PUSHCONT_LABEL))
+            .addGlobalAddress(Op.getGlobal(), Op.getOffset());
+      } else {
+        BuildMI(&MI, TII->get(TVM::PUSHCONT_LABEL))
+            .addExternalSymbol(Op.getSymbolName(), Op.getOffset());
+      }
     }
 
     MachineInstrBuilder MIB = BuildMI(&MI, TII->get(NewOpcode));

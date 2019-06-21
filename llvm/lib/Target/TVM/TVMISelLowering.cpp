@@ -71,6 +71,7 @@ TVMTargetLowering::TVMTargetLowering(const TargetMachine &TM,
 
   setOperationAction(ISD::GlobalAddress, MVT::i64, Custom);
   setOperationAction(ISD::FrameIndex, MVT::i64, Custom);
+  setOperationAction(ISD::ExternalSymbol, MVT::i64, Custom);
 
   // Custom lowering for intrinsics that unrolls into more than one
   // MIR instructions.
@@ -276,6 +277,8 @@ SDValue TVMTargetLowering::LowerOperation(SDValue Op, SelectionDAG &DAG) const {
   switch (Op.getOpcode()) {
   case ISD::GlobalAddress:
     return LowerGlobalAddress(Op, DAG);
+  case ISD::ExternalSymbol:
+    return LowerExternalSymbol(Op, DAG);
   case ISD::FrameIndex:
     return LowerFrameIndex(Op, DAG);
   case ISD::SMUL_LOHI:
@@ -361,6 +364,23 @@ SDValue TVMTargetLowering::LowerGlobalAddress(SDValue Op,
   if (GA->getAddressSpace() != 0)
     fail(DL, DAG, "TVM only expects the 0 address space");
   return DAG.getTargetGlobalAddress(GA->getGlobal(), DL, VT, GA->getOffset());
+}
+
+SDValue TVMTargetLowering::LowerExternalSymbol(SDValue Op,
+                                               SelectionDAG &DAG) const {
+  SDLoc DL(Op);
+  const auto *ES = cast<ExternalSymbolSDNode>(Op);
+  EVT VT = Op.getValueType();
+  assert(ES->getTargetFlags() == 0 &&
+         "Unexpected target flags on generic ExternalSymbolSDNode");
+  // Code excerpt: copied from WebAssembly
+  // Set the TargetFlags to 0x1 which indicates that this is a "function"
+  // symbol rather than a data symbol. We do this unconditionally even though
+  // we don't know anything about the symbol other than its name, because all
+  // external symbols used in target-independent SelectionDAG code are for
+  // functions.
+  return DAG.getTargetExternalSymbol(ES->getSymbol(), VT,
+                                     /*TargetFlags=*/0x1); //);
 }
 
 const char *TVMTargetLowering::getTargetNodeName(unsigned Opcode) const {

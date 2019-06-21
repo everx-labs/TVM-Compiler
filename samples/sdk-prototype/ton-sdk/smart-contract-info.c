@@ -1,7 +1,8 @@
 #include "smart-contract-info.h"
 
 SmartContractInfo get_SmartContractInfo () {
-    return Deserialize_SmartContractInfo (ton_smart_contract_info);
+    tonstdlib_get_smart_contract_info ();
+    return Deserialize_SmartContractInfo ();
 }
 
 #define HEADER_OR_C "define-ton-struct-c.inc"

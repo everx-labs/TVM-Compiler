@@ -3,9 +3,9 @@
 #define HEADER_OR_C "define-ton-struct-c.inc"
 #include "messages.inc"
 
-Cell build_internal_message (MsgAddressInt dest, unsigned value) {
+void build_internal_message (MsgAddressInt dest, unsigned value) {
     Grams val_grams;
-    val_grams.amount = 16;
+    val_grams.amount = value;
 
     CurrencyCollection val;
     val.grams = val_grams;
@@ -24,9 +24,9 @@ Cell build_internal_message (MsgAddressInt dest, unsigned value) {
     msg.info.created_lt = 0; // will be rewirtten by Node
     msg.info.created_at = 0; // will be rewirtten by Node
     msg.init = 0;
-    return Serialize_EmptyMessage (&msg);
+    Serialize_EmptyMessage (&msg);
 }
 
-void send_raw_message (Cell message, int flags) {
-    __builtin_tvm_sendrawmsg (message.body, flags);
+void send_raw_message (int flags) {
+    tonstdlib_send_work_slice_as_rawmsg (flags);
 }

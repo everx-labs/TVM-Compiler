@@ -3,7 +3,7 @@
 
 #include "tvm.h"
 
-#define DESERIALIZE_SLICE_UNSIGNED(argument, size) (Deserialize_Unsigned_Impl (&(argument), size))
-#define DESERIALIZE_SLICE_COMPLEX(argument, type) (Deserialize_##type##_Impl (&(argument)))
+#define DESERIALIZE_ARGUMENT_UNSIGNED(size) (Deserialize_Unsigned_Impl (size))
+#define DESERIALIZE_ARGUMENT_COMPLEX(type) (Deserialize_##type##_Impl ())
 
 #endif

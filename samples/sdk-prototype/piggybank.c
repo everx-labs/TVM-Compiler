@@ -23,16 +23,16 @@ int target_persistent;
 // library at the moment of the contract initialization.
 // The additional data (target, owner) are to be passed to the
 // contract in the initialization message.
-void constructor (Slice arguments) {
-    target_persistent = DESERIALIZE_SLICE_UNSIGNED (arguments, 256);
+void constructor () {
+    target_persistent = DESERIALIZE_ARGUMENT_UNSIGNED (256);
 }
 
 // Main piggybank method: withdraw money from the piggybank
 // account. May be activated if the account accumulated 
 // "target" amount of money. If not, the method throws
 // NOT_ENOUGH_MONEY exception.
-void transfer (Slice arguments) {
-    MsgAddressInt destination = DESERIALIZE_SLICE_COMPLEX (arguments, MsgAddressInt);
+void transfer () {
+    MsgAddressInt destination = DESERIALIZE_ARGUMENT_COMPLEX (MsgAddressInt);
 
     // The current balance is kept in balance_remaining field of
     // the SmartContractInfo structure.
@@ -51,8 +51,52 @@ void transfer (Slice arguments) {
     // At first, let us build the message -- emtpy message with no
     // payload, just destination address; all money are transferred
     // to that address.
-    Cell x = build_internal_message (destination, balance);
+    build_internal_message (destination, balance);
 
     // And now we are sending it
-    send_raw_message (x, 0);
+    tonstdlib_send_work_slice_as_rawmsg (0);
 }
+
+#ifdef DEBUG_EMULATION
+#include <stdio.h>
+#include <memory.h>
+extern void set_sc_info ();
+extern void print_buffer ();
+
+int main () {
+    MsgAddressInt adr;
+    memset (&adr, 0, sizeof(adr));
+    adr.anycast.just = 0;
+    adr.workchain_id = -1;
+    adr.address = 0x87654321;
+
+    tonstdlib_create_empty_work_slice ();
+    Serialize_MsgAddressInt (&adr);
+    printf ("Address: "); print_buffer();
+
+    tonstdlib_create_empty_work_slice ();
+    tonstdlib_work_slice_store_int (11, 256);
+    constructor();
+    printf ("Target: %d\n", target_persistent);
+
+    SmartContractInfo sc_info; 
+    memset (&sc_info, 0, sizeof(sc_info));
+    sc_info.balance_remaining.grams.amount = 1234;
+    sc_info.myself = adr;
+    printf ("Smart contract info\n");
+    tonstdlib_create_empty_work_slice ();
+    Serialize_SmartContractInfo (&sc_info);
+    set_sc_info ();
+
+    SmartContractInfo sc_info1 = get_SmartContractInfo();
+    printf ("Deserialized: %d\n", sc_info1.balance_remaining.grams.amount);
+    fflush (stdout);
+
+    tonstdlib_create_empty_work_slice ();
+    Serialize_MsgAddressInt (&adr);
+
+    printf ("Transfer\n");
+
+    transfer ();
+}
+#endif

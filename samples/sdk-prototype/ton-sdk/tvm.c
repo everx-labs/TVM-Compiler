@@ -1,31 +1,35 @@
 #include "tvm.h"
 
-CellBuilder Serialize_Unsigned_Impl (CellBuilder builder, size_t width, unsigned val) {
-	builder.body = __builtin_tvm_stu(builder.body,width,val);
-	return builder;
+void Serialize_Unsigned_Impl (unsigned width, unsigned val) {
+	tonstdlib_work_slice_store_uint(width,val);
 }
 
-CellBuilder Serialize_Signed_Impl (CellBuilder builder, size_t width, signed val) {
-	builder.body = __builtin_tvm_sti(builder.body,width,val);
-	return builder;
+void Serialize_Signed_Impl (unsigned width, signed val) {
+	tonstdlib_work_slice_store_int(width,val);
 }
 
-Cell Serialize_Unsigned (size_t width, unsigned val) {
-	CellBuilder builder;
-	Cell res;
-
-	builder.body = __builtin_tvm_newc();
-	Serialize_Unsigned_Impl (builder, width, val);
-	res.body = __builtin_tvm_endc(builder.body);
-	return res;
+void Serialize_Unsigned (unsigned width, unsigned val) {
+	tonstdlib_create_empty_work_slice();
+	Serialize_Unsigned_Impl (width, val);
 }
 
-Cell Serialize_Signed (size_t width, signed val) {
-	CellBuilder builder;
-	Cell res;
+void Serialize_Signed (unsigned width, signed val) {
+	tonstdlib_create_empty_work_slice();
+	Serialize_Signed_Impl (width, val);
+}
 
-	builder.body = __builtin_tvm_newc();
-	Serialize_Signed_Impl (builder, width, val);
-	res.body = __builtin_tvm_endc(builder.body);
-	return res;
+unsigned Deserialize_Unsigned_Impl (unsigned width) {
+	return tonstdlib_work_slice_load_uint(width);
+}
+
+int Deserialize_Signed_Impl (unsigned width) {
+	return tonstdlib_work_slice_load_int(width);
+}
+
+unsigned Deserialize_Unsigned (unsigned width) {
+	return Deserialize_Unsigned_Impl (width);
+}
+
+int Deserialize_Signed (unsigned width) {
+	return Deserialize_Signed_Impl (width);
 }

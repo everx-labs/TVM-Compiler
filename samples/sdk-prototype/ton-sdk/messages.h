@@ -6,7 +6,7 @@
 #define HEADER_OR_C "define-ton-struct-header.inc"
 #include "messages.inc"
 
-Cell build_internal_message (MsgAddressInt dest, unsigned value);
-void send_raw_message (Cell message, int flags);
+void build_internal_message (MsgAddressInt dest, unsigned value);
+void send_raw_message (int flags);
 
 #endif

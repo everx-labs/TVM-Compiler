@@ -8,36 +8,23 @@
 
 #define TVM_CUSTOM_EXCEPTION(id,val) enum { id = val };
 
-typedef struct Slice {
-    int body;
-} Slice;
-
-typedef struct Cell {
-    int body;
-} Cell;
-
-typedef struct CellBuilder {
-    int body;
-} CellBuilder;
-
-int __builtin_tvm_newc();
-int __builtin_tvm_endc(int);
-int __builtin_tvm_stu(int,int,int);
-int __builtin_tvm_sti(int,int,int);
-int __builtin_tvm_ctos(int);
-int __builtin_tvm_sendrawmsg(int msg_slice,int flags);
-int __builtin_tvm_throwif(int condition,int exc);
+void tonstdlib_create_empty_work_slice ();
+int tonstdlib_work_slice_load_int (unsigned width);
+unsigned tonstdlib_work_slice_load_uint (unsigned width);
+void tonstdlib_work_slice_store_int (int value, unsigned width);
+void tonstdlib_work_slice_store_uint (unsigned value, unsigned width);
+void tonstdlib_send_work_slice_as_rawmsg (int flags);
 
 #define tvm_assert(condition,exc) (__builtin_tvm_throwif(!(condition),(exc)))
 
-CellBuilder Serialize_Unsigned_Impl (CellBuilder builder, size_t width, unsigned int);
-CellBuilder Serialize_Signed_Impl (CellBuilder builder, size_t width, signed int);
-Cell Serialize_Unsigned (size_t width, unsigned int);
-Cell Serialize_Signed (size_t width, signed int);
+void Serialize_Unsigned_Impl (unsigned width, unsigned int);
+void Serialize_Signed_Impl (unsigned width, signed int);
+void Serialize_Unsigned (unsigned width, unsigned int);
+void Serialize_Signed (unsigned width, signed int);
 
-unsigned int Deserialize_Unsigned_Impl (Slice*, size_t width);
-signed int Deserialize_Signed_Impl (Slice*, size_t width);
-unsigned int Deserialize_Unsigned (Cell, size_t width);
-signed int Deserialize_Signed (Cell, size_t width);
+unsigned int Deserialize_Unsigned_Impl (unsigned width);
+signed int Deserialize_Signed_Impl (unsigned width);
+unsigned int Deserialize_Unsigned (unsigned width);
+signed int Deserialize_Signed (unsigned width);
 
 #endif

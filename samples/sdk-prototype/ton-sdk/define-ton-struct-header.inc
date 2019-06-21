@@ -18,9 +18,9 @@ typedef struct TON_STRUCT_NAME {
     TON_STRUCT
 } TON_STRUCT_NAME;
 
-CellBuilder XJOIN3(Serialize_,TON_STRUCT_NAME,_Impl) (CellBuilder builder, TON_STRUCT_NAME* value);
+void XJOIN3(Serialize_,TON_STRUCT_NAME,_Impl) (TON_STRUCT_NAME* value);
 
-Cell XJOIN(Serialize_,TON_STRUCT_NAME) (TON_STRUCT_NAME* value);
+void XJOIN(Serialize_,TON_STRUCT_NAME) (TON_STRUCT_NAME* value);
 
 #undef FIELD_UNSIGNED
 #undef FIELD_SIGNED
@@ -28,8 +28,8 @@ Cell XJOIN(Serialize_,TON_STRUCT_NAME) (TON_STRUCT_NAME* value);
 #undef FIELD_MAYBE
 #undef FIELD_ARRAY
 
-TON_STRUCT_NAME XJOIN3(Deserialize_,TON_STRUCT_NAME,_Impl) (Slice* slice);
-TON_STRUCT_NAME XJOIN(Deserialize_,TON_STRUCT_NAME) (Cell cell);
+TON_STRUCT_NAME XJOIN3(Deserialize_,TON_STRUCT_NAME,_Impl) ();
+TON_STRUCT_NAME XJOIN(Deserialize_,TON_STRUCT_NAME) ();
 
 #undef TON_STRUCT_NAME
 #undef TON_STRUCT

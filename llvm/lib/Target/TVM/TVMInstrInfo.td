@@ -204,6 +204,24 @@ def : Pat<(TVMrshift I64:$a, simm8:$b), (SHR I64:$a, simm8:$b)>;
 def : Pat<(TVMrshift I64:$a, I64:$b), (SHR I64:$a, I64:$b)>;
 def : Pat<(TVMconst_u64 UImm64:$uimm), (CONST_U64 UImm64:$uimm)>;
 
+// unsigned a / b = (a & -1) DIV (b & -1)
+// unsigned a % b = (a & -1) MOD (b & -1)
+class UintBinopPat<SDPatternOperator instr_op, Instruction instr> :
+  Pat<(instr_op I64:$a, I64:$b),
+      (instr (AND I64:$a, (CONST_U64 0xFFFFFFFFFFFFFFFF)),
+             (AND I64:$b, (CONST_U64 0xFFFFFFFFFFFFFFFF)))>;
+def : UintBinopPat<udiv, DIV>;
+def : UintBinopPat<urem, MOD>;
+
+// int a / b = (abs(a) / abs(b)) & ((a xor b) & (1 << 63))
+// int a % b = (abs(a) % abs(b)) & ((a xor b) & (1 << 63))
+class IntDivPat<SDPatternOperator instr_op, Instruction instr> :
+  Pat<(instr_op I64:$a, I64:$b),
+      (AND (instr (ABS I64:$a), (ABS I64:$b)),
+        (AND (XOR I64:$a, I64:$b), (CONST_U64 0x8000000000000000)))>;
+def : IntDivPat<sdiv, DIV>;
+def : IntDivPat<srem, MOD>;
+
 //===----------------------------------------------------------------------===//
 // Fits
 //===----------------------------------------------------------------------===//

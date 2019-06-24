@@ -53,6 +53,7 @@ subdirectories =
  llvm-undname
  opt
  verify-uselistorder
+ tvm-testrun
 
 [component_0]
 type = Group

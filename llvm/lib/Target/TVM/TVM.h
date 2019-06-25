@@ -37,7 +37,7 @@ FunctionPass *createTVMRegNumbering();
 FunctionPass *createTVMPeephole();
 FunctionPass *createTVMStackModel();
 FunctionPass *createTVMLoopInstructions();
-FunctionPass *createTVMLoopEntry();
+FunctionPass *createTVMLoopPrepare();
 
 void initializeTVMArgumentMovePass(PassRegistry &);
 void initializeTVMControlFlowPreparePass(PassRegistry &);
@@ -49,7 +49,7 @@ void initializeTVMRegNumberingPass(PassRegistry &);
 void initializeTVMPeepholePass(PassRegistry &);
 void initializeTVMStackModelPass(PassRegistry &);
 void initializeTVMLoopInstructionsPass(PassRegistry &);
-void initializeTVMLoopEntryPass(PassRegistry &);
+void initializeTVMLoopPreparePass(PassRegistry &);
 } // namespace llvm
 
 #endif // LLVM_LIB_TARGET_TVM_TVM_H

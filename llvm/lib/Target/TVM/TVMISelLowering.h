@@ -74,6 +74,7 @@ private:
   SDValue LowerGlobalAddress(SDValue Op, SelectionDAG &DAG) const;
   SDValue LowerExternalSymbol(SDValue Op, SelectionDAG &DAG) const;
   SDValue LowerFrameIndex(SDValue Op, SelectionDAG &DAG) const;
+  SDValue LowerCopyToReg(SDValue Op, SelectionDAG &DAG) const;
 
   SDValue LowerSMUL_LOHI(SDValue Op, SelectionDAG &DAG) const;
   SDValue LowerUMUL_LOHI(SDValue Op, SelectionDAG &DAG) const;

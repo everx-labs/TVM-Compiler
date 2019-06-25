@@ -72,6 +72,7 @@ TVMTargetLowering::TVMTargetLowering(const TargetMachine &TM,
   setOperationAction(ISD::GlobalAddress, MVT::i64, Custom);
   setOperationAction(ISD::FrameIndex, MVT::i64, Custom);
   setOperationAction(ISD::ExternalSymbol, MVT::i64, Custom);
+  setOperationAction(ISD::CopyToReg, MVT::Other, Custom);
 
   // Custom lowering for intrinsics that unrolls into more than one
   // MIR instructions.
@@ -281,6 +282,8 @@ SDValue TVMTargetLowering::LowerOperation(SDValue Op, SelectionDAG &DAG) const {
     return LowerExternalSymbol(Op, DAG);
   case ISD::FrameIndex:
     return LowerFrameIndex(Op, DAG);
+  case ISD::CopyToReg:
+    return LowerCopyToReg(Op, DAG);
   case ISD::SMUL_LOHI:
     return LowerSMUL_LOHI(Op, DAG);
   case ISD::UMUL_LOHI:
@@ -394,6 +397,26 @@ const char *TVMTargetLowering::getTargetNodeName(unsigned Opcode) const {
 #undef HANDLE_NODETYPE
   }
   return nullptr;
+}
+
+SDValue TVMTargetLowering::LowerCopyToReg(SDValue Op, SelectionDAG &DAG) const {
+  SDValue Src = Op.getOperand(2);
+  if (isa<FrameIndexSDNode>(Src.getNode())) {
+    // CopyToReg nodes don't support FrameIndex operands.
+    //   Implemented like WebAssemblyTargetLowering::LowerCopyToReg
+    SDValue Chain = Op.getOperand(0);
+    SDLoc DL(Op);
+    unsigned Reg = cast<RegisterSDNode>(Op.getOperand(1))->getReg();
+    EVT VT = Src.getValueType();
+
+    SDValue Copy(DAG.getMachineNode(TVM::REG_TO_REG_COPY, DL, VT, Src), 0);
+    return Op.getNode()->getNumValues() == 1
+               ? DAG.getCopyToReg(Chain, DL, Reg, Copy)
+               : DAG.getCopyToReg(Chain, DL, Reg, Copy, Op.getNumOperands() == 4
+                                                            ? Op.getOperand(3)
+                                                            : SDValue());
+  }
+  return SDValue();
 }
 
 SDValue TVMTargetLowering::LowerFrameIndex(SDValue Op,

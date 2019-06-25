@@ -24,7 +24,7 @@ protected:
 public:
   //TODO: Copied from MSP430. Check.
   explicit TVMFrameLowering()
-      : TargetFrameLowering(TargetFrameLowering::StackGrowsDown, 2, -2, 2) {}
+      : TargetFrameLowering(TargetFrameLowering::StackGrowsUp, 8, 0) {}
 
   void emitPrologue(MachineFunction &MF, MachineBasicBlock &MBB) const override;
   void emitEpilogue(MachineFunction &MF, MachineBasicBlock &MBB) const override;

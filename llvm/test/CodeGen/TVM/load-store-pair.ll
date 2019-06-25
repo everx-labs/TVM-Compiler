@@ -19,7 +19,7 @@ define void @mk_pair(%struct.Pair* noalias sret %agg.result) {
 
 ; CHECK-LABEL: test_pair
 define i64 @test_pair() {
-; CHECK: PUSHINT 22
+; CHECK: PUSHINT 16
 ; CHECK: CALL $:enter$
   %p = alloca %struct.Pair, align 8
   call void @mk_pair(%struct.Pair* sret %p)
@@ -30,7 +30,7 @@ define i64 @test_pair() {
 ; CHECK-NEXT: $:load$
   %2 = load i64, i64* %right, align 8
   %add = add nsw i64 %1, %2
-; CHECK: PUSHINT 22
+; CHECK: PUSHINT 16
 ; CHECK: CALL $:leave$
   ret i64 %add
 }

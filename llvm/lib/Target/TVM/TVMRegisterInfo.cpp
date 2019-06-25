@@ -62,8 +62,11 @@ void TVMRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
   const MachineFrameInfo &MFI = MF.getFrameInfo();
   const auto *TII = MF.getSubtarget<TVMSubtarget>().getInstrInfo();
 
-  int64_t FrameOffset = MFI.getStackSize() + MFI.getObjectOffset(FrameIndex);
+  int64_t FrameOffset = MFI.getObjectOffset(FrameIndex);
 
+  assert(FrameOffset >= 0 && "FrameOffset < 0");
+  assert(FrameOffset < static_cast<int64_t>(MFI.getStackSize()) &&
+         "FrameOffset overflows stack size");
   assert(MFI.getObjectSize(FrameIndex) != 0 &&
          "We assume that variable-sized objects have already been lowered, "
          "and don't use FrameIndex operands.");

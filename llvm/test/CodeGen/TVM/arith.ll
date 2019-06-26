@@ -45,3 +45,13 @@ define i64 @subi64constReversed(i64 %par) nounwind {
   %1 = sub i64 2, %par
   ret i64 %1
 }
+
+; CHECK-LABEL: bug2019.06.26
+define i64 @bug2019.06.26(i64 %x) nounwind {
+entry:
+; CHECK: XCHG
+; CHECK-NEXT: PUSH
+  %mul = mul nsw i64 %x, %x
+  %rem = urem i64 %mul, 7
+  ret i64 %rem
+}

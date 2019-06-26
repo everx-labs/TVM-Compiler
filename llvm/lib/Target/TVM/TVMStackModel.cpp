@@ -285,8 +285,7 @@ TVMStackModel::computeReorderings(MachineInstr &MI, LiveIntervals &LIS,
     if (!Operand.isReg())
       continue;
     RegUsed.insert(Operand.getReg());
-    if (FirstUseOperandIndex.count(Operand.getReg()) == 0u)
-      FirstUseOperandIndex[Operand.getReg()] = OpNo;
+    FirstUseOperandIndex[Operand.getReg()] = OpNo;
   }
 
   for (size_t ROpNo = 0; ROpNo < NumStackOperands; ++ROpNo) {

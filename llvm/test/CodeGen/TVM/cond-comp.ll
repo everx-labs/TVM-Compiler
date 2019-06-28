@@ -26,9 +26,9 @@ define i64 @cond_comp(i64 %sel, i64 %par) nounwind {
 ; CHECK-NEXT:     MUL
 ; CHECK-NEXT:     RET
 ; CHECK-NEXT:     }
+; CHECK:        XCHG  s0, s1
 ; CHECK:        IFELSE
 ; CHECK-NEXT:   }
-; CHECK:      }
 ; CHECK:      PUSHCONT
 ; CHECK:        XCHG  s0, s2
 ; CHECK-NEXT:   ISZERO

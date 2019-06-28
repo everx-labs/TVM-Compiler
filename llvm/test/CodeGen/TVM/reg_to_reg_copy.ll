@@ -7,7 +7,7 @@ define dso_local i64 @reg_to_reg_copy(i64 %c) {
 ; CHECK-LABEL: reg_to_reg_copy:
 ; CHECK: GREATER
 ; CHECK: LESS
-; CHECK: UNTIL
+; CHECK: IFELSE
 entry:
   %cmp4 = icmp sgt i64 %c, 0
   br i1 %cmp4, label %for.body, label %for.end

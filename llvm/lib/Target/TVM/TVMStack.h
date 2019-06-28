@@ -26,7 +26,7 @@
 
 namespace llvm {
 
-enum class StackReorderingKind { Copy, Xchg, New };
+enum class StackReorderingKind { Copy, Xchg };
 
 struct StackVreg {
   unsigned VirtReg = 0;
@@ -53,8 +53,6 @@ struct StackReordering {
   StackReorderingKind ReorderingKind;
   /// Check if the reordering copies an existing element to SlotTo.
   bool isCopy() const { return ReorderingKind == StackReorderingKind::Copy; }
-  /// Check if the reordering creates a new element at SlotTo.
-  bool isNew() const { return ReorderingKind == StackReorderingKind::New; }
   /// Check if the reordering exchanges elements in a stack.
   bool isXchg() const { return ReorderingKind == StackReorderingKind::Xchg; }
   StackReordering(StackElementT ElemFrom, size_t SlotTo,
@@ -92,11 +90,6 @@ public:
   /// \par InsertPoint specify instruction to insert after.
   /// \par Elem virtual register or basic block.
   void push(MachineInstr *InsertPoint, StackElementT Elem);
-  /// Put a continuation (represented as a pointer to a basic block) on top of
-  /// the stack. This operation doesn't depend on whether the element is already
-  /// in stack and it never results in generation of PUSH instruction. Instead,
-  /// it uses PUSHCONT.
-  void pushNew(MachineInstr *InsertPoint, MachineBasicBlock &MBB);
   /// \par InsertPoint specify instruction to insert after.
   /// \par ElemFrom register or BB to be exchanged in the stack.
   /// \par SlotTo slot number to be exchanged with.

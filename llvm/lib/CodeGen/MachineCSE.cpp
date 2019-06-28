@@ -388,6 +388,11 @@ bool MachineCSE::isCSECandidate(MachineInstr *MI) {
 /// common expression that defines Reg.
 bool MachineCSE::isProfitableToCSE(unsigned CSReg, unsigned Reg,
                                    MachineInstr *CSMI, MachineInstr *MI) {
+
+  // TVM local change begin
+  if (MI->getOpcode() == 247) // TODO: TVM::PUSHCONT_MBB (247)
+    return true;
+  // TVM local change end
   // FIXME: Heuristics that works around the lack the live range splitting.
 
   // If CSReg is used at all uses of Reg, CSE should not increase register

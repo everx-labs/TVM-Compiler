@@ -68,16 +68,6 @@ void Stack::push(MachineInstr *InsertPoint, StackElementT Elem) {
   }
 }
 
-void Stack::pushNew(MachineInstr *InsertPoint, MachineBasicBlock &MBB) {
-  Data.push_front(&MBB);
-  if (InsertPoint != nullptr) {
-    auto *MI = BuildMI(InsertPoint, TII->get(TVM::PUSHCONT_MBB))
-                   .addMBB(&MBB)
-                   .getInstr();
-    MFI->addStackModelComment(MI, toString());
-  }
-}
-
 bool Stack::xchg(MachineInstr *InsertPoint, StackElementT ElemFrom,
                  size_t SlotTo) {
   auto It = llvm::find_or_fail(Data, ElemFrom);

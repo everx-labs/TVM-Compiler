@@ -1974,10 +1974,13 @@ void SelectionDAGBuilder::visitBr(const BranchInst &I) {
 
     // If this is not a fall-through branch or optimizations are switched off,
     // emit the branch.
-    if (Succ0MBB != NextBlock(BrMBB) || TM.getOptLevel() == CodeGenOpt::None)
+    // TVM local change begin
+    // Eliminated (Succ0MBB != NextBlock(BrMBB)) check
+    // if (TM.getOptLevel() == CodeGenOpt::None)
       DAG.setRoot(DAG.getNode(ISD::BR, getCurSDLoc(),
                               MVT::Other, getControlRoot(),
                               DAG.getBasicBlock(Succ0MBB)));
+    // TVM local change end
 
     return;
   }

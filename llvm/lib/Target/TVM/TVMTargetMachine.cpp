@@ -88,6 +88,7 @@ public:
   void addIRPasses() override;
   bool addInstSelector() override;
   void addPreEmitPass() override;
+  void addPreRegAlloc() override;
   void addPostRegAlloc() override;
 };
 } // namespace
@@ -137,6 +138,12 @@ void TVMPassConfig::addPreEmitPass() {
 
   // Create a mapping from LLVM CodeGen virtual registers to tvm registers.
   addPass(createTVMRegNumbering());
+}
+
+void TVMPassConfig::addPreRegAlloc() {
+  // We need Machine CSE at every optimization level for PUSHCONT_MBB combining
+  addPass(&MachineCSEID);
+  TargetPassConfig::addPreRegAlloc();
 }
 
 void TVMPassConfig::addPostRegAlloc() {

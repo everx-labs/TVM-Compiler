@@ -50,17 +50,21 @@ void TVMMCInstLower::lower(const MachineInstr *MI, MCInst &OutMI) {
     case MachineOperand::MO_Immediate:
       MCOp = MCOperand::createImm(MO.getImm());
       break;
-    case MachineOperand::MO_MachineBasicBlock:
-      for (auto &I : *MO.getMBB()) {
-        // todo: combine this with code in AsmPrinter::EmitInstruction
-        if (I.getOpcode() == TVM::FALLTHROUGH_RETURN)
-          continue;
+    case MachineOperand::MO_MachineBasicBlock: {
+      auto *MBB = MO.getMBB();
+      do { // we need to iterate all fallthrough blocks
+        for (auto &I : *MBB) {
+          // todo: combine this with code in AsmPrinter::EmitInstruction
+          if (I.getOpcode() == TVM::FALLTHROUGH_RETURN)
+            continue;
 
-        auto Inst = std::make_shared<MCInst>();
-        ContinuationInstructionStorage.push_back(Inst);
-        lower(&I, *Inst);
-        OutMI.addOperand(MCOperand::createInst(Inst.get()));
-      }
+          auto Inst = std::make_shared<MCInst>();
+          ContinuationInstructionStorage.push_back(Inst);
+          lower(&I, *Inst);
+          OutMI.addOperand(MCOperand::createInst(Inst.get()));
+        }
+      } while ((MBB = MBB->getFallThrough()));
+    }
       continue;
     case MachineOperand::MO_GlobalAddress: {
       assert(MO.getTargetFlags() == 0 &&

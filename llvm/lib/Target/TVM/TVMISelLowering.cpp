@@ -72,6 +72,8 @@ TVMTargetLowering::TVMTargetLowering(const TargetMachine &TM,
   setOperationAction(ISD::GlobalAddress, MVT::i64, Custom);
   setOperationAction(ISD::FrameIndex, MVT::i64, Custom);
   setOperationAction(ISD::ExternalSymbol, MVT::i64, Custom);
+  setOperationAction(ISD::BR, MVT::Other, Custom);
+  setOperationAction(ISD::BRCOND, MVT::Other, Custom);
   setOperationAction(ISD::CopyToReg, MVT::Other, Custom);
 
   // Custom lowering for intrinsics that unrolls into more than one
@@ -95,9 +97,6 @@ TVMTargetLowering::TVMTargetLowering(const TargetMachine &TM,
 
   // Support of truncate, sext, zext
   setTargetDAGCombine(ISD::TRUNCATE);
-
-  // Continuations support
-  setTargetDAGCombine(ISD::BR);
 
   // Expand these forms; we pattern-match the forms that we can handle in isel.
   for (auto Op : {ISD::BR_CC, ISD::SELECT_CC})
@@ -322,6 +321,10 @@ SDValue TVMTargetLowering::LowerOperation(SDValue Op, SelectionDAG &DAG) const {
     return LowerGlobalAddress(Op, DAG);
   case ISD::ExternalSymbol:
     return LowerExternalSymbol(Op, DAG);
+  case ISD::BR:
+    return LowerBR(Op, DAG);
+  case ISD::BRCOND:
+    return LowerBRCOND(Op, DAG);
   case ISD::FrameIndex:
     return LowerFrameIndex(Op, DAG);
   case ISD::CopyToReg:
@@ -378,22 +381,6 @@ SDValue TVMTargetLowering::PerformDAGCombine(SDNode *N,
 
     break;
   }
-  case ISD::BR: {
-    if (!DCI.isAfterLegalizeDAG())
-      break;
-
-    SDValue Chain = N->getOperand(0);
-
-    if (!Chain || Chain.getOpcode() != ISD::BRCOND ||
-        !Chain.getOperand(1).getSimpleValueType().isInteger())
-      break; // we are interested only in replacing of a chain brcond, br
-
-    SDValue PrevChain = Chain->getOperand(0), Cond = Chain->getOperand(1),
-            ThenBranch = N->getOperand(1), ElseBranch = Chain->getOperand(2);
-
-    return DAG.getNode(TVMISD::IFELSE, DL, MVT::Other, PrevChain, Cond,
-                       ThenBranch, ElseBranch);
-  }
   }
 
   return SDValue();
@@ -426,6 +413,37 @@ SDValue TVMTargetLowering::LowerExternalSymbol(SDValue Op,
   // functions.
   return DAG.getTargetExternalSymbol(ES->getSymbol(), VT,
                                      /*TargetFlags=*/0x1); //);
+}
+
+SDValue TVMTargetLowering::LowerBR(SDValue Op,
+                                   SelectionDAG &DAG) const {
+  SDLoc DL(Op);
+  SDValue Chain = Op.getOperand(0);
+  SDValue Dest  = Op.getOperand(1);
+  SDValue Zero = DAG.getTargetConstant(0, DL, MVT::i64);
+  if (Chain.getOpcode() == ISD::BRCOND) {
+    SDValue PrevChain = Chain->getOperand(0), Cond = Chain->getOperand(1),
+            ThenBr = Chain->getOperand(2), ElseBr = Dest;
+
+    ThenBr = DAG.getNode(TVMISD::BBWrapper, DL, MVT::i64, ThenBr, Zero);
+    ElseBr = DAG.getNode(TVMISD::BBWrapper, DL, MVT::i64, ElseBr, Zero);
+
+    return DAG.getNode(TVMISD::IFELSE, DL, MVT::Other, PrevChain, Cond,
+                       ThenBr, ElseBr);
+  }
+  Dest = DAG.getNode(TVMISD::BBWrapper, DL, MVT::i64, Dest, Zero);
+  return DAG.getNode(TVMISD::JUMPX, DL, MVT::Other, Chain, Dest);
+}
+
+SDValue TVMTargetLowering::LowerBRCOND(SDValue Op,
+                                       SelectionDAG &DAG) const {
+  SDLoc DL(Op);
+  SDValue Chain = Op.getOperand(0);
+  SDValue Cond  = Op.getOperand(1);
+  SDValue Dest  = Op.getOperand(2);
+  SDValue Zero = DAG.getTargetConstant(0, DL, MVT::i64);
+  Dest = DAG.getNode(TVMISD::BBWrapper, DL, MVT::i64, Dest, Zero);
+  return DAG.getNode(TVMISD::IFJMP, DL, MVT::Other, Chain, Dest, Cond);
 }
 
 const char *TVMTargetLowering::getTargetNodeName(unsigned Opcode) const {

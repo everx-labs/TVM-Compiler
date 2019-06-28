@@ -35,7 +35,18 @@ def SDT_TVMDictSt       : SDTypeProfile<1, 3, []>;
 def SDT_TVMDictLd       : SDTypeProfile<2, 2, []>;
 def SDT_TVMLdRef        : SDTypeProfile<2, 1, []>;
 def SDT_TVMSendRawMsg   : SDTypeProfile<0, 2, []>;
-def SDT_TVMIfElse       : SDTypeProfile<0, 3, [SDTCisVT<0, i64>, SDTCisPtrTy<1>, SDTCisPtrTy<2>]>;
+def SDT_TVMIfElse       : SDTypeProfile<0, 3, [SDTCisVT<0, i64>,
+                                               SDTCisVT<1, i64>,
+                                               SDTCisVT<2, i64>]>;
+def SDT_TVMJumpX        : SDTypeProfile<0, 1, [SDTCisVT<0, i64>]>;
+def SDT_TVMIfJmp        : SDTypeProfile<0, 2, [SDTCisVT<0, i64>,
+                                               SDTCisVT<1, i64>]>;
+
+// We need additional i64 operand after OtherVT, because otherwise
+//  OtherVT (BasicBlock) operand will be considered as a chain
+def SDT_TVMBBWrapper    : SDTypeProfile<1, 2, [SDTCisVT<0, i64>,
+                                               SDTCisVT<1, OtherVT>,
+                                               SDTCisVT<2, i64>]>;
 
 def SDT_TVMMul          : SDTypeProfile<1, 2, []>;
 def SDT_TVMRShift       : SDTypeProfile<1, 2, []>;
@@ -73,7 +84,10 @@ def TVMldux     : SDNode<"TVMISD::LDUX", SDT_TVMDictLd, []>;
 def TVMnewc     : SDNode<"TVMISD::NEWC", SDT_TVMNewc, []>;
 def TVMldslicex : SDNode<"TVMISD::LDSLICEX", SDT_TVMDictLd, []>;
 def TVMsendrawmsg : SDNode<"TVMISD::SENDRAWMSG", SDT_TVMSendRawMsg, []>;
-def TVMifelse : SDNode<"TVMISD::IFELSE", SDT_TVMIfElse, [SDNPHasChain]>;
+def TVMifelse   : SDNode<"TVMISD::IFELSE", SDT_TVMIfElse, [SDNPHasChain]>;
+def TVMjumpx    : SDNode<"TVMISD::JUMPX", SDT_TVMJumpX, [SDNPHasChain]>;
+def TVMifjmp    : SDNode<"TVMISD::IFJMP", SDT_TVMIfJmp, [SDNPHasChain]>;
+def BBWrapper   : SDNode<"TVMISD::BBWrapper", SDT_TVMBBWrapper>;
 
 def TVMmul       : SDNode<"TVMISD::MUL", SDT_TVMMul, []>;
 def TVMrshift    : SDNode<"TVMISD::RSHIFT", SDT_TVMRShift, []>;

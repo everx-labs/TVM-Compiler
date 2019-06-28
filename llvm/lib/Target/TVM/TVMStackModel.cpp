@@ -44,6 +44,8 @@ public:
   void getAnalysisUsage(AnalysisUsage &AU) const override {
     AU.addRequired<LiveIntervals>();
     AU.addPreservedID(LiveVariablesID);
+    AU.addRequired<MachineLoopInfo>();
+    AU.addPreserved<MachineLoopInfo>();
     MachineFunctionPass::getAnalysisUsage(AU);
   }
 
@@ -74,8 +76,13 @@ private:
   void performReorderings(const StackReorderings &Reorderings,
                           MachineInstr *InsertPoint, Stack &TheStack) const;
 
+  /// Returns true if From -> To branch is backedge
+  bool isBackEdge(const MachineBasicBlock *From,
+                  const MachineBasicBlock *To) const;
+
   TVMFunctionInfo *MFI;
   const TargetInstrInfo *TII;
+  MachineLoopInfo *Loops;
 };
 
 /// Return true if reorderings might be optimized away for a commutative
@@ -95,7 +102,7 @@ inline bool isStackOperand(const MachineOperand &MOP) {
           MOP.isSymbol()) &&
          "Unexpected operand type: reconsider the predicate.");
   // TODO: Globals should be on stack.
-  return MOP.isReg() || MOP.isMBB();
+  return MOP.isReg();
 }
 
 /// If \par MO is no longer used after \par MI.
@@ -265,7 +272,7 @@ TVMStackModel::computeReorderings(MachineInstr &MI, LiveIntervals &LIS,
     else
       // TODO: should be !isStackOperand(Op) once we put global address
       //       on stack.
-      assert(Op.isImm() && "Expected Imm");
+      assert((Op.isImm() || Op.isMBB()) && "Expected Imm or MBB");
   }
 
   size_t NumImms = NumOperands - NumDefs - NumGlobals - NumStackOperands;
@@ -299,8 +306,6 @@ TVMStackModel::computeReorderings(MachineInstr &MI, LiveIntervals &LIS,
               ? StackReorderingKind::Xchg
               : StackReorderingKind::Copy;
       Result.emplace_back(StackVreg(RegFrom), ROpNo, Kind);
-    } else if (Operand.isMBB()) {
-      Result.emplace_back(Operand.getMBB(), ROpNo, StackReorderingKind::New);
     }
   }
 
@@ -308,14 +313,14 @@ TVMStackModel::computeReorderings(MachineInstr &MI, LiveIntervals &LIS,
   // number of Pushes followed by it.
   size_t NumPushes = 0;
   size_t TotalPushes = llvm::count_if(
-      Result, [](const StackReordering &R) { return R.isCopy() || R.isNew(); });
+      Result, [](const StackReordering &R) { return R.isCopy(); });
   std::vector<size_t> SlotsFrom;
   for (auto &Reordering : Result) {
     // Note that we modify records in Result below
     size_t &SlotTo = Reordering.SlotTo;
     assert(SlotTo >= NumPushes);
     SlotTo -= NumPushes;
-    if (Reordering.isCopy() || Reordering.isNew()) {
+    if (Reordering.isCopy()) {
       ++NumPushes;
       // We don't care about pushes, so put a sentinel.
       // The maximal slot number is 255 by the specification.
@@ -349,8 +354,6 @@ TVMStackModel::computeReorderings(MachineInstr &MI, LiveIntervals &LIS,
     assert(isStackOperand(Op) && "Expected Reg or MBB");
     if (Op.isReg())
       assert(TheStack2.slotContains(ROpNo, StackVreg(Op.getReg())));
-    if (Op.isMBB())
-      assert(TheStack2.slotContains(ROpNo, Op.getMBB()));
   }
 #endif
 
@@ -407,7 +410,7 @@ void TVMStackModel::performReorderings(const StackReorderings &Reorderings,
   while (RevIdx < NumElements) {
     size_t Idx = NumElements - RevIdx - 1;
     auto &Reordering = Reorderings[Idx];
-    if (Reordering.isCopy() || Reordering.isNew()) {
+    if (Reordering.isCopy()) {
       // If the current reordering is PUSH, execute preceding (in reverse order)
       // XCHGs
       for (size_t I = Idx + 1; I < LastPush; ++I) {
@@ -418,11 +421,7 @@ void TVMStackModel::performReorderings(const StackReorderings &Reorderings,
       if (Reordering.isCopy()) {
         TheStack.push(InsertPoint, Elem);
       } else {
-        assert(std::holds_alternative<MachineBasicBlock *>(Elem) &&
-               "Unimplemented");
-        auto *MBB = std::get<MachineBasicBlock *>(Elem);
-        assert(MBB);
-        TheStack.pushNew(InsertPoint, *MBB);
+        llvm_unreachable("Unexpected reordering");
       }
       if (Reordering.SlotTo > 0)
         TheStack.xchg(InsertPoint, Reordering);
@@ -435,19 +434,6 @@ void TVMStackModel::performReorderings(const StackReorderings &Reorderings,
     assert(Reorderings[I].isXchg() && "Unexpected reordering");
     TheStack.xchg(InsertPoint, Reorderings[I]);
   }
-}
-
-// BACKEDGE does not follow a common rule on REG -> Stack form corrspondence.
-// Although it has MBB as an argument it's always the basic block containg the
-// BACKEDGE. It mustn't be represented in the stack form because it ends up with
-// a cyclic dependency between continuations.
-static void processBackedge(MachineInstr &MI, const TargetInstrInfo *TII,
-                            Stack &TheStack) {
-  unsigned Reg = MI.getOperand(0).getReg();
-  TheStack.xchg(&MI, StackVreg(Reg), 0);
-  TheStack.consumeArguments(1);
-  BuildMI(&MI, TII->get(TVM::BACKEDGE_S));
-  MI.eraseFromParent();
 }
 
 static void removeUnusedDefinitions(MachineInstr& MI, Stack& TheStack) {
@@ -463,15 +449,20 @@ static void removeUnusedDefinitions(MachineInstr& MI, Stack& TheStack) {
     }
 }
 
+// Returns true if From -> To branch is backedge
+bool TVMStackModel::isBackEdge(const MachineBasicBlock *From,
+                               const MachineBasicBlock *To) const {
+  for (const auto *Lp = Loops->getLoopFor(From); Lp; Lp = Lp->getParentLoop()) {
+    if (Lp->getHeader() == To)
+      return true;
+  }
+  return false;
+}
+
 bool TVMStackModel::processInstruction(MachineInstr &MI, LiveIntervals &LIS,
                                        Stack &TheStack) {
   if (MI.isImplicitDef())
     return false;
-
-  if (MI.getOpcode() == TVM::BACKEDGE) {
-    processBackedge(MI, TII, TheStack);
-    return true;
-  }
 
   removeUnusedDefinitions(MI, TheStack);
 
@@ -493,14 +484,16 @@ bool TVMStackModel::processInstruction(MachineInstr &MI, LiveIntervals &LIS,
       count_if(MI.operands(),
                [](const MachineOperand &MOP) { return !isStackOperand(MOP); });
 
-  size_t NumGlobals = 0, NumImms = 0;
+  size_t NumGlobals = 0, NumImms = 0, NumMBBs = 0;
   for (const MachineOperand &Op : MI.operands()) {
     if (Op.isGlobal() || Op.isSymbol())
       NumGlobals++;
     if (Op.isImm())
       NumImms++;
+    if (Op.isMBB())
+      NumMBBs++;
   }
-  assert(NonStackOperands == NumGlobals + NumImms);
+  assert(NonStackOperands == NumGlobals + NumImms + NumMBBs);
   bool Changed = false;
   StackReorderings Reorderings =
       computeReorderings(MI, LIS, TheStack, NonStackOperands);
@@ -553,10 +546,18 @@ bool TVMStackModel::processInstruction(MachineInstr &MI, LiveIntervals &LIS,
     }
 
     MachineInstrBuilder MIB = BuildMI(&MI, TII->get(NewOpcode));
-    for (unsigned I = 0; I < NumImms; I++) {
-      const auto &Op = MI.getOperand(NumOperands - NumImms + I);
-      assert(Op.isImm() && "Expected Imm");
-      MIB.addImm(Op.getImm());
+
+    // Additional immediate is fake op for TVM::PUSHCONT_MBB operation
+    if (MI.getOpcode() == TVM::PUSHCONT_MBB) {
+      MIB->addOperand(MI.getOperand(1));
+    } else {
+      for (unsigned I = 0; I < NumImms; I++) {
+        // TODO: why imms are expected to be in continuous sequence
+        //  in register version of MI?
+        const auto &Op = MI.getOperand(NumOperands - NumImms + I);
+        assert(Op.isImm() && "Expected Imm");
+        MIB.addImm(Op.getImm());
+      }
     }
 
     pruneDeadDefinitions(MI, LIS, TheStack);
@@ -589,10 +590,7 @@ bool TVMStackModel::runOnBasicBlocks(MachineFunction &MF, Stack &TheStack) {
       MachineBasicBlock *LoopPredecessor = nullptr;
       for (auto *Predecessor : MBB.predecessors()) {
         if (BBStack.count(Predecessor) == 0u) {
-          auto TermInstIt = Predecessor->getFirstTerminator();
-          if (TermInstIt->getOpcode() == TVM::BACKEDGE &&
-              TermInstIt->getOperand(1).isMBB() &&
-              TermInstIt->getOperand(1).getMBB() == &MBB) {
+          if (isBackEdge(Predecessor, &MBB)) {
             LoopPredecessor = Predecessor;
           } else {
             PredecessorsProcessed = false;
@@ -636,6 +634,7 @@ bool TVMStackModel::runOnMachineFunction(MachineFunction &MF) {
   bool Changed = false;
   MFI = MF.getInfo<TVMFunctionInfo>();
   TII = MF.getSubtarget<TVMSubtarget>().getInstrInfo();
+  Loops = &getAnalysis<MachineLoopInfo>();
 
   MachineBasicBlock &FirstBB = MF.front();
   assert(!FirstBB.empty());

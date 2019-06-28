@@ -73,6 +73,8 @@ private:
   // Custom lowering hooks.
   SDValue LowerGlobalAddress(SDValue Op, SelectionDAG &DAG) const;
   SDValue LowerExternalSymbol(SDValue Op, SelectionDAG &DAG) const;
+  SDValue LowerBR(SDValue Op, SelectionDAG &DAG) const;
+  SDValue LowerBRCOND(SDValue Op, SelectionDAG &DAG) const;
   SDValue LowerFrameIndex(SDValue Op, SelectionDAG &DAG) const;
   SDValue LowerCopyToReg(SDValue Op, SelectionDAG &DAG) const;
 

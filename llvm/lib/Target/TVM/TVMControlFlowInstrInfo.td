@@ -33,39 +33,26 @@ let isTerminator = 1, hasCtrlDep = 1 in {
 
   let isBranch = 1 in {
     // The condition operand is a boolean value which TVM represents as i64.
-    defm IFJMP : I<(outs), (ins I64:$cond, bb_op:$dst),
+    defm IFJMP : I<(outs), (ins I64:$cond, I64:$dst),
                    (outs), (ins),
-                   [(brcond I64:$cond, bb:$dst)],
+                   [(TVMifjmp I64:$cond, I64:$dst)],
                     "IFJMP\t$dst, $cond", "IFJMP", 0xe0>;
 
     let isBarrier = 1 in {
-    defm IFELSE : I<(outs), (ins I64:$cond, bb_op:$branch1, bb_op:$branch2),
+    defm IFELSE : I<(outs), (ins I64:$cond, I64:$branch1, I64:$branch2),
                    (outs), (ins),
-                   [(TVMifelse I64:$cond, bb:$branch1, bb:$branch2)],
+                   [(TVMifelse I64:$cond, I64:$branch1, I64:$branch2)],
                     "IFELSE\t$branch1, $branch2, $cond", "IFELSE", 0xe2>;
     } // isBarrier = 1
 
     let isBarrier = 1 in {
-      defm JMPX  : I<(outs), (ins bb_op:$dst),
+      defm JMPX  : I<(outs), (ins I64:$dst),
                      (outs), (ins),
-                     [(br bb:$dst)],
+                     [(TVMjumpx i64:$dst)],
                      "JMPX\t$dst", "JMPX", 0xd9>;
     } // isBarrier = 1
   } // isBranch = 1
 } // isTerminator = 1, hasCtrlDep = 1
-
-// Loop terminators
-let isBarrier = 1, isTerminator = 1 in {
-  defm UNTIL : I<(outs), (ins I64 : $cond, bb_op : $dst), (outs), (ins),
-                 [], "UNTIL\t$cond, $dst", "UNTIL", 0xe6>;
-  // Pseudo instruction representing a backedge in a loop.
-  // It needs to identify backedges in MIR. When modeling stack BACKEDGES
-  // are ignored for the sake of topological ordering of BBs.
-  // BACKEDGE also keeps loop exit condition alive.
-  let isCodeGenOnly = 1 in
-  defm BACKEDGE :  I<(outs), (ins I64 : $cond, bb_op : $dst), (outs), (ins), []>;
-
-}
 
 // TODO: The approach with two CALLs was copied from WebAssembly backend.
 // We need to investigate how it works and why 2 CALLs are needed
@@ -93,8 +80,12 @@ defm CONST_U64 : I<(outs I64:$res), (ins UImm64:$uimm),
                    "PUSHINT\t$res, $uimm", "PUSHINT\t$uimm", 0x82>;
 }
 
-defm PUSHCONT_MBB : I<(outs), (ins bb_op:$bb), (outs), (ins bb_op:$bb), 
-                      [], "PUSHCONT", "PUSHCONT", 0x8f>;
+let isMoveImm = 1, AddedComplexity = 99 in
+defm PUSHCONT_MBB : I<(outs I64:$res), (ins bb_op:$bb, i64imm:$fake_op),
+                      (outs), (ins bb_op:$bb),
+                      [(set I64:$res, (BBWrapper bb:$bb, timm:$fake_op))],
+                      "PUSHCONT", "PUSHCONT", 0x8f>;
+
 defm PUSHCONT_FUNC : NRI<(outs), (ins function_op:$callee), [],
                          "PUSHCONT\t$callee", 0x8f>;
 

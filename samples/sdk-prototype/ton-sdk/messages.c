@@ -30,3 +30,7 @@ void build_internal_message (MsgAddressInt dest, unsigned value) {
 void send_raw_message (int flags) {
     tonstdlib_send_work_slice_as_rawmsg (flags);
 }
+
+void send_external_int256_message (int value) {
+    ;
+}

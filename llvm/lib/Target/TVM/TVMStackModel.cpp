@@ -142,7 +142,10 @@ TVMStackModel::prepareInstructionComment(const MachineInstr &MI) const {
 
   auto OpPrinter = [&OS, &MI, this](const MachineOperand &Operand) {
     if (Operand.isReg()) {
-      OS << printReg(Operand.getReg());
+      if (Operand.isUndef())
+        OS << "x";
+      else
+        OS << printReg(Operand.getReg());
       if (auto DbgVar = findDebugValue(MI, Operand.getReg()))
         OS << "(" << DbgVar->getName() << ")";
     } else {
@@ -238,12 +241,27 @@ bool TVMStackModel::processInstruction(MachineInstr &MI, Stack &TheStack) {
   // Let's ensure that consumed registers are used in instruction
   // TODO: Doesn't cover numerous corner cases. Covering them would require to
   // reimplement consumption under NDEBUG or extending consumption interface.
-  for (unsigned I = 0; I < NumToConsume; I++)
-    assert(llvm::count_if(MI.operands(),
-                          [&](const MachineOperand &Op) {
-                            return Op.isReg() && Op.getReg() == TheStack.reg(I);
-                          }) &&
-           "Consuming register not used in instruction");
+  auto revUses = reverse(MI.uses());
+  for (unsigned I = 0; I < NumToConsume; I++) {
+    if (MI.isCommutable()) {
+      auto regUse = llvm::find_if(revUses, [&](const MachineOperand &Op) {
+        return Op.isReg() && TheStack.reg(I) == Op.getReg();
+      });
+      assert(regUse != revUses.end()
+          && "Consuming register not used in instruction");
+    } else {
+      auto regUse = llvm::find_if(revUses, [&](const MachineOperand &Op) {
+        return Op.isReg();
+      });
+      assert(regUse != revUses.end()
+          && "Consuming register not used in instruction");
+
+      assert(regUse->isUndef() || regUse->getReg() == TheStack.reg(I)
+             && "Wrong register for consuming in instruction");
+
+      revUses = llvm::make_range(++regUse, revUses.end());
+    }
+  }
 #endif
   TheStack.consumeArguments(NumToConsume);
 
@@ -324,6 +342,8 @@ bool TVMStackModel::processInstruction(MachineInstr &MI, Stack &TheStack) {
   return true;
 }
 
+// Traverse all basic blocks in machine function and rewrite all instructions
+// from R-form to S-form. All function arguments are already in stack.
 bool TVMStackModel::runOnBasicBlocks(MachineFunction &MF,
                                      const Stack &StartStack) {
   bool Changed = false;

@@ -388,7 +388,6 @@ bool MachineCSE::isCSECandidate(MachineInstr *MI) {
 /// common expression that defines Reg.
 bool MachineCSE::isProfitableToCSE(unsigned CSReg, unsigned Reg,
                                    MachineInstr *CSMI, MachineInstr *MI) {
-
   // FIXME: Heuristics that works around the lack the live range splitting.
 
   // If CSReg is used at all uses of Reg, CSE should not increase register

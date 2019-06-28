@@ -15,6 +15,7 @@
 #include "TVMSubtarget.h"
 #include "TVMExtras.h"
 #include "TVMUtilities.h"
+#include "TVMStackPatterns.h"
 #include "llvm/CodeGen/MachineInstrBuilder.h"
 #include "llvm/CodeGen/TargetInstrInfo.h"
 #include "llvm/IR/DebugInfoMetadata.h"
@@ -274,6 +275,7 @@ StackFixup StackFixup::DiffForReturn(const Stack &from,
   if (numPops)
     rv(curStack += rv(makeBlkdrop(numPops)));
   rv.optimize();
+  rv.annotate(from);
   return rv;
 }
 
@@ -300,38 +302,138 @@ StackFixup StackFixup::DiffForArgs(const Stack &From, const MIArgs &Args,
       StackVreg vreg(Arg.Vreg);
       PrevArgs = std::count(Args.getArgs().begin(),
                             Args.getArgs().begin() + Idx, Arg);
+      if (vreg.VirtReg == TVMFunctionInfo::UnusedReg) {
+        // If we need to have unused at some arg
+        //  * Aquire some existing unused in stack for relocation
+        //  * Duplicate stack top element
+        //   ^ Stack is not empty (at least, there will be return addr).
+        if (CurStack.count(vreg) > PrevArgs) {
+          // Existing unused element to relocate
+          Push = false;
+          SrcPos = CurStack.positionNrev(vreg, PrevArgs);
+        } else {
+          // Duplicating any top of the stack
+          Push = true;
+          SrcPos = 0;
+        }
+        return;
+      }
       if (Arg.IsKilled)
         Push = CurStack.count(vreg) <= PrevArgs;
       else
         Push = CurStack.count(vreg) <= PrevArgs + 1;
+
+      if (!Push)
+        SrcPos = CurStack.positionNrev(vreg, PrevArgs);
+      else
+        SrcPos = CurStack.position(vreg);
     }
     unsigned PrevArgs; // Prev occurrences of this arg (same vreg)
     bool Push; // Need push (not xchg)
+    unsigned SrcPos; // Position of source for this operand
   };
 
+  bool HasBigNums = false;
   SmallVector<argInfo, 4> ArgInfo;
-  for (unsigned i = 0; i < Args.size(); ++i)
-    ArgInfo.push_back(argInfo(Args, i, CurStack));
-
-  unsigned Offset = 0;
   for (unsigned i = 0; i < Args.size(); ++i) {
-    StackVreg Vreg(Ar[i].Vreg);
-    if (ArgInfo[i].Push) {
-      auto Pos = CurStack.position(Vreg);
+    ArgInfo.push_back(argInfo(Args, i, CurStack));
+    if (ArgInfo.back().SrcPos > XchgLimit)
+      HasBigNums = true;
+  }
+  bool AlreadyGood = true;
+  for (unsigned i = 0; i < Args.size(); ++i) {
+    if (ArgInfo[i].Push ||
+        ArgInfo[i].SrcPos != (Args.size() - i - 1)) {
+      AlreadyGood = false;
+      break;
+    }
+  }
+  // If all args already in place and no pushes required
+  if (AlreadyGood) {
+    rv.annotate(From);
+    return rv;
+  }
+
+  if (Ar.size() == 1) {
+    StackVreg Vreg(Ar[0].Vreg);
+    unsigned Pos = Vreg.VirtReg == TVMFunctionInfo::UnusedReg ?
+          0 : CurStack.position(Vreg);
+    if (ArgInfo[0].Push)
       rv(CurStack += rv(pushI(Pos)));
-      ++Offset;
-    } else if (auto Pos = CurStack.position(Offset, Vreg)) {
-      rv(CurStack += rv(makeRoll(Pos)));
-      ++Offset;
+    else if (Pos != 0)
+      rv(CurStack += rv(xchgTop(Pos)));
+  } else if (Ar.size() == 2 && !HasBigNums) {
+    auto Pos0 = ArgInfo[0].SrcPos;
+    auto Pos1 = ArgInfo[1].SrcPos;
+    auto Push0 = ArgInfo[0].Push;
+    auto Push1 = ArgInfo[1].Push;
+    if (Push0 && Push1) {
+      StackPatterns::pattern2_pp(rv, Pos0, Pos1);
+    } else if (!Push0 && !Push1) {
+      StackPatterns::pattern2_xx(rv, Pos0, Pos1);
+    } else if (!Push0 && Push1) {
+      StackPatterns::pattern2_xp(rv, Pos0, Pos1);
+    } else if (Push0 && !Push1) {
+      StackPatterns::pattern2_px(rv, Pos0, Pos1);
+    } else {
+      llvm_unreachable("Two arg Push0/Push1 inconsistence");
+    }
+  } else if (Ar.size() == 3 && !HasBigNums) {
+    auto Pos0 = ArgInfo[0].SrcPos;
+    auto Pos1 = ArgInfo[1].SrcPos;
+    auto Pos2 = ArgInfo[2].SrcPos;
+    auto Push0 = ArgInfo[0].Push;
+    auto Push1 = ArgInfo[1].Push;
+    auto Push2 = ArgInfo[2].Push;
+
+    if (!Push0 && !Push1 && !Push2)
+      StackPatterns::pattern3_xxx(rv, Pos0, Pos1, Pos2);
+    else if (!Push0 && !Push1 && Push2)
+      StackPatterns::pattern3_xxp(rv, Pos0, Pos1, Pos2);
+    else if (!Push0 && Push1 && !Push2)
+      StackPatterns::pattern3_xpx(rv, Pos0, Pos1, Pos2);
+    else if (!Push0 && Push1 && Push2)
+      StackPatterns::pattern3_xpp(rv, Pos0, Pos1, Pos2);
+    else if (Push0 && !Push1 && !Push2)
+      StackPatterns::pattern3_pxx(rv, Pos0, Pos1, Pos2);
+    else if (Push0 && !Push1 && Push2)
+      StackPatterns::pattern3_pxp(rv, Pos0, Pos1, Pos2);
+    else if (Push0 && Push1 && !Push2)
+      StackPatterns::pattern3_ppx(rv, Pos0, Pos1, Pos2);
+    else if (Push0 && Push1 && Push2)
+      StackPatterns::pattern3_ppp(rv, Pos0, Pos1, Pos2);
+  } else {
+    unsigned Offset = 0;
+    for (unsigned i = 0; i < Args.size(); ++i) {
+      StackVreg Vreg(Ar[i].Vreg);
+      if (ArgInfo[i].Push) {
+        if (Vreg.VirtReg == TVMFunctionInfo::UnusedReg)
+          rv(CurStack += rv(pushUndef()));
+        else
+          rv(CurStack += rv(pushI(CurStack.position(Vreg))));
+        ++Offset;
+      } else if (auto Pos = CurStack.position(Offset, Vreg)) {
+        rv(CurStack += rv(makeRoll(Pos)));
+        ++Offset;
+      }
     }
   }
   rv.optimize(IsCommutative);
+  rv.annotate(From);
   return rv;
 }
 
 void StackFixup::apply(Stack &stack) const {
   for (auto p : Changes)
     stack += p.first;
+}
+
+void StackFixup::annotate(const Stack &stack) {
+  Stack curStack(stack);
+  for (auto &p : Changes) {
+    curStack += p.first;
+    p.second = curStack.toString();
+  }
 }
 
 void StackFixup::removeElem(Stack &stack, const StackVreg &vreg) {
@@ -495,11 +597,11 @@ operator()(const std::pair<Change, std::string> &pair) const {
       [&](nip){
         MI = BuildMI(*MBB, InsertPt, DL, TII->get(TVM::NIP)).getInstr();
       },
-      [&](swap){
-        MI = BuildMI(*MBB, InsertPt, DL, TII->get(TVM::SWAP)).getInstr();
-      },
       [&](xchgTop v){
-        if (v.i <= XchgLimit) {
+        if (v.i == 1) {
+          MI = BuildMI(*MBB, InsertPt, DL, TII->get(TVM::SWAP)).getInstr();
+        } else if (v.i <= XchgLimit) {
+
           MI = BuildMI(*MBB, InsertPt, DL, TII->get(TVM::XCHG_TOP)).addImm(v.i)
                        .getInstr();
         } else if (v.i <= XchgDeepLimit) {

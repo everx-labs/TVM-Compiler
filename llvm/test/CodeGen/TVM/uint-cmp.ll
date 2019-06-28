@@ -8,13 +8,13 @@ define dso_local i64 @ult_test(i64 %a, i64 %b) local_unnamed_addr norecurse noun
 ; CHECK-LABEL: ult_test:
 ; CHECK:	PUSHINT	18446744073709551615
 ; CHECK:	PUSH	s1
-; CHECK:	XCHG	s0, s1
+; CHECK:	SWAP
 ; CHECK:	AND
 ; CHECK:	PUSHINT	18446744073709551615
 ; CHECK:	PUSH	s3
-; CHECK:	XCHG	s0, s1
+; CHECK:	SWAP
 ; CHECK:	AND
-; CHECK:	XCHG	s0, s1
+; CHECK:	SWAP
 ; CHECK:	LESS
 ; CHECK:	CONDSEL
 entry:
@@ -28,13 +28,13 @@ define dso_local i64 @ule_test(i64 %a, i64 %b) local_unnamed_addr norecurse noun
 ; CHECK-LABEL: ule_test:
 ; CHECK:	PUSHINT	18446744073709551615
 ; CHECK:	PUSH	s1
-; CHECK:	XCHG	s0, s1
+; CHECK:	SWAP
 ; CHECK:	AND
 ; CHECK:	PUSHINT	18446744073709551615
 ; CHECK:	PUSH	s3
-; CHECK:	XCHG	s0, s1
+; CHECK:	SWAP
 ; CHECK:	AND
-; CHECK:	XCHG	s0, s1
+; CHECK:	SWAP
 ; CHECK:	LEQ
 ; CHECK:	CONDSEL
 entry:
@@ -48,13 +48,13 @@ define dso_local i64 @ugt_test(i64 %a, i64 %b) local_unnamed_addr norecurse noun
 ; CHECK-LABEL: ugt_test:
 ; CHECK:	PUSHINT	18446744073709551615
 ; CHECK:	PUSH	s1
-; CHECK:	XCHG	s0, s1
+; CHECK:	SWAP
 ; CHECK:	AND
 ; CHECK:	PUSHINT	18446744073709551615
 ; CHECK:	PUSH	s3
-; CHECK:	XCHG	s0, s1
+; CHECK:	SWAP
 ; CHECK:	AND
-; CHECK:	XCHG	s0, s1
+; CHECK:	SWAP
 ; CHECK:	GREATER
 ; CHECK:	CONDSEL
 entry:
@@ -68,13 +68,13 @@ define dso_local i64 @uge_test(i64 %a, i64 %b) local_unnamed_addr norecurse noun
 ; CHECK-LABEL: uge_test:
 ; CHECK:	PUSHINT	18446744073709551615
 ; CHECK:	PUSH	s1
-; CHECK:	XCHG	s0, s1
+; CHECK:	SWAP
 ; CHECK:	AND
 ; CHECK:	PUSHINT	18446744073709551615
 ; CHECK:	PUSH	s3
-; CHECK:	XCHG	s0, s1
+; CHECK:	SWAP
 ; CHECK:	AND
-; CHECK:	XCHG	s0, s1
+; CHECK:	SWAP
 ; CHECK:	GEQ
 ; CHECK:	CONDSEL
 entry:

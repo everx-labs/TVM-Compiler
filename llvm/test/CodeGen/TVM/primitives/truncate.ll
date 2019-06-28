@@ -1,5 +1,4 @@
 ; RUN: llc < %s -O0 -march=tvm -tvm-trunc-masks -asm-verbose=false | FileCheck %s
-; XFAIL:*
 target datalayout = "E-S1024-i256:256:256"
 target triple = "tvm-unknown-unknown"
 

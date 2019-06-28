@@ -48,29 +48,10 @@ MIArgs::MIArgs(MachineInstr &MI, const LiveIntervals &LIS) {
   auto regUses = llvm::make_filter_range(MI.uses(),
                    [](const MachineOperand &Op) { return Op.isReg(); });
   for (auto Arg : regUses) {
-    Args.emplace_back(StackVreg(Arg.getReg()),
-                      isKilled(MI, Arg.getReg(), LIS));
+    auto Vreg = Arg.isUndef() ? TVMFunctionInfo::UnusedReg : Arg.getReg();
+    bool Killed = Arg.isUndef() ? true : isKilled(MI, Arg.getReg(), LIS);
+    Args.emplace_back(StackVreg(Vreg), Killed);
   }
-}
-
-Stack Stack::reqArgs(const MIArgs &Args) const {
-  Stack rv(*this);
-  SmallVector<StackVreg, 4> Ops;
-  for (auto Arg : Args.getArgs()) {
-    auto it = llvm::find(rv.Data, Arg.Vreg);
-    if (it != rv.Data.end()) {
-      Ops.push_back(*it);
-      if (Arg.IsKilled)
-        rv.Data.erase(it);
-    } else {
-      auto dupIt = llvm::find(Ops, Arg.Vreg);
-      assert(dupIt != Ops.end() && "No required argument in stack");
-      Ops.push_back(*dupIt);
-    }
-  }
-  auto reverted = llvm::reverse(Ops);
-  rv.Data.insert(rv.Data.begin(), reverted.begin(), reverted.end());
-  return rv;
 }
 
 Stack Stack::withArgs(const MIArgs &Args) const {
@@ -151,30 +132,6 @@ void Stack::addDef(unsigned Reg, const DILocalVariable *DbgVar) {
 }
 
 Stack& Stack::operator += (const StackFixup::Change &change) {
-  auto multiChange = [&](const auto &v){
-    unsigned ArgsSize = sizeof(v.args) / sizeof(*v.args);
-    // First we do xchgs to avoid indices correction
-    unsigned xchgNum = 0;
-    auto xchgs = v.countXchgs();
-    for (unsigned i = 0; i < ArgsSize; ++i) {
-      if (v.isXchg(i)) {
-        std::swap(Data[v.args[i]], Data[xchgs - 1 - xchgNum]);
-        ++xchgNum;
-      }
-    }
-    // Now insert pushes
-    xchgNum = 0;
-    unsigned pushNum = 0;
-    for (unsigned i = 0; i < ArgsSize; ++i) {
-      if (v.isPush(i)) {
-        Data.insert(Data.begin() + (xchgs - xchgNum),
-                    Data[v.args[i] + pushNum]);
-        ++pushNum;
-      } else {
-        ++xchgNum;
-      }
-    }
-  };
   std::visit(overloaded{
       [this](StackFixup::drop){
         Data.pop_front();
@@ -222,12 +179,62 @@ Stack& Stack::operator += (const StackFixup::Change &change) {
       [&](const StackFixup::doubleChange &v) {
         for (unsigned Arg : v.args)
           assert(Arg < Data.size() && "Bad doubleChange");
-        multiChange(v);
+        if (v.isPush(0) && v.isPush(1)) {
+          (*this) += StackFixup::pushI(v.args[0], false);
+          (*this) += StackFixup::pushI(v.args[1] + 1, false);
+        } else if (v.isPush(0) && v.isXchg(1)) {
+          (*this) += StackFixup::pushI(v.args[0], false);
+          (*this) += StackFixup::swap();
+          (*this) += StackFixup::xchgTop(v.args[1] + 1, false);
+        } else if (v.isXchg(0) && v.isPush(1)) {
+          (*this) += StackFixup::xchgTop(v.args[0], false);
+          (*this) += StackFixup::pushI(v.args[1], false);
+        } else if (v.isXchg(0) && v.isXchg(1)) {
+          (*this) += StackFixup::xchg(1, v.args[0], false);
+          (*this) += StackFixup::xchgTop(v.args[1], false);
+        }
       },
       [&](const StackFixup::tripleChange &v) {
         for (unsigned Arg : v.args)
           assert(Arg < Data.size() && "Bad tripleChange");
-        multiChange(v);
+        if (v.isPush(0) && v.isPush(1) && v.isPush(2)) {
+          (*this) += StackFixup::pushI(v.args[0], false);
+          (*this) += StackFixup::pushI(v.args[1] + 1, false);
+          (*this) += StackFixup::pushI(v.args[2] + 2, false);
+        } else if (v.isPush(0) && v.isPush(1) && v.isXchg(2)) {
+          (*this) += StackFixup::pushI(v.args[0], false);
+          (*this) += StackFixup::swap();
+          (*this) += StackFixup::pushI(v.args[1] + 1, false);
+          (*this) += StackFixup::swap();
+          (*this) += StackFixup::xchgTop(v.args[2] + 2, false);
+        } else if (v.isPush(0) && v.isXchg(1) && v.isPush(2)) {
+          (*this) += StackFixup::pushI(v.args[0], false);
+          (*this) += StackFixup::swap();
+          (*this) += StackFixup::xchgTop(v.args[1] + 1, false);
+          (*this) += StackFixup::pushI(v.args[2] + 1, false);
+        } else if (v.isPush(0) && v.isXchg(1) && v.isXchg(2)) {
+          (*this) += StackFixup::pushI(v.args[0], false);
+          (*this) += StackFixup::xchgTop(2, false);
+          (*this) += StackFixup::xchg(1, v.args[1] + 1, false);
+          (*this) += StackFixup::xchgTop(v.args[2] + 1, false);
+        } else if (v.isXchg(0) && v.isPush(1) && v.isPush(2)) {
+          (*this) += StackFixup::xchgTop(v.args[0], false);
+          (*this) += StackFixup::pushI(v.args[1], false);
+          (*this) += StackFixup::pushI(v.args[2] + 1, false);
+        } else if (v.isXchg(0) && v.isPush(1) && v.isXchg(2)) {
+          (*this) += StackFixup::xchg(1, v.args[0], false);
+          (*this) += StackFixup::pushI(v.args[1], false);
+          (*this) += StackFixup::swap();
+          (*this) += StackFixup::xchgTop(v.args[2] + 1, false);
+        } else if (v.isXchg(0) && v.isXchg(1) && v.isPush(2)) {
+          (*this) += StackFixup::xchg(1, v.args[0], false);
+          (*this) += StackFixup::xchgTop(v.args[1], false);
+          (*this) += StackFixup::pushI(v.args[2], false);
+        } else if (v.isXchg(0) && v.isXchg(1) && v.isXchg(2)) {
+          (*this) += StackFixup::xchg(2, v.args[0], false);
+          (*this) += StackFixup::xchg(1, v.args[1], false);
+          (*this) += StackFixup::xchgTop(v.args[2], false);
+        }
       }
     }, change);
   return *this;

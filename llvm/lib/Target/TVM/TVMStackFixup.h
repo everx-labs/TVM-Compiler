@@ -68,8 +68,10 @@ public:
   struct drop {};
   struct nip {};
   struct xchgTop {
-    explicit xchgTop(unsigned i) : i (i) {
-      assert(i <= XchgDeepLimit && "Unimplemented");
+    explicit xchgTop(unsigned i, bool checkLimits = true) : i (i) {
+      if (checkLimits) {
+        assert(i <= XchgDeepLimit && "Unimplemented");
+      }
     }
     bool operator == (const xchgTop &v) const { return i == v.i; }
     unsigned i;
@@ -78,19 +80,23 @@ public:
     swap() : xchgTop(1) {}
   };
   struct xchg {
-    xchg(unsigned i, unsigned j)
+    xchg(unsigned i, unsigned j, bool checkLimits = true)
       : i(std::min(i, j))
       , j(std::max(i, j)) {
-      assert(i <= XchgLimit && "Unimplemented");
-      assert(j <= XchgLimit && "Unimplemented");
+      if (checkLimits) {
+        assert(i <= XchgLimit && "Unimplemented");
+        assert(j <= XchgLimit && "Unimplemented");
+      }
     }
     bool operator == (const xchg &v) const { return i == v.i && j == v.j; }
     unsigned i;
     unsigned j;
   };
   struct pushI {
-    explicit pushI(unsigned i) : i (i) {
-      assert(i <= PushLimit && "Unimplemented");
+    explicit pushI(unsigned i, bool checkLimits = true) : i (i) {
+      if (checkLimits) {
+        assert(i <= PushLimit && "Unimplemented");
+      }
     }
     unsigned i;
   };
@@ -111,6 +117,9 @@ public:
     }
     unsigned deepSz;
     unsigned topSz;
+  };
+  struct rot : blkswap {
+    rot() : blkswap(1, 2) {}
   };
   struct roll {
     explicit roll(int i) : i(i) {
@@ -145,7 +154,6 @@ public:
     // true - push, false - xchg
     doubleChange(bool p1, bool p2, unsigned i, unsigned j)
       : p{ p1, p2 }, args{ i, j } {
-      assert(i != j && "wrong doubleChange");
     }
     bool isXchg(unsigned i) const { return !p[i]; }
     bool isPush(unsigned i) const { return p[i]; }
@@ -164,11 +172,22 @@ public:
     bool p[2];
     unsigned args[2];
   };
+  struct xchg2 : doubleChange {
+    xchg2(unsigned i, unsigned j) : doubleChange(false, false, i, j) {}
+  };
+  struct push2 : doubleChange {
+    push2(unsigned i, unsigned j) : doubleChange(true, true, i, j) {}
+  };
+  struct xcpu : doubleChange {
+    xcpu(unsigned i, unsigned j) : doubleChange(false, true, i, j) {}
+  };
+  struct puxc : doubleChange {
+    puxc(unsigned i, unsigned j) : doubleChange(true, false, i, j) {}
+  };
   struct tripleChange {
     // true - push, false - xchg
     tripleChange(bool p1, bool p2, bool p3, unsigned i, unsigned j, unsigned k)
       : p{ p1, p2, p3 }, args{ i, j, k } {
-      assert(i != j && j != k && i != k && "wrong tripleChange");
     }
     bool isXchg(unsigned i) const { return !p[i]; }
     bool isPush(unsigned i) const { return p[i]; }
@@ -187,6 +206,46 @@ public:
     }
     bool p[3];
     unsigned args[3];
+  };
+  // xxx
+  struct xchg3 : tripleChange {
+    xchg3(unsigned i, unsigned j, unsigned k)
+      : tripleChange(false, false, false, i, j, k) {}
+  };
+  // ppp
+  struct push3 : tripleChange {
+    push3(unsigned i, unsigned j, unsigned k)
+      : tripleChange(true, true, true, i, j, k) {}
+  };
+  // xxp
+  struct xc2pu : tripleChange {
+    xc2pu(unsigned i, unsigned j, unsigned k)
+      : tripleChange(false, false, true, i, j, k) {}
+  };
+  // xpx
+  struct xcpuxc : tripleChange {
+    xcpuxc(unsigned i, unsigned j, unsigned k)
+      : tripleChange(false, true, false, i, j, k) {}
+  };
+  // xpp
+  struct xcpu2 : tripleChange {
+    xcpu2(unsigned i, unsigned j, unsigned k)
+      : tripleChange(false, true, true, i, j, k) {}
+  };
+  // pxx
+  struct puxc2 : tripleChange {
+    puxc2(unsigned i, unsigned j, unsigned k)
+      : tripleChange(true, false, false, i, j, k) {}
+  };
+  // pxp
+  struct puxcpu : tripleChange {
+    puxcpu(unsigned i, unsigned j, unsigned k)
+      : tripleChange(true, false, true, i, j, k) {}
+  };
+  // ppx
+  struct pu2xc : tripleChange {
+    pu2xc(unsigned i, unsigned j, unsigned k)
+      : tripleChange(true, true, false, i, j, k) {}
   };
   using Change = std::variant<drop, nip, xchgTop, xchg, pushI, pushUndef,
       blkswap, blkdrop, roll, reverse, doubleChange, tripleChange>;
@@ -237,24 +296,26 @@ public:
   const ChangesVec &getChanges() const {
     return Changes;
   }
-private:
-  void optimizeEqualXchgs();
-  void optimizeBlkswap();
-  void optimize(bool IsCommutative = false);
+  Change operator()(const Change &change) {
+    Changes.push_back(make_pair(change, std::string()));
+    return change;
+  }
+
+  void annotate(const Stack &stack);
 
   static Change makeRoll(unsigned deepElem);
   static Change makeRollRev(unsigned toDeepElem);
   static Change makeBlkSwap(unsigned deepElems, unsigned topElems);
   static Change makeReverse(unsigned Sz);
   static Change makeBlkdrop(unsigned Sz);
+private:
+  void optimizeEqualXchgs();
+  void optimize(bool IsCommutative = false);
+
   static void generateXchgs(StackFixup &rv, const Stack &from, const Stack &to);
   static void generateVagonXchgs(StackFixup &rv, const Stack &from,
                                  const Stack &to);
 
-  Change operator()(const Change &change) {
-    Changes.push_back(make_pair(change, std::string()));
-    return change;
-  }
   void operator()(const Stack &stack);
 
   void setLastComment(const std::string &comment) {

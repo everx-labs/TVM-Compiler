@@ -13,7 +13,7 @@ define i64 @test() {
 ; CHECK-NEXT: PUSHINT 0
 ; CHECK-NEXT: CALL $:frameidx$
 ; CHECK-NEXT: CALL $:load$
-; CHECK-NEXT: XCHG s0, s1
+; CHECK-NEXT: SWAP
 ; CHECK-NEXT: POP c0
 ; CHECK-NEXT: PUSHINT 8
 ; CHECK-NEXT: CALL $:leave$

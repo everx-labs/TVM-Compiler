@@ -68,10 +68,6 @@ public:
 
   const StackVreg &operator[](unsigned i) const { return Data[i]; }
 
-  /// Supply an instruction with the requested \par Args.
-  /// Perform exchanges or copies of the requested \par Args in stack copy.
-  Stack reqArgs(const MIArgs &Args) const;
-
   /// Return a copy of stack with \par Args added on top.
   /// When fixup is calculated we need to compare the stack after final
   /// non-terminator instruction and the pre-calculated final stack with

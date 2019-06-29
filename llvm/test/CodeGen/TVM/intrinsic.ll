@@ -114,6 +114,41 @@ define void @throws_neg(i64 %cond) {
   ret void
 }
 
+; CHECK-LABEL: throws_uncond
+define void @throws_uncond() {
+; CHECK: THROW 42
+  call void @llvm.tvm.throw(i64 42)
+  ret void
+}
+
+; CHECK-LABEL: nop
+define void @nop() {
+; CHECK: NOP
+  call void @llvm.tvm.nop()
+  ret void
+}
+
+; CHECK-LABEL: dump
+define void @dump() {
+; CHECK: DUMP 1
+  call void @llvm.tvm.dump(i64 1)
+  ret void
+}
+
+; CHECK-LABEL: dumpstk
+define void @dumpstk() {
+; CHECK: DUMPSTK
+  call void @llvm.tvm.dumpstk()
+  ret void
+}
+
+; CHECK-LABEL: dumpstktop
+define void @dumpstktop() {
+; CHECK: DUMPSTKTOP 1
+  call void @llvm.tvm.dumpstktop(i64 1)
+  ret void
+}
+
 declare i64 @llvm.tvm.newdict() nounwind
 declare i64 @llvm.tvm.newc() nounwind
 declare i64 @llvm.tvm.get.persistent.data() nounwind
@@ -127,3 +162,8 @@ declare {i64, i64} @llvm.tvm.ldslicex(i64 %slice, i64 %size) nounwind
 declare {i64, i64} @llvm.tvm.ldref(i64 %cell) nounwind
 declare i64 @llvm.tvm.stref(i64 %cell, i64 %builder) nounwind
 declare void @llvm.tvm.throwif(i64 %cond, i64 %exception)
+declare void @llvm.tvm.throw(i64 %exception)
+declare void @llvm.tvm.nop()
+declare void @llvm.tvm.dumpstk()
+declare void @llvm.tvm.dumpstktop(i64 %count)
+declare void @llvm.tvm.dump(i64 %stack_index)

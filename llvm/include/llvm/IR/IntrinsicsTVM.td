@@ -90,6 +90,9 @@ let TargetPrefix = "tvm" in {
   def int_tvm_ldref :
     GCCBuiltin<"__builtin_tvm_ldref">,
                Intrinsic<[llvm_i64_ty, llvm_i64_ty], [llvm_i64_ty]>;
+  def int_tvm_throw :
+    GCCBuiltin<"__builtin_tvm_throw">,
+               Intrinsic<[], [llvm_i64_ty]>;
   def int_tvm_throwif :
     GCCBuiltin<"__builtin_tvm_throwif">,
                Intrinsic<[], [llvm_i64_ty, llvm_i64_ty]>;
@@ -117,4 +120,16 @@ let TargetPrefix = "tvm" in {
   def int_tvm_retrieve_ref :
     GCCBuiltin<"__builtin_tvm_retrieve_ref">,
                Intrinsic<[llvm_i64_ty], [llvm_i64_ty]>;
+  def int_tvm_nop :
+    GCCBuiltin<"__builtin_tvm_nop">,
+               Intrinsic<[], []>;
+  def int_tvm_dumpstk :
+    GCCBuiltin<"__builtin_tvm_dumpstk">,
+               Intrinsic<[], []>;
+  def int_tvm_dumpstktop :
+    GCCBuiltin<"__builtin_tvm_dumpstktop">,
+               Intrinsic<[], [llvm_i64_ty]>;
+  def int_tvm_dump :
+    GCCBuiltin<"__builtin_tvm_dump">,
+               Intrinsic<[], [llvm_i64_ty]>;
 }

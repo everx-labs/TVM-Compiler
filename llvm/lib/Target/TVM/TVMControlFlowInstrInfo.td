@@ -121,6 +121,11 @@ defm POPROOT : I<(outs), (ins I64 : $root),
                  [(int_tvm_set_persistent_data I64 : $root)],
                  "POPROOT\t$root", "POPROOT", 0xed54>;
 
+defm THROW : I<(outs), (ins uimm6 : $exception),
+               (outs), (ins uimm6 : $exception),
+               [(int_tvm_throw uimm6 : $exception)],
+               "THROW\t$exception", "THROW\t$exception", 0xf22>;
+
 defm THROWIF : I<(outs), (ins I64 : $cond, uimm6 : $exception),
                  (outs), (ins uimm6 : $exception),
                  [(int_tvm_throwif I64 : $cond, uimm6 : $exception)],

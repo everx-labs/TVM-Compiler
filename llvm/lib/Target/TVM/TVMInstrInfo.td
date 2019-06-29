@@ -142,6 +142,7 @@ def dec : PatFrag<(ops node:$in), (add node:$in, -1)>;
 //===----------------------------------------------------------------------===//
 
 defm NOP : SI<(ins), "NOP", 0x00>;
+def : Pat<(int_tvm_nop), (NOP)>;
 
 // Stack manipulation instructions are not supposed to be selected, instead
 // Stack Model pass inserts them to manipulate with local and global variables.
@@ -236,6 +237,22 @@ let hasSideEffects = 1 in {
   defm CHKBOOL : UnaryR<chkbool, "CHKBOOL", 0xb400>;
   defm CHKBIT  : UnaryR<chkbit, "CHKBIT", 0xb500>;
 }
+
+//===----------------------------------------------------------------------===//
+// Debug
+//===----------------------------------------------------------------------===//
+
+defm DUMPSTK : SI<(ins), "DUMPSTK", 0xfe00>;
+def : Pat<(int_tvm_dumpstk), (DUMPSTK)>;
+
+defm DUMPSTKTOP : I<(outs), (ins uimm8:$src), (outs), (ins uimm8:$src),
+                    [(int_tvm_dumpstktop uimm8:$src)],
+                    "DUMPSTKTOP\t$src",
+                    "DUMPSTKTOP\t$src", 0xfe00>;
+defm DUMP : I<(outs), (ins uimm8:$src), (outs), (ins uimm8:$src),
+              [(int_tvm_dump uimm8:$src)],
+              "DUMP\t$src",
+              "DUMP\t$src", 0xfe20>;
 
 //===----------------------------------------------------------------------===//
 // Integer comparison

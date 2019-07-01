@@ -129,11 +129,7 @@ bool TVMControlFlowPrepare::runOnFunction(Function &F) {
   llvm::transform(F, std::back_inserter(OriginalBBs),
                   [](BasicBlock &BB) { return &BB; });
   for (auto *BB : OriginalBBs) {
-    Loop *L = LI.getLoopFor(BB);
-    BasicBlock *Header = nullptr;
-    if (L)
-      Header = L->getHeader();
-    if (pred_size(BB) > 1 && BB != Header) {
+    if (pred_size(BB) > 1) {
       insertCleanupBBs(BB);
       Changed = true;
     }

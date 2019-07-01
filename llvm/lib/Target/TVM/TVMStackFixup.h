@@ -67,7 +67,8 @@ public:
     }
     unsigned i;
   };
-  typedef std::variant<drop, nip, xchgTop, xchg, dup, pushI> Change;
+  struct pushZero {};
+  typedef std::variant<drop, nip, xchgTop, xchg, dup, pushI, pushZero> Change;
 
 #if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
   void dump() const;

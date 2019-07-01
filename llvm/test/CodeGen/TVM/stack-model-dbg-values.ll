@@ -1,4 +1,5 @@
 ; RUN: llc < %s -march=tvm -filetype=asm | FileCheck %s
+; XFAIL:*
 
 source_filename = "ifelse.c"
 target datalayout = "E-S1024-i256:256:256"

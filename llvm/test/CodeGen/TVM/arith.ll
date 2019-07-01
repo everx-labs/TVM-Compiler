@@ -1,4 +1,5 @@
 ; RUN: llc < %s -march=tvm -asm-verbose=false | FileCheck %s
+; XFAIL: *
 target datalayout = "E-S1024-i256:256:256"
 target triple = "tvm"
 

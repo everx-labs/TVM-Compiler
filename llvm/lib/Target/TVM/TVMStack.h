@@ -34,24 +34,46 @@ namespace llvm {
 /// stack.
 class Stack {
 public:
+  struct MIArg {
+    MIArg(StackVreg Vreg, bool IsKilled) : Vreg(Vreg), IsKilled(IsKilled) {}
+    StackVreg Vreg;
+    bool IsKilled;
+  };
+  class MIArgs {
+  public:
+    MIArgs() = default;
+    MIArgs(MachineInstr &MI, const LiveIntervals &LIS);
+    size_t size() const { return Args.size(); }
+    const SmallVector<MIArg, 4> &getArgs() const { return Args; }
+  private:
+    SmallVector<MIArg, 4> Args;
+  };
+
   typedef std::deque<StackVreg> StackDeq;
 
   Stack(MachineFunction &MF, size_t Size);
 
   Stack &operator += (const StackFixup::Change &change);
 
+  Stack operator + (const StackFixup &fixup) const;
+
   bool operator == (const Stack &v) const { return Data == v.Data; }
   bool operator != (const Stack &v) const { return Data != v.Data; }
 
   const StackVreg &operator[](unsigned i) const { return Data[i]; }
 
-  // Add arguments on stack
-  Stack plusArgs(SmallVector<StackVreg, 4> &Args) const;
   // Re-order or add arguments on stack
-  Stack reqArgs(MachineInstr *MI, const LiveIntervals &LIS) const;
+  Stack reqArgs(const MIArgs &Args) const;
+
+  Stack addArgs(const MIArgs &Args) const;
+  Stack delArgs(const MIArgs &Args) const;
 
   Stack filteredByLiveIns(MachineBasicBlock &MBB,
                           const LiveIntervals &LIS) const;
+  Stack filteredByLiveOuts(MachineBasicBlock &MBB,
+                           const LiveIntervals &LIS) const;
+
+  void fillUnusedRegs(SmallVector<StackVreg, 16> &Regs);
 
   auto begin() { return Data.begin(); }
   auto begin() const { return Data.begin(); }

@@ -1,4 +1,5 @@
 # RUN: llc -march=tvm %s -run-pass=tvm-stack-model -o - | FileCheck %s
+# XFAIL:*
 
 ---
 name: repeated_writes

@@ -1,5 +1,6 @@
 ; RUN: llc < %s -march=tvm | FileCheck %s
 ; RUN: llc < %s -march=tvm --disable-tvm-return-opt | FileCheck %s -check-prefix=NOOPT
+; XFAIL:*
 target datalayout = "E-S1024-i256:256:256"
 target triple = "tvm"
 

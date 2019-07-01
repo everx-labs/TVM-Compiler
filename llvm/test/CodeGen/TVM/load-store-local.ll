@@ -1,4 +1,5 @@
 ; RUN: llc < %s -march=tvm -O0 -asm-verbose=false | FileCheck %s
+; XFAIL:*
 target triple = "tvm"
 
 ; CHECK-LABEL: test

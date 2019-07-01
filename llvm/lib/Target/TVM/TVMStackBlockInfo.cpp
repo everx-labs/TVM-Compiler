@@ -33,10 +33,35 @@ setFixedEndWithFixup(const Stack &stack, const TargetInstrInfo *TII,
   StackFixup endFixup;
   // if we have terminator, we need to adjust its args
   if (MBBI != MBB->end()) {
-    endFixup = fixedEnd().plusArgs(TerminatorArgs) -
-        calculatedEnd().plusArgs(TerminatorArgs);
+    endFixup = fixedEnd().addArgs(TerminatorArgs) -
+        calculatedEnd().addArgs(TerminatorArgs);
   } else {
     endFixup = fixedEnd() - calculatedEnd();
+  }
+
+  StackFixup::InstructionGenerator gen(TII, MFI, MBB, MBBI);
+  gen(endFixup);
+
+  if (MBBI != MBB->end())
+    MFI->resetStackModelComment(&*MBBI, "fx^ => " + fixedEnd().toString());
+}
+
+void TVMStackBlockInfo::setFixedEndForLoopTail(const Stack &stack,
+                                               const TargetInstrInfo *TII,
+                                               TVMFunctionInfo *MFI) {
+  auto MBBI = MBB->getFirstTerminator();
+
+  StackFixup endFixup;
+  // if we have terminator, we need to adjust its args
+  if (MBBI != MBB->end()) {
+    endFixup = stack.addArgs(TerminatorArgs) -
+        calculatedEnd().addArgs(TerminatorArgs);
+
+    FixedEnd = (calculatedEnd().addArgs(TerminatorArgs) + endFixup).
+        delArgs(TerminatorArgs);
+  } else {
+    endFixup = stack - calculatedEnd();
+    FixedEnd = calculatedEnd() + endFixup;
   }
 
   StackFixup::InstructionGenerator gen(TII, MFI, MBB, MBBI);

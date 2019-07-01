@@ -26,57 +26,79 @@ StackFixup StackFixup::Diff(const Stack &to, const Stack &from) {
 
   Stack curStack(from);
 
-  Stack::StackDeq splitFrom(from.begin(), from.end());
-  auto delVregsIt = llvm::partition(splitFrom, [&to](const StackVreg &vreg) {
-    return llvm::find(to, vreg) != to.end();
-  });
-  auto keepVregs = llvm::make_range(splitFrom.begin(), delVregsIt);
-  auto delVregs = llvm::make_range(delVregsIt, splitFrom.end());
+  SmallVector<StackVreg, 16> fromRegs(from.begin(), from.end());
+  SmallVector<StackVreg, 16> toRegs(to.begin(), to.end());
 
-  // Sorting regs-to-delete by position from top of the stack
-  llvm::sort(delVregs.begin(), delVregs.end(),
-             [&from](const StackVreg &L, const StackVreg &R) {
-    return from.position(L) < from.position(R);
-  });
+  llvm::sort(fromRegs.begin(), fromRegs.end());
+  llvm::erase_if(fromRegs, [](const StackVreg &vreg){
+    return vreg.VirtReg == TVMFunctionInfo::UnusedReg; });
+  llvm::sort(toRegs.begin(), toRegs.end());
+  llvm::erase_if(toRegs, [](const StackVreg &vreg){
+    return vreg.VirtReg == TVMFunctionInfo::UnusedReg; });
 
-  // Generate changes to delete unused vregs
+  SmallVector<StackVreg, 16> delVregs;
+  std::set_difference(fromRegs.begin(), fromRegs.end(),
+                      toRegs.begin(), toRegs.end(),
+                      std::back_inserter(delVregs));
+  Stack unmaskedTo(to);
+  unmaskedTo.fillUnusedRegs(delVregs);
   auto removeElem = [&](const StackVreg &vreg) {
     rv.removeElem(curStack, vreg);
   };
+  if (!delVregs.empty()) {
+    // Sorting regs-to-delete by position from top of the stack
+    llvm::sort(delVregs.begin(), delVregs.end(),
+               [&from](const StackVreg &L, const StackVreg &R) {
+      return from.position(L) < from.position(R);
+    });
+
+    // Generate changes to delete unused vregs
+    llvm::for_each(delVregs, removeElem);
+  }
+
+  fromRegs = SmallVector<StackVreg, 16>(curStack.begin(), curStack.end());
+  toRegs = SmallVector<StackVreg, 16>(unmaskedTo.begin(), unmaskedTo.end());
+
+  llvm::sort(fromRegs.begin(), fromRegs.end());
+  llvm::sort(toRegs.begin(), toRegs.end());
+
+  delVregs.clear();
+  std::set_difference(fromRegs.begin(), fromRegs.end(),
+                      toRegs.begin(), toRegs.end(),
+                      std::back_inserter(delVregs));
   llvm::for_each(delVregs, removeElem);
 
-  // Generate changes to insert copies (pushes)
-  llvm::sort(keepVregs.begin(), keepVregs.end());
-  auto uniqueEnd = std::unique(keepVregs.begin(), keepVregs.end());
-  keepVregs = make_range(keepVregs.begin(), uniqueEnd);
+  fromRegs = SmallVector<StackVreg, 16>(curStack.begin(), curStack.end());
+  toRegs = SmallVector<StackVreg, 16>(unmaskedTo.begin(), unmaskedTo.end());
 
+  llvm::sort(fromRegs.begin(), fromRegs.end());
+  llvm::sort(toRegs.begin(), toRegs.end());
+
+  SmallVector<StackVreg, 16> addVregs;
+  std::set_difference(toRegs.begin(), toRegs.end(),
+                      fromRegs.begin(), fromRegs.end(),
+                      std::back_inserter(addVregs));
+
+  // Generate changes to insert copies (pushes)
   auto addElem = [&](const StackVreg &vreg) {
+    if (vreg.VirtReg == TVMFunctionInfo::UnusedReg) {
+      rv(curStack += rv(pushZero()));
+      return;
+    }
     auto i = curStack.position(vreg);
     if (i == 0)
       rv(curStack += rv(dup()));
     else
       rv(curStack += rv(pushI(i)));
   };
-
-  llvm::for_each(keepVregs, [&](const StackVreg &vreg) {
-    auto pushes = llvm::count(to, vreg) - llvm::count(from, vreg);
-    if (!pushes)
-      return;
-    if (pushes > 0) {
-      for (unsigned n = 0; n < pushes; ++n)
-        addElem(vreg);
-    } else {
-      for (unsigned n = 0; n < -pushes; ++n)
-        removeElem(vreg);
-    }
-  });
+  llvm::for_each(addVregs, addElem);
 
   // Generate changes to re-order
-  assert(llvm::size(to) == llvm::size(curStack));
+  assert(llvm::size(unmaskedTo) == llvm::size(curStack));
 
-  for (unsigned n = 0; n < llvm::size(to); ++n) {
-    if (to[n] != curStack[n]) {
-      auto i = curStack.position(n, to[n]);
+  for (unsigned n = 0; n < llvm::size(unmaskedTo); ++n) {
+    if (unmaskedTo[n] != curStack[n]) {
+      auto i = curStack.position(n, unmaskedTo[n]);
       rv(curStack += rv(xchg(i, n)));
     }
   }
@@ -97,7 +119,7 @@ StackFixup StackFixup::DiffForReturn(const Stack &from,
       rv(curStack += rv(xchg(i, j)));
   }
   for (unsigned i = 0; i < numPops; ++i)
-    rv(curStack += drop());
+    rv(curStack += rv(drop()));
   return rv;
 }
 
@@ -173,7 +195,8 @@ void StackFixup::printElem(raw_ostream &OS, const Change &change) const {
       [&](xchgTop v){ OS << "xchg s(" << v.i << ")"; },
       [&](xchg v){ OS << "xchg s(" << v.i << "), s(" << v.j << ")"; },
       [&](dup){ OS << "dup"; },
-      [&](pushI v){ OS << "push s(" << v.i << ")"; }
+      [&](pushI v){ OS << "push s(" << v.i << ")"; },
+      [&](pushZero){ OS << "zero"; }
     }, change);
 }
 
@@ -218,6 +241,9 @@ operator()(const std::pair<Change, std::string> &pair) const {
       [&](pushI v){
         MI = BuildMI(*MBB, InsertPt, DL, TII->get(TVM::PUSH)).addImm(v.i)
                        .getInstr();
+      },
+      [&](pushZero){
+        MI = BuildMI(*MBB, InsertPt, DL, TII->get(TVM::ZERO)).getInstr();
       }
     }, pair.first);
 

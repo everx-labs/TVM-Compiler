@@ -30,13 +30,6 @@ Stack::Stack(MachineFunction &MF, size_t Size)
       MRI(&MF.getRegInfo()),
       Data(Size, StackVreg(TVMFunctionInfo::UnusedReg)) {}
 
-Stack Stack::plusArgs(SmallVector<StackVreg, 4> &Args) const {
-  Stack rv(*this);
-  auto revArgs = reverse(Args);
-  rv.Data.insert(rv.Data.begin(), revArgs.begin(), revArgs.end());
-  return rv;
-}
-
 /// If \par MO is no longer used after \par MI.
 static bool isKilled(const MachineInstr &MI, unsigned Register,
                      const LiveIntervals &LIS) {
@@ -51,26 +44,45 @@ static bool isKilled(const MachineInstr &MI, unsigned Register,
   return false;
 }
 
-Stack Stack::reqArgs(MachineInstr *MI, const LiveIntervals &LIS) const {
-  Stack rv(*this);
-  SmallVector<StackVreg, 4> Ops;
-  auto regUses = llvm::make_filter_range(MI->uses(),
+Stack::Stack::MIArgs::MIArgs(MachineInstr &MI, const LiveIntervals &LIS) {
+  auto regUses = llvm::make_filter_range(MI.uses(),
                    [](const MachineOperand &Op) { return Op.isReg(); });
   for (auto Arg : regUses) {
-    StackVreg vreg(Arg.getReg());
-    auto it = llvm::find(rv.Data, vreg);
+    Args.emplace_back(StackVreg(Arg.getReg()),
+                      isKilled(MI, Arg.getReg(), LIS));
+  }
+}
+
+Stack Stack::reqArgs(const MIArgs &Args) const {
+  Stack rv(*this);
+  SmallVector<StackVreg, 4> Ops;
+  for (auto Arg : Args.getArgs()) {
+    auto it = llvm::find(rv.Data, Arg.Vreg);
     if (it != rv.Data.end()) {
       Ops.push_back(*it);
-      if (isKilled(*MI, vreg.VirtReg, LIS))
+      if (Arg.IsKilled)
         rv.Data.erase(it);
     } else {
-      auto dupIt = llvm::find(Ops, vreg);
+      auto dupIt = llvm::find(Ops, Arg.Vreg);
       assert(dupIt != Ops.end() && "No required argument in stack");
       Ops.push_back(*dupIt);
     }
   }
   auto reverted = llvm::reverse(Ops);
   rv.Data.insert(rv.Data.begin(), reverted.begin(), reverted.end());
+  return rv;
+}
+
+Stack Stack::addArgs(const MIArgs &Args) const {
+  Stack rv(*this);
+  for (auto Arg : Args.getArgs())
+    rv.Data.push_front(Arg.Vreg);
+  return rv;
+}
+
+Stack Stack::delArgs(const MIArgs &Args) const {
+  Stack rv(*this);
+  rv.Data.erase(rv.Data.begin(), rv.Data.begin() + Args.size());
   return rv;
 }
 
@@ -84,6 +96,28 @@ Stack Stack::filteredByLiveIns(MachineBasicBlock &MBB,
     }
   }
   return rv;
+}
+
+Stack Stack::filteredByLiveOuts(MachineBasicBlock &MBB,
+                                const LiveIntervals &LIS) const {
+  Stack rv(*this);
+  for (StackVreg &vreg : rv.Data) {
+    if (!LIS.hasInterval(vreg.VirtReg) ||
+        !LIS.isLiveOutOfMBB(LIS.getInterval(vreg.VirtReg), &MBB)) {
+      vreg = StackVreg(TVMFunctionInfo::UnusedReg);
+    }
+  }
+  return rv;
+}
+
+void Stack::fillUnusedRegs(SmallVector<StackVreg, 16> &Regs) {
+  for (StackVreg &VR : Data) {
+    if (Regs.empty())
+        return;
+    if (VR.VirtReg == TVMFunctionInfo::UnusedReg) {
+      VR = Regs.pop_back_val();
+    }
+  }
 }
 
 void Stack::addDef(unsigned Reg, const DILocalVariable *DbgVar) {
@@ -108,9 +142,18 @@ Stack& Stack::operator += (const StackFixup::Change &change) {
         std::swap(Data[v.i], Data[v.j]);
       },
       [this](StackFixup::dup){ Data.push_front(Data.front()); },
-      [this](StackFixup::pushI v){ Data.push_front(Data[v.i]); }
+      [this](StackFixup::pushI v){ Data.push_front(Data[v.i]); },
+      [this](StackFixup::pushZero){
+        Data.push_front(StackVreg(TVMFunctionInfo::UnusedReg));
+      }
     }, change);
   return *this;
+}
+
+Stack Stack::operator + (const StackFixup &fixup) const {
+  Stack rv(*this);
+  fixup.apply(rv);
+  return rv;
 }
 
 void Stack::print(raw_ostream &OS) const {

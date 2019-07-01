@@ -31,6 +31,8 @@ public:
   }
   void setFixedEndWithFixup(const Stack &stack, const TargetInstrInfo *TII,
                             TVMFunctionInfo *MFI);
+  void setFixedEndForLoopTail(const Stack &loopHead, const TargetInstrInfo *TII,
+                              TVMFunctionInfo *MFI);
 
   const Stack &wantedBegin() const {
     assert(WantedBegin && "Non-set wanted begin in TVMStackBlockInfo");
@@ -51,7 +53,7 @@ public:
   bool isFixedEnd() const {
     return FixedEnd.has_value();
   }
-  void setTerminatorArgs(const SmallVector<StackVreg, 4> &args) {
+  void setTerminatorArgs(const Stack::MIArgs &args) {
     TerminatorArgs = args;
   }
 private:
@@ -62,7 +64,7 @@ private:
   // Calculated end stack model (before terminator and fixups)
   std::optional<Stack> CalculatedEnd;
   std::optional<Stack> FixedEnd;
-  SmallVector<StackVreg, 4> TerminatorArgs;
+  Stack::MIArgs TerminatorArgs;
 };
 
 } // namespace llvm

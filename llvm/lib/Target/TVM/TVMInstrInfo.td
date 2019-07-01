@@ -175,6 +175,7 @@ defm DROP : SI<(ins), "DROP", 0x30>;
 defm BLKDROP : SI<(ins uimm8:$sz), "BLKDROP\t$sz", 0x5F0>;
 defm NIP  : SI<(ins), "NIP", 0x31>;
 defm DUP  : SI<(ins), "DUP", 0x20>;
+defm ZERO : SI<(ins), "ZERO", 0x70>;
 }
 
 let isCodeGenOnly = 1 in

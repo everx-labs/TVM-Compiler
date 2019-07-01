@@ -53,16 +53,17 @@ public:
   bool runOnMachineFunction(MachineFunction &MF) override;
   /// Inserts necessary stack manipulation instructions to supply \par MI with
   /// the correct data.
-  bool processInstruction(MachineInstr &MI, LiveIntervals &LIS,
-                          Stack &TheStack);
+  bool processInstruction(MachineInstr &MI, Stack &TheStack);
 
   static char ID; // Pass identification, replacement for typeid
   TVMStackModel() : MachineFunctionPass(ID) {}
 
 private:
   bool runOnBasicBlocks(MachineFunction &MF, const Stack &StartStack);
-  Stack prepareWantedStack(MachineBasicBlock *MBB, LiveIntervals &LIS);
-  Stack prepareMultiEndStack(MachineBasicBlock *MBB, LiveIntervals &LIS);
+  Stack prepareWantedStack(MachineBasicBlock *MBB);
+  Stack prepareMultiEndStack(MachineBasicBlock *MBB);
+  void fillBackEdgesLiveouts(MachineBasicBlock &MBB,
+                             SmallVector<unsigned, 16> &Regs);
 
   const DILocalVariable *findDebugValue(const MachineInstr &MI,
                                         unsigned Vreg) const;
@@ -76,6 +77,7 @@ private:
   MachineRegisterInfo* MRI;
   const TargetInstrInfo *TII;
   MachineLoopInfo *Loops;
+  LiveIntervals *LIS;
 };
 
 } // end anonymous namespace
@@ -142,8 +144,7 @@ bool TVMStackModel::isBackEdge(const MachineBasicBlock *From,
   return false;
 }
 
-bool TVMStackModel::processInstruction(MachineInstr &MI, LiveIntervals &LIS,
-                                       Stack &TheStack) {
+bool TVMStackModel::processInstruction(MachineInstr &MI, Stack &TheStack) {
   if (MI.isImplicitDef())
     return false;
 
@@ -166,7 +167,7 @@ bool TVMStackModel::processInstruction(MachineInstr &MI, LiveIntervals &LIS,
     return true;
   }
 
-  auto prepareArgsFx = TheStack.reqArgs(&MI, LIS) - TheStack;
+  auto prepareArgsFx = TheStack.reqArgs(Stack::MIArgs(MI, *LIS)) - TheStack;
   gen(prepareArgsFx);
   prepareArgsFx.apply(TheStack);
 
@@ -248,34 +249,80 @@ bool TVMStackModel::processInstruction(MachineInstr &MI, LiveIntervals &LIS,
   return true;
 }
 
-Stack TVMStackModel::prepareWantedStack(MachineBasicBlock *MBB,
-                                        LiveIntervals &LIS) {
-  Stack rv(*MBB->getParent(), 0);
-
+void TVMStackModel::fillBackEdgesLiveouts(MachineBasicBlock &MBB,
+                                          SmallVector<unsigned, 16> &Regs) {
+  assert(Loops->isLoopHeader(&MBB));
+  SmallVector<MachineBasicBlock *, 4> bkPreds;
+  llvm::copy_if(MBB.predecessors(), std::back_inserter(bkPreds),
+                [&](MachineBasicBlock *Pr) { return isBackEdge(Pr, &MBB); });
   for (unsigned i = 0, e = MRI->getNumVirtRegs(); i != e; ++i) {
     unsigned Reg = TargetRegisterInfo::index2VirtReg(i);
-    if (LIS.hasInterval(Reg)) {
-      if (LIS.isLiveInToMBB(LIS.getInterval(Reg), MBB)) {
-        rv.addDef(Reg, findDebugValue(*MBB->begin(), Reg));
+    if (LIS->hasInterval(Reg)) {
+      const auto &regInterval = LIS->getInterval(Reg);
+      for (auto bkPred : bkPreds) {
+        if (LIS->isLiveOutOfMBB(regInterval, bkPred)) {
+          Regs.push_back(Reg);
+        }
       }
     }
   }
-  return rv;
 }
 
-Stack TVMStackModel::prepareMultiEndStack(MachineBasicBlock *MBB,
-                                          LiveIntervals &LIS) {
+Stack TVMStackModel::prepareWantedStack(MachineBasicBlock *MBB) {
   Stack rv(*MBB->getParent(), 0);
+
+  SmallVector<unsigned, 16> requiredRegs;
 
   for (unsigned i = 0, e = MRI->getNumVirtRegs(); i != e; ++i) {
     unsigned Reg = TargetRegisterInfo::index2VirtReg(i);
-    if (LIS.hasInterval(Reg)) {
-      if (LIS.isLiveOutOfMBB(LIS.getInterval(Reg), MBB)) {
-        rv.addDef(Reg, findDebugValue(*MBB->begin(), Reg));
+    if (LIS->hasInterval(Reg)) {
+      if (LIS->isLiveInToMBB(LIS->getInterval(Reg), MBB)) {
+        requiredRegs.push_back(Reg);
       }
     }
   }
-  return rv;
+
+  // For loop header we also need to add backedges live outs into live ins
+  //  and then process them through filteredByLiveIns
+  if (Loops->isLoopHeader(MBB))
+    fillBackEdgesLiveouts(*MBB, requiredRegs);
+
+  llvm::sort(requiredRegs.begin(), requiredRegs.end());
+  auto uniqueEnd = std::unique(requiredRegs.begin(), requiredRegs.end());
+  for (auto Reg : llvm::make_range(requiredRegs.begin(), uniqueEnd))
+    rv.addDef(Reg, nullptr);
+
+  return rv.filteredByLiveIns(*MBB, *LIS);
+}
+
+Stack TVMStackModel::prepareMultiEndStack(MachineBasicBlock *MBB) {
+  Stack rv(*MBB->getParent(), 0);
+
+  SmallVector<unsigned, 16> requiredRegs;
+
+  for (unsigned i = 0, e = MRI->getNumVirtRegs(); i != e; ++i) {
+    unsigned Reg = TargetRegisterInfo::index2VirtReg(i);
+    if (LIS->hasInterval(Reg)) {
+      if (LIS->isLiveOutOfMBB(LIS->getInterval(Reg), MBB)) {
+        requiredRegs.push_back(Reg);
+      }
+    }
+  }
+
+  // For loop header successors we also need add their back-edges liveouts
+  for (auto Succ : MBB->successors()) {
+    if (!isBackEdge(MBB, Succ)) {
+      if (Loops->isLoopHeader(Succ))
+        fillBackEdgesLiveouts(*Succ, requiredRegs);
+    }
+  }
+
+  llvm::sort(requiredRegs.begin(), requiredRegs.end());
+  auto uniqueEnd = std::unique(requiredRegs.begin(), requiredRegs.end());
+  for (auto Reg : llvm::make_range(requiredRegs.begin(), uniqueEnd))
+    rv.addDef(Reg, nullptr);
+
+  return rv.filteredByLiveOuts(*MBB, *LIS);
 }
 
 // Traverse all basic blocks in machine function and rewrite all instructions
@@ -285,7 +332,6 @@ bool TVMStackModel::runOnBasicBlocks(MachineFunction &MF,
                                      const Stack &StartStack) {
   bool Changed = false;
 
-  LiveIntervals &LIS = getAnalysis<LiveIntervals>();
   DenseMap<MachineBasicBlock *, TVMStackBlockInfo> BBStack;
 
   while (BBStack.size() < MF.size()) {
@@ -312,7 +358,7 @@ bool TVMStackModel::runOnBasicBlocks(MachineFunction &MF,
         bbInfo.setWantedBegin(StartStack);
         bbInfo.setFixedBegin(StartStack);
       } else {
-        bbInfo.setWantedBegin(prepareWantedStack(&MBB, LIS));
+        bbInfo.setWantedBegin(prepareWantedStack(&MBB));
 
         // splitting preds into blocks with single successor (this block)
         // and multi successors
@@ -335,7 +381,7 @@ bool TVMStackModel::runOnBasicBlocks(MachineFunction &MF,
             bbInfo.setFixedBegin(bbInfo.wantedBegin());
           } else if (llvm::size(fxdPreds) == 1) {
             bbInfo.setFixedBegin(BBStack[*fxdPreds.begin()].fixedEnd()
-                .filteredByLiveIns(MBB, LIS));
+                .filteredByLiveIns(MBB, *LIS));
           } else {
             SmallVector<MachineBasicBlock *, 4> uniq(fxdPreds);
             auto uniqIt = std::unique(uniq.begin(), uniq.end(),
@@ -345,7 +391,7 @@ bool TVMStackModel::runOnBasicBlocks(MachineFunction &MF,
             if (std::distance(fxdPreds.begin(), uniqIt) == 1) {
               // good, all fixed predecessors ends already are the same
               bbInfo.setFixedBegin(BBStack[*uniq.begin()].fixedEnd()
-                  .filteredByLiveIns(MBB, LIS));
+                  .filteredByLiveIns(MBB, *LIS));
             } else {
               // requires insertion of fixup mbb
               llvm_unreachable("Unimplemented - fixup mbb"); // TODO
@@ -375,10 +421,10 @@ bool TVMStackModel::runOnBasicBlocks(MachineFunction &MF,
           for (auto Op : MI.uses())
             if (Op.isReg())
               Args.push_back(StackVreg(Op.getReg()));
-          bbInfo.setTerminatorArgs(Args);
+          bbInfo.setTerminatorArgs(Stack::MIArgs(MI, *LIS));
         }
 
-        Changed |= processInstruction(MI, LIS, CurrentStack);
+        Changed |= processInstruction(MI, CurrentStack);
       }
       SmallVector<MachineBasicBlock *, 4> bkSuccessors;
       llvm::copy_if(MBB.successors(), std::back_inserter(bkSuccessors),
@@ -388,14 +434,14 @@ bool TVMStackModel::runOnBasicBlocks(MachineFunction &MF,
       bbInfo.setCalculatedEnd(CurrentStack);
       if (size_t backEdges = llvm::size(bkSuccessors)) {
         if (backEdges == 1) {
-          bbInfo.setFixedEndWithFixup(
+          bbInfo.setFixedEndForLoopTail(
                 BBStack[*bkSuccessors.begin()].fixedBegin(), TII, MFI);
         } else {
           // requires insertion of fixup mbb
           llvm_unreachable("Unimplemented - fixup mbb"); // TODO
         }
       } else if (MBB.succ_size() > 1) {
-        bbInfo.setFixedEndWithFixup(prepareMultiEndStack(&MBB, LIS), TII, MFI);
+        bbInfo.setFixedEndWithFixup(prepareMultiEndStack(&MBB), TII, MFI);
       }
     }
     assert(BBStack.size() > Size && "No progress in TVMStackModel loop.");
@@ -416,6 +462,7 @@ bool TVMStackModel::runOnMachineFunction(MachineFunction &MF) {
   MRI = &MF.getRegInfo();
   TII = MF.getSubtarget<TVMSubtarget>().getInstrInfo();
   Loops = &getAnalysis<MachineLoopInfo>();
+  LIS = &getAnalysis<LiveIntervals>();
 
   MachineBasicBlock &FirstBB = MF.front();
   assert(!FirstBB.empty());

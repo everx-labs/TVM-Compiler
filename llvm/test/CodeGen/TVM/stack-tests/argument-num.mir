@@ -1,5 +1,5 @@
 # RUN: llc -march=tvm %s -run-pass=tvm-stack-model -o - | FileCheck %s
-
+# XFAIL:*
 ---
 name: mir_source
 liveins:

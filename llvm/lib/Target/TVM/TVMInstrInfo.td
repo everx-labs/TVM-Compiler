@@ -166,9 +166,16 @@ def : Pat<(int_tvm_nop), (NOP)>;
 let mayLoad = 1, isAsCheapAsAMove = 1 in
 defm PUSH : SI<(ins stack_op:$local), "PUSH\t$local", 0x20>;
 
-let mayLoad = 1, isAsCheapAsAMove = 1 in
+let mayLoad = 1, isAsCheapAsAMove = 1 in {
+defm SWAP : SI<(ins), "SWAP", 0x01>;
+defm XCHG_TOP : SI<(ins stack_op:$src), "XCHG\t$src", 0x01>;
 defm XCHG : SI<(ins stack_op:$src, stack_op:$dst), "XCHG\t$src, $dst", 0x10>;
 defm POP  : SI<(ins stack_op:$dst), "POP\t$dst", 0x30>;
+defm DROP : SI<(ins), "DROP", 0x30>;
+defm BLKDROP : SI<(ins uimm8:$sz), "BLKDROP\t$sz", 0x5F0>;
+defm NIP  : SI<(ins), "NIP", 0x31>;
+defm DUP  : SI<(ins), "DUP", 0x20>;
+}
 
 let isCodeGenOnly = 1 in
 defm REG_TO_REG_COPY : I<(outs I64:$dst), (ins I64:$src), (outs), (ins), []>;

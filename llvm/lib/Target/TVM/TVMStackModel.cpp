@@ -16,6 +16,7 @@
 #include "MCTargetDesc/TVMMCTargetDesc.h"
 #include "TVM.h"
 #include "TVMStack.h"
+#include "TVMStackBlockInfo.h"
 #include "TVMSubtarget.h"
 #include "TVMUtilities.h"
 
@@ -59,170 +60,23 @@ public:
   TVMStackModel() : MachineFunctionPass(ID) {}
 
 private:
-  bool runOnBasicBlocks(MachineFunction &MF, Stack &TheStack);
+  bool runOnBasicBlocks(MachineFunction &MF, const Stack &StartStack);
+  Stack prepareWantedStack(MachineBasicBlock *MBB, LiveIntervals &LIS);
+  Stack prepareMultiEndStack(MachineBasicBlock *MBB, LiveIntervals &LIS);
 
   const DILocalVariable *findDebugValue(const MachineInstr &MI,
                                         unsigned Vreg) const;
   std::string prepareInstructionComment(const MachineInstr &MI) const;
-
-  /// Forms vector of Pushes and Xchgs to supply an instruction with the right
-  /// data.
-  /// The function assumes that non-register arguments always come first.
-  StackReorderings computeReorderings(MachineInstr &MI, LiveIntervals &LIS,
-                                      Stack &TheStack,
-                                      size_t NonStackOperands) const;
-  /// Perform the specified stack manipulations and generates code for them.
-  /// Insert instructions in the position specified by \par InsertPoint.
-  void performReorderings(const StackReorderings &Reorderings,
-                          MachineInstr *InsertPoint, Stack &TheStack) const;
 
   /// Returns true if From -> To branch is backedge
   bool isBackEdge(const MachineBasicBlock *From,
                   const MachineBasicBlock *To) const;
 
   TVMFunctionInfo *MFI;
+  MachineRegisterInfo* MRI;
   const TargetInstrInfo *TII;
   MachineLoopInfo *Loops;
 };
-
-/// Return true if reorderings might be optimized away for a commutative
-/// instruction.
-bool isCommutation(const StackReorderings &Reorderings, const Stack &TheStack) {
-  if (Reorderings.size() != 1u)
-    return false;
-  if (!Reorderings[0].isXchg())
-    return false;
-  size_t SlotTo = Reorderings[0].SlotTo;
-  size_t SlotFrom = TheStack.position(Reorderings[0].ElemFrom);
-  return (SlotTo == 1 && SlotFrom == 0) || (SlotTo == 0 && SlotFrom == 1);
-}
-
-inline bool isStackOperand(const MachineOperand &MOP) {
-  assert((MOP.isReg() || MOP.isImm() || MOP.isMBB() || MOP.isGlobal() ||
-          MOP.isSymbol()) &&
-         "Unexpected operand type: reconsider the predicate.");
-  // TODO: Globals should be on stack.
-  return MOP.isReg();
-}
-
-/// If \par MO is no longer used after \par MI.
-bool isKilled(const MachineInstr &MI, unsigned Register,
-              const LiveIntervals &LIS) {
-  const LiveInterval &LI = LIS.getInterval(Register);
-  // If there is no live interval starting from the current instruction
-  // for the given argument, the argument is killed.
-  if (!LI.getVNInfoAt(LIS.getInstructionIndex(MI).getRegSlot()))
-    return true;
-  for (size_t I = 0, E = MI.getNumDefs(); I < E; ++I)
-    if (MI.getOperand(I).isReg() && MI.getOperand(I).getReg() == Register)
-      return true;
-  return false;
-}
-
-/// Make predecessors' stacks coherent and initialize the stack with stacks of
-/// predecessors, or with \par Initializer if there is no predecessors.
-Stack &initializeStack(MachineBasicBlock &MBB,
-                       DenseMap<MachineBasicBlock *, Stack> &BBStack,
-                       Stack &Initializer, MachineBasicBlock *LoopPredecessor) {
-  assert(BBStack.count(&MBB) == 0u && "Back edges are not supported yet");
-  auto Predecessors = MBB.predecessors();
-  auto NumPredecessors = MBB.pred_size();
-  if (NumPredecessors == 0u)
-    return Initializer;
-  if (NumPredecessors == 1u)
-    return element(BBStack, *std::begin(Predecessors));
-  auto Begin = std::begin(Predecessors);
-  if (*Begin == LoopPredecessor)
-    Begin = std::next(Begin);
-  auto &Stack = element(BBStack, *Begin);
-  for (auto It = std::begin(Predecessors), E = std::end(Predecessors); It != E;
-       ++It) {
-    auto *Predecessor = *It;
-    if (Predecessor == LoopPredecessor || Predecessor == *Begin)
-      continue;
-    Stack::join(Stack, element(BBStack, Predecessor),
-                Predecessor->instr_back());
-  }
-  return Stack;
-}
-
-/// Remove dead virtual registers from a non-exit BB's stack.
-void pruneDeadRegisters(MachineBasicBlock &MBB, Stack &TheStack,
-                        const LiveIntervals &LIS) {
-  if (!MBB.succ_size())
-    return;
-  auto InstIt = MBB.getFirstNonDebugInstr();
-  if (InstIt == MBB.end())
-    return;
-  auto &Inst = *InstIt;
-  std::vector<unsigned> DeadVR;
-  for (auto &Element : TheStack) {
-    if (std::holds_alternative<StackVreg>(Element)) {
-      auto Register = std::get<StackVreg>(Element).VirtReg;
-      if (Register == TVMFunctionInfo::UnusedReg) {
-        DeadVR.push_back(Register);
-        continue;
-      }
-      if (isKilled(Inst, Register, LIS) &&
-          llvm::none_of(Inst.operands(), [Register](const auto &Operand) {
-            if (!Operand.isReg())
-              return false;
-            return Operand.getReg() == Register;
-          }))
-        DeadVR.push_back(Register);
-    }
-  }
-  for (auto Elem : DeadVR)
-    TheStack.pop(Inst, StackVreg(Elem));
-}
-
-/// If \p MI result is not used remove it right away.
-void pruneDeadDefinitions(MachineInstr &MI, LiveIntervals &LIS,
-                          Stack &TheStack) {
-  for (size_t I = 0, E = MI.getNumDefs(); I < E; ++I) {
-    MachineOperand &MO = MI.getOperand(I);
-    if (MO.isReg() && MO.isDead())
-      TheStack.pop(MI, StackVreg(MO.getReg()));
-  }
-}
-
-/// Compute how to break a loop in stack reorderings for an instruction.
-/// Since reorderings are computed independently there are possible XCHG loops
-/// E.g. XCHG s0, s1; XCHG s1, s0. If to execute both instructions, the order
-/// of elements in a stack won't change. The function compute which reordering
-/// is to remove to break 2- or 3-loop.
-/// \return Pointer to a reordering to remove.
-const StackReordering *breakCycle(const StackReorderings &Reorderings,
-                                  const std::vector<size_t> SlotsFrom) {
-  // TODO: Common case probably requires simulation.
-  if (Reorderings.size() < 2)
-    return nullptr;
-
-  size_t Size = Reorderings.size();
-
-  // 2-cycles
-  for (size_t I1 = 1; I1 < Size; ++I1)
-    for (size_t I2 = 0; I2 < I1; ++I2)
-      if (Reorderings[I1].SlotTo == SlotsFrom[I2] &&
-          SlotsFrom[I1] == Reorderings[I2].SlotTo)
-        return &Reorderings[I2];
-
-  // 3-cycles
-  // We excluded 2-cycles possibility, hovewer we have to check against
-  // self-cycles.
-  auto It = llvm::find(SlotsFrom, Reorderings[0].SlotTo);
-  if (It == std::end(SlotsFrom) || It == std::begin(SlotsFrom))
-    return nullptr;
-  auto It2 = llvm::find(SlotsFrom, Reorderings[*It].SlotTo);
-  if (It2 == std::end(SlotsFrom) || It == It2)
-    return nullptr;
-  auto It3 = llvm::find(SlotsFrom, Reorderings[*It2].SlotTo);
-  if (It3 != std::begin(SlotsFrom))
-    return nullptr;
-
-  // A cycle with 3 reordering could be done with 2 XCHG, so break it on It2.
-  return &Reorderings[*It2];
-}
 
 } // end anonymous namespace
 
@@ -239,125 +93,6 @@ const DILocalVariable *TVMStackModel::findDebugValue(const MachineInstr &MI,
            (DI.getOperand(0).isReg() && DI.getOperand(0).getReg() == Vreg);
   });
   return (it != MI.getParent()->end()) ? it->getDebugVariable() : nullptr;
-}
-
-StackReorderings
-TVMStackModel::computeReorderings(MachineInstr &MI, LiveIntervals &LIS,
-                                  Stack &TheStack,
-                                  size_t NonStackOperands) const {
-  StackReorderings Result{};
-  size_t NumDefs = MI.getNumDefs();
-  size_t NumOperands = MI.getNumOperands();
-
-  llvm::SmallSet<unsigned, 3> RegUsed{};
-  size_t NumStackOperands = NumOperands - NumDefs - NonStackOperands;
-
-  // Expected operands order: defs, global addresses, registers or MBB,
-  // constants
-  size_t NumGlobals = 0;
-  for (unsigned I = 0; I < NumOperands; ++I)
-    if (MI.getOperand(I).isGlobal() || MI.getOperand(I).isSymbol())
-      NumGlobals++;
-
-  // Let's ensure that all operands have expected type
-  for (unsigned I = 0; I < NumOperands; ++I) {
-    const auto &Op = MI.getOperand(I);
-    if (I < NumDefs)
-      assert(Op.isDef() && "Expected Def");
-    else if (I < NumDefs + NumGlobals)
-      assert((Op.isGlobal() || Op.isSymbol()) &&
-             "Expected Global/External Address");
-    else if (I < NumDefs + NumGlobals + NumStackOperands)
-      assert(isStackOperand(Op) && "Expected a register or a basic block");
-    else
-      // TODO: should be !isStackOperand(Op) once we put global address
-      //       on stack.
-      assert((Op.isImm() || Op.isMBB()) && "Expected Imm or MBB");
-  }
-
-  size_t NumImms = NumOperands - NumDefs - NumGlobals - NumStackOperands;
-  assert(NumImms + NumGlobals == NonStackOperands);
-
-  // The same register could be used multiple times, but the stack keeps
-  // the only copy of it, so we need to produce copies for each but the last
-  // usage of the register even if its killed by MI.
-  llvm::DenseMap<unsigned, size_t> FirstUseOperandIndex(
-      NextPowerOf2(2 * 4 / 3));
-  for (size_t ROpNo = 0; ROpNo < NumStackOperands; ++ROpNo) {
-    size_t OpNo = NumOperands - 1 - NumImms - ROpNo;
-    const auto &Operand = MI.getOperand(OpNo);
-    assert(isStackOperand(Operand) && "Wrong instruction format");
-    // Control-flow arguments mustn't be used in an instruction more than once.
-    // Thus we could omit tracking last use of it.
-    if (!Operand.isReg())
-      continue;
-    RegUsed.insert(Operand.getReg());
-    FirstUseOperandIndex[Operand.getReg()] = OpNo;
-  }
-
-  for (size_t ROpNo = 0; ROpNo < NumStackOperands; ++ROpNo) {
-    size_t OpNo = NumOperands - 1 - NumImms - ROpNo;
-    const auto &Operand = MI.getOperand(OpNo);
-    assert(isStackOperand(Operand) && "Expected Reg or MBB");
-    if (Operand.isReg()) {
-      unsigned RegFrom = Operand.getReg();
-      auto Kind =
-          (isKilled(MI, RegFrom, LIS) && FirstUseOperandIndex[RegFrom] == OpNo)
-              ? StackReorderingKind::Xchg
-              : StackReorderingKind::Copy;
-      Result.emplace_back(StackVreg(RegFrom), ROpNo, Kind);
-    }
-  }
-
-  // We need to adjust XChgs to number of non-register operands together with
-  // number of Pushes followed by it.
-  size_t NumPushes = 0;
-  size_t TotalPushes = llvm::count_if(
-      Result, [](const StackReordering &R) { return R.isCopy(); });
-  std::vector<size_t> SlotsFrom;
-  for (auto &Reordering : Result) {
-    // Note that we modify records in Result below
-    size_t &SlotTo = Reordering.SlotTo;
-    assert(SlotTo >= NumPushes);
-    SlotTo -= NumPushes;
-    if (Reordering.isCopy()) {
-      ++NumPushes;
-      // We don't care about pushes, so put a sentinel.
-      // The maximal slot number is 255 by the specification.
-      SlotsFrom.push_back(std::numeric_limits<size_t>::max());
-    } else {
-      size_t SlotFrom =
-          TheStack.position(Reordering.ElemFrom) + TotalPushes - NumPushes;
-      SlotsFrom.push_back(SlotFrom);
-    }
-  }
-
-  // Break 2- and 3- cycles.
-  // We don't care about self-cycles here because xchg implementation checks
-  // against them.
-  if (const StackReordering *BreakCycle = breakCycle(Result, SlotsFrom)) {
-    Result.erase(
-        llvm::remove_if(Result,
-                        [BreakCycle](const StackReordering &Reordering) {
-                          return &Reordering == BreakCycle;
-                        }),
-        std::end(Result));
-  }
-
-#ifndef NDEBUG
-  // Simulate stack to ensure we have the correct operands on top
-  Stack TheStack2 = TheStack;
-  performReorderings(Result, nullptr, TheStack2);
-  for (size_t ROpNo = 0; ROpNo < NumStackOperands; ++ROpNo) {
-    size_t OpNo = NumOperands - 1 - NumImms - ROpNo;
-    const auto &Op = MI.getOperand(OpNo);
-    assert(isStackOperand(Op) && "Expected Reg or MBB");
-    if (Op.isReg())
-      assert(TheStack2.slotContains(ROpNo, StackVreg(Op.getReg())));
-  }
-#endif
-
-  return Result;
 }
 
 std::string
@@ -382,6 +117,7 @@ TVMStackModel::prepareInstructionComment(const MachineInstr &MI) const {
     OpPrinter(Operand);
   };
 
+  OS << ">";
   OpPrinter(*MI.defs().begin());
   llvm::for_each(drop_begin(MI.defs(), 1), CommaOpPrinter);
 
@@ -394,59 +130,6 @@ TVMStackModel::prepareInstructionComment(const MachineInstr &MI) const {
   }
   OS.flush();
   return OS.str();
-}
-
-void TVMStackModel::performReorderings(const StackReorderings &Reorderings,
-                                       MachineInstr *InsertPoint,
-                                       Stack &TheStack) const {
-  if (Reorderings.empty())
-    return;
-  // We need to perform reorderings in reverse order except for a sequence of
-  // XCHGs. E.g. if we have XCHG1, XCHG2, PUSH, it should be executed as PUSH,
-  // XCHG1, XCHG2.
-  size_t NumElements = Reorderings.size();
-  size_t LastPush = NumElements;
-  size_t RevIdx = 0;
-  while (RevIdx < NumElements) {
-    size_t Idx = NumElements - RevIdx - 1;
-    auto &Reordering = Reorderings[Idx];
-    if (Reordering.isCopy()) {
-      // If the current reordering is PUSH, execute preceding (in reverse order)
-      // XCHGs
-      for (size_t I = Idx + 1; I < LastPush; ++I) {
-        assert(Reorderings[I].isXchg() && "Unexpected reordering");
-        TheStack.xchg(InsertPoint, Reorderings[I]);
-      }
-      auto &Elem = Reordering.ElemFrom;
-      if (Reordering.isCopy()) {
-        TheStack.push(InsertPoint, Elem);
-      } else {
-        llvm_unreachable("Unexpected reordering");
-      }
-      if (Reordering.SlotTo > 0)
-        TheStack.xchg(InsertPoint, Reordering);
-      LastPush = Idx;
-    }
-    ++RevIdx;
-  }
-  // If reorderings start with XCHGs.
-  for (size_t I = 0; I < LastPush; ++I) {
-    assert(Reorderings[I].isXchg() && "Unexpected reordering");
-    TheStack.xchg(InsertPoint, Reorderings[I]);
-  }
-}
-
-static void removeUnusedDefinitions(MachineInstr& MI, Stack& TheStack) {
-  for (MachineOperand& Operand : MI.defs())
-    if (TheStack.exist(StackVreg(Operand.getReg()))) {
-      bool Used = false;
-      for (MachineOperand& Use : MI.uses()) {
-        if (Use.isReg() && Operand.isReg() && Operand.getReg() == Use.getReg())
-          Used = true;
-      }
-      if (!Used)
-        TheStack.pop(MI, StackVreg(Operand.getReg()));
-    }
 }
 
 // Returns true if From -> To branch is backedge
@@ -464,7 +147,10 @@ bool TVMStackModel::processInstruction(MachineInstr &MI, LiveIntervals &LIS,
   if (MI.isImplicitDef())
     return false;
 
-  removeUnusedDefinitions(MI, TheStack);
+  StackFixup::InstructionGenerator gen(TII, MFI, MI.getParent(), MI);
+
+  auto removeUnusedDefsFx = StackFixup::RemoveUnusedDefinitions(MI, TheStack);
+  gen(removeUnusedDefsFx);
 
   size_t NumDefs = MI.getNumDefs();
   size_t NumOperands = MI.getNumOperands();
@@ -474,42 +160,29 @@ bool TVMStackModel::processInstruction(MachineInstr &MI, LiveIntervals &LIS,
   if (MI.isReturn()) {
     assert(NumOperands <= 2 && "Multiple returns are not implemented yet");
     if (NumOperands == 0)
-      TheStack.clear(&MI);
+      gen(StackFixup::DiffForReturn(TheStack));
     else
-      TheStack.clear(&MI, MI.getOperand(0).getReg());
+      gen(StackFixup::DiffForReturn(TheStack, MI.getOperand(0).getReg()));
     return true;
   }
 
-  size_t NonStackOperands =
-      count_if(MI.operands(),
-               [](const MachineOperand &MOP) { return !isStackOperand(MOP); });
+  auto prepareArgsFx = TheStack.reqArgs(&MI, LIS) - TheStack;
+  gen(prepareArgsFx);
+  prepareArgsFx.apply(TheStack);
 
-  size_t NumGlobals = 0, NumImms = 0, NumMBBs = 0;
-  for (const MachineOperand &Op : MI.operands()) {
+  size_t NumStackOperands = 0, NumGlobals = 0, NumImms = 0, NumMBBs = 0;
+  for (const MachineOperand &Op : MI.uses()) {
     if (Op.isGlobal() || Op.isSymbol())
       NumGlobals++;
-    if (Op.isImm())
+    else if (Op.isImm())
       NumImms++;
-    if (Op.isMBB())
+    else if (Op.isMBB())
       NumMBBs++;
+    else if (Op.isReg())
+      NumStackOperands++;
   }
-  assert(NonStackOperands == NumGlobals + NumImms + NumMBBs);
-  bool Changed = false;
-  StackReorderings Reorderings =
-      computeReorderings(MI, LIS, TheStack, NonStackOperands);
-  int NewOpcode = -1;
-  if (isCommutation(Reorderings, TheStack)) {
-    if (MI.isCommutable())
-      Reorderings.clear();
-    else if (MI.getOpcode() == TVM::SUB) {
-      NewOpcode = TVM::SUBR_S;
-      Reorderings.clear();
-    }
-  }
-  if (NewOpcode < 0)
-    NewOpcode = TVM::RegForm2SForm[MI.getOpcode()];
-  performReorderings(Reorderings, &MI, TheStack);
-  unsigned NumToConsume = NumOperands - NonStackOperands - NumDefs;
+  unsigned NewOpcode = TVM::RegForm2SForm[MI.getOpcode()];
+  unsigned NumToConsume = NumStackOperands;
 #ifndef NDEBUG
   // Let's ensure that consumed registers are used in instruction
   // TODO: Doesn't cover numerous corner cases. Covering them would require to
@@ -524,6 +197,7 @@ bool TVMStackModel::processInstruction(MachineInstr &MI, LiveIntervals &LIS,
              "Consuming register not used in instruction");
 #endif
   TheStack.consumeArguments(NumToConsume);
+
   for (size_t ROpNo = 0; ROpNo < NumDefs; ++ROpNo) {
     const auto &Operand = MI.getOperand(NumDefs - ROpNo - 1);
     assert(Operand.isReg() && "Def must be a register");
@@ -552,74 +226,177 @@ bool TVMStackModel::processInstruction(MachineInstr &MI, LiveIntervals &LIS,
       MIB->addOperand(MI.getOperand(1));
     } else {
       for (unsigned I = 0; I < NumImms; I++) {
-        // TODO: why imms are expected to be in continuous sequence
-        //  in register version of MI?
+        // Imms are expected to be in continuous sequence
+        //  in register version of MI
         const auto &Op = MI.getOperand(NumOperands - NumImms + I);
         assert(Op.isImm() && "Expected Imm");
         MIB.addImm(Op.getImm());
       }
     }
-
-    pruneDeadDefinitions(MI, LIS, TheStack);
-
     if (NumDefs)
       MFI->addStackModelComment(MIB.getInstr(), prepareInstructionComment(MI));
     MFI->addStackModelComment(MIB.getInstr(), TheStack.toString());
 
+    auto pruneDeadDefsFx = StackFixup::PruneDeadDefinitions(MI, TheStack);
+    gen(pruneDeadDefsFx);
+
     MI.removeFromParent();
-    Changed = true;
   }
-  return Changed;
+  return true;
+}
+
+Stack TVMStackModel::prepareWantedStack(MachineBasicBlock *MBB,
+                                        LiveIntervals &LIS) {
+  Stack rv(*MBB->getParent(), 0);
+
+  for (unsigned i = 0, e = MRI->getNumVirtRegs(); i != e; ++i) {
+    unsigned Reg = TargetRegisterInfo::index2VirtReg(i);
+    if (LIS.hasInterval(Reg)) {
+      if (LIS.isLiveInToMBB(LIS.getInterval(Reg), MBB)) {
+        rv.addDef(Reg, findDebugValue(*MBB->begin(), Reg));
+      }
+    }
+  }
+  return rv;
+}
+
+Stack TVMStackModel::prepareMultiEndStack(MachineBasicBlock *MBB,
+                                          LiveIntervals &LIS) {
+  Stack rv(*MBB->getParent(), 0);
+
+  for (unsigned i = 0, e = MRI->getNumVirtRegs(); i != e; ++i) {
+    unsigned Reg = TargetRegisterInfo::index2VirtReg(i);
+    if (LIS.hasInterval(Reg)) {
+      if (LIS.isLiveOutOfMBB(LIS.getInterval(Reg), MBB)) {
+        rv.addDef(Reg, findDebugValue(*MBB->begin(), Reg));
+      }
+    }
+  }
+  return rv;
 }
 
 // Traverse all basic blocks in machine function and rewrite all instructions
 // from R-form to S-form. All function arguments are already in stack.
 // Topological order visitation, back edges of UNTIL terminators are ignored.
-bool TVMStackModel::runOnBasicBlocks(MachineFunction &MF, Stack &TheStack) {
+bool TVMStackModel::runOnBasicBlocks(MachineFunction &MF,
+                                     const Stack &StartStack) {
   bool Changed = false;
 
   LiveIntervals &LIS = getAnalysis<LiveIntervals>();
-  DenseMap<MachineBasicBlock *, Stack> BBStack;
+  DenseMap<MachineBasicBlock *, TVMStackBlockInfo> BBStack;
 
   while (BBStack.size() < MF.size()) {
     size_t Size = BBStack.size();
     for (MachineBasicBlock &MBB : MF) {
       if (BBStack.count(&MBB) != 0u)
         continue;
-      bool PredecessorsProcessed = true;
-      MachineBasicBlock *LoopPredecessor = nullptr;
-      for (auto *Predecessor : MBB.predecessors()) {
-        if (BBStack.count(Predecessor) == 0u) {
-          if (isBackEdge(Predecessor, &MBB)) {
-            LoopPredecessor = Predecessor;
-          } else {
-            PredecessorsProcessed = false;
-            break;
-          }
-        }
-      }
-      if (!PredecessorsProcessed)
+      SmallVector<MachineBasicBlock *, 4> fwdPreds;
+      llvm::copy_if(MBB.predecessors(), std::back_inserter(fwdPreds),
+          [this, &MBB] (MachineBasicBlock *Pred) {
+            return !isBackEdge(Pred, &MBB);
+      });
+      bool allFwdPredsVisited = llvm::all_of(fwdPreds,
+          [&BBStack] (MachineBasicBlock *Pred) {
+            return BBStack.count(Pred);
+      });
+      if (!allFwdPredsVisited)
         continue;
-      Stack CurrentStack =
-          initializeStack(MBB, BBStack, TheStack, LoopPredecessor);
-      pruneDeadRegisters(MBB, CurrentStack, LIS);
-      for (MachineBasicBlock::iterator I = MBB.begin(), E = MBB.end();
-           I != E;) {
+
+      auto &bbInfo = BBStack[&MBB];
+      bbInfo.setMBB(&MBB);
+
+      if (fwdPreds.empty()) {
+        bbInfo.setWantedBegin(StartStack);
+        bbInfo.setFixedBegin(StartStack);
+      } else {
+        bbInfo.setWantedBegin(prepareWantedStack(&MBB, LIS));
+
+        // splitting preds into blocks with single successor (this block)
+        // and multi successors
+        auto multiPred = llvm::partition(fwdPreds, [](MachineBasicBlock *Pred) {
+          return Pred->succ_size() == 1;
+        });
+        auto singlePreds = llvm::make_range(fwdPreds.begin(), multiPred);
+        auto multiPreds = llvm::make_range(multiPred, fwdPreds.end());
+        if (llvm::size(multiPreds) == 0) {
+          // If we don't have multi preds, we can just request wanted begin
+          bbInfo.setFixedBegin(bbInfo.wantedBegin());
+        } else {
+          auto fxdE = llvm::partition(multiPreds, [&](MachineBasicBlock *Pred) {
+            return BBStack[Pred].isFixedEnd();
+          });
+          auto fxdPreds = llvm::make_range(multiPreds.begin(), fxdE);
+          auto unfxdPreds = llvm::make_range(fxdE, multiPreds.end());
+          if (llvm::size(fxdPreds) == 0) {
+            // If we don't have fxd preds, we can just request wanted begin
+            bbInfo.setFixedBegin(bbInfo.wantedBegin());
+          } else if (llvm::size(fxdPreds) == 1) {
+            bbInfo.setFixedBegin(BBStack[*fxdPreds.begin()].fixedEnd()
+                .filteredByLiveIns(MBB, LIS));
+          } else {
+            SmallVector<MachineBasicBlock *, 4> uniq(fxdPreds);
+            auto uniqIt = std::unique(uniq.begin(), uniq.end(),
+              [&](MachineBasicBlock *L, MachineBasicBlock *R) {
+                return BBStack[L].fixedEnd() == BBStack[R].fixedEnd();
+            });
+            if (std::distance(fxdPreds.begin(), uniqIt) == 1) {
+              // good, all fixed predecessors ends already are the same
+              bbInfo.setFixedBegin(BBStack[*uniq.begin()].fixedEnd()
+                  .filteredByLiveIns(MBB, LIS));
+            } else {
+              // requires insertion of fixup mbb
+              llvm_unreachable("Unimplemented - fixup mbb"); // TODO
+            }
+          }
+          llvm::for_each(unfxdPreds, [&](MachineBasicBlock *pred) {
+            BBStack[pred].setFixedEndWithFixup(bbInfo.fixedBegin(), TII, MFI);
+          });
+        }
+
+        // all single-target preds will have exact fixed end = cur.begin
+        // We dont need to merge them, just insert instructions for diff
+        llvm::for_each(singlePreds, [&](MachineBasicBlock *pred) {
+          BBStack[pred].setFixedEndWithFixup(bbInfo.fixedBegin(), TII, MFI);
+        });
+      }
+      auto CurrentStack = bbInfo.fixedBegin(); // start bb stack here
+
+      for (auto I = MBB.begin(), E = MBB.end(); I != E;) {
         MachineInstr &MI = *I++;
         assert(!TVM::isArgument(MI));
 
         if (MI.isDebugInstr() || MI.isLabel())
           continue;
+        if (MI.isTerminator()) {
+          SmallVector<StackVreg, 4> Args;
+          for (auto Op : MI.uses())
+            if (Op.isReg())
+              Args.push_back(StackVreg(Op.getReg()));
+          bbInfo.setTerminatorArgs(Args);
+        }
 
         Changed |= processInstruction(MI, LIS, CurrentStack);
       }
-      auto [It, Flag] = BBStack.insert({&MBB, CurrentStack});
-      assert(Flag && "Can't update stack info");
+      SmallVector<MachineBasicBlock *, 4> bkSuccessors;
+      llvm::copy_if(MBB.successors(), std::back_inserter(bkSuccessors),
+          [this, &MBB] (MachineBasicBlock *Succ) {
+            return isBackEdge(&MBB, Succ);
+      });
+      bbInfo.setCalculatedEnd(CurrentStack);
+      if (size_t backEdges = llvm::size(bkSuccessors)) {
+        if (backEdges == 1) {
+          bbInfo.setFixedEndWithFixup(
+                BBStack[*bkSuccessors.begin()].fixedBegin(), TII, MFI);
+        } else {
+          // requires insertion of fixup mbb
+          llvm_unreachable("Unimplemented - fixup mbb"); // TODO
+        }
+      } else if (MBB.succ_size() > 1) {
+        bbInfo.setFixedEndWithFixup(prepareMultiEndStack(&MBB, LIS), TII, MFI);
+      }
     }
-    assert(BBStack.size() > Size &&
-           "Back edges in CFG are not supposed to reach StackModel pass.");
+    assert(BBStack.size() > Size && "No progress in TVMStackModel loop.");
   }
-
   return Changed;
 }
 
@@ -633,6 +410,7 @@ bool TVMStackModel::runOnMachineFunction(MachineFunction &MF) {
 
   bool Changed = false;
   MFI = MF.getInfo<TVMFunctionInfo>();
+  MRI = &MF.getRegInfo();
   TII = MF.getSubtarget<TVMSubtarget>().getInstrInfo();
   Loops = &getAnalysis<MachineLoopInfo>();
 
@@ -651,7 +429,7 @@ bool TVMStackModel::runOnMachineFunction(MachineFunction &MF) {
   }
 
   size_t NumArgs = MFI->numParams();
-  Stack TheStack(MF, NumArgs);
+  Stack StartStack(MF, NumArgs);
 
   // Handle ARGUMENTS first to ensure that they get the designated numbers.
   for (MachineBasicBlock::iterator I = FirstBB.begin(), E = FirstBB.end();
@@ -662,14 +440,14 @@ bool TVMStackModel::runOnMachineFunction(MachineFunction &MF) {
     unsigned Reg = MI.getOperand(0).getReg();
     assert(!MFI->isVRegStackified(Reg));
     unsigned ArgNo = NumArgs - MI.getOperand(1).getImm() - 1;
-    TheStack.set(ArgNo, StackVreg(Reg, findDebugValue(MI, Reg)));
+    StartStack.set(ArgNo, StackVreg(Reg, findDebugValue(MI, Reg)));
     MI.eraseFromParent();
     Changed = true;
   }
 
-  MFI->setStartStackModelComment(TheStack.toString());
+  MFI->setStartStackModelComment(StartStack.toString());
 
-  if (runOnBasicBlocks(MF, TheStack))
+  if (runOnBasicBlocks(MF, StartStack))
     Changed = true;
 
   return Changed;

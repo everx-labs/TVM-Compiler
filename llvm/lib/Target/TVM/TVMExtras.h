@@ -61,6 +61,13 @@ bool operator==(const std::variant<Ts...> &Lhs, T &&Rhs) {
   return std::get<DecayT>(Lhs) == Rhs;
 }
 
+template <typename T, typename... Ts,
+          typename = std::enable_if_t<
+              !std::is_same_v<std::decay_t<T>, std::variant<Ts...>>>>
+bool operator!=(const std::variant<Ts...> &Lhs, T &&Rhs) {
+  return !operator==(Lhs, Rhs);
+}
+
 template <class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
 template <class... Ts> overloaded(Ts...)->overloaded<Ts...>;
 

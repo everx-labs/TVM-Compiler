@@ -279,6 +279,7 @@ SDValue TVMTargetLowering::SaveC0(SDValue Chain, const SDLoc &DL,
   MachineFunction &MF = DAG.getMachineFunction();
   auto *FI = MF.getInfo<TVMFunctionInfo>();
 
+  // Save c0 for further return lowering
   SDValue GetC0Ops[] = {
       Chain, DAG.getTargetConstant(Intrinsic::tvm_getreg, DL, MVT::i64),
       DAG.getConstant(0, DL, MVT::i64)};

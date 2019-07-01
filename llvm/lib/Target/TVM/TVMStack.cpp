@@ -18,6 +18,7 @@
 
 #include "TVMSubtarget.h"
 #include "TVMUtilities.h"
+#include "llvm/CodeGen/LiveIntervals.h"
 #include "llvm/CodeGen/MachineInstrBuilder.h"
 #include "llvm/CodeGen/TargetInstrInfo.h"
 #include "llvm/IR/DebugInfoMetadata.h"
@@ -25,99 +26,102 @@
 namespace llvm {
 
 Stack::Stack(MachineFunction &MF, size_t Size)
-    : TII(MF.getSubtarget<TVMSubtarget>().getInstrInfo()),
-      TRI(MF.getSubtarget<TVMSubtarget>().getRegisterInfo()),
-      MRI(&MF.getRegInfo()), MFI(MF.getInfo<TVMFunctionInfo>()),
+    : TRI(MF.getSubtarget<TVMSubtarget>().getRegisterInfo()),
+      MRI(&MF.getRegInfo()),
       Data(Size, StackVreg(TVMFunctionInfo::UnusedReg)) {}
 
-bool Stack::clear(MachineInstr *InsertPoint, unsigned Preserved) {
-  auto It = llvm::find(Data, StackVreg(Preserved));
-  size_t NumDrops = 0, NumNips = 0;
-  if (It == std::end(Data)) {
-    NumDrops = Data.size();
-  } else {
-    NumDrops = std::distance(std::begin(Data), It);
-    NumNips = Data.size() - NumDrops - 1;
+Stack Stack::plusArgs(SmallVector<StackVreg, 4> &Args) const {
+  Stack rv(*this);
+  auto revArgs = reverse(Args);
+  rv.Data.insert(rv.Data.begin(), revArgs.begin(), revArgs.end());
+  return rv;
+}
+
+/// If \par MO is no longer used after \par MI.
+static bool isKilled(const MachineInstr &MI, unsigned Register,
+                     const LiveIntervals &LIS) {
+  const LiveInterval &LI = LIS.getInterval(Register);
+  // If there is no live interval starting from the current instruction
+  // for the given argument, the argument is killed.
+  if (!LI.getVNInfoAt(LIS.getInstructionIndex(MI).getRegSlot()))
+    return true;
+  for (size_t I = 0, E = MI.getNumDefs(); I < E; ++I)
+    if (MI.getOperand(I).isReg() && MI.getOperand(I).getReg() == Register)
+      return true;
+  return false;
+}
+
+Stack Stack::reqArgs(MachineInstr *MI, const LiveIntervals &LIS) const {
+  Stack rv(*this);
+  SmallVector<StackVreg, 4> Ops;
+  auto regUses = llvm::make_filter_range(MI->uses(),
+                   [](const MachineOperand &Op) { return Op.isReg(); });
+  for (auto Arg : regUses) {
+    StackVreg vreg(Arg.getReg());
+    auto it = llvm::find(rv.Data, vreg);
+    if (it != rv.Data.end()) {
+      Ops.push_back(*it);
+      if (isKilled(*MI, vreg.VirtReg, LIS))
+        rv.Data.erase(it);
+    } else {
+      auto dupIt = llvm::find(Ops, vreg);
+      assert(dupIt != Ops.end() && "No required argument in stack");
+      Ops.push_back(*dupIt);
+    }
   }
-  unsigned Opc = TVM::POP;
-  // DROPs
-  for (size_t i = 0; i < NumDrops; ++i)
-    BuildMI(InsertPoint, TII->get(Opc)).addImm(0);
-  // NIPs
-  for (size_t i = 0; i < NumNips; ++i)
-    BuildMI(InsertPoint, TII->get(Opc)).addImm(1);
-  if (It == std::end(Data))
-    Data.clear();
-  else
-    Data = {Data[NumDrops]};
-  return NumDrops && NumNips;
+  auto reverted = llvm::reverse(Ops);
+  rv.Data.insert(rv.Data.begin(), reverted.begin(), reverted.end());
+  return rv;
+}
+
+Stack Stack::filteredByLiveIns(MachineBasicBlock &MBB,
+                               const LiveIntervals &LIS) const {
+  Stack rv(*this);
+  for (StackVreg &vreg : rv.Data) {
+    if (!LIS.hasInterval(vreg.VirtReg) ||
+        !LIS.isLiveInToMBB(LIS.getInterval(vreg.VirtReg), &MBB)) {
+      vreg = StackVreg(TVMFunctionInfo::UnusedReg);
+    }
+  }
+  return rv;
 }
 
 void Stack::addDef(unsigned Reg, const DILocalVariable *DbgVar) {
   Data.push_front(StackVreg(Reg, DbgVar));
 }
 
-void Stack::push(MachineInstr *InsertPoint, StackElementT Elem) {
-  size_t ElemSlot = position(Elem);
-  assert(ElemSlot <= PushLimit && "Unimplemented");
-  Data.push_front(Data[ElemSlot]);
-  if (InsertPoint != nullptr) {
-    auto *MI =
-        BuildMI(InsertPoint, TII->get(TVM::PUSH)).addImm(ElemSlot).getInstr();
-    MFI->addStackModelComment(MI, toString());
-  }
-}
-
-bool Stack::xchg(MachineInstr *InsertPoint, StackElementT ElemFrom,
-                 size_t SlotTo) {
-  auto It = llvm::find_or_fail(Data, ElemFrom);
-  size_t ElemFromSlot = std::distance(std::begin(Data), It);
-  assert(ElemFromSlot <= XchgLimit && "Unimplemented");
-  if (Data[SlotTo] == ElemFrom)
-    return false;
-  std::swap(*It, Data[SlotTo]);
-  if (InsertPoint != nullptr) {
-    auto *MI = BuildMI(InsertPoint, TII->get(TVM::XCHG))
-                   .addImm(std::min(ElemFromSlot, SlotTo))
-                   .addImm(std::max(ElemFromSlot, SlotTo))
-                   .getInstr();
-    MFI->addStackModelComment(MI, toString());
-  }
-  return true;
-}
-
-void Stack::pop(MachineInstr &InsertPoint, const StackElementT &Elem) {
-  auto It = llvm::find_or_fail(Data, Elem);
-  size_t Slot = std::distance(std::begin(Data), It);
-  Data.erase(It);
-  auto *MI = BuildMI(&InsertPoint, TII->get(TVM::POP)).addImm(Slot).getInstr();
-  MFI->addStackModelComment(MI, toString());
-}
-
-void Stack::join(Stack &S1, Stack &S2, MachineInstr &InsertPoint) {
-  size_t Slot = 0;
-  auto &Data1 = S1.Data, Data2 = S2.Data;
-  size_t Size = Data1.size();
-  assert(&InsertPoint == &InsertPoint.getParent()->back() &&
-         "Stack manipulations are supposed to be inserted at the end of a "
-         "basic block");
-  assert(Size == Data2.size() && "Not implemented");
-  while (Slot < Size) {
-    S2.xchg(&InsertPoint, Data1[Slot], Slot);
-    ++Slot;
-  }
+Stack& Stack::operator += (const StackFixup::Change &change) {
+  std::visit(overloaded{
+      [this](StackFixup::drop){
+        Data.pop_front();
+      },
+      [this](StackFixup::nip) {
+        Data.erase(std::next(Data.begin()));
+      },
+      [this](StackFixup::swap) {
+        std::swap(Data[0], Data[1]);
+      },
+      [this](StackFixup::xchgTop v) {
+        std::swap(Data[0], Data[v.i]);
+      },
+      [this](StackFixup::xchg v) {
+        std::swap(Data[v.i], Data[v.j]);
+      },
+      [this](StackFixup::dup){ Data.push_front(Data.front()); },
+      [this](StackFixup::pushI v){ Data.push_front(Data[v.i]); }
+    }, change);
+  return *this;
 }
 
 void Stack::print(raw_ostream &OS) const {
   OS << "{ ";
   if (!Data.empty()) {
-    printElement(OS, *Data.begin());
-    llvm::for_each(drop_begin(Data, 1), [&OS, this](const StackElementT &Elem) {
-      OS << " | ";
+    llvm::for_each(reverse(Data), [&OS, this](const StackVreg &Elem) {
       printElement(OS, Elem);
+      OS << " | ";
     });
   }
-  OS << " }";
+  OS << "- }";
 }
 
 std::string Stack::toString() const {
@@ -130,27 +134,26 @@ std::string Stack::toString() const {
 
 #if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
 /// Allow easy printing of the stack from the debugger.
-void Stack::dump() {
+void Stack::dump() const {
   print(dbgs());
   dbgs() << "\n";
   dbgs().flush();
 }
 #endif
 
-void Stack::printElement(raw_ostream &OS, const StackElementT &Elem) const {
-  std::visit(overloaded{[this, &OS](const StackVreg &Vreg) {
-                          OS << printReg(Vreg.VirtReg, TRI, 0, MRI);
-                          if (Vreg.DbgVar) {
-                            OS << "(" << Vreg.DbgVar->getName() << ")";
-                          }
-                        },
-                        [&OS](MachineBasicBlock *mbb) {
-                          OS << "bb." << mbb->getNumber();
-                          if (const auto *BB = mbb->getBasicBlock())
-                            if (BB->hasName())
-                              OS << "." << BB->getName();
-                        }},
-             Elem);
+void Stack::printElement(raw_ostream &OS, const StackVreg &Vreg) const {
+  if (Vreg.VirtReg == TVMFunctionInfo::UnusedReg) {
+    OS << "x";
+    return;
+  }
+  OS << printReg(Vreg.VirtReg, TRI, 0, MRI);
+  if (Vreg.DbgVar) {
+    OS << "(" << Vreg.DbgVar->getName() << ")";
+  }
+}
+
+StackFixup Stack::operator-(const Stack &v) const {
+  return StackFixup::Diff(*this, v);
 }
 
 } // namespace llvm

@@ -94,7 +94,7 @@ bool TVMPrepareForLiveIntervals::runOnMachineFunction(MachineFunction &MF) {
   //
   // TODO: This is fairly heavy-handed; find a better approach.
   //
-  for (unsigned i = 0, e = MRI.getNumVirtRegs(); i < e; ++i) {
+  /*for (unsigned i = 0, e = MRI.getNumVirtRegs(); i < e; ++i) {
     unsigned Reg = TargetRegisterInfo::index2VirtReg(i);
 
     // Skip unused registers.
@@ -107,7 +107,7 @@ bool TVMPrepareForLiveIntervals::runOnMachineFunction(MachineFunction &MF) {
 
     BuildMI(Entry, Entry.begin(), DebugLoc(), TII.get(TVM::IMPLICIT_DEF), Reg);
     Changed = true;
-  }
+  }*/
 
   // Move ARGUMENT_* instructions to the top of the entry block, so that their
   // liveness reflects the fact that these really are live-in values.

@@ -23,49 +23,10 @@
 
 #include "TVMExtras.h"
 #include "TVMMachineFunctionInfo.h"
+#include "TVMStackVreg.h"
+#include "TVMStackFixup.h"
 
 namespace llvm {
-
-enum class StackReorderingKind { Copy, Xchg };
-
-struct StackVreg {
-  unsigned VirtReg = 0;
-  const DILocalVariable *DbgVar = nullptr;
-
-  explicit StackVreg(unsigned VirtReg, const DILocalVariable *DbgVar = nullptr)
-    : VirtReg(VirtReg), DbgVar(DbgVar) {}
-
-  bool operator < (const StackVreg &R) const {
-    return VirtReg < R.VirtReg;
-  }
-  bool operator == (const StackVreg &R) const {
-    return VirtReg == R.VirtReg;
-  }
-};
-using StackElementT = std::variant<StackVreg, MachineBasicBlock *>;
-
-struct StackReordering {
-  /// The register or the basic block we get data from.
-  StackElementT ElemFrom;
-  /// The number of slot we put data to.
-  size_t SlotTo;
-  /// If we copy (Push), move (Xchg) or create new element (PushCont, etc).
-  StackReorderingKind ReorderingKind;
-  /// Check if the reordering copies an existing element to SlotTo.
-  bool isCopy() const { return ReorderingKind == StackReorderingKind::Copy; }
-  /// Check if the reordering exchanges elements in a stack.
-  bool isXchg() const { return ReorderingKind == StackReorderingKind::Xchg; }
-  StackReordering(StackElementT ElemFrom, size_t SlotTo,
-                  StackReorderingKind ReorderingKind)
-      : ElemFrom(ElemFrom), SlotTo(SlotTo), ReorderingKind(ReorderingKind) {}
-#if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
-  /// Allow easy printing of a stack reordering from the debugger.
-  void dump();
-#endif
-};
-
-// Most of the instructions have at most 2 arguments.
-using StackReorderings = SmallVector<StackReordering, 2>;
 
 /// Implement the programming model of the hardware stack and keep it in sync
 /// with the emitted code.
@@ -73,7 +34,25 @@ using StackReorderings = SmallVector<StackReordering, 2>;
 /// stack.
 class Stack {
 public:
+  typedef std::deque<StackVreg> StackDeq;
+
   Stack(MachineFunction &MF, size_t Size);
+
+  Stack &operator += (const StackFixup::Change &change);
+
+  bool operator == (const Stack &v) const { return Data == v.Data; }
+  bool operator != (const Stack &v) const { return Data != v.Data; }
+
+  const StackVreg &operator[](unsigned i) const { return Data[i]; }
+
+  // Add arguments on stack
+  Stack plusArgs(SmallVector<StackVreg, 4> &Args) const;
+  // Re-order or add arguments on stack
+  Stack reqArgs(MachineInstr *MI, const LiveIntervals &LIS) const;
+
+  Stack filteredByLiveIns(MachineBasicBlock &MBB,
+                          const LiveIntervals &LIS) const;
+
   auto begin() { return Data.begin(); }
   auto begin() const { return Data.begin(); }
   auto end() { return Data.end(); }
@@ -84,46 +63,28 @@ public:
   /// \par Preserved virtual register needs to be kept in the stack.
   bool clear(MachineInstr *InsertPoint,
              unsigned Preserved = TVMFunctionInfo::UnusedReg);
-  /// PUSH the specified slot to the specified position of the stack.
-  /// Precondition: Elem is present in Data.
-  /// TODO: Stack PUSH limitations aren't handled yet.
-  /// \par InsertPoint specify instruction to insert after.
-  /// \par Elem virtual register or basic block.
-  void push(MachineInstr *InsertPoint, StackElementT Elem);
-  /// \par InsertPoint specify instruction to insert after.
-  /// \par ElemFrom register or BB to be exchanged in the stack.
-  /// \par SlotTo slot number to be exchanged with.
-  /// Precondition: Slot number for ElemFrom != SlotTo.
-  bool xchg(MachineInstr *InsertPoint, StackElementT ElemFrom, size_t SlotTo);
-  /// A helper function for general xchg()
-  bool xchg(MachineInstr *InsertPoint, const StackReordering &Reordering) {
-    return xchg(InsertPoint, Reordering.ElemFrom, Reordering.SlotTo);
-  }
-  /// Remove \par Elem from the stack. Insert corresponding POP instruction
-  /// after \par InsertPoint.
-  /// Precondition: Elem is in the stack.
-  void pop(MachineInstr &InsertPoint, const StackElementT &Elem);
   /// Return position of \par Elem in the stack.
   /// Precondition: \par Elem is in the stack.
-  size_t position(StackElementT Elem) const {
+  size_t position(const StackVreg& Elem) const {
     return std::distance(std::begin(Data), llvm::find_or_fail(Data, Elem));
+  }
+  size_t position(size_t From, const StackVreg& Elem) const {
+    return std::distance(std::begin(Data),
+                         find_or_fail(drop_begin(Data, From), Elem));
   }
   /// Return register for \par Slot in the stack.
   /// Precondition: Slot < Data.size() && Data[Slot] is a register.
   unsigned reg(size_t Slot) const {
     assert(Slot < Data.size() && "Out of range access");
-    assert(std::holds_alternative<StackVreg>(Data[Slot]) &&
-           "Stack doesn't contain a register at Slot");
-    return std::get<StackVreg>(Data[Slot]).VirtReg;
+    return Data[Slot].VirtReg;
   }
   /// Checks if element at \par Slot is a register.
   /// Precondition: Slot < Data.size()
   unsigned isReg(size_t Slot) const {
-    assert(Slot < Data.size() && "Out of range access");
-    return std::holds_alternative<StackVreg>(Data[Slot]);
+    return true;
   }
   /// Fill the specified \p Slot with \p Elem. Doesn't generate any instruction.
-  void set(size_t Slot, const StackElementT &Elem) {
+  void set(size_t Slot, const StackVreg &Elem) {
     assert(Slot < Data.size() && "Out of range access");
     Data[Slot] = Elem;
   }
@@ -136,39 +97,30 @@ public:
   /// Pushes result of an instruction to the stack.
   void addDef(unsigned Reg, const DILocalVariable *DbgVar);
   /// Checks if specified \p Slot contains specified \p Elem.
-  bool slotContains(size_t Slot, const StackElementT &Elem) const {
+  bool slotContains(size_t Slot, const StackVreg &Elem) const {
     assert(Slot < Data.size() && "Out of range access");
     return Data[Slot] == Elem;
   }
   /// Checks if specified \p Elem present.
-  bool exist(const StackElementT &Elem) const {
+  bool exist(const StackVreg &Elem) const {
     return llvm::exist(Data, Elem);
   }
+  size_t count(const StackVreg &Elem) const {
+    return llvm::count(Data, Elem);
+  }
   void print(raw_ostream &OS) const;
-  void printElement(raw_ostream &OS, const StackElementT &Elem) const;
+  void printElement(raw_ostream &OS, const StackVreg &Vreg) const;
   std::string toString() const;
 #if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
   /// Allow easy printing of the stack from the debugger.
-  void dump();
+  void dump() const;
 #endif
-  /// Modify \par S1 and \par S2 so that identical values are in identical
-  /// positions.
-  /// Insert necessary stack manipulation instructions to the end of basic
-  /// blocks \par S2 came from. It should be designated by \par InsertPoint.
-  static void join(Stack &S1, Stack &S2, MachineInstr &InsertPoint);
-  /// TODO: we need to decide how to handle these limitations.
-  /// They shouldn't be defined in this scope.
-  /// Maximal N in a valid PUSH sN instruction.
-  static inline constexpr size_t PushLimit = 255;
-  /// Maximal N, M in a valid XCHG sN, sM instruction.
-  static inline constexpr size_t XchgLimit = 15;
 
+  StackFixup operator-(const Stack &v) const;
 private:
-  const TargetInstrInfo *TII;
   const TargetRegisterInfo *TRI;
   const MachineRegisterInfo *MRI;
-  TVMFunctionInfo *MFI;
-  std::deque<StackElementT> Data;
+  StackDeq Data;
 };
 
 } // namespace llvm

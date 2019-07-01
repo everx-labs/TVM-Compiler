@@ -48,7 +48,7 @@ class TVMFunctionInfo final : public MachineFunctionInfo {
   BitVector VRegStackified;
 
   /// Virtual register allocated to save c0 for function return lowering
-  unsigned int C0VirtReg = 0;
+  unsigned C0VirtReg = 0;
 
 public:
   explicit TVMFunctionInfo(MachineFunction &MF);
@@ -103,6 +103,10 @@ public:
   void addStackModelComment(const MachineInstr *MI, const std::string &val) {
     StackModelComments[MI].push_back(val);
   }
+  void resetStackModelComment(const MachineInstr *MI, const std::string &val) {
+    StackModelComments[MI].clear();
+    StackModelComments[MI].push_back(val);
+  }
   const std::vector<std::string> &
   getStackModelComments(const MachineInstr *MI) const {
     auto it = StackModelComments.find(MI);
@@ -130,7 +134,7 @@ public:
 
   bool hasC0VirtReg() const { return C0VirtReg != 0; }
 
-  void setC0VirtReg(unsigned int Register) {
+  void setC0VirtReg(unsigned Register) {
     assert(!hasC0VirtReg() && "C0 virtual register has been already saved");
     assert(Register && "C0 virtual register has to be non zero");
     C0VirtReg = Register;

@@ -96,10 +96,22 @@ StackFixup StackFixup::Diff(const Stack &to, const Stack &from) {
   // Generate changes to re-order
   assert(llvm::size(unmaskedTo) == llvm::size(curStack));
 
-  for (unsigned n = 0; n < llvm::size(unmaskedTo); ++n) {
+  size_t sz = llvm::size(unmaskedTo);
+  assert(sz <= XchgDeepLimit && "Too deep stack");
+
+  for (unsigned n = 0; n < sz; ++n) {
     if (unmaskedTo[n] != curStack[n]) {
       auto i = curStack.position(n, unmaskedTo[n]);
-      rv(curStack += rv(xchg(i, n)));
+
+      if (i <= XchgLimit && n <= XchgLimit) {
+        rv(curStack += rv(xchg(i, n)));
+      } else {
+        // 3 top xchanges for deep reorderings (xchgTop supports deep index)
+        // xchg i,n = { xchg i,0; xchg 0,n; xchg i,0; }
+        rv(curStack += rv(xchgTop(i)));
+        rv(curStack += rv(xchgTop(n)));
+        rv(curStack += rv(xchgTop(i)));
+      }
     }
   }
 
@@ -227,8 +239,14 @@ operator()(const std::pair<Change, std::string> &pair) const {
         MI = BuildMI(*MBB, InsertPt, DL, TII->get(TVM::SWAP)).getInstr();
       },
       [&](xchgTop v){
-        MI = BuildMI(*MBB, InsertPt, DL, TII->get(TVM::XCHG_TOP)).addImm(v.i)
-                     .getInstr();
+        if (v.i <= XchgLimit) {
+          MI = BuildMI(*MBB, InsertPt, DL, TII->get(TVM::XCHG_TOP)).addImm(v.i)
+                       .getInstr();
+        } else if (v.i <= XchgDeepLimit) {
+          MI = BuildMI(*MBB, InsertPt, DL, TII->get(TVM::XCHG_TOP_DEEP))
+                       .addImm(v.i)
+                       .getInstr();
+        }
       },
       [&](xchg v){
         MI = BuildMI(*MBB, InsertPt, DL, TII->get(TVM::XCHG))

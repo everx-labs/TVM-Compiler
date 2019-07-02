@@ -39,6 +39,7 @@ extern "C" void LLVMInitializeTVMTarget() {
   initializeTVMStackModelPass(PR);
   initializeTVMLoopInstructionsPass(PR);
   initializeTVMLoopPreparePass(PR);
+  initializeTVMContinuationsHoistPass(PR);
 }
 
 static Reloc::Model getEffectiveRelocModel(Optional<Reloc::Model> RM) {
@@ -141,8 +142,7 @@ void TVMPassConfig::addPreEmitPass() {
 }
 
 void TVMPassConfig::addPreRegAlloc() {
-  // We need Machine CSE at every optimization level for PUSHCONT_MBB combining
-  addPass(&MachineCSEID);
+  addPass(createTVMContinuationsHoist());
   TargetPassConfig::addPreRegAlloc();
 }
 

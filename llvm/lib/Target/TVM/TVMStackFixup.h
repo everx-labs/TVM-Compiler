@@ -46,7 +46,7 @@ public:
   struct swap {};
   struct xchgTop {
     explicit xchgTop(unsigned i) : i (i) {
-      assert(i <= XchgLimit && "Unimplemented");
+      assert(i <= XchgDeepLimit && "Unimplemented");
     }
     unsigned i;
   };
@@ -82,6 +82,7 @@ public:
   static inline constexpr size_t PushLimit = 255;
   /// Maximal N, M in a valid XCHG sN, sM instruction.
   static inline constexpr size_t XchgLimit = 15;
+  static inline constexpr size_t XchgDeepLimit = 255;
   static inline constexpr size_t BlkdropImmLimit = 15;
 
   class InstructionGenerator {

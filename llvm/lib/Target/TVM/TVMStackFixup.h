@@ -12,6 +12,7 @@
 
 #include <deque>
 #include <variant>
+#include <optional>
 
 #include "llvm/CodeGen/MachineInstrBuilder.h"
 

@@ -84,7 +84,7 @@ def TVMldix     : SDNode<"TVMISD::LDIX", SDT_TVMDictLd, []>;
 def TVMldux     : SDNode<"TVMISD::LDUX", SDT_TVMDictLd, []>;
 def TVMnewc     : SDNode<"TVMISD::NEWC", SDT_TVMNewc, []>;
 def TVMldslicex : SDNode<"TVMISD::LDSLICEX", SDT_TVMDictLd, []>;
-def TVMsendrawmsg : SDNode<"TVMISD::SENDRAWMSG", SDT_TVMSendRawMsg, []>;
+def TVMsendrawmsg : SDNode<"TVMISD::SENDRAWMSG", SDT_TVMSendRawMsg, [SDNPHasChain]>;
 def TVMifelse   : SDNode<"TVMISD::IFELSE", SDT_TVMIfElse, [SDNPHasChain]>;
 def TVMjumpx    : SDNode<"TVMISD::JUMPX", SDT_TVMJumpX, [SDNPHasChain]>;
 def TVMifjmp    : SDNode<"TVMISD::IFJMP", SDT_TVMIfJmp, [SDNPHasChain]>;
@@ -245,7 +245,7 @@ def : UintBinopPat<urem, MOD>;
 class IntDivPat<SDPatternOperator instr_op, Instruction instr> :
   Pat<(instr_op I64:$a, I64:$b),
       (AND (instr (ABS I64:$a), (ABS I64:$b)),
-        (AND (XOR I64:$a, I64:$b), (CONST_U64 0x8000000000000000)))>;
+        (AND (XOR I64:$a, I64:$b), (SHL (CONST_U64 0x1), (CONST_U64 0x3f))))>;
 def : IntDivPat<sdiv, DIV>;
 def : IntDivPat<srem, MOD>;
 

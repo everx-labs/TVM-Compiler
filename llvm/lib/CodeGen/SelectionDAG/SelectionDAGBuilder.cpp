@@ -1975,12 +1975,14 @@ void SelectionDAGBuilder::visitBr(const BranchInst &I) {
     // If this is not a fall-through branch or optimizations are switched off,
     // emit the branch.
     // TVM local change begin
-    // Eliminated (Succ0MBB != NextBlock(BrMBB)) check
-    // if (TM.getOptLevel() == CodeGenOpt::None)
+    // TODO: TVM backend doesn't handle fallthrough properly, so it requires an MBB
+    // to always end up with an explicit terminator instruction.
+    if (Succ0MBB != NextBlock(BrMBB) || TM.getOptLevel() == CodeGenOpt::None ||
+        DAG.getTarget().getTargetTriple().getArch() == Triple::tvm)
+    // TVM local change end
       DAG.setRoot(DAG.getNode(ISD::BR, getCurSDLoc(),
                               MVT::Other, getControlRoot(),
                               DAG.getBasicBlock(Succ0MBB)));
-    // TVM local change end
 
     return;
   }

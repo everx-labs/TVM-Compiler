@@ -86,7 +86,6 @@ define i64 @test22(i64 %x) nounwind {
 ; CHECK-NEXT: ADD
   %1 = add i64 %x, %x
 ; CHECK: PUSHINT $pow2$
-; CHECK: XCHG s0, s1
 ; CHECK: CALL 1
   %2 = call i64 @pow2(i64 %1)
   ret i64 %2
@@ -97,13 +96,13 @@ define i64 @test23(i64 %x, i64 %y) nounwind {
 ; CHECK: PUSH c0
 ; CHECK: PUSHINT $pow2$
 ; CHECK: DUP
-; CHECK: XCHG s0, s4
+; CHECK: XCHG s1, s4
 ; CHECK: XCHG s2, s4
 ; CHECK: XCHG s3, s4
 ; CHECK: CALL 1
   %1 = call i64 @pow2(i64 %x)
-; CHECK: XCHG s0, s3
-; CHECK: XCHG s2, s3
+; CHECK: XCHG s0, s1
+; CHECK: XCHG s1, s3
 ; CHECK: CALL 1
   %2 = call i64 @pow2(i64 %y)
 ; CHECK: XCHG s0, s2
@@ -126,25 +125,25 @@ define i64 @test24(i64 %x, i64 %y) nounwind {
 ; [x, y, c0]
 ; CHECK: PUSHINT $sum$
 ; [x, y, c0, $sum]
-; CHECK: PUSH s2
-; [x, y, c0, $sum, y]
-; CHECK: PUSH s4
-; [x, y, c0, $sum, y, x]
-; CHECK: PUSH s2
-; [x, y, c0, $sum, y, x, $sum]
+; CHECK: DUP
+; [x, y, c0, $sum, $sum]
+; CHECK: PUSH s3
+; [x, y, c0, $sum, $sum, y]
+; CHECK: PUSH s5
+; [x, y, c0, $sum, $sum, y, x]
 ; CHECK: XCHG s0, s2
-; [x, y, c0, $sum, $sum, x, y]
+; [x, y, c0, $sum, x, y, $sum]
 ; CHECK-NEXT: CALL 1
 ; [x, y, c0, $sum, x + y]
   %1 = call i64 @sum(i64 %x, i64 %y)
-; CHECK: XCHG s0, s4
-; [x + y, y, c0, $sum, x]
-; CHECK: XCHG s1, s3
-; [x + y, $sum, c0, y, x]
+; CHECK: XCHG s0, s1
+; [x, y, c0, x + y, $sum]
+; CHECK: XCHG s1, s4
+; [y, c0, x + y, x, $sum]
 ; CHECK: XCHG s2, s3
-; [x + y, c0, $sum, y, x]
+; [c0, y, x + y, x, $sum]
 ; CHECK: XCHG s3, s4
-; [c0, x + y, $sum, y, x]
+; [c0, x + y, y, x, $sum]
 ; CHECK: CALL 1
 ; [c0, x + y, y + x]
   %2 = call i64 @sum(i64 %y, i64 %x)
@@ -179,13 +178,13 @@ define i64 @test25(i64 %x, i64 %y, i64 %z) nounwind {
 ; CHECK: PUSH c0
 ; CHECK: PUSHINT $sum$
 ; CHECK: DUP
-; CHECK: XCHG s0, s4
-; CHECK: XCHG s1, s5
-; CHECK: XCHG s2, s4
-; CHECK: XCHG s3, s5
+; CHECK: XCHG s1, s4
+; CHECK: XCHG s2, s5
+; CHECK: XCHG s3, s4
+; CHECK: XCHG s4, s5
 ; CHECK: CALL 1
   %1 = call i64 @sum(i64 %x, i64 %y)
-; CHECK: XCHG s0, s3
+; CHECK: XCHG s0, s1
 ; CHECK: XCHG s1, s3
 ; CHECK: XCHG s2, s3
 ; CHECK: CALL 1

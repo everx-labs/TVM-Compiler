@@ -165,8 +165,8 @@ SDValue TVMTargetLowering::LowerCall(CallLoweringInfo &CLI,
   // Compute the operands for the CALLn node.
   SmallVector<SDValue, 16> Ops;
   Ops.push_back(Chain);
-  Ops.push_back(Callee);
   Ops.append(OutVals.begin(), OutVals.end());
+  Ops.push_back(Callee);
 
   SmallVector<EVT, 8> InTys;
   for (const auto &In : Ins) {

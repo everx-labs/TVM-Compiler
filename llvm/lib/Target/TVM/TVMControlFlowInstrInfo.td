@@ -61,9 +61,9 @@ let isTerminator = 1, hasCtrlDep = 1 in {
 // "short" library variant, so that some common functions would not get
 // long call: "PUSHINT x; CALL 1", but a short one: "CALL x"
 let isCall = 1, hasCtrlDep = 1 in {
-  defm CALL_VOID : NRI<(outs), (ins i64imm:$callee, variable_ops),
+  defm CALL_VOID : NRI<(outs), (ins variable_ops, i64imm:$callee),
                        [(TVMcall0 i64:$callee)], "CALL\t1", 0xF0>;
-  defm CALL_1 : NRI<(outs I64:$dst), (ins i64imm:$callee, variable_ops),
+  defm CALL_1 : NRI<(outs I64:$dst), (ins variable_ops, i64imm:$callee),
                     [(set I64:$dst, (TVMcall1 i64:$callee))],
                     "CALL\t1", 0xF0>;
 }

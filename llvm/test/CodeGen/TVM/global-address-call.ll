@@ -21,8 +21,7 @@ define dso_local i64 @main() #0 {
 ; CHECK: PUSHINT $sum$
 ; CHECK: PUSHINT 0
 ; CHECK: PUSH s1
-; CHECK: XCHG s0, s1
-; CHECK: XCHG s1, s3
+; CHECK: XCHG s2, s3
 ; CHECK: CALL 1
   %retval = alloca i64, align 8
   %x = alloca i64*, align 8

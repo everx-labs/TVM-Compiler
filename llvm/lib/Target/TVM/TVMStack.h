@@ -57,6 +57,8 @@ public:
 
   Stack operator + (const StackFixup &fixup) const;
 
+  auto size() const { return Data.size(); }
+
   bool operator == (const Stack &v) const { return Data == v.Data; }
   bool operator != (const Stack &v) const { return Data != v.Data; }
 
@@ -79,12 +81,6 @@ public:
   auto begin() const { return Data.begin(); }
   auto end() { return Data.end(); }
   auto end() const { return Data.end(); }
-  /// Insert POP instructions to clean up the stack, preserving the specified
-  /// element of it.
-  /// \par InsertPoint specify instruction to insert after.
-  /// \par Preserved virtual register needs to be kept in the stack.
-  bool clear(MachineInstr *InsertPoint,
-             unsigned Preserved = TVMFunctionInfo::UnusedReg);
   /// Return position of \par Elem in the stack.
   /// Precondition: \par Elem is in the stack.
   size_t position(const StackVreg& Elem) const {
@@ -99,11 +95,6 @@ public:
   unsigned reg(size_t Slot) const {
     assert(Slot < Data.size() && "Out of range access");
     return Data[Slot].VirtReg;
-  }
-  /// Checks if element at \par Slot is a register.
-  /// Precondition: Slot < Data.size()
-  unsigned isReg(size_t Slot) const {
-    return true;
   }
   /// Fill the specified \p Slot with \p Elem. Doesn't generate any instruction.
   void set(size_t Slot, const StackVreg &Elem) {
@@ -144,6 +135,14 @@ private:
   const MachineRegisterInfo *MRI;
   StackDeq Data;
 };
+
+//===----------------------------------------------------------------------===//
+// Debugging Support
+
+inline raw_ostream& operator<<(raw_ostream &OS, const Stack &V) {
+  V.print(OS);
+  return OS;
+}
 
 } // namespace llvm
 

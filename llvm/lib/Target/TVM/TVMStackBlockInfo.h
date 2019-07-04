@@ -26,13 +26,14 @@ public:
   void setFixedBegin(const Stack &stack) {
     FixedBegin = stack;
   }
+  void setFixedEnd(const Stack &stack) {
+    FixedEnd = stack;
+  }
   void setCalculatedEnd(const Stack &stack) {
     CalculatedEnd = stack;
   }
-  void setFixedEndWithFixup(const Stack &stack, const TargetInstrInfo *TII,
-                            TVMFunctionInfo *MFI);
-  void setFixedEndForLoopTail(const Stack &loopHead, const TargetInstrInfo *TII,
-                              TVMFunctionInfo *MFI);
+  // Insert fixedEnd() - calculatedEnd() fixup in the block's end
+  void doEndFixup(const TargetInstrInfo *TII, TVMFunctionInfo *MFI);
 
   const Stack &wantedBegin() const {
     assert(WantedBegin && "Non-set wanted begin in TVMStackBlockInfo");
@@ -56,6 +57,16 @@ public:
   void setTerminatorArgs(const Stack::MIArgs &args) {
     TerminatorArgs = args;
   }
+
+  unsigned roadBegin() const { return RoadBegin; }
+  unsigned roadEnd() const { return RoadEnd; }
+
+  void setRoadBegin(unsigned roadBegin) {
+    RoadBegin = roadBegin;
+  }
+  void setRoadEnd(unsigned roadEnd) {
+    RoadEnd = roadEnd;
+  }
 private:
   MachineBasicBlock *MBB = nullptr;
   std::optional<Stack> FixedBegin;
@@ -65,6 +76,9 @@ private:
   std::optional<Stack> CalculatedEnd;
   std::optional<Stack> FixedEnd;
   Stack::MIArgs TerminatorArgs;
+
+  unsigned RoadBegin = 0;
+  unsigned RoadEnd = 0;
 };
 
 } // namespace llvm

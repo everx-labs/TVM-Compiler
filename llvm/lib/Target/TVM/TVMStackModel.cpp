@@ -60,10 +60,18 @@ public:
 
 private:
   bool runOnBasicBlocks(MachineFunction &MF, const Stack &StartStack);
-  Stack prepareWantedStack(MachineBasicBlock *MBB);
   Stack prepareMultiEndStack(MachineBasicBlock *MBB);
   void fillBackEdgesLiveouts(MachineBasicBlock &MBB,
                              SmallVector<unsigned, 16> &Regs);
+
+  void prepareRoads(MachineFunction &MF);
+  Stack prepareRoadPattern(MachineFunction &MF,
+                           std::vector<MachineBasicBlock *> &BBs,
+                           unsigned RoadIdx);
+  void fillBlocksBeginEndPatterns(MachineFunction &MF);
+
+  void gatherBlockLiveIns(MachineBasicBlock &MBB, std::set<unsigned> &vregs);
+  void gatherBlockLiveOuts(MachineBasicBlock &MBB, std::set<unsigned> &vregs);
 
   const DILocalVariable *findDebugValue(const MachineInstr &MI,
                                         unsigned Vreg) const;
@@ -78,6 +86,10 @@ private:
   const TargetInstrInfo *TII;
   MachineLoopInfo *Loops;
   LiveIntervals *LIS;
+
+  DenseMap<MachineBasicBlock *, TVMStackBlockInfo> BBInfo;
+  unsigned MaxRoads = 0;
+  unsigned MaxRoadWidth = 0;
 };
 
 } // end anonymous namespace
@@ -134,16 +146,6 @@ TVMStackModel::prepareInstructionComment(const MachineInstr &MI) const {
   return OS.str();
 }
 
-// Returns true if From -> To branch is backedge
-bool TVMStackModel::isBackEdge(const MachineBasicBlock *From,
-                               const MachineBasicBlock *To) const {
-  for (const auto *Lp = Loops->getLoopFor(From); Lp; Lp = Lp->getParentLoop()) {
-    if (Lp->getHeader() == To)
-      return true;
-  }
-  return false;
-}
-
 bool TVMStackModel::processInstruction(MachineInstr &MI, Stack &TheStack) {
   if (MI.isImplicitDef())
     return false;
@@ -189,7 +191,6 @@ bool TVMStackModel::processInstruction(MachineInstr &MI, Stack &TheStack) {
   // TODO: Doesn't cover numerous corner cases. Covering them would require to
   // reimplement consumption under NDEBUG or extending consumption interface.
   for (unsigned I = 0; I < NumToConsume; I++)
-    if (TheStack.isReg(I))
       assert(llvm::count_if(MI.operands(),
                             [&](const MachineOperand &Op) {
                               return Op.isReg() &&
@@ -248,204 +249,194 @@ bool TVMStackModel::processInstruction(MachineInstr &MI, Stack &TheStack) {
   return true;
 }
 
-void TVMStackModel::fillBackEdgesLiveouts(MachineBasicBlock &MBB,
-                                          SmallVector<unsigned, 16> &Regs) {
-  assert(Loops->isLoopHeader(&MBB));
-  SmallVector<MachineBasicBlock *, 4> bkPreds;
-  llvm::copy_if(MBB.predecessors(), std::back_inserter(bkPreds),
-                [&](MachineBasicBlock *Pr) { return isBackEdge(Pr, &MBB); });
-  for (unsigned i = 0, e = MRI->getNumVirtRegs(); i != e; ++i) {
-    unsigned Reg = TargetRegisterInfo::index2VirtReg(i);
-    if (LIS->hasInterval(Reg)) {
-      const auto &regInterval = LIS->getInterval(Reg);
-      for (auto bkPred : bkPreds) {
-        if (LIS->isLiveOutOfMBB(regInterval, bkPred)) {
-          Regs.push_back(Reg);
-        }
-      }
-    }
-  }
-}
-
-Stack TVMStackModel::prepareWantedStack(MachineBasicBlock *MBB) {
-  Stack rv(*MBB->getParent(), 0);
-
-  SmallVector<unsigned, 16> requiredRegs;
-
-  for (unsigned i = 0, e = MRI->getNumVirtRegs(); i != e; ++i) {
-    unsigned Reg = TargetRegisterInfo::index2VirtReg(i);
-    if (LIS->hasInterval(Reg)) {
-      if (LIS->isLiveInToMBB(LIS->getInterval(Reg), MBB)) {
-        requiredRegs.push_back(Reg);
-      }
-    }
-  }
-
-  // For loop header we also need to add backedges live outs into live ins
-  //  and then process them through filteredByLiveIns
-  if (Loops->isLoopHeader(MBB))
-    fillBackEdgesLiveouts(*MBB, requiredRegs);
-
-  llvm::sort(requiredRegs.begin(), requiredRegs.end());
-  auto uniqueEnd = std::unique(requiredRegs.begin(), requiredRegs.end());
-  for (auto Reg : llvm::make_range(requiredRegs.begin(), uniqueEnd))
-    rv.addDef(Reg, nullptr);
-
-  return rv.filteredByLiveIns(*MBB, *LIS);
-}
-
-Stack TVMStackModel::prepareMultiEndStack(MachineBasicBlock *MBB) {
-  Stack rv(*MBB->getParent(), 0);
-
-  SmallVector<unsigned, 16> requiredRegs;
-
-  for (unsigned i = 0, e = MRI->getNumVirtRegs(); i != e; ++i) {
-    unsigned Reg = TargetRegisterInfo::index2VirtReg(i);
-    if (LIS->hasInterval(Reg)) {
-      if (LIS->isLiveOutOfMBB(LIS->getInterval(Reg), MBB)) {
-        requiredRegs.push_back(Reg);
-      }
-    }
-  }
-
-  // For loop header successors we also need add their back-edges liveouts
-  for (auto Succ : MBB->successors()) {
-    if (!isBackEdge(MBB, Succ)) {
-      if (Loops->isLoopHeader(Succ))
-        fillBackEdgesLiveouts(*Succ, requiredRegs);
-    }
-  }
-
-  llvm::sort(requiredRegs.begin(), requiredRegs.end());
-  auto uniqueEnd = std::unique(requiredRegs.begin(), requiredRegs.end());
-  for (auto Reg : llvm::make_range(requiredRegs.begin(), uniqueEnd))
-    rv.addDef(Reg, nullptr);
-
-  return rv.filteredByLiveOuts(*MBB, *LIS);
-}
-
 // Traverse all basic blocks in machine function and rewrite all instructions
 // from R-form to S-form. All function arguments are already in stack.
-// Topological order visitation, back edges of UNTIL terminators are ignored.
 bool TVMStackModel::runOnBasicBlocks(MachineFunction &MF,
                                      const Stack &StartStack) {
   bool Changed = false;
 
-  DenseMap<MachineBasicBlock *, TVMStackBlockInfo> BBStack;
+  auto &FirstBB = MF.front();
+  BBInfo[&FirstBB].setFixedBegin(StartStack);
 
-  while (BBStack.size() < MF.size()) {
-    size_t Size = BBStack.size();
-    for (MachineBasicBlock &MBB : MF) {
-      if (BBStack.count(&MBB) != 0u)
+  for (auto &MBB : MF) {
+    auto &bbInfo = BBInfo[&MBB];
+    auto CurrentStack = bbInfo.fixedBegin(); // start bb stack here
+
+    for (auto I = MBB.begin(), E = MBB.end(); I != E;) {
+      MachineInstr &MI = *I++;
+      assert(!TVM::isArgument(MI));
+
+      if (MI.isDebugInstr() || MI.isLabel())
         continue;
-      SmallVector<MachineBasicBlock *, 4> fwdPreds;
-      llvm::copy_if(MBB.predecessors(), std::back_inserter(fwdPreds),
-          [this, &MBB] (MachineBasicBlock *Pred) {
-            return !isBackEdge(Pred, &MBB);
-      });
-      bool allFwdPredsVisited = llvm::all_of(fwdPreds,
-          [&BBStack] (MachineBasicBlock *Pred) {
-            return BBStack.count(Pred);
-      });
-      if (!allFwdPredsVisited)
-        continue;
-
-      auto &bbInfo = BBStack[&MBB];
-      bbInfo.setMBB(&MBB);
-
-      if (fwdPreds.empty()) {
-        bbInfo.setWantedBegin(StartStack);
-        bbInfo.setFixedBegin(StartStack);
-      } else {
-        bbInfo.setWantedBegin(prepareWantedStack(&MBB));
-
-        // splitting preds into blocks with single successor (this block)
-        // and multi successors
-        auto multiPred = llvm::partition(fwdPreds, [](MachineBasicBlock *Pred) {
-          return Pred->succ_size() == 1;
-        });
-        auto singlePreds = llvm::make_range(fwdPreds.begin(), multiPred);
-        auto multiPreds = llvm::make_range(multiPred, fwdPreds.end());
-        if (llvm::size(multiPreds) == 0) {
-          // If we don't have multi preds, we can just request wanted begin
-          bbInfo.setFixedBegin(bbInfo.wantedBegin());
-        } else {
-          auto fxdE = llvm::partition(multiPreds, [&](MachineBasicBlock *Pred) {
-            return BBStack[Pred].isFixedEnd();
-          });
-          auto fxdPreds = llvm::make_range(multiPreds.begin(), fxdE);
-          auto unfxdPreds = llvm::make_range(fxdE, multiPreds.end());
-          if (llvm::size(fxdPreds) == 0) {
-            // If we don't have fxd preds, we can just request wanted begin
-            bbInfo.setFixedBegin(bbInfo.wantedBegin());
-          } else if (llvm::size(fxdPreds) == 1) {
-            bbInfo.setFixedBegin(BBStack[*fxdPreds.begin()].fixedEnd()
-                .filteredByLiveIns(MBB, *LIS));
-          } else {
-            SmallVector<MachineBasicBlock *, 4> uniq(fxdPreds);
-            auto uniqIt = std::unique(uniq.begin(), uniq.end(),
-              [&](MachineBasicBlock *L, MachineBasicBlock *R) {
-                return BBStack[L].fixedEnd() == BBStack[R].fixedEnd();
-            });
-            if (std::distance(fxdPreds.begin(), uniqIt) == 1) {
-              // good, all fixed predecessors ends already are the same
-              bbInfo.setFixedBegin(BBStack[*uniq.begin()].fixedEnd()
-                  .filteredByLiveIns(MBB, *LIS));
-            } else {
-              // requires insertion of fixup mbb
-              llvm_unreachable("Unimplemented - fixup mbb"); // TODO
-            }
-          }
-          llvm::for_each(unfxdPreds, [&](MachineBasicBlock *pred) {
-            BBStack[pred].setFixedEndWithFixup(bbInfo.fixedBegin(), TII, MFI);
-          });
-        }
-
-        // all single-target preds will have exact fixed end = cur.begin
-        // We dont need to merge them, just insert instructions for diff
-        llvm::for_each(singlePreds, [&](MachineBasicBlock *pred) {
-          BBStack[pred].setFixedEndWithFixup(bbInfo.fixedBegin(), TII, MFI);
-        });
+      if (MI.isTerminator()) {
+        SmallVector<StackVreg, 4> Args;
+        for (auto Op : MI.uses())
+          if (Op.isReg())
+            Args.push_back(StackVreg(Op.getReg()));
+        bbInfo.setTerminatorArgs(Stack::MIArgs(MI, *LIS));
       }
-      auto CurrentStack = bbInfo.fixedBegin(); // start bb stack here
 
-      for (auto I = MBB.begin(), E = MBB.end(); I != E;) {
-        MachineInstr &MI = *I++;
-        assert(!TVM::isArgument(MI));
-
-        if (MI.isDebugInstr() || MI.isLabel())
-          continue;
-        if (MI.isTerminator()) {
-          SmallVector<StackVreg, 4> Args;
-          for (auto Op : MI.uses())
-            if (Op.isReg())
-              Args.push_back(StackVreg(Op.getReg()));
-          bbInfo.setTerminatorArgs(Stack::MIArgs(MI, *LIS));
-        }
-
-        Changed |= processInstruction(MI, CurrentStack);
-      }
-      SmallVector<MachineBasicBlock *, 4> bkSuccessors;
-      llvm::copy_if(MBB.successors(), std::back_inserter(bkSuccessors),
-          [this, &MBB] (MachineBasicBlock *Succ) {
-            return isBackEdge(&MBB, Succ);
-      });
-      bbInfo.setCalculatedEnd(CurrentStack);
-      if (size_t backEdges = llvm::size(bkSuccessors)) {
-        if (backEdges == 1) {
-          bbInfo.setFixedEndForLoopTail(
-                BBStack[*bkSuccessors.begin()].fixedBegin(), TII, MFI);
-        } else {
-          // requires insertion of fixup mbb
-          llvm_unreachable("Unimplemented - fixup mbb"); // TODO
-        }
-      } else if (MBB.succ_size() > 1) {
-        bbInfo.setFixedEndWithFixup(prepareMultiEndStack(&MBB), TII, MFI);
-      }
+      Changed |= processInstruction(MI, CurrentStack);
     }
-    assert(BBStack.size() > Size && "No progress in TVMStackModel loop.");
+    bbInfo.setCalculatedEnd(CurrentStack);
+
+    // Insert stack fixup from calculated current stack into exit pattern
+    bbInfo.doEndFixup(TII, MFI);
   }
   return Changed;
+}
+
+Stack TVMStackModel::
+prepareRoadPattern(MachineFunction &MF,
+                   std::vector<MachineBasicBlock *> &BBs, unsigned RoadIdx) {
+  std::set<unsigned> vregs;
+  for (auto MBB : BBs) {
+    auto &CurInfo = BBInfo[MBB];
+    if (CurInfo.roadBegin() == RoadIdx)
+      gatherBlockLiveIns(*MBB, vregs);
+    if (CurInfo.roadEnd() == RoadIdx)
+      gatherBlockLiveOuts(*MBB, vregs);
+  }
+
+  Stack roadPattern(MF, 0);
+  for (auto Reg : vregs)
+    roadPattern.addDef(Reg, nullptr);
+  return roadPattern;
+}
+
+void TVMStackModel::prepareRoads(MachineFunction &MF) {
+  MachineBasicBlock &FirstBB = MF.front();
+
+  BBInfo.clear();
+  BBInfo.reserve(MF.size());
+  for (auto &MBB : MF) {
+    BBInfo[&MBB].setMBB(&MBB);
+  }
+
+  unsigned curRoad = 1;
+  std::deque<MachineBasicBlock *> queueThisRoad;
+  queueThisRoad.push_back(&FirstBB);
+  BBInfo[&FirstBB].setRoadEnd(curRoad);
+  std::deque<MachineBasicBlock *> queueNextRoads;
+
+  auto processSuccessors = [&](MachineBasicBlock *CurBB) {
+    auto endRoad = BBInfo[CurBB].roadEnd();
+    assert(endRoad && "null CurBB road in processing successors");
+    for (auto Succ : CurBB->successors()) {
+      auto &CurInfo = BBInfo[Succ];
+      auto beginRoad = CurInfo.roadBegin();
+      assert((beginRoad == endRoad || !beginRoad) &&
+             "Already defined different road");
+      if (!beginRoad) {
+        CurInfo.setRoadBegin(endRoad);
+        queueThisRoad.push_back(Succ);
+
+        // other side of the block
+        if (!CurInfo.roadEnd())
+          queueNextRoads.push_back(Succ);
+      }
+    }
+  };
+  auto processPredecessors = [&](MachineBasicBlock *CurBB) {
+    auto beginRoad = BBInfo[CurBB].roadBegin();
+    assert(beginRoad && "null CurBB road in processing predecessors");
+    for (auto Pred : CurBB->predecessors()) {
+      auto &CurInfo = BBInfo[Pred];
+      auto endRoad = CurInfo.roadEnd();
+      assert((beginRoad == endRoad || !endRoad) &&
+             "Already defined different road");
+      if (!endRoad) {
+        CurInfo.setRoadEnd(beginRoad);
+        queueThisRoad.push_back(Pred);
+
+        // other side of the block
+        if (!CurInfo.roadBegin())
+          queueNextRoads.push_back(Pred);
+      }
+    }
+  };
+  do {
+    while (!queueThisRoad.empty()) {
+      auto CurBB = queueThisRoad.front();
+      queueThisRoad.pop_front();
+      auto &CurInfo = BBInfo[CurBB];
+      if (CurInfo.roadBegin() == curRoad)
+        processPredecessors(CurBB);
+      if (CurInfo.roadEnd() == curRoad)
+        processSuccessors(CurBB);
+    }
+
+    ++curRoad;
+
+    while (!queueNextRoads.empty()) {
+      auto CurBB = queueNextRoads.front();
+      queueNextRoads.pop_front();
+      auto &CurInfo = BBInfo[CurBB];
+      if (CurInfo.roadBegin() && CurInfo.roadEnd())
+        continue;
+      assert(!(!CurInfo.roadBegin() && !CurInfo.roadEnd()) &&
+             "Both side roads can't be null for block in queueNextRoads");
+      if (!CurInfo.roadBegin())
+        CurInfo.setRoadBegin(curRoad);
+      if (!CurInfo.roadEnd())
+        CurInfo.setRoadEnd(curRoad);
+      queueThisRoad.push_back(CurBB);
+      break;
+    }
+  } while (!queueThisRoad.empty());
+
+  MaxRoads = curRoad;
+}
+
+void TVMStackModel::fillBlocksBeginEndPatterns(MachineFunction &MF) {
+  typedef std::vector<MachineBasicBlock *> BBVecT;
+  std::vector<BBVecT> roadsBBs(MaxRoads);
+
+  for (auto &MBB : MF) {
+    auto &CurInfo = BBInfo[&MBB];
+    roadsBBs[CurInfo.roadBegin()].push_back(&MBB);
+    if (CurInfo.roadBegin() != CurInfo.roadEnd())
+      roadsBBs[CurInfo.roadEnd()].push_back(&MBB);
+  }
+
+  for (unsigned i = 1; i < MaxRoads; ++i) {
+    auto &BBs = roadsBBs[i];
+
+    auto roadPattern = prepareRoadPattern(MF, BBs, i);
+    MaxRoadWidth = std::max<unsigned>(MaxRoadWidth, roadPattern.size());
+
+    for (auto MBB : BBs) {
+      auto &CurInfo = BBInfo[MBB];
+      if (CurInfo.roadBegin() == i)
+        CurInfo.setFixedBegin(roadPattern.filteredByLiveIns(*MBB, *LIS));
+      if (CurInfo.roadEnd() == i)
+        CurInfo.setFixedEnd(roadPattern.filteredByLiveOuts(*MBB, *LIS));
+    }
+  }
+}
+
+void TVMStackModel::gatherBlockLiveIns(MachineBasicBlock &MBB,
+                                       std::set<unsigned> &vregs) {
+  for (unsigned i = 0, e = MRI->getNumVirtRegs(); i != e; ++i) {
+    unsigned Reg = TargetRegisterInfo::index2VirtReg(i);
+    if (LIS->hasInterval(Reg)) {
+      if (LIS->isLiveInToMBB(LIS->getInterval(Reg), &MBB)) {
+        vregs.insert(Reg);
+      }
+    }
+  }
+}
+
+void TVMStackModel::gatherBlockLiveOuts(MachineBasicBlock &MBB,
+                                        std::set<unsigned> &vregs) {
+  for (unsigned i = 0, e = MRI->getNumVirtRegs(); i != e; ++i) {
+    unsigned Reg = TargetRegisterInfo::index2VirtReg(i);
+    if (LIS->hasInterval(Reg)) {
+      if (LIS->isLiveOutOfMBB(LIS->getInterval(Reg), &MBB)) {
+        vregs.insert(Reg);
+      }
+    }
+  }
 }
 
 // TODO: For now it only stackifies function arguments. Extend.
@@ -462,6 +453,13 @@ bool TVMStackModel::runOnMachineFunction(MachineFunction &MF) {
   TII = MF.getSubtarget<TVMSubtarget>().getInstrInfo();
   Loops = &getAnalysis<MachineLoopInfo>();
   LIS = &getAnalysis<LiveIntervals>();
+
+  BBInfo.clear();
+  MaxRoads = 0;
+  MaxRoadWidth = 0;
+
+  prepareRoads(MF);
+  fillBlocksBeginEndPatterns(MF);
 
   MachineBasicBlock &FirstBB = MF.front();
   assert(!FirstBB.empty());

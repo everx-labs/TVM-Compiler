@@ -1,4 +1,3 @@
-// XFAIL: *
 // RUN: %clang -w -O3 -S -c -target tvm %s -o - | tvm-testrun --no-trace --entry test_entry_point | FileCheck %S/shared.h
 
 struct { int a; int b; int c; } s = {1, 2, 3};

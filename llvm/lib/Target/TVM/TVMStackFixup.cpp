@@ -103,7 +103,11 @@ StackFixup StackFixup::Diff(const Stack &to, const Stack &from) {
     if (unmaskedTo[n] != curStack[n]) {
       auto i = curStack.position(n, unmaskedTo[n]);
 
-      if (i <= XchgLimit && n <= XchgLimit) {
+      if (i == 0)
+        rv(curStack += rv(xchgTop(n)));
+      else if (n == 0)
+        rv(curStack += rv(xchgTop(i)));
+      else if (i <= XchgLimit && n <= XchgLimit) {
         rv(curStack += rv(xchg(i, n)));
       } else {
         // 3 top xchanges for deep reorderings (xchgTop supports deep index)

@@ -280,8 +280,10 @@ bool TVMStackModel::runOnBasicBlocks(MachineFunction &MF,
     }
     bbInfo.setCalculatedEnd(CurrentStack);
 
-    // Insert stack fixup from calculated current stack into exit pattern
-    bbInfo.doEndFixup(TII, MFI);
+    if (MBB.succ_size()) {
+      // Insert stack fixup from calculated current stack into exit pattern
+      bbInfo.doEndFixup(TII, MFI);
+    }
   }
   return Changed;
 }

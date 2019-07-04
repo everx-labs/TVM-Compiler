@@ -171,8 +171,8 @@ defm PUSH : SI<(ins stack_op:$local), "PUSH\t$local", 0x20>;
 
 let mayLoad = 1, isAsCheapAsAMove = 1 in {
 defm SWAP : SI<(ins), "SWAP", 0x01>;
-defm XCHG_TOP : SI<(ins stack_op:$src), "XCHG\t$src", 0x01>;
-defm XCHG_TOP_DEEP : SI<(ins stack_op:$src), "XCHG\t$src", 0x11>;
+defm XCHG_TOP : SI<(ins stack_op:$src), "XCHG\ts0, $src", 0x01>;
+defm XCHG_TOP_DEEP : SI<(ins stack_op:$src), "XCHG\ts0, $src", 0x11>;
 defm XCHG : SI<(ins stack_op:$src, stack_op:$dst), "XCHG\t$src, $dst", 0x10>;
 defm POP  : SI<(ins stack_op:$dst), "POP\t$dst", 0x30>;
 defm DROP : SI<(ins), "DROP", 0x30>;

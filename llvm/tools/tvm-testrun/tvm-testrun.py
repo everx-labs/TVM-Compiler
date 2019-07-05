@@ -16,6 +16,7 @@ def parseArgs():
 
   parser.add_argument('--entry', help='Entry function name')
   parser.add_argument('--no-trace', default=False, action="store_true", help='Disable trace during execution')
+  parser.add_argument('--stdlibc-path', default="", help='Path to stdlibc')
 
   return parser.parse_args()
 
@@ -120,7 +121,9 @@ def main():
   	eprint("tvm_linker has not been found")
   	sys.exit(1)
 
-  stdlibc_path = getPathToStdlibC(linker_path)
+  stdlibc_path = args.stdlibc_path
+  if stdlibc_path == "":
+    stdlibc_path = getPathToStdlibC(linker_path)
 
   if not os.path.isfile(stdlibc_path):
   	eprint("stdlib_c.tvm has not been found")

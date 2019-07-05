@@ -58,7 +58,6 @@ class TVMControlFlowPrepare final : public FunctionPass {
   }
 
   void getAnalysisUsage(AnalysisUsage &AU) const override {
-    AU.addRequired<LoopInfoWrapperPass>();
     AU.setPreservesAll();
   }
 
@@ -110,18 +109,14 @@ void insertCleanupBBs(BasicBlock *BB) {
 } // End anonymous namespace
 
 char TVMControlFlowPrepare::ID = 0;
-INITIALIZE_PASS_BEGIN(TVMControlFlowPrepare, DEBUG_TYPE,
-                      "Prepare control-flow for ISel", false, false)
-INITIALIZE_PASS_DEPENDENCY(LoopInfoWrapperPass)
-INITIALIZE_PASS_END(TVMControlFlowPrepare, DEBUG_TYPE,
-                    "Prepare control-flow for ISel", false, false)
+INITIALIZE_PASS(TVMControlFlowPrepare, DEBUG_TYPE,
+                "Prepare control-flow for ISel", false, false)
 
 FunctionPass *llvm::createTVMControlFlowPrepare() {
   return new TVMControlFlowPrepare();
 }
 
 bool TVMControlFlowPrepare::runOnFunction(Function &F) {
-  const LoopInfo &LI = getAnalysis<LoopInfoWrapperPass>().getLoopInfo();
   bool Changed = false;
   LLVM_DEBUG(dbgs() << "runnning TVMControlFlowPrepare on " << F.getName()
                     << "\n");

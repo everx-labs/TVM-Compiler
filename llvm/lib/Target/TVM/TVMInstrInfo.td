@@ -159,8 +159,7 @@ def dec : PatFrag<(ops node:$in), (add node:$in, -1)>;
 // Basic stack manipulation primitives
 //===----------------------------------------------------------------------===//
 
-defm NOP : SI<(ins), "NOP", 0x00>;
-def : Pat<(int_tvm_nop), (NOP)>;
+defm NOP : I<(outs), (ins), (outs), (ins), [(int_tvm_nop)], "NOP", "NOP", 0x00>;
 
 // Stack manipulation instructions are not supposed to be selected, instead
 // Stack Model pass inserts them to manipulate with local and global variables.
@@ -269,8 +268,8 @@ let hasSideEffects = 1 in {
 // Debug
 //===----------------------------------------------------------------------===//
 
-defm DUMPSTK : SI<(ins), "DUMPSTK", 0xfe00>;
-def : Pat<(int_tvm_dumpstk), (DUMPSTK)>;
+defm DUMPSTK : I<(outs), (ins), (outs), (ins), [(int_tvm_dumpstk)],
+                 "DUMPSTK", "DUMPSTK", 0xfe00>;
 
 defm DUMPSTKTOP : I<(outs), (ins uimm8:$src), (outs), (ins uimm8:$src),
                     [(int_tvm_dumpstktop uimm8:$src)],

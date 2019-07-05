@@ -10,13 +10,17 @@
 // Structure serialization
 #define FIELD_UNSIGNED(name, size) Serialize_Unsigned_Impl (value->name, size);
 #define FIELD_SIGNED(name, size) Serialize_Signed_Impl (value->name, size);
+#define FIELD_VAR_UNSIGNED(name, size) { Serialize_Unsigned_Impl (value->name.len, size); \
+    Serialize_Unsigned_Impl (value->name.value, value->name.len*8); }
+#define FIELD_VAR_SIGNED(name, size) { Serialize_Signed_Impl (value->name.len, size); \
+    Serialize_Signed_Impl (value->name.value, value->name.len*8); }
 #define FIELD_COMPLEX(name, type) Serialize_##type##_Impl (&(value->name));
 #define FIELD_MAYBE(name, type) { if (value->name.just) { \
     Serialize_Unsigned_Impl (1, 1); /* serialize Just */ \
     Serialize_##type##_Impl (&(value->name.value)); \
 } else { Serialize_Unsigned_Impl (0, 1); }}
-#define FIELD_ARRAY(name, actual_size, max_size, type) { for (int _count = 0; _count < value->actual_size; _count++) \
-    Serialize_##type##_Impl (&(value->name[_count])); }
+#define FIELD_ARRAY(name, actual_size, max_size, type) //{ for (int _count = 0; _count < value->actual_size; _count++) \
+//    Serialize_##type##_Impl (&(value->name[_count])); }
 
 
 void XJOIN3(Serialize_,TON_STRUCT_NAME,_Impl) (TON_STRUCT_NAME* value) {
@@ -30,6 +34,8 @@ void XJOIN(Serialize_,TON_STRUCT_NAME) (TON_STRUCT_NAME* value) {
 
 #undef FIELD_UNSIGNED
 #undef FIELD_SIGNED
+#undef FIELD_VAR_UNSIGNED
+#undef FIELD_VAR_SIGNED
 #undef FIELD_COMPLEX
 #undef FIELD_MAYBE
 #undef FIELD_ARRAY
@@ -37,11 +43,15 @@ void XJOIN(Serialize_,TON_STRUCT_NAME) (TON_STRUCT_NAME* value) {
 // Structure deserialization
 #define FIELD_UNSIGNED(name, size) res.name = Deserialize_Unsigned_Impl (size);
 #define FIELD_SIGNED(name, size) res.name = Deserialize_Signed_Impl (size);
+#define FIELD_VAR_UNSIGNED(name, size) { res.name.len = Deserialize_Unsigned_Impl (size); \
+    res.name.value = Deserialize_Unsigned_Impl (res.name.len*8); }
+#define FIELD_VAR_SIGNED(name, size) { res.name.len = Deserialize_Unsigned_Impl (size); \
+    res.name.value = Deserialize_Signed_Impl (res.name.len*8); }
 #define FIELD_COMPLEX(name, type) res.name = Deserialize_##type##_Impl ();
 #define FIELD_MAYBE(name, type) res.name.just = Deserialize_Unsigned_Impl (1); \
     if (res.name.just) { res.name.value = Deserialize_##type##_Impl (); }
-#define FIELD_ARRAY(name, actual_size, max_size, type) { for (int _count = 0; _count < res.actual_size; _count++) \
-    res.name[_count] = Deserialize_##type##_Impl (); }
+#define FIELD_ARRAY(name, actual_size, max_size, type) // { for (int _count = 0; _count < res.actual_size; _count++) \
+//    res.name[_count] = Deserialize_##type##_Impl (); }
 
 TON_STRUCT_NAME XJOIN3(Deserialize_,TON_STRUCT_NAME,_Impl) () {
     TON_STRUCT_NAME res;
@@ -57,6 +67,8 @@ TON_STRUCT_NAME XJOIN(Deserialize_,TON_STRUCT_NAME) () {
 
 #undef FIELD_UNSIGNED
 #undef FIELD_SIGNED
+#undef FIELD_VAR_UNSIGNED
+#undef FIELD_VAR_SIGNED
 #undef FIELD_COMPLEX
 #undef FIELD_MAYBE
 #undef FIELD_ARRAY

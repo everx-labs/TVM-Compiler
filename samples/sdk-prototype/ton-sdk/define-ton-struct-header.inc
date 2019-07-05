@@ -10,6 +10,8 @@
 // Structure declaration
 #define FIELD_UNSIGNED(name, size) unsigned int name;
 #define FIELD_SIGNED(name, size) signed int name;
+#define FIELD_VAR_UNSIGNED(name, size) struct { int len; unsigned value; } name;
+#define FIELD_VAR_SIGNED(name, size) struct { int len; int value; } name;
 #define FIELD_COMPLEX(name, type) type name;
 #define FIELD_MAYBE(name, type) struct { int just; type value; } name;
 #define FIELD_ARRAY(name, actual_size, max_size, type) type name[max_size];
@@ -24,6 +26,8 @@ void XJOIN(Serialize_,TON_STRUCT_NAME) (TON_STRUCT_NAME* value);
 
 #undef FIELD_UNSIGNED
 #undef FIELD_SIGNED
+#undef FIELD_VAR_UNSIGNED
+#undef FIELD_VAR_SIGNED
 #undef FIELD_COMPLEX
 #undef FIELD_MAYBE
 #undef FIELD_ARRAY

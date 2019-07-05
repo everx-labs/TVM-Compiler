@@ -17,10 +17,13 @@
 	.internal-alias :load_work_slice,  13
 	.internal-alias :store_work_slice, 14
 
+	.persistent-base 100
+
     .selector
     ; s0 - func_id
     ; s1.. - other data
     SETCP0
+    ACCEPT
     PUSHREFSLICE        ; dictionary of methods in first reference
     OVER
     NEQINT 1
@@ -87,13 +90,19 @@
     ; s2 - gram balance of msg: int
     ; s3 - gram balance of contract: int
 
+    ;check whether the message body is empty
+    DUP
+    SDEMPTY
+    IFRET       ;return if body is empty: that is an initialization message
+    ;TODO: implement better reaction on init messages
+
     ;call signature checker (can throw exception if signature is invalid)
     CALL $:authenticate$ ;assume that function returns nothing
-    
+
     ;call msg parser
     PUSH s1     ;push msg cell on top
     CALL $:parse_msg$    ;assume thar parser returns slice - dictionary with msg fields
-    
+
     ; Initialize C stack
     CALL $:init_fstack$
 
@@ -103,6 +112,8 @@
     SWAP  
     THROWIF 55  ; only version 0 is supported now
     LDU 32      ;load func id
+    DUP
+    CALL $:store_work_slice$
     SWAP
     CALL 1      ;public method call
     JMP $:term_fstack$
@@ -115,13 +126,13 @@
 
 
 ; Functions for C
-; -100000: BP pointer
+; 2000000000: BP pointer
     .internal   :load_bp
-    PUSHINT -100000
+    PUSHINT 2000000000
     CALL $:load$
 
     .internal   :store_bp
-    PUSHINT -100000
+    PUSHINT 2000000000
     XCHG s0, s1
     CALL $:store$
 
@@ -133,18 +144,18 @@
     ; 
     ; Result:
     ; 1) C5 contains dictionary with stack
-    ; 2) At key -99999 dict. C5 contains ref to smart_contract_info
+    ; 2) At key 2000000001 dict. C5 contains ref to smart_contract_info
     PUSH c5
     CTOS                       ; ( slice_with_smart_contract_info_ref )
     LDREF                      ; ( smart_contract_info_slice slice_with_smart_contract_info_ref )
     ENDS                       ; ( smart_contract_info_slice )
     CTOS
-    PUSHINT -99999             ; ( smart_contract_info_slice addr )
+    PUSHINT 2000000001         ; ( smart_contract_info_slice addr )
     NEWDICT                    ; ( smart_contract_info_slice addr dict_slice )
     PUSHINT 64                 ; ( smart_contract_info_slice addr dict-slice key-width )
     DICTISET                   ; ( dict-slice' )
     NEWC STSLICE ENDC          ; ( dict_cell )
-    POP c5      
+    POP c5
 
     PUSHINT 1000000000         ; ( new_stack_base_pointer )
     CALL $:store_bp$           ; ( )
@@ -160,7 +171,7 @@
     ; Result:
     ; 1) C5 ref to smart_contract_info; dict. is dropped
 
-    PUSHINT -99999             ; ( addr )
+    PUSHINT 2000000001         ; ( addr )
     PUSH c5                    ; ( addr dict-cell )
     CTOS                       ; ( addr dict-slice )
     PUSHINT 64                 ; ( addr dict-slice key-width )
@@ -182,7 +193,16 @@
     CALL $:store_bp$
 
     .internal   :load
-    PUSH c5
+    ; ( addr -- value )
+    ; If addr < 100000 --- persistent address
+    DUP
+    PUSHINT 100000
+    LESS
+    PUSHCONT { PUSH c4 }
+    PUSHCONT { PUSH c5 }
+    IFELSE
+
+    ;PUSH c5
     CTOS
     PUSHINT 64
     DICTIGET ; (addr dict-slice key-width -- value-slice flag)
@@ -195,26 +215,44 @@
     NEWC STI 256 ENDC
     CTOS     ; (addr val-slice)
     XCHG s0, s1
+    ; (val-slice addr)
 
-    PUSH c5
-    CTOS     ; (val-slice addr dict-slice)
-    PUSHINT 64
-    DICTISET ; (val-slice addr dict-slice key-width -- dict-slice')
-    NEWC STSLICE ENDC
-    POP c5
+    DUP          ; (val-slice addr addr)
+    PUSHINT 100000
+    LESS         ; (val-slice addr persistent?)
+    PUSHCONT { 
+        PUSH c4
+        CTOS     ; (val-slice addr dict-slice)
+        PUSHINT 64
+        DICTISET ; (val-slice addr dict-slice key-width -- dict-slice')
+        NEWC STSLICE ENDC
+        POP c4
+    }
+    PUSHCONT {
+        PUSH c5
+        CTOS     ; (val-slice addr dict-slice)
+        PUSHINT 64
+        DICTISET ; (val-slice addr dict-slice key-width -- dict-slice')
+        NEWC STSLICE ENDC
+        POP c5
+    }
+    IFELSE
 
     .internal   :frameidx
     CALL $:load_bp$
     ;PUSHINT 10 ; arbitrary value
     ADD
 
-    ; User-level functions and constants
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ; User-level functions and constants ;
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
     ;
     ; Get builder cell (internal call)
     ; ( -- builder-cell )
     ;
     .internal	:load_work_slice
-    PUSHINT -99998            ; ( builder-cell-address )
+    PUSHINT 2000000002     ; ( builder-cell-address )
     PUSH c5
     CTOS
     PUSHINT 64
@@ -226,7 +264,7 @@
     ; ( builder-cell -- )
     ;
     .internal	:store_work_slice
-    PUSHINT -99998            ; ( cell addr )
+    PUSHINT 2000000002     ; ( cell addr )
     PUSH c5
     CTOS                   ; ( cell addr dict-slice)
     PUSHINT 64
@@ -238,7 +276,7 @@
     .globl	tonstdlib_get_smart_contract_info
     .type	tonstdlib_get_smart_contract_info,@function
 tonstdlib_get_smart_contract_info:
-    PUSHINT -99999            ; address of slice with smart_contract_info_ref
+    PUSHINT 2000000001     ; address of slice with smart_contract_info_ref
     PUSH c5
     CTOS
     PUSHINT 64
@@ -329,3 +367,169 @@ tonstdlib_send_work_slice_as_rawmsg:
     NEWC STSLICE ENDC
     SWAP
     SENDRAWMSG
+
+    ;;;;;;;;;;;;;;;;;;;;;
+    ; Std library for C ;
+    ;;;;;;;;;;;;;;;;;;;;;
+
+    ;
+    ;
+    ;
+	.text
+	.file	"memcpy-test.c"
+	.globl	memcpy
+	.p2align	1
+	.type	memcpy,@function
+memcpy:
+	PUSHINT	38
+	CALL	$:enter$
+	PUSHINT	22
+	CALL	$:frameidx$
+	XCHG	s0, s4
+	XCHG	s1, s4
+	CALL	$:store$
+	PUSHINT	14
+	CALL	$:frameidx$
+	XCHG	s0, s2
+	XCHG	s1, s2
+	CALL	$:store$
+	PUSHINT	6
+	CALL	$:frameidx$
+	XCHG	s0, s1
+	CALL	$:store$
+	PUSHINT	-2
+	CALL	$:frameidx$
+	XCHG	s0, s1
+	CALL	$:store$
+	PUSHINT	6
+	CALL	$:frameidx$
+	CALL	$:load$
+	PUSHINT	0
+	GREATER
+	PUSHCONT {
+		PUSHINT	38
+		CALL	$:leave$
+		RET
+	}
+	PUSHCONT {
+		PUSHINT	6
+		CALL	$:frameidx$
+		CALL	$:load$
+		DEC
+		PUSHINT	6
+		CALL	$:frameidx$
+		XCHG	s0, s1
+		CALL	$:store$
+		PUSHINT	14
+		CALL	$:frameidx$
+		CALL	$:load$
+		PUSHINT	6
+		CALL	$:frameidx$
+		CALL	$:load$
+		LSHIFT	3
+		XCHG	s0, s1
+		PUSH	s1
+		ADD
+		CALL	$:load$
+		PUSHINT	22
+		CALL	$:frameidx$
+		CALL	$:load$
+		XCHG	s0, s2
+		XCHG	s1, s2
+		ADD
+		XCHG	s0, s1
+		CALL	$:store$
+		PUSHINT	22
+		CALL	$:frameidx$
+		CALL	$:load$
+		PUSHINT	14
+		CALL	$:frameidx$
+		CALL	$:load$
+		PUSHINT	6
+		CALL	$:frameidx$
+		CALL	$:load$
+		PUSHINT	-2
+		CALL	$:frameidx$
+		CALL	$:load$
+		PUSHINT	$memcpy$
+		CALL	1
+		PUSHCONT {
+			PUSHINT	38
+			CALL	$:leave$
+			RET
+		}
+		JMPX
+	}
+	IFELSE
+	PUSHINT	6
+	CALL	$:frameidx$
+	CALL	$:load$
+	DEC
+	PUSHINT	6
+	CALL	$:frameidx$
+	XCHG	s0, s1
+	CALL	$:store$
+	PUSHINT	14
+	CALL	$:frameidx$
+	CALL	$:load$
+	PUSHINT	6
+	CALL	$:frameidx$
+	CALL	$:load$
+	LSHIFT	3
+	XCHG	s0, s1
+	PUSH	s1
+	ADD
+	CALL	$:load$
+	PUSHINT	22
+	CALL	$:frameidx$
+	CALL	$:load$
+	XCHG	s0, s2
+	XCHG	s1, s2
+	ADD
+	XCHG	s0, s1
+	CALL	$:store$
+	PUSHINT	22
+	CALL	$:frameidx$
+	CALL	$:load$
+	PUSHINT	14
+	CALL	$:frameidx$
+	CALL	$:load$
+	PUSHINT	6
+	CALL	$:frameidx$
+	CALL	$:load$
+	PUSHINT	-2
+	CALL	$:frameidx$
+	CALL	$:load$
+	PUSHINT	$memcpy$
+	CALL	1
+	PUSHCONT {
+		PUSHINT	38
+		CALL	$:leave$
+		RET
+	}
+	JMPX
+.LBB0_2:
+	PUSHINT	38
+	CALL	$:leave$
+	RET
+.Lfunc_end0:
+	.size	memcpy, .Lfunc_end0-memcpy
+
+
+     .globl	memset
+     .type	memset,@function
+memset:
+     ; ( addr value size -- )
+     ;
+     XCHG s1,s2           ; ( value addr size )  
+     PUSHINT 8
+     DIVC                 ; ( value addr size/8 )
+     PUSHCONT {           ; ( value addr -- value addr' )
+         PUSH s0          ; ( value addr addr )
+         PUSH s2          ; ( value addr addr value )
+         CALL $:store$
+         ADDCONST 8       ; ( value addr )
+     }
+     REPEAT               ; ( value addr size/8 cont -- value addr )
+     DROP                 ; ( value )
+     DROP                 ; ( )

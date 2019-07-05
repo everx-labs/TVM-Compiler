@@ -1,8 +1,13 @@
-// RUN: %clang -O3 -S -c -target tvm %s -o - | tvm-testrun --no-trace --entry test --stdlibc-path %S/../../../../../../../samples/sdk-prototype/stdlib_c.tvm | FileCheck %s
-#include "../../../../../../../samples/sdk-prototype/transfer-80000001.c"
-#include "../../../../../../../samples/sdk-prototype/ton-sdk/messages.c"
-#include "../../../../../../../samples/sdk-prototype/ton-sdk/smart-contract-info.c"
-#include "../../../../../../../samples/sdk-prototype/ton-sdk/tvm.c"
+// XFAIL: *
+// RUN: %clang -O3 -S -c -target tvm %s -o %t
+// RUN: %clang -O3 -S -c -target tvm %S/../../../../../../../samples/sdk-prototype/transfer-80000001.c -o %t.transfer-80000001
+// RUN: %clang -O3 -S -c -target tvm %S/../../../../../../../samples/sdk-prototype/ton-sdk/messages.c -o %t.messages
+// RUN: %clang -O3 -S -c -target tvm %S/../../../../../../../samples/sdk-prototype/ton-sdk/smart-contract-info.c -o %t.smart-contract-info
+// RUN: %clang -O3 -S -c -target tvm %S/../../../../../../../samples/sdk-prototype/ton-sdk/tvm.c -o %t.tvm
+// RUN: cat %t %t.transfer-80000001 %t.messages %t.smart-contract-info %t.tvm > %t.combined
+// RUN: tvm-testrun --no-trace --entry test --stdlibc-path %S/../../../../../../../samples/sdk-prototype/stdlib_c.tvm < %t.combined | FileCheck %s
+
+void produce_output();
 
 void test()
 {

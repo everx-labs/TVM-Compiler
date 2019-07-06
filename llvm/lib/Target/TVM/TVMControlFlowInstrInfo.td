@@ -76,7 +76,7 @@ defm CONST_I64 : I<(outs I64:$res), (ins i64imm:$imm),
 
 defm CONST_U64 : I<(outs I64:$res), (ins UImm64:$uimm),
                    (outs), (ins UImm64:$uimm),
-                   [(set I64:$res, imm:$uimm)],
+                   [(set I64:$res, (TVMconst_u64 timm:$uimm))],
                    "PUSHINT\t$res, $uimm", "PUSHINT\t$uimm", 0x82>;
 }
 

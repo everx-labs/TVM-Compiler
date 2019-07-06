@@ -48,8 +48,15 @@ def SDT_TVMBBWrapper    : SDTypeProfile<1, 2, [SDTCisVT<0, i64>,
                                                SDTCisVT<1, OtherVT>,
                                                SDTCisVT<2, i64>]>;
 
-def SDT_TVMMul          : SDTypeProfile<1, 2, []>;
-def SDT_TVMRShift       : SDTypeProfile<1, 2, []>;
+def SDT_TVMAnd          : SDTypeProfile<1, 2, [SDTCisVT<0, i64>,
+                                               SDTCisVT<1, i64>,
+                                               SDTCisVT<2, i64>]>;
+def SDT_TVMMul          : SDTypeProfile<1, 2, [SDTCisVT<0, i64>,
+                                               SDTCisVT<1, i64>,
+                                               SDTCisVT<2, i64>]>;
+def SDT_TVMRShift       : SDTypeProfile<1, 2, [SDTCisVT<0, i64>,
+                                               SDTCisVT<1, i64>,
+                                               SDTCisVT<2, i64>]>;
 def SDT_TVMConstU64     : SDTypeProfile<1, 1,
                           [SDTCisVT<0, i64>, SDTCisVT<1, i64>]>;
 def SDT_TVMGlobalAddressWrapper : SDTypeProfile<1, 1, [SDTCisPtrTy<0>]>;
@@ -91,6 +98,7 @@ def TVMifjmp    : SDNode<"TVMISD::IFJMP", SDT_TVMIfJmp, [SDNPHasChain]>;
 def BBWrapper   : SDNode<"TVMISD::BBWrapper", SDT_TVMBBWrapper>;
 
 def TVMmul       : SDNode<"TVMISD::MUL", SDT_TVMMul, []>;
+def TVMand       : SDNode<"TVMISD::AND", SDT_TVMAnd, []>;
 def TVMrshift    : SDNode<"TVMISD::RSHIFT", SDT_TVMRShift, []>;
 def TVMconst_u64 : SDNode<"TVMISD::CONST_U64", SDT_TVMConstU64, []>;
 
@@ -190,13 +198,17 @@ defm REG_TO_REG_COPY : I<(outs I64:$dst), (ins I64:$src), (outs), (ins), []>;
 //===----------------------------------------------------------------------===//
 let isCommutable = 1 in {
 defm ADD      : BinaryRR<add, "ADD", 0xa0>;
-defm MUL      : BinaryRR<mul, "MUL", 0xa8>;
 defm AND      : BinaryRR<and, "AND", 0xb0>;
 defm OR       : BinaryRR<or, "OR", 0xb1>;
 defm XOR      : BinaryRR<xor, "XOR", 0xb2>;
 defm MIN      : BinaryRR<smin, "MIN", 0xb608>;
 defm MAX      : BinaryRR<smax, "MAX", 0xb609>;
 }
+let isCommutable = 1 in {
+defm MUL      : I<(outs I64:$dst), (ins I64:$lhs, I64:$rhs), (outs), (ins), [],
+                  "MUL\t$dst, $lhs, $rhs", "MUL", 0xa8>;
+}
+
 defm SUB      : BinaryRR<sub, "SUB", 0xa1>;
 defm SUBR     : BinaryRR<sub, "SUBR", 0xa2>;
 defm NEGATE   : UnaryR<ineg, "NEGATE", 0xa3>;
@@ -226,10 +238,12 @@ def : Pat<(mulhu I64:$a, I64:$b),
           (SHRCONST (MUL (AND I64:$a, (CONST_U64 0xFFFFFFFFFFFFFFFF)),
                          (AND I64:$b, (CONST_U64 0xFFFFFFFFFFFFFFFF))), 64)>;
 
+def : Pat<(mul I64:$a, I64:$b), (AND (MUL I64:$a, I64:$b),
+                                     (CONST_U64 0xFFFFFFFFFFFFFFFF))>;
 def : Pat<(TVMmul I64:$a, I64:$b), (MUL I64:$a, I64:$b)>;
-def : Pat<(TVMrshift I64:$a, simm8:$b), (SHR I64:$a, simm8:$b)>;
+def : Pat<(TVMand I64:$a, I64:$b), (AND I64:$a, I64:$b)>;
+def : Pat<(TVMrshift I64:$a, timm:$b), (SHRCONST I64:$a, imm:$b)>;
 def : Pat<(TVMrshift I64:$a, I64:$b), (SHR I64:$a, I64:$b)>;
-def : Pat<(TVMconst_u64 UImm64:$uimm), (CONST_U64 UImm64:$uimm)>;
 
 // unsigned a / b = (a & -1) DIV (b & -1)
 // unsigned a % b = (a & -1) MOD (b & -1)

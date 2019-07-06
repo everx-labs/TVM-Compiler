@@ -55,8 +55,10 @@ define i64 @mul (i64 %x) nounwind {
 ; CHECK: %[[VR1:[0-9]+]]:i64 = ARGUMENT 0, implicit $arguments
 ; CHECK: %[[VR0:[0-9]+]]:i64 = CONST_I64 1666
 ; CHECK: %[[VR2:[0-9]+]]:i64 = MUL killed %[[VR1]], killed %[[VR0]]
+; CHECK: %[[VR3:[0-9]+]]:i64 = CONST_U64 -1
+; CHECK: %[[VR4:[0-9]+]]:i64 = AND killed %[[VR2]], killed %[[VR3]]
  %1 = mul i64 1666, %x
-; CHECK: RETURN_I64 killed %[[VR2]]
+; CHECK: RETURN_I64 killed %[[VR4]]
  ret i64 %1
 }
 

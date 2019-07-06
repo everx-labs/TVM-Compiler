@@ -374,7 +374,7 @@ SDValue TVMTargetLowering::PerformDAGCombine(SDNode *N,
     TruncateMask.setLowBits(ResultType.getSizeInBits());
 
     SDValue AndNode =
-        DAG.getNode(ISD::AND, DL, OperandType, N->getOperand(0),
+        DAG.getNode(TVMISD::AND, DL, OperandType, N->getOperand(0),
                     DAG.getConstant(TruncateMask, DL, OperandType));
     SDValue Replacement = DAG.getNode(ISD::TRUNCATE, DL, ResultType, AndNode);
 
@@ -501,10 +501,10 @@ SDValue TVMTargetLowering::LowerSMUL_LOHI(SDValue Op, SelectionDAG &DAG) const {
   // Op0 = Mul & (uint64)-1.
   // Op1 = Mul >> 64
   SDValue Mul = DAG.getNode(TVMISD::MUL, DL, VT, L, R);
-  SDValue U64Mask = DAG.getTargetConstant((uint64_t)-1, DL, VT);
+  SDValue U64Mask = DAG.getTargetConstant((uint64_t)(int64_t)-1, DL, VT);
   SDValue Offset = DAG.getTargetConstant(64, DL, VT);
   SDValue U64 = DAG.getNode(TVMISD::CONST_U64, DL, VT, U64Mask);
-  Ops[0] = DAG.getNode(ISD::AND, DL, VT, Mul, U64);
+  Ops[0] = DAG.getNode(TVMISD::AND, DL, VT, Mul, U64);
   Ops[1] = DAG.getNode(TVMISD::RSHIFT, DL, VT, Mul, Offset);
   return DAG.getMergeValues(Ops, DL);
 }
@@ -521,15 +521,15 @@ SDValue TVMTargetLowering::LowerUMUL_LOHI(SDValue Op, SelectionDAG &DAG) const {
   // Op0 = Mul & (uint64)-1.
   // Op1 = Mul >> 64
 
-  SDValue U64Mask = DAG.getTargetConstant((uint64_t)-1, DL, VT);
+  SDValue U64Mask = DAG.getTargetConstant((uint64_t)(int64_t)-1, DL, VT);
   SDValue U64 = DAG.getNode(TVMISD::CONST_U64, DL, VT, U64Mask);
-  L = DAG.getNode(ISD::AND, DL, VT, L, U64);
-  R = DAG.getNode(ISD::AND, DL, VT, R, U64);
+  L = DAG.getNode(TVMISD::AND, DL, VT, L, U64);
+  R = DAG.getNode(TVMISD::AND, DL, VT, R, U64);
 
   SDValue Mul = DAG.getNode(TVMISD::MUL, DL, VT, L, R);
   SDValue Offset = DAG.getTargetConstant(64, DL, VT);
 
-  Ops[0] = DAG.getNode(ISD::AND, DL, VT, Mul, U64);
+  Ops[0] = DAG.getNode(TVMISD::AND, DL, VT, Mul, U64);
   Ops[1] = DAG.getNode(TVMISD::RSHIFT, DL, VT, Mul, Offset);
   return DAG.getMergeValues(Ops, DL);
 }

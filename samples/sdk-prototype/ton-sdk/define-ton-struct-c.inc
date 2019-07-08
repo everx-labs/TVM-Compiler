@@ -8,6 +8,7 @@
 // it may use the following macros: 
 
 // Structure serialization
+#define FIELD_CONSTANT_UNSIGNED(name, value, size) Serialize_Unsigned_Impl (value, size);
 #define FIELD_UNSIGNED(name, size) Serialize_Unsigned_Impl (value->name, size);
 #define FIELD_SIGNED(name, size) Serialize_Signed_Impl (value->name, size);
 #define FIELD_VAR_UNSIGNED(name, size) { Serialize_Unsigned_Impl (value->name.len, size); \
@@ -32,6 +33,7 @@ void XJOIN(Serialize_,TON_STRUCT_NAME) (TON_STRUCT_NAME* value) {
     XJOIN3(Serialize_,TON_STRUCT_NAME,_Impl) (value);
 }
 
+#undef FIELD_CONSTANT_UNSIGNED
 #undef FIELD_UNSIGNED
 #undef FIELD_SIGNED
 #undef FIELD_VAR_UNSIGNED
@@ -41,6 +43,7 @@ void XJOIN(Serialize_,TON_STRUCT_NAME) (TON_STRUCT_NAME* value) {
 #undef FIELD_ARRAY
 
 // Structure deserialization
+#define FIELD_CONSTANT_UNSIGNED(name, value, size) tvm_assert (Deserialize_Unsigned_Impl (size) == value, 59);
 #define FIELD_UNSIGNED(name, size) res.name = Deserialize_Unsigned_Impl (size);
 #define FIELD_SIGNED(name, size) res.name = Deserialize_Signed_Impl (size);
 #define FIELD_VAR_UNSIGNED(name, size) { res.name.len = Deserialize_Unsigned_Impl (size); \
@@ -65,6 +68,7 @@ TON_STRUCT_NAME XJOIN(Deserialize_,TON_STRUCT_NAME) () {
     return s;
 }
 
+#undef FIELD_CONSTANT_UNSIGNED
 #undef FIELD_UNSIGNED
 #undef FIELD_SIGNED
 #undef FIELD_VAR_UNSIGNED

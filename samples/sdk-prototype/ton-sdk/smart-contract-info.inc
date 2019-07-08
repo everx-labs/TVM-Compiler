@@ -1,5 +1,6 @@
 #define TON_STRUCT_NAME SmartContractInfo
 #define TON_STRUCT \
+    FIELD_CONSTANT_UNSIGNED(smc_info, 0x076ef1ea, 32) \
     FIELD_UNSIGNED(actions, 16) \
     FIELD_UNSIGNED(msgs_sent, 16) \
     FIELD_UNSIGNED(unixtime, 32) \

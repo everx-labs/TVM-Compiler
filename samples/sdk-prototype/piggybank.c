@@ -24,7 +24,7 @@ int target_persistent;
 // The additional data (target, owner) are to be passed to the
 // contract in the initialization message.
 void constructor () {
-    target_persistent = DESERIALIZE_ARGUMENT_UNSIGNED (256);
+    target_persistent = DESERIALIZE_ARGUMENT_UNSIGNED (32);
 }
 
 // Main piggybank method: withdraw money from the piggybank
@@ -32,12 +32,13 @@ void constructor () {
 // "target" amount of money. If not, the method throws
 // NOT_ENOUGH_MONEY exception.
 void transfer () {
-    MsgAddressInt destination = DESERIALIZE_ARGUMENT_COMPLEX (MsgAddressInt);
+    unsigned destination_account = DESERIALIZE_ARGUMENT_UNSIGNED (256);
+    MsgAddressInt destination = build_msg_address_int (0, destination_account);
 
     // The current balance is kept in balance_remaining field of
     // the SmartContractInfo structure.
     SmartContractInfo sc_info = get_SmartContractInfo();
-    int balance = sc_info.balance_remaining.grams.amount;
+    int balance = sc_info.balance_remaining.grams.amount.value;
 
     // Check that we have collected enough money to transfer them.
     // If the assertion fails, the contract stops working and
@@ -51,7 +52,7 @@ void transfer () {
     // At first, let us build the message -- emtpy message with no
     // payload, just destination address; all money are transferred
     // to that address.
-    build_internal_message (destination, balance);
+    build_internal_message (&destination, balance);
 
     // And now we are sending it
     tonstdlib_send_work_slice_as_rawmsg (0);

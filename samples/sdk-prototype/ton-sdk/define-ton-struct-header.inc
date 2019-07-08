@@ -8,6 +8,7 @@
 // it may use the following macros: 
 
 // Structure declaration
+#define FIELD_CONSTANT_UNSIGNED(name, value, size) 
 #define FIELD_UNSIGNED(name, size) unsigned int name;
 #define FIELD_SIGNED(name, size) signed int name;
 #define FIELD_VAR_UNSIGNED(name, size) struct { int len; unsigned value; } name;
@@ -24,6 +25,7 @@ void XJOIN3(Serialize_,TON_STRUCT_NAME,_Impl) (TON_STRUCT_NAME* value);
 
 void XJOIN(Serialize_,TON_STRUCT_NAME) (TON_STRUCT_NAME* value);
 
+#undef FIELD_CONSTANT_UNSIGNED
 #undef FIELD_UNSIGNED
 #undef FIELD_SIGNED
 #undef FIELD_VAR_UNSIGNED

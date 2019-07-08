@@ -519,7 +519,7 @@ memcpy:
      .globl	memset
      .type	memset,@function
 memset:
-     ; ( addr value size -- )
+     ; ( addr value size -- addr )
      ;
      PUSH s2              ; ( addr value size addr )
      XCHG s0,s1           ; ( addr value addr size )

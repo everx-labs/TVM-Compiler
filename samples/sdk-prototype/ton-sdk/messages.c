@@ -3,6 +3,16 @@
 #define HEADER_OR_C "define-ton-struct-c.inc"
 #include "messages.inc"
 
+MsgAddressInt build_msg_address_int (int workchain, unsigned account) {
+    MsgAddressInt addr;
+
+    addr.anycast = 0;
+    addr.workchain_id = workchain;
+    addr.address = account;
+
+    return addr;
+}
+
 void build_internal_message (MsgAddressInt* dest, unsigned value) {
     Grams val_grams;
 
@@ -26,8 +36,6 @@ void build_internal_message (MsgAddressInt* dest, unsigned value) {
     msg.info.dst = *dest;
     msg.info.value = val;
     msg.info.ihr_fee = zero_grams;
-    msg.info.w1=0;
-    msg.info.w2=0;
     msg.info.fwd_fee = zero_grams;
     msg.info.created_lt = 0; // will be rewirtten by Node
     msg.info.created_at = 0; // will be rewirtten by Node
@@ -41,8 +49,6 @@ void build_external_output_int256_message (int value) {
     Message_ExtOut_int256 msg;
     msg.info.one_one = 3;
 
-    msg.info.src.one = 1;
-    msg.info.src.zero = 0;
     msg.info.src.anycast = 0;
     msg.info.src.workchain_id = -1;
     msg.info.src.address = 1;

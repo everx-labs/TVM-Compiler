@@ -23,8 +23,8 @@
 
 #define TON_STRUCT_NAME MsgAddressInt
 #define TON_STRUCT \
-    FIELD_UNSIGNED(one, 1) \
-    FIELD_UNSIGNED(zero, 1) \
+    FIELD_CONSTANT_UNSIGNED(one, 1, 1) \
+    FIELD_CONSTANT_UNSIGNED(zero, 0, 1) \
     FIELD_UNSIGNED(anycast, 1) \
     /*FIELD_MAYBE(anycast, Anycast)*/ \
     FIELD_SIGNED(workchain_id, 8) \
@@ -47,8 +47,6 @@
     FIELD_COMPLEX(dst, MsgAddressInt) \
     FIELD_COMPLEX(value, CurrencyCollection) \
     FIELD_COMPLEX(ihr_fee, Grams) \
-    FIELD_UNSIGNED(w1,32)\
-    FIELD_UNSIGNED(w2,32)\
     FIELD_COMPLEX(fwd_fee, Grams) \
     FIELD_UNSIGNED(created_lt, 64) \
     FIELD_UNSIGNED(created_at, 32) \

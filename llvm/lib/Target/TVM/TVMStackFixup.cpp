@@ -131,8 +131,19 @@ StackFixup StackFixup::DiffForReturn(const Stack &from,
     --numPops;
     size_t i = from.position(StackVreg(*Preserved));
     size_t j = llvm::size(from) - 1;
-    if (i != j)
-      rv(curStack += rv(xchg(i, j)));
+    if (i != j) {
+      if (i == 0) {
+        rv(curStack += rv(xchgTop(j)));
+      } else if (j == 0) {
+        rv(curStack += rv(xchgTop(i)));
+      } else if (i <= XchgLimit && j <= XchgLimit) {
+        rv(curStack += rv(xchg(i, j)));
+      } else {
+        rv(curStack += rv(xchgTop(i)));
+        rv(curStack += rv(xchgTop(j)));
+        rv(curStack += rv(xchgTop(i)));
+      }
+    }
   }
   for (unsigned i = 0; i < numPops; ++i)
     rv(curStack += rv(drop()));

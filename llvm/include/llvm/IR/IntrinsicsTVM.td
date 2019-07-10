@@ -132,4 +132,7 @@ let TargetPrefix = "tvm" in {
   def int_tvm_dump :
     GCCBuiltin<"__builtin_tvm_dump">,
                Intrinsic<[], [llvm_i64_ty]>;
+  def int_tvm_logstr :
+    GCCBuiltin<"__builtin_tvm_logstr">,
+               Intrinsic<[], [llvm_ptr_ty]>;
 }

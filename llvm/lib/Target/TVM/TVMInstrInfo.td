@@ -294,6 +294,12 @@ defm DUMP : I<(outs), (ins uimm8:$src), (outs), (ins uimm8:$src),
               "DUMP\t$src",
               "DUMP\t$src", 0xfe20>;
 
+defm LOGSTR : I<(outs), (ins I64:$addr),
+                (outs), (ins I64:$addr),
+                [(int_tvm_logstr (i64 (TVMGlobalAddressWrapper tglobaladdr : $addr)))],
+                "LOGSTR\t$addr",
+                "LOGSTR\t$addr", 0xfef>;
+
 //===----------------------------------------------------------------------===//
 // Integer comparison
 //===----------------------------------------------------------------------===//

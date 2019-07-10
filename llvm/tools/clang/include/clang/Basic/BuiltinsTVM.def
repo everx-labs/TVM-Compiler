@@ -40,5 +40,6 @@ BUILTIN(__builtin_tvm_nop, "v", "nc")
 BUILTIN(__builtin_tvm_dumpstk, "v", "nc")
 BUILTIN(__builtin_tvm_dumpstktop, "vWi", "nc")
 BUILTIN(__builtin_tvm_dump, "vWi", "nc")
+BUILTIN(__builtin_tvm_logstr, "vc*", "nc")
 
 #undef BUILTIN

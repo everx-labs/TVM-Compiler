@@ -14,6 +14,7 @@
 
 #include "TVMMCInstLower.h"
 #include "InstPrinter/TVMInstPrinter.h"
+#include "TVMMCExpr.h"
 #include "TVMTargetMachine.h"
 #include "llvm/ADT/SmallString.h"
 #include "llvm/CodeGen/AsmPrinter.h"
@@ -69,14 +70,48 @@ void TVMMCInstLower::lower(const MachineInstr *MI, MCInst &OutMI) {
     case MachineOperand::MO_GlobalAddress: {
       assert(MO.getTargetFlags() == 0 &&
              "TVM does not use target flags on GlobalAddresses");
-      const MCExpr *Expr =
-          MCSymbolRefExpr::create(Printer.getSymbol(MO.getGlobal()), Ctx);
-      int64_t Offset = MO.getOffset();
 
-      if (Offset)
-        Expr = MCBinaryExpr::createAdd(
-            Expr, MCConstantExpr::create(Offset, Ctx), Ctx);
+      const MCExpr *Expr = nullptr;
 
+      switch (MI->getOpcode()) {
+      case TVM::LOGSTR_S: {
+        const MachineOperand &Op = MI->getOperand(0);
+        const GlobalValue *GV = Op.getGlobal();
+
+        assert(GV && "LOGSTR_S operand must be GlobalValue");
+
+        StringRef DataString;
+
+        if (const auto *GlobalVar = dyn_cast<GlobalVariable>(GV)) {
+          const auto *Data =
+              dyn_cast<ConstantDataArray>(GlobalVar->getInitializer());
+          assert(Data &&
+                 "Only constant static strings are supported for LOGSTR_S"
+                 " for now");
+
+          DataString = Data->getAsString();
+        } else if (const auto *Fn = dyn_cast<Function>(GV)) {
+          DataString = Fn->getName();
+        }
+
+        static constexpr size_t MaxStringLength = 15;
+
+        if (DataString.size() > MaxStringLength)
+          DataString = DataString.substr(0, MaxStringLength);
+
+        Expr = TVMImmStringMCExpr::create(DataString, Ctx);
+
+        break;
+      }
+      default:
+        Expr = MCSymbolRefExpr::create(Printer.getSymbol(MO.getGlobal()), Ctx);
+
+        if (int64_t Offset = MO.getOffset())
+          Expr = MCBinaryExpr::createAdd(
+              Expr, MCConstantExpr::create(Offset, Ctx), Ctx);
+      }
+
+      assert(Expr && "Expr must be initialized");
       MCOp = MCOperand::createExpr(Expr);
       break;
     }

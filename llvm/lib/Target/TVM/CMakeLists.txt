@@ -25,6 +25,7 @@ add_llvm_target(TVMCodeGen
   TVMAsmPrinter.cpp
   TVMLoopPrepare.cpp
   TVMLoopInstructions.cpp
+  TVMMCExpr.cpp
   TVMMCInstLower.cpp
   TVMRematerialize.cpp
   TVMReplacePhysRegs.cpp

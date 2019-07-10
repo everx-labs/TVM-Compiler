@@ -28,6 +28,14 @@
 
 using namespace llvm;
 
+//===----------------------------------------------------------------------===//
+// Command line options for TVM
+//===----------------------------------------------------------------------===//
+// Enable debug trace for function calls
+static cl::opt<bool> TraceCalls("tvm-trace-calls", cl::Hidden,
+                                cl::desc("Trace function calls"),
+                                cl::init(false));
+
 bool TVMFrameLowering::hasFP(const MachineFunction &MF) const { return false; }
 
 bool TVMFrameLowering::hasReservedCallFrame(const MachineFunction &MF) const {
@@ -43,13 +51,18 @@ void TVMFrameLowering::emitPrologue(MachineFunction &MF,
   auto &MFI = MF.getFrameInfo();
   auto &MRI = MF.getRegInfo();
   uint64_t StackSize = MFI.getStackSize();
-  if (StackSize == 0)
+  if (StackSize == 0 && !TraceCalls)
     return;
 
   auto InsertPt =
       llvm::find_if(MBB, [&](auto &pt) { return !TVM::isArgument(pt); });
 
   DebugLoc DL;
+  if (TraceCalls) {
+    const Function &Fn = MF.getFunction();
+    if (MBB.getBasicBlock() == &Fn.getEntryBlock())
+      BuildMI(MBB, InsertPt, DL, TII->get(TVM::LOGSTR)).addGlobalAddress(&Fn);
+  }
   unsigned StSizeReg = MRI.createVirtualRegister(&TVM::I64RegClass);
   BuildMI(MBB, InsertPt, DL, TII->get(TVM::CONST_I64), StSizeReg)
       .addImm(StackSize);
@@ -62,7 +75,7 @@ void TVMFrameLowering::emitEpilogue(MachineFunction &MF,
   auto &MFI = MF.getFrameInfo();
   auto &MRI = MF.getRegInfo();
   uint64_t StackSize = MFI.getStackSize();
-  if (StackSize == 0)
+  if (StackSize == 0 && !TraceCalls)
     return;
 
   auto InsertPt = MBB.getFirstTerminator();

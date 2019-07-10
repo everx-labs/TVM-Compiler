@@ -62,6 +62,22 @@ void build_external_output_int256_message (int value) {
     Serialize_Message_ExtOut_int256 (&msg);
 }
 
+void build_external_output_common_message_header () {
+    Message_ExtOut_common msg;
+    msg.info.one_one = 3;
+
+    msg.info.src.anycast = 0;
+    msg.info.src.workchain_id = 0;
+    msg.info.src.address = 1;
+    msg.info.dst.zero_zero = 0;
+    msg.info.created_lt = 0;
+    msg.info.created_at = 0;
+    msg.init = 0;
+    msg.body = 0;
+
+    Serialize_Message_ExtOut_common (&msg);
+}
+
 void send_raw_message (int flags) {
     tonstdlib_send_work_slice_as_rawmsg (flags);
 }

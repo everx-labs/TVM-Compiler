@@ -76,4 +76,11 @@
     FIELD_SIGNED(value, 256)
 #include HEADER_OR_C
 
+#define TON_STRUCT_NAME Message_ExtOut_common
+#define TON_STRUCT \
+    FIELD_COMPLEX(info, CommonMsgInfo_ExtOut) \
+    FIELD_UNSIGNED(init, 1) \
+    FIELD_UNSIGNED(body, 1) 
+#include HEADER_OR_C
+
 #undef HEADER_OR_C

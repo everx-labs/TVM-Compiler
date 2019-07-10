@@ -26,7 +26,7 @@ void test()
 //CHECK-NEXT: created_lt  : 0
 //CHECK-NEXT: created_at  : 0
 //CHECK-NEXT: init  : None
-//CHECK-NEXT: body  : Some(CellData { references: [], data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 1], cell_type: Ordinary, level: 0, hashes: None, depths: None })
+//CHECK-NEXT: body  : Some(CellData { references: [], data: [0, 1], cell_type: Ordinary, level: 0, hashes: None, depths: None })
 //CHECK-EMPTY:
 //CHECK-NEXT: TEST COMPLETED
   produce_output();

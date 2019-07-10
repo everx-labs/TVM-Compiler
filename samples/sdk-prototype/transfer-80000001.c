@@ -15,8 +15,6 @@ TVM_CUSTOM_EXCEPTION (NOT_ENOUGH_MONEY, 61);
 
 void produce_output () {
     MsgAddressInt dest;
-    dest.one = 1;
-    dest.zero = 0;
 
     dest.anycast = 0;
     dest.workchain_id = 0;

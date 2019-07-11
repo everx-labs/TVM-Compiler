@@ -122,6 +122,12 @@ public:
     return CommentStream;
   }
 
+  // TVM local begin
+  raw_ostream &GetOS() override {
+    return OS;
+  }
+  // TVM local end
+
   void emitRawComment(const Twine &T, bool TabPrefix = true) override;
 
   void addExplicitComment(const Twine &T) override;

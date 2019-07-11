@@ -27,12 +27,15 @@ void TVMStackBlockInfo::doEndFixup(const TargetInstrInfo *TII,
                                    TVMFunctionInfo *MFI) {
   auto MBBI = MBB->getFirstTerminator();
 
+  std::string preTermStackStr;
   StackFixup endFixup;
   // if we have terminator, we need to adjust its args
   if (MBBI != MBB->end()) {
-    endFixup = fixedEnd().addArgs(TerminatorArgs) -
-        calculatedEnd().addArgs(TerminatorArgs);
+    auto preTerm = fixedEnd().addArgs(TerminatorArgs);
+    preTermStackStr = preTerm.toString();
+    endFixup = preTerm - calculatedEnd().addArgs(TerminatorArgs);
   } else {
+    preTermStackStr = fixedEnd().toString();
     endFixup = fixedEnd() - calculatedEnd();
   }
 
@@ -40,7 +43,8 @@ void TVMStackBlockInfo::doEndFixup(const TargetInstrInfo *TII,
   gen(endFixup);
 
   if (MBBI != MBB->end())
-    MFI->resetStackModelComment(&*MBBI, "fx^ => " + fixedEnd().toString());
+    MFI->resetStackModelComment(&*MBBI, preTermStackStr + " => " +
+                                fixedEnd().toString());
 }
 
 } // namespace llvm

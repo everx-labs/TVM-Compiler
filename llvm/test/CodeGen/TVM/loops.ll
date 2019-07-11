@@ -7,8 +7,8 @@ define i64 @for_loop(i64 %N) nounwind {
 entry:
   %cmp6 = icmp sgt i64 %N, 0
   ; CHECK: PUSHCONT
-  ; CHECK: IFELSE
   ; CHECK: PUSHCONT
+  ; CHECK: IFELSE
   ; CHECK: JMPX
   br i1 %cmp6, label %for.body, label %for.cond.cleanup
 
@@ -30,8 +30,8 @@ define i64 @while_loop(i64 %N) nounwind {
 entry:
   %cmp5 = icmp sgt i64 %N, 0
   ; CHECK: PUSHCONT
-  ; CHECK: IFELSE
   ; CHECK: PUSHCONT
+  ; CHECK: IFELSE
   ; CHECK: JMPX
   br i1 %cmp5, label %while.body, label %while.end
 

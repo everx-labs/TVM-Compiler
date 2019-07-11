@@ -39,22 +39,16 @@ void TVMInstPrinter::printInst(const MCInst *MI, raw_ostream &O,
       MI->getOpcode() == TVM::FALLTHROUGH_RETURN)
     return;
 
-  printInstruction(MI, O);
-
-  if (MI->getOpcode() == TVM::PUSHCONT_MBB_S) {
-    O << " {\n";
-    depth++;
-
-    for (const auto &op : *MI) {
-      if (op.isInst()) {
-        O << std::string(depth, '\t');
-        printInst(op.getInst(), O, "", STI);
-        O << "\n";
-      }
-    }
-
-    depth--;
-    O << std::string(depth, '\t') << "\t}";
+  {
+    std::string Str;
+    raw_string_ostream OStr(Str);
+    printInstruction(MI, OStr);
+    OStr.flush();
+    // Auto-generated printInstruction prints \t before instruction name
+    // For nice-looking 2-space offsets (inside PUSHCONT) we need to remove it.
+    assert(Str.front() == '\t');
+    Str.erase(0, 1);
+    O << Str;
   }
 
   printAnnotation(O, Annot);

@@ -96,6 +96,12 @@ raw_ostream &MCStreamer::GetCommentOS() {
   return nulls();
 }
 
+// TVM local begin
+raw_ostream &MCStreamer::GetOS() {
+  return nulls();
+}
+// TVM local end
+
 void MCStreamer::emitRawComment(const Twine &T, bool TabPrefix) {}
 
 void MCStreamer::addExplicitComment(const Twine &T) {}

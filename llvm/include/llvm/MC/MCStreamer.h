@@ -307,6 +307,10 @@ public:
   /// method.
   virtual raw_ostream &GetCommentOS();
 
+  // TVM local begin
+  virtual raw_ostream &GetOS();
+  // TVM local end
+
   /// Print T and prefix it with the comment string (normally #) and
   /// optionally a tab. This prints the comment immediately, not at the end of
   /// the current line. It is basically a safe version of EmitRawText: since it

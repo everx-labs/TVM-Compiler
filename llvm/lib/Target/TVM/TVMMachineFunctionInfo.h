@@ -36,8 +36,9 @@ class TVMFunctionInfo final : public MachineFunctionInfo {
   ///  (for stack model after this instruction)
   std::map<const MachineInstr *, std::vector<std::string>> StackModelComments;
 
-  /// Function's start stack model comment
-  std::string StartStackModelComment;
+  /// A mapping from MachineBasicBlock to starting stack model comment
+  ///  (incoming stack model for this block)
+  std::map<const MachineBasicBlock *, std::string> StackModelBBComments;
 
   /// A mapping from CodeGen vreg index to a boolean value indicating whether
   /// the given register is considered to be "stackified", meaning it has been
@@ -116,11 +117,15 @@ public:
     assert(it != StackModelComments.end());
     return it->second; // empty vector
   }
-  void setStartStackModelComment(const std::string &val) {
-    StartStackModelComment = val;
+
+  void setStackModelBBComment(const MachineBasicBlock *MBB,
+                              const std::string &val) {
+    StackModelBBComments[MBB] = val;
   }
-  const std::string &getStartStackModelComment() const {
-    return StartStackModelComment;
+  StringRef getStackModelBBComment(const MachineBasicBlock *MBB) const {
+    auto it = StackModelBBComments.find(MBB);
+    return (it != StackModelBBComments.end()) ?
+          StringRef(it->second) : StringRef("");
   }
 
   // For a given stackified WAReg, return the id number to print with push/pop.

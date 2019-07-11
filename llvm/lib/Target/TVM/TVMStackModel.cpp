@@ -432,8 +432,10 @@ void TVMStackModel::fillBlocksBeginEndPatterns(MachineFunction &MF) {
 
     for (auto MBB : BBs) {
       auto &CurInfo = BBInfo[MBB];
-      if (CurInfo.roadBegin() == i)
+      if (CurInfo.roadBegin() == i) {
         CurInfo.setFixedBegin(roadPattern.filteredByLiveIns(*MBB, *LIS));
+        MFI->setStackModelBBComment(MBB, CurInfo.fixedBegin().toString());
+      }
       if (CurInfo.roadEnd() == i)
         CurInfo.setFixedEnd(roadPattern.filteredByLiveOuts(*MBB, *LIS));
     }
@@ -517,7 +519,7 @@ bool TVMStackModel::runOnMachineFunction(MachineFunction &MF) {
     Changed = true;
   }
 
-  MFI->setStartStackModelComment(StartStack.toString());
+  MFI->setStackModelBBComment(&MF.front(), StartStack.toString());
 
   if (runOnBasicBlocks(MF, StartStack))
     Changed = true;

@@ -137,8 +137,6 @@ void TVMContinuationsHoist::collectInstr(MachineInstr &MI) {
 }
 
 bool TVMContinuationsHoist::runOnMachineFunction(MachineFunction &MF) {
-  if (skipFunction(MF.getFunction()))
-    return false;
   LLVM_DEBUG(MF.print(dbgs() << "Before " << getPassName() << '\n', nullptr));
 
   TII = MF.getSubtarget<TVMSubtarget>().getInstrInfo();

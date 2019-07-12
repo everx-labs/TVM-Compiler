@@ -1,0 +1,175 @@
+{
+	"ABI version" : 0,
+
+	"functions" :	[
+	    {
+	        "inputs": [
+	            {
+	                "name": "recipient",
+	                "type": "bits256"
+	            },
+	            {
+	                "name": "value",
+	                "type": "duint"
+	            }
+	        ],
+	        "name": "sendTransaction",
+					"signed": true,
+	        "outputs": [
+	            {
+	                "name": "transaction",
+	                "type": "uint64"
+	            },
+							{
+	                "name": "error",
+	                "type": "int8"
+	            }
+	        ]
+	    },
+	    {
+	        "inputs": [
+						  {
+	                "name": "type",
+	                "type": "uint8"
+	            },
+							{
+	                "name": "value",
+	                "type": "duint"
+	            },
+							{
+	                "name": "meta",
+	                "type": "bitstring"
+	            }
+					],
+	        "name": "createLimit",
+					"signed": true,
+	        "outputs": [
+							{
+	                "name": "limitId",
+	                "type": "uint8"
+	            },
+							{
+	                "name": "error",
+	                "type": "int8"
+	            }
+	        ]
+	    },
+	    {
+	        "inputs": [
+							{
+	                "name": "limitId",
+	                "type": "uint8"
+	            },
+							{
+	                "name": "value",
+	                "type": "duint"
+	            },
+							{
+	                "name": "meta",
+	                "type": "bitstring"
+	            }
+	        ],
+	        "name": "changeLimitById",
+					"signed": true,
+	        "outputs": [
+							{
+	                "name": "error",
+	                "type": "int8"
+	            }
+	        ]
+	    },
+			{
+	        "inputs": [
+							{
+	                "name": "limitId",
+	                "type": "uint8"
+	            }
+	        ],
+	        "name": "removeLimit",
+					"signed": true,
+	        "outputs": [
+							{
+	                "name": "error",
+	                "type": "uint8"
+	            }
+	        ]
+	    },
+			{
+	        "inputs": [
+							{
+	                "name": "limitId",
+	                "type": "uint8"
+	            }
+	        ],
+	        "name": "getLimitById",
+	        "outputs": [
+							{
+									"name": "limitInfo",
+					        "type": "tuple",
+					        "components": [
+											{
+					                "name": "value",
+					                "type": "duint"
+					            },
+											{
+					                "name": "type",
+					                "type": "uint8"
+					            },
+											{
+					                "name": "meta",
+					                "type": "bitstring"
+					            }
+									]
+							},
+							{
+	                "name": "error",
+	                "type": "int8"
+	            }
+	        ]
+	    },
+			{
+	        "inputs": [],
+	        "name": "getLimits",
+	        "outputs": [
+							{
+									"name": "list",
+					        "type": "uint8[]"
+							},
+							{
+	                "name": "error",
+	                "type": "int8"
+	            }
+	        ]
+	    },
+			{
+	        "inputs": [],
+	        "name": "getVersion",
+	        "outputs": [
+							{
+									"name": "version",
+					        "type": "tuple",
+					        "components": [
+											{
+					                "name": "major",
+					                "type": "uint16"
+					            },
+											{
+					                "name": "minor",
+					                "type": "uint16"
+					            }
+									]
+							},
+							{
+	                "name": "error",
+	                "type": "int8"
+	            }
+	        ]
+	    },
+			{
+	        "inputs": [],
+	        "name": "getBalance",
+	        "outputs": [
+	        ]
+	    }
+	]
+}

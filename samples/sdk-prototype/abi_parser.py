@@ -52,15 +52,16 @@ for func in data['functions']:
     signed = func['signed']
 
     if name [-11:] == "_authorized":
-        if signed != 'true':
+        if signed != True:
             errors.append ('Function %s ends with _authorized, so attribute "signed" must be set to true')
     else:
-        if signed != 'false':
+        if signed != False:
             errors.append ('Function %s does not end with _authorized, so attribute "signed" must be set to false')
 
     header_inputs = [];
     for inp in inputs:
-        header_inputs.append (outputs_type + ' ' + inp['name'])
+        (inputs_type, inputs_command) = convert_type (inp['type'])
+        header_inputs.append (inputs_type + ' ' + inp['name'])
 
     header_str = "%s %s_Impl (%s);" % (outputs_type, name, ", ".join(header_inputs));
     header.append(header_str);
@@ -69,7 +70,7 @@ for func in data['functions']:
     wrapper.append(wrapper_header);
     for inp in inputs:
         (inputs_type, inputs_command) = convert_type (inp['type'])
-        wrapper.append("    int %s_Deserialized = Deserialize_%s_Impl (%s);" % (inp['name'], inputs_command[0], inputs_command[1]))
+        wrapper.append("    %s %s_Deserialized = Deserialize_%s_Impl (%s);" % (inputs_type, inp['name'], inputs_command[0], inputs_command[1]))
 
     main_arguments = []
     for inp in inputs:

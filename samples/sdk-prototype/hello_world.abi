@@ -1,17 +1,8 @@
 {
-	"ABI version" : 0,
-
-	"functions" :	[
-	    {
-	        "inputs": [
-	        ],
-	        "name": "compute", "signed": "false",
-	        "outputs": [
-	            {
-	                "name": "result",
-	                "type": "uint64"
-	            }
-	        ]
-	    }
-	]
+    "ABI version" : 0,
+    "functions" : [{
+        "name": "compute", "signed": false,
+        "inputs": [],
+        "outputs": [{ "name": "result", "type": "uint64" }]
+    }]
 }

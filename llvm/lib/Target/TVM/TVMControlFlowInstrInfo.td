@@ -27,10 +27,6 @@ let isTerminator = 1, hasCtrlDep = 1 in {
     defm FALLTHROUGH_RETURN : SI<(ins)>;
   } // isReturn = 1, isBarrier = 1
 
-  defm ISZERO : I<(outs I64:$dst), (ins I64:$src), (outs), (ins),
-                   [(set I64:$dst, (setcc I64:$src, 0, SETEQ))],
-                   "ISZERO\t$dst, $src", "ISZERO", 0xc000>;
-
   let isBranch = 1 in {
     // The condition operand is a boolean value which TVM represents as i64.
     defm IFJMP : I<(outs), (ins I64:$cond, I64:$dst),

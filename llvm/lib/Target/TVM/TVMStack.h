@@ -28,27 +28,30 @@
 
 namespace llvm {
 
+struct MIArg {
+  MIArg(StackVreg Vreg, bool IsKilled) : Vreg(Vreg), IsKilled(IsKilled) {}
+  bool operator == (const MIArg &v) const {
+    return Vreg == v.Vreg && IsKilled == v.IsKilled;
+  }
+  StackVreg Vreg;
+  bool IsKilled;
+};
+class MIArgs {
+public:
+  MIArgs() = default;
+  MIArgs(MachineInstr &MI, const LiveIntervals &LIS);
+  size_t size() const { return Args.size(); }
+  const SmallVector<MIArg, 4> &getArgs() const { return Args; }
+private:
+  SmallVector<MIArg, 4> Args;
+};
+
 /// Implement the programming model of the hardware stack and keep it in sync
 /// with the emitted code.
 /// Provide interfaces to track positions of local variables and mutate the
 /// stack.
 class Stack {
 public:
-  struct MIArg {
-    MIArg(StackVreg Vreg, bool IsKilled) : Vreg(Vreg), IsKilled(IsKilled) {}
-    StackVreg Vreg;
-    bool IsKilled;
-  };
-  class MIArgs {
-  public:
-    MIArgs() = default;
-    MIArgs(MachineInstr &MI, const LiveIntervals &LIS);
-    size_t size() const { return Args.size(); }
-    const SmallVector<MIArg, 4> &getArgs() const { return Args; }
-  private:
-    SmallVector<MIArg, 4> Args;
-  };
-
   typedef std::deque<StackVreg> StackDeq;
 
   Stack(MachineFunction &MF, size_t Size);
@@ -66,14 +69,16 @@ public:
 
   // Re-order or add arguments on stack
   Stack reqArgs(const MIArgs &Args) const;
-
   Stack addArgs(const MIArgs &Args) const;
-  Stack delArgs(const MIArgs &Args) const;
 
   Stack filteredByLiveIns(MachineBasicBlock &MBB,
                           const LiveIntervals &LIS) const;
   Stack filteredByLiveOuts(MachineBasicBlock &MBB,
                            const LiveIntervals &LIS) const;
+  // Replace existing regs, defined in this MI (and not used) by UnusedReg
+  Stack filteredByMIdefs(const MachineInstr &MI) const;
+
+  void filterByDeadDefs(MachineInstr &MI);
 
   void fillUnusedRegs(SmallVector<StackVreg, 16> &Regs);
 
@@ -89,6 +94,16 @@ public:
   size_t position(size_t From, const StackVreg& Elem) const {
     return std::distance(std::begin(Data),
                          find_or_fail(drop_begin(Data, From), Elem));
+  }
+  /// Return position of \par N occurrence of \par Elem from stack deep
+  /// \par N - starts from 0
+  size_t positionNrev(const StackVreg &Elem, int N) const {
+    auto it = std::find_if(Data.rbegin(), Data.rend(),
+                           [&](const StackVreg &CurElem) {
+      return (Elem == CurElem) && (N-- == 0);
+    });
+    assert(it != Data.rend());
+    return Data.size() - 1 - (it - Data.rbegin());
   }
   /// Return register for \par Slot in the stack.
   /// Precondition: Slot < Data.size() && Data[Slot] is a register.

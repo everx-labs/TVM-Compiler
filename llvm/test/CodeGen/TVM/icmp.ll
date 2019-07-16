@@ -7,8 +7,6 @@ define i64 @icmpeq(i64 %par1, i64 %par2) nounwind {
 ; CHECK: EQUAL
 ; CHECK-NEXT: PUSHINT 42
 ; CHECK-NEXT: PUSHINT 77
-; CHECK-NEXT: XCHG s0, s2
-; CHECK-NEXT: XCHG s1, s2
 ; CHECK: CONDSEL
   %1 = icmp eq i64 %par1, %par2
   %2 = select i1 %1, i64 42, i64 77
@@ -20,8 +18,6 @@ define i64 @icmpeq0(i64 %par1) nounwind {
 ; CHECK-NOT: EQUAL
 ; CHECK: PUSHINT 42
 ; CHECK-NEXT: PUSHINT 77
-; CHECK-NEXT: XCHG s0, s2
-; CHECK-NEXT: XCHG s1, s2
 ; CHECK: CONDSEL
   %1 = icmp eq i64 %par1, 0
   %2 = select i1 %1, i64 42, i64 77
@@ -41,8 +37,6 @@ define i64 @icmpneq0(i64 %par1) nounwind {
 ; CHECK-NOT: NEQ
 ; CHECK: PUSHINT 77
 ; CHECK-NEXT: PUSHINT 42
-; CHECK-NEXT: XCHG s0, s2
-; CHECK-NEXT: XCHG s1, s2
 ; CHECK: CONDSEL
   %1 = icmp ne i64 %par1, 0
   %2 = select i1 %1, i64 42, i64 77

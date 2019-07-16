@@ -32,9 +32,6 @@ public:
   void setCalculatedEnd(const Stack &stack) {
     CalculatedEnd = stack;
   }
-  // Insert fixedEnd() - calculatedEnd() fixup in the block's end
-  void doEndFixup(const TargetInstrInfo *TII, TVMFunctionInfo *MFI);
-
   const Stack &wantedBegin() const {
     assert(WantedBegin && "Non-set wanted begin in TVMStackBlockInfo");
     return *WantedBegin;
@@ -54,9 +51,6 @@ public:
   bool isFixedEnd() const {
     return FixedEnd.has_value();
   }
-  void setTerminatorArgs(const Stack::MIArgs &args) {
-    TerminatorArgs = args;
-  }
 
   unsigned roadBegin() const { return RoadBegin; }
   unsigned roadEnd() const { return RoadEnd; }
@@ -75,7 +69,6 @@ private:
   // Calculated end stack model (before terminator and fixups)
   std::optional<Stack> CalculatedEnd;
   std::optional<Stack> FixedEnd;
-  Stack::MIArgs TerminatorArgs;
 
   unsigned RoadBegin = 0;
   unsigned RoadEnd = 0;

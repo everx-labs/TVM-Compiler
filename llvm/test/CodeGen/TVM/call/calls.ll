@@ -59,12 +59,9 @@ define i64 @test21(i64 %x) nounwind {
 ; CHECK: PUSHINT $nop$
 ; CHECK: CALL 1
   call void @nop()
-; CHECK: PUSH s1
-; CHECK: XCHG s1, s2
 ; CHECK: ADD
   %1 = add i64 %x, %x
 ; CHECK: PUSHINT $nop1$
-; CHECK: PUSH s1
 ; CHECK: CALL 1
   call void @nop1(i64 %1)
   ret i64 %1
@@ -81,9 +78,7 @@ define i64 @pow2(i64 %x) nounwind {
 
 ; CHECK-LABEL: test22
 define i64 @test22(i64 %x) nounwind {
-; CHECK: PUSH s1
-; CHECK: XCHG s1, s2
-; CHECK-NEXT: ADD
+; CHECK: ADD
   %1 = add i64 %x, %x
 ; CHECK: PUSHINT $pow2$
 ; CHECK: CALL 1
@@ -95,18 +90,10 @@ define i64 @test22(i64 %x) nounwind {
 define i64 @test23(i64 %x, i64 %y) nounwind {
 ; CHECK: PUSH c0
 ; CHECK: PUSHINT $pow2$
-; CHECK: DUP
-; CHECK: XCHG s1, s4
-; CHECK: XCHG s2, s4
-; CHECK: XCHG s3, s4
 ; CHECK: CALL 1
   %1 = call i64 @pow2(i64 %x)
-; CHECK: XCHG s0, s1
-; CHECK: XCHG s1, s3
 ; CHECK: CALL 1
   %2 = call i64 @pow2(i64 %y)
-; CHECK: XCHG s0, s2
-; CHECK: XCHG s1, s2
 ; CHECK: POP c0
 ; CHECK: ADD
   %3 = add i64 %1, %2
@@ -125,32 +112,13 @@ define i64 @test24(i64 %x, i64 %y) nounwind {
 ; [x, y, c0]
 ; CHECK: PUSHINT $sum$
 ; [x, y, c0, $sum]
-; CHECK: DUP
-; [x, y, c0, $sum, $sum]
-; CHECK: PUSH s3
-; [x, y, c0, $sum, $sum, y]
-; CHECK: PUSH s5
-; [x, y, c0, $sum, $sum, y, x]
-; CHECK: XCHG s0, s2
 ; [x, y, c0, $sum, x, y, $sum]
-; CHECK-NEXT: CALL 1
+; CHECK: CALL 1
 ; [x, y, c0, $sum, x + y]
   %1 = call i64 @sum(i64 %x, i64 %y)
-; CHECK: XCHG s0, s1
-; [x, y, c0, x + y, $sum]
-; CHECK: XCHG s1, s4
-; [y, c0, x + y, x, $sum]
-; CHECK: XCHG s2, s3
-; [c0, y, x + y, x, $sum]
-; CHECK: XCHG s3, s4
-; [c0, x + y, y, x, $sum]
 ; CHECK: CALL 1
 ; [c0, x + y, y + x]
   %2 = call i64 @sum(i64 %y, i64 %x)
-; CHECK: XCHG s0, s2
-; [y + x, x + y, c0]
-; CHECK: XCHG s1, s2
-; [x + y, y + x, c0]
 ; CHECK: POP c0
 ; [x + y, y + x]
   %3 = mul i64 %1, %2
@@ -177,16 +145,8 @@ define i64 @test25(i64 %x, i64 %y, i64 %z) nounwind {
 =======
 ; CHECK: PUSH c0
 ; CHECK: PUSHINT $sum$
-; CHECK: DUP
-; CHECK: XCHG s1, s4
-; CHECK: XCHG s2, s5
-; CHECK: XCHG s3, s4
-; CHECK: XCHG s4, s5
 ; CHECK: CALL 1
   %1 = call i64 @sum(i64 %x, i64 %y)
-; CHECK: XCHG s0, s1
-; CHECK: XCHG s1, s3
-; CHECK: XCHG s2, s3
 ; CHECK: CALL 1
 >>>>>>> Fix of code generation for global address and external symbol operands
   %2 = call i64 @sum(i64 %1, i64 %z)

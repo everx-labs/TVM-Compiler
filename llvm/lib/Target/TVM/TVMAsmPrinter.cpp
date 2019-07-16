@@ -173,7 +173,8 @@ void TVMAsmPrinter::EmitSubBlockForPushcont(const TVMMCInstLower &lower,
       auto &curInst = *op.getInst();
       if (isVerbose()) {
         auto MIit = Mapping.find(&curInst);
-        if (MIit != Mapping.end())
+        // PUSHCONT_MBB comment will be printed later, at closing brace '}'
+        if (MIit != Mapping.end() && curInst.getOpcode() != TVM::PUSHCONT_MBB_S)
           for (auto &Comment : MFI->getStackModelComments(MIit->second))
             OutStreamer->AddComment(Comment);
         if (curInst.getOpcode() == TVM::FALLTHROUGH_RETURN) {
@@ -188,6 +189,12 @@ void TVMAsmPrinter::EmitSubBlockForPushcont(const TVMMCInstLower &lower,
       if (curInst.getOpcode() == TVM::PUSHCONT_MBB_S)
         EmitSubBlockForPushcont(lower, curInst, depth + 2);
     }
+  }
+  if (isVerbose()) {
+    // Print PUSHCONT_MBB comments at close brace '}'
+    auto MIit = Mapping.find(&Inst);
+    for (auto &Comment : MFI->getStackModelComments(MIit->second))
+      OutStreamer->AddComment(Comment);
   }
   OutStreamer->EmitRawText("\t" + std::string(depth, ' ') + "}\n");
 }

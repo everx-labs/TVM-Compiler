@@ -174,17 +174,60 @@ defm NOP : I<(outs), (ins), (outs), (ins), [(int_tvm_nop)], "NOP", "NOP", 0x00>;
 // They has mayLoad because it reads from a local, which is a side effect
 // not otherwise modeled in LLVM.
 
-let mayLoad = 1, isAsCheapAsAMove = 1 in
-defm PUSH : SI<(ins stack_op:$local), "PUSH\t$local", 0x20>;
-
 let mayLoad = 1, isAsCheapAsAMove = 1 in {
+defm PUSH : SI<(ins stack_op:$local), "PUSH\t$local", 0x20>;
 defm SWAP : SI<(ins), "SWAP", 0x01>;
 defm XCHG_TOP : SI<(ins stack_op:$src), "XCHG\ts0, $src", 0x01>;
 defm XCHG_TOP_DEEP : SI<(ins stack_op:$src), "XCHG\ts0, $src", 0x11>;
 defm XCHG : SI<(ins stack_op:$src, stack_op:$dst), "XCHG\t$src, $dst", 0x10>;
+
+// XCHG, XCHG
+defm XCHG2 : SI<(ins stack_op:$i, stack_op:$j), "XCHG2\t$i, $j", 0x50>;
+// XCHG, PUSH
+defm XCPU : SI<(ins stack_op:$i, stack_op:$j), "XCPU\t$i, $j", 0x51>;
+// PUSH, XCHG
+defm PUXC : SI<(ins stack_op:$i, stack_op:$j), "PUXC\t$i, $j", 0x52>;
+// PUSH, PUSH
+defm PUSH2 : SI<(ins stack_op:$i, stack_op:$j), "PUSH2\t$i, $j", 0x53>;
+
+// XCHG, XCHG, XCHG
+defm XCHG3 : SI<(ins stack_op:$i, stack_op:$j, stack_op:$k),
+                "XCHG3\t$i, $j, $k", 0x04>;
+// XCHG, XCHG, PUSH
+defm XC2PU : SI<(ins stack_op:$i, stack_op:$j, stack_op:$k),
+                "XC2PU\t$i, $j, $k", 0x541>;
+// XCHG, PUSH, XCHG
+defm XCPUXC : SI<(ins stack_op:$i, stack_op:$j, stack_op:$k),
+                 "XCPUXC\t$i, $j, $k", 0x542>;
+// XCHG, PUSH, PUSH
+defm XCPU2 : SI<(ins stack_op:$i, stack_op:$j, stack_op:$k),
+                "XCPU2\t$i, $j, $k", 0x543>;
+// PUSH, XCHG, XCHG
+defm PUXC2 : SI<(ins stack_op:$i, stack_op:$j, stack_op:$k),
+                "PUXC2\t$i, $j, $k", 0x544>;
+// PUSH, XCHG, PUSH
+defm PUXCPU : SI<(ins stack_op:$i, stack_op:$j, stack_op:$k),
+                 "PUXCPU\t$i, $j, $k", 0x545>;
+// PUSH, PUSH, XCHG
+defm PU2XC : SI<(ins stack_op:$i, stack_op:$j, stack_op:$k),
+                "PU2XC\t$i, $j, $k", 0x546>;
+// PUSH, PUSH, PUSH
+defm PUSH3 : SI<(ins stack_op:$i, stack_op:$j, stack_op:$k),
+                "PUSH3\t$i, $j, $k", 0x547>;
+
 defm POP  : SI<(ins stack_op:$dst), "POP\t$dst", 0x30>;
 defm DROP : SI<(ins), "DROP", 0x30>;
 defm BLKDROP : SI<(ins uimm8:$sz), "BLKDROP\t$sz", 0x5F0>;
+defm DROPX: SI<(ins), "DROPX", 0x65>;
+defm BLKSWAP : SI<(ins uimm8:$deep, uimm8:$top), "BLKSWAP\t$deep, $top", 0x55>;
+defm BLKSWX : SI<(ins), "BLKSWX", 0x63>;
+defm ROLL : SI<(ins uimm8:$sz), "ROLL\t$sz", 0x55>;
+defm ROLLREV : SI<(ins uimm8:$sz), "ROLLREV\t$sz", 0x55>;
+defm ROLLX : SI<(ins), "ROLLX", 0x61>;
+defm ROLLREVX : SI<(ins), "ROLLREVX", 0x62>;
+defm REVERSE : SI<(ins uimm8:$sz, uimm8:$topIdx),
+                   "REVERSE\t$sz, $topIdx", 0x5E>;
+defm REVX: SI<(ins), "REVX", 0x64>;
 defm NIP  : SI<(ins), "NIP", 0x31>;
 defm DUP  : SI<(ins), "DUP", 0x20>;
 defm ZERO : SI<(ins), "ZERO", 0x70>;
@@ -321,6 +364,10 @@ def : ComparisonUint<SETULT, SLT>;
 def : ComparisonUint<SETUGT, SGT>;
 def : ComparisonUint<SETULE, SLE>;
 def : ComparisonUint<SETUGE, SGE>;
+
+defm ISZERO : I<(outs I64:$dst), (ins I64:$src), (outs), (ins),
+                 [(set I64:$dst, (setcc I64:$src, 0, SETEQ))],
+                 "ISZERO\t$dst, $src", "ISZERO", 0xc000>;
 
 defm CONDSEL : I<(outs I64:$dst), (ins I64:$lhs, I64:$rhs, I64:$cond),
                  (outs), (ins),

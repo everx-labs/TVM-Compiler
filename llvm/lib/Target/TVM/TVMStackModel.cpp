@@ -150,10 +150,24 @@ bool TVMStackModel::processInstruction(MachineInstr &MI, Stack &TheStack) {
   if (MI.isImplicitDef())
     return false;
 
-  StackFixup::InstructionGenerator gen(TII, MFI, MI.getParent(), MI);
+  auto *MBB = MI.getParent();
 
-  auto removeUnusedDefsFx = StackFixup::RemoveUnusedDefinitions(MI, TheStack);
-  gen(removeUnusedDefsFx);
+#ifndef NDEBUG
+  {
+    SmallVector<StackVreg, 32> Vregs(
+          llvm::make_filter_range(TheStack, [](StackVreg vreg) {
+            return vreg.VirtReg != TVMFunctionInfo::UnusedReg;
+          }));
+
+    llvm::sort(Vregs.begin(), Vregs.end());
+    auto it = std::unique(Vregs.begin(), Vregs.end());
+    assert(it == Vregs.end() && "Vreg duplicates found in stack");
+  }
+#endif
+
+  StackFixup::InstructionGenerator InsertMIs(TII, MFI, MBB, MI);
+
+  TheStack = TheStack.filteredByMIdefs(MI);
 
   size_t NumDefs = MI.getNumDefs();
   size_t NumOperands = MI.getNumOperands();
@@ -163,15 +177,27 @@ bool TVMStackModel::processInstruction(MachineInstr &MI, Stack &TheStack) {
   if (MI.isReturn()) {
     assert(NumOperands <= 2 && "Multiple returns are not implemented yet");
     if (NumOperands == 0)
-      gen(StackFixup::DiffForReturn(TheStack));
+      InsertMIs(StackFixup::DiffForReturn(TheStack));
     else
-      gen(StackFixup::DiffForReturn(TheStack, MI.getOperand(0).getReg()));
+      InsertMIs(StackFixup::DiffForReturn(TheStack, MI.getOperand(0).getReg()));
     return true;
   }
 
-  auto prepareArgsFx = TheStack.reqArgs(Stack::MIArgs(MI, *LIS)) - TheStack;
-  gen(prepareArgsFx);
-  prepareArgsFx.apply(TheStack);
+  std::string preTermStackStr;
+  if (MI.isTerminator() && MBB->succ_size()) {
+    // For terminator instruction we need to prepare stack as
+    //  dst road pattern plus required arguments
+    auto AfterTermStack = BBInfo[MBB].fixedEnd();
+    auto NeedStack = AfterTermStack.addArgs(MIArgs(MI, *LIS));
+    auto Fix = NeedStack - TheStack;
+    InsertMIs(Fix);
+    Fix.apply(TheStack);
+    preTermStackStr = NeedStack.toString();
+  } else {
+    auto Fix = StackFixup::DiffForArgs(TheStack, MIArgs(MI, *LIS));
+    InsertMIs(Fix);
+    Fix.apply(TheStack);
+  }
 
   size_t NumStackOperands = 0, NumGlobals = 0, NumImms = 0, NumMBBs = 0;
   for (const MachineOperand &Op : MI.uses()) {
@@ -260,12 +286,17 @@ bool TVMStackModel::processInstruction(MachineInstr &MI, Stack &TheStack) {
         MIB.addImm(Op.getImm());
       }
     }
+
+    TheStack.filterByDeadDefs(MI);
+
     if (NumDefs)
       MFI->addStackModelComment(MIB.getInstr(), prepareInstructionComment(MI));
-    MFI->addStackModelComment(MIB.getInstr(), TheStack.toString());
 
-    auto pruneDeadDefsFx = StackFixup::PruneDeadDefinitions(MI, TheStack);
-    gen(pruneDeadDefsFx);
+    if (MI.isTerminator())
+      MFI->addStackModelComment(MIB.getInstr(), preTermStackStr + " => " +
+                                TheStack.toString());
+    else
+      MFI->addStackModelComment(MIB.getInstr(), TheStack.toString());
 
     MI.removeFromParent();
   }
@@ -291,22 +322,9 @@ bool TVMStackModel::runOnBasicBlocks(MachineFunction &MF,
 
       if (MI.isDebugInstr() || MI.isLabel())
         continue;
-      if (MI.isTerminator()) {
-        SmallVector<StackVreg, 4> Args;
-        for (auto Op : MI.uses())
-          if (Op.isReg())
-            Args.push_back(StackVreg(Op.getReg()));
-        bbInfo.setTerminatorArgs(Stack::MIArgs(MI, *LIS));
-      }
-
       Changed |= processInstruction(MI, CurrentStack);
     }
     bbInfo.setCalculatedEnd(CurrentStack);
-
-    if (MBB.succ_size()) {
-      // Insert stack fixup from calculated current stack into exit pattern
-      bbInfo.doEndFixup(TII, MFI);
-    }
   }
   return Changed;
 }

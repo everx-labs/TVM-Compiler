@@ -1,0 +1,15 @@
+{
+    "ABI version" : 0,
+    "functions": [
+        {
+            "name": "add", "signed": false,
+            "inputs": [{ "name": "a", "type": "uint16" }, { "name": "b", "type": "uint16" }],
+            "outputs": [{ "name": "res", "type": "uint16" }]
+        },
+        {
+            "name": "mul", "signed": false,
+            "inputs": [{ "name": "a", "type": "uint16" }, { "name": "b", "type": "uint16" }],
+            "outputs": [{ "name": "res", "type": "uint16" }]
+        }
+    ]
+}

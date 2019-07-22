@@ -133,6 +133,7 @@ defm CALL_LOAD : I<(outs I64 : $value), (ins I64 : $addr),
                    [], "CALL_LOAD\t$addr", "CALL\t$$:load$$", 0xF0>;
 def : Pat<(load I64 : $addr), (CALL_LOAD I64 : $addr)>;
 def : Pat<(zextload I64 : $addr), (CALL_LOAD I64 : $addr)>;
+def : Pat<(sextload I64 : $addr), (CALL_LOAD I64 : $addr)>;
 
 defm CALL_STORE : I<(outs), (ins I64 : $addr, I64 : $value),
                     (outs), (ins),

@@ -65,7 +65,7 @@ def getContractDetails(linker_stdout, entry_fn):
   return {"contract": contract_base_name, "entry": entry_addr}
 
 def linkProgram(linker_path, stdlibc_path, asm_file_path, entry_fn):
-  cmd_line = "{} --debug --lib {} {}".format(linker_path, stdlibc_path, asm_file_path)
+  cmd_line = "{} compile --debug --lib {} {}".format(linker_path, stdlibc_path, asm_file_path)
   
   with os.popen(cmd_line) as stream:
     linker_stdout    = stream.read()
@@ -88,7 +88,7 @@ def linkProgram(linker_path, stdlibc_path, asm_file_path, entry_fn):
   return None
 
 def runProgram(linker_path, contract_details, need_trace):
-  cmd_line = "{} {} test --decode-c6 --body 00{}".format(linker_path, contract_details["contract"],
+  cmd_line = "{} test {} --decode-c6 --body 00{}".format(linker_path, contract_details["contract"],
   	contract_details["entry"])
 
   if need_trace:

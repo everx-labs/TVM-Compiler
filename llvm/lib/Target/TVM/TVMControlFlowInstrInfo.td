@@ -141,6 +141,9 @@ defm CALL_STORE : I<(outs), (ins I64 : $addr, I64 : $value),
 def : Pat<(store I64 : $value, I64 : $addr),
           (CALL_STORE I64 : $addr, I64 : $value)>;
 
+def : Pat<(truncstore I64 : $value, I64 : $addr),
+          (CALL_STORE I64 : $addr, I64 : $value)>;
+
 defm CALL_FRAMEIDX : I<(outs I64 : $offset), (ins I64 : $idx),
                        (outs), (ins), [],
                        "CALL_FRAMEIDX\t$idx", "CALL\t$$:frameidx$$", 0xF0>;

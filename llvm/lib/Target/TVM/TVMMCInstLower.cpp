@@ -73,11 +73,12 @@ void TVMMCInstLower::lower(const MachineInstr *MI, MCInst &OutMI) {
       const MCExpr *Expr = nullptr;
 
       switch (MI->getOpcode()) {
+      case TVM::PRINTSTR_S:
       case TVM::LOGSTR_S: {
         const MachineOperand &Op = MI->getOperand(0);
         const GlobalValue *GV = Op.getGlobal();
 
-        assert(GV && "LOGSTR_S operand must be GlobalValue");
+        assert(GV && "LOGSTR_S/PRINTSTR_S operand must be GlobalValue");
 
         StringRef DataString;
 
@@ -85,10 +86,10 @@ void TVMMCInstLower::lower(const MachineInstr *MI, MCInst &OutMI) {
           const auto *Data =
               dyn_cast<ConstantDataArray>(GlobalVar->getInitializer());
           assert(Data &&
-                 "Only constant static strings are supported for LOGSTR_S"
-                 " for now");
+                 "Only constant static strings are supported for "
+                 "LOGSTR_S/PRINTSTR_S for now");
 
-          DataString = Data->getAsString();
+          DataString = Data->getAsString().drop_back(1);
         } else if (const auto *Fn = dyn_cast<Function>(GV)) {
           DataString = Fn->getName();
         }

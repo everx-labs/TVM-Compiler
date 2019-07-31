@@ -135,6 +135,38 @@ define void @dump() {
   ret void
 }
 
+; CHECK-LABEL: dump_value
+define void @dump_value() {
+; CHECK: PUSHINT 1
+; CHECK: DUMP 0
+; CHECK: DROP
+  call void @llvm.tvm.dump.value(i64 1)
+  ret void
+}
+
+; CHECK-LABEL: print
+define void @print() {
+; CHECK: PRINT 1
+  call void @llvm.tvm.print(i64 1)
+  ret void
+}
+
+; CHECK-LABEL: print_value
+define void @print_value() {
+; CHECK: PUSHINT 1
+; CHECK: PRINT 0
+; CHECK: DROP
+  call void @llvm.tvm.print.value(i64 1)
+  ret void
+}
+
+; CHECK-LABEL: logflush
+define void @logflush() {
+; CHECK: LOGFLUSH
+  call void @llvm.tvm.logflush()
+  ret void
+}
+
 ; CHECK-LABEL: dumpstk
 define void @dumpstk() {
 ; CHECK: DUMPSTK
@@ -167,3 +199,7 @@ declare void @llvm.tvm.nop()
 declare void @llvm.tvm.dumpstk()
 declare void @llvm.tvm.dumpstktop(i64 %count)
 declare void @llvm.tvm.dump(i64 %stack_index)
+declare void @llvm.tvm.dump.value(i64 %value)
+declare void @llvm.tvm.print(i64 %stack_index)
+declare void @llvm.tvm.print.value(i64 %value)
+declare void @llvm.tvm.logflush()

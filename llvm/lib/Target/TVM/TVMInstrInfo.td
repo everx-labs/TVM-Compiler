@@ -336,12 +336,33 @@ defm DUMP : I<(outs), (ins uimm8:$src), (outs), (ins uimm8:$src),
               [(int_tvm_dump uimm8:$src)],
               "DUMP\t$src",
               "DUMP\t$src", 0xfe20>;
+defm PRINT : I<(outs), (ins uimm8:$src), (outs), (ins uimm8:$src),
+               [(int_tvm_print uimm8:$src)],
+               "PRINT\t$src",
+               "PRINT\t$src", 0xfe30>;
+defm DUMP_VALUE : I<(outs I64:$dst), (ins I64:$src), (outs), (ins),
+                    [(set I64:$dst, (int_tvm_dump_value I64:$src))],
+                    "DUMP\t$dst, $src",
+                    "DUMP\t0", 0xfe20>;
+defm PRINT_VALUE : I<(outs I64:$dst), (ins I64:$src), (outs), (ins),
+                     [(set I64:$dst, (int_tvm_print_value I64:$src))],
+                     "PRINT\t$dst, $src",
+                     "PRINT\t0", 0xfe30>;
 
 defm LOGSTR : I<(outs), (ins I64:$addr),
                 (outs), (ins I64:$addr),
                 [(int_tvm_logstr (i64 (TVMGlobalAddressWrapper tglobaladdr : $addr)))],
                 "LOGSTR\t$addr",
                 "LOGSTR\t$addr", 0xfef>;
+defm PRINTSTR : I<(outs), (ins I64:$addr),
+                  (outs), (ins I64:$addr),
+                  [(int_tvm_printstr (i64 (TVMGlobalAddressWrapper tglobaladdr : $addr)))],
+                  "PRINTSTR\t$addr",
+                  "PRINTSTR\t$addr", 0xfef>;
+
+defm LOGFLUSH : I<(outs), (ins), (outs), (ins), [(int_tvm_logflush)],
+                  "LOGFLUSH", "LOGFLUSH", 0xfef000>;
+
 
 //===----------------------------------------------------------------------===//
 // Integer comparison

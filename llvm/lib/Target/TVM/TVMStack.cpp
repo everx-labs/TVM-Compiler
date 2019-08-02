@@ -73,7 +73,7 @@ Stack Stack::reqArgs(const MIArgs &Args) const {
   return rv;
 }
 
-Stack Stack::addArgs(const MIArgs &Args) const {
+Stack Stack::withArgs(const MIArgs &Args) const {
   Stack rv(*this);
   for (auto Arg : Args.getArgs())
     rv.Data.push_front(Arg.Vreg);

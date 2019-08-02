@@ -20,9 +20,6 @@ class TVMStackBlockInfo {
 public:
   void setMBB(MachineBasicBlock *MBBv) { MBB = MBBv; }
 
-  void setWantedBegin(const Stack &stack) {
-    WantedBegin = stack;
-  }
   void setFixedBegin(const Stack &stack) {
     FixedBegin = stack;
   }
@@ -31,10 +28,6 @@ public:
   }
   void setCalculatedEnd(const Stack &stack) {
     CalculatedEnd = stack;
-  }
-  const Stack &wantedBegin() const {
-    assert(WantedBegin && "Non-set wanted begin in TVMStackBlockInfo");
-    return *WantedBegin;
   }
   const Stack &fixedBegin() const {
     assert(FixedBegin && "Non-fixed begin in TVMStackBlockInfo");
@@ -63,11 +56,11 @@ public:
   }
 private:
   MachineBasicBlock *MBB = nullptr;
+  /// Initial stack state
   std::optional<Stack> FixedBegin;
-  // Optimal desired stack for block processing (to have little internal fixups)
-  std::optional<Stack> WantedBegin;
-  // Calculated end stack model (before terminator and fixups)
+  /// Calculated end stack model (before terminator and fixups)
   std::optional<Stack> CalculatedEnd;
+  /// Requred final stack state after applying fixup
   std::optional<Stack> FixedEnd;
 
   unsigned RoadBegin = 0;

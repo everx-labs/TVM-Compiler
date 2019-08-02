@@ -80,6 +80,9 @@ StackFixup StackFixup::Diff(const Stack &to, const Stack &from) {
                       std::back_inserter(addVregs));
 
   // Generate changes to insert copies (pushes)
+  // TODO: It's not always the optimal sequence of stack manipulations.
+  // E.g for {a, b, c, d} -> {d(copy), b(move), ?, ?, ?} it's better to do
+  // XCHG s0, s3 first.
   auto addElem = [&](const StackVreg &vreg) {
     if (vreg.VirtReg == TVMFunctionInfo::UnusedReg) {
       rv(curStack += rv(pushUndef()));

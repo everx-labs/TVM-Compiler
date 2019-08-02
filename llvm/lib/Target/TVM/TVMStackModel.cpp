@@ -38,6 +38,17 @@ using namespace llvm;
 
 namespace {
 
+/// The pass makes stack explicit by rewriting Reg-form instructions with S-form
+/// and inserting stack manipulation instructions. The rewriting is done in the
+/// following stages:
+/// 1. Define roads. Roads are equivalence classes for initial and final stack
+/// configurations.
+/// 2. Define stack configurations for start and end of each basic block. For
+/// now we do it arbitrary having the information about live-ins and live-outs.
+/// TODO: We should consider to be more flexibe with stack patterns to reduce
+/// number of stack manipulations required.
+/// 3. Process basic blocks one by one, knowing the initial and final stack
+/// configurations and rewriting all Reg-form instructions to S-form.
 class TVMStackModel final : public MachineFunctionPass {
 public:
   StringRef getPassName() const override { return "TVM Stack Model"; }
@@ -51,6 +62,7 @@ public:
   }
 
   bool runOnMachineFunction(MachineFunction &MF) override;
+
   /// Inserts necessary stack manipulation instructions to supply \par MI with
   /// the correct data.
   bool processInstruction(MachineInstr &MI, Stack &TheStack);
@@ -60,33 +72,44 @@ public:
 
 private:
   bool runOnBasicBlocks(MachineFunction &MF, const Stack &StartStack);
-  Stack prepareMultiEndStack(MachineBasicBlock *MBB);
   void fillBackEdgesLiveouts(MachineBasicBlock &MBB,
                              SmallVector<unsigned, 16> &Regs);
 
+  /// Calculate equvalent classes on BB's entry / exit stack configuration
+  /// and store them as road numbers in BBInfo.
   void prepareRoads(MachineFunction &MF);
+
+  /// Helper function to calculate initial and final stack configurations
   Stack prepareRoadPattern(MachineFunction &MF,
                            std::vector<MachineBasicBlock *> &BBs,
                            unsigned RoadIdx);
+
+  /// Calculate initial and final stack state for a basic block.
+  /// When processing a basic blocks, it's initial state is pre calculate and
+  /// in the end the pass must ensure that the control flow leaves stack in
+  /// final stack configuration.
   void fillBlocksBeginEndPatterns(MachineFunction &MF);
 
+  /// Append \par MMB live-ins to \par vregs
   void gatherBlockLiveIns(MachineBasicBlock &MBB, std::set<unsigned> &vregs);
+  /// Append \par MMB live-outs to \par vregs
   void gatherBlockLiveOuts(MachineBasicBlock &MBB, std::set<unsigned> &vregs);
 
   const DILocalVariable *findDebugValue(const MachineInstr &MI,
                                         unsigned Vreg) const;
   std::string prepareInstructionComment(const MachineInstr &MI) const;
 
-  /// Returns true if From -> To branch is backedge
+  /// Returns true if From -> To branch is a backedge
   bool isBackEdge(const MachineBasicBlock *From,
                   const MachineBasicBlock *To) const;
 
   TVMFunctionInfo *MFI;
-  MachineRegisterInfo* MRI;
+  MachineRegisterInfo *MRI;
   const TargetInstrInfo *TII;
   MachineLoopInfo *Loops;
   LiveIntervals *LIS;
 
+  /// Store requirements on for BB stack configurations
   DenseMap<MachineBasicBlock *, TVMStackBlockInfo> BBInfo;
   unsigned MaxRoads = 0;
   unsigned MaxRoadWidth = 0;
@@ -188,7 +211,7 @@ bool TVMStackModel::processInstruction(MachineInstr &MI, Stack &TheStack) {
     // For terminator instruction we need to prepare stack as
     //  dst road pattern plus required arguments
     auto AfterTermStack = BBInfo[MBB].fixedEnd();
-    auto NeedStack = AfterTermStack.addArgs(MIArgs(MI, *LIS));
+    auto NeedStack = AfterTermStack.withArgs(MIArgs(MI, *LIS));
     auto Fix = NeedStack - TheStack;
     InsertMIs(Fix);
     Fix.apply(TheStack);
@@ -200,14 +223,12 @@ bool TVMStackModel::processInstruction(MachineInstr &MI, Stack &TheStack) {
     Fix.apply(TheStack);
   }
 
-  size_t NumStackOperands = 0, NumGlobals = 0, NumImms = 0, NumMBBs = 0;
+  size_t NumStackOperands = 0, NumGlobals = 0, NumImms = 0;
   for (const MachineOperand &Op : MI.uses()) {
     if (Op.isGlobal() || Op.isSymbol())
       NumGlobals++;
     else if (Op.isImm())
       NumImms++;
-    else if (Op.isMBB())
-      NumMBBs++;
     else if (Op.isReg())
       NumStackOperands++;
   }
@@ -218,12 +239,11 @@ bool TVMStackModel::processInstruction(MachineInstr &MI, Stack &TheStack) {
   // TODO: Doesn't cover numerous corner cases. Covering them would require to
   // reimplement consumption under NDEBUG or extending consumption interface.
   for (unsigned I = 0; I < NumToConsume; I++)
-      assert(llvm::count_if(MI.operands(),
-                            [&](const MachineOperand &Op) {
-                              return Op.isReg() &&
-                                     Op.getReg() == TheStack.reg(I);
-                            }) &&
-             "Consuming register not used in instruction");
+    assert(llvm::count_if(MI.operands(),
+                          [&](const MachineOperand &Op) {
+                            return Op.isReg() && Op.getReg() == TheStack.reg(I);
+                          }) &&
+           "Consuming register not used in instruction");
 #endif
   TheStack.consumeArguments(NumToConsume);
 
@@ -304,8 +324,6 @@ bool TVMStackModel::processInstruction(MachineInstr &MI, Stack &TheStack) {
   return true;
 }
 
-// Traverse all basic blocks in machine function and rewrite all instructions
-// from R-form to S-form. All function arguments are already in stack.
 bool TVMStackModel::runOnBasicBlocks(MachineFunction &MF,
                                      const Stack &StartStack) {
   bool Changed = false;
@@ -330,9 +348,9 @@ bool TVMStackModel::runOnBasicBlocks(MachineFunction &MF,
   return Changed;
 }
 
-Stack TVMStackModel::
-prepareRoadPattern(MachineFunction &MF,
-                   std::vector<MachineBasicBlock *> &BBs, unsigned RoadIdx) {
+Stack TVMStackModel::prepareRoadPattern(MachineFunction &MF,
+                                        std::vector<MachineBasicBlock *> &BBs,
+                                        unsigned RoadIdx) {
   std::set<unsigned> vregs;
   for (auto MBB : BBs) {
     auto &CurInfo = BBInfo[MBB];
@@ -357,6 +375,9 @@ void TVMStackModel::prepareRoads(MachineFunction &MF) {
     BBInfo[&MBB].setMBB(&MBB);
   }
 
+  /// TODO: It's better to encode keep infor about roads with a more expressive
+  /// class than unsigned. The suggestion is to use shared_ptr<Stack> instead of
+  /// unsigned.
   unsigned curRoad = 1;
   std::deque<MachineBasicBlock *> queueThisRoad;
   queueThisRoad.push_back(&FirstBB);
@@ -433,7 +454,7 @@ void TVMStackModel::prepareRoads(MachineFunction &MF) {
 }
 
 void TVMStackModel::fillBlocksBeginEndPatterns(MachineFunction &MF) {
-  typedef std::vector<MachineBasicBlock *> BBVecT;
+  using BBVecT = std::vector<MachineBasicBlock *>;
   std::vector<BBVecT> roadsBBs(MaxRoads);
 
   for (auto &MBB : MF) {
@@ -500,7 +521,6 @@ bool TVMStackModel::runOnMachineFunction(MachineFunction &MF) {
   Loops = &getAnalysis<MachineLoopInfo>();
   LIS = &getAnalysis<LiveIntervals>();
 
-  BBInfo.clear();
   MaxRoads = 0;
   MaxRoadWidth = 0;
 

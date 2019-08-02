@@ -25,6 +25,10 @@ class Stack;
 class TVMFunctionInfo;
 class MIArgs;
 
+/// A patch to be applied to a stack.
+/// There are two clients for the fixup:
+/// * Stack performs changes in the model
+/// * InstructionGenerator inserts corresponding instructions to the code
 class StackFixup {
 public:
   /// Prepare universal diff between two stack states

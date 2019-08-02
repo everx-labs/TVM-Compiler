@@ -28,6 +28,7 @@
 
 namespace llvm {
 
+/// Hold arguments of a machine instruction.
 struct MIArg {
   MIArg(StackVreg Vreg, bool IsKilled) : Vreg(Vreg), IsKilled(IsKilled) {}
   bool operator == (const MIArg &v) const {
@@ -67,12 +68,22 @@ public:
 
   const StackVreg &operator[](unsigned i) const { return Data[i]; }
 
-  // Re-order or add arguments on stack
+  /// Supply an instruction with the requested \par Args.
+  /// Perform exchanges or copies of the requested \par Args in stack copy.
   Stack reqArgs(const MIArgs &Args) const;
-  Stack addArgs(const MIArgs &Args) const;
 
+  /// Return a copy of stack with \par Args added on top.
+  /// When fixup is calculated we need to compare the stack after final
+  /// non-terminator instruction and the pre-calculated final stack with
+  /// terminator args on top of that.
+  Stack withArgs(const MIArgs &Args) const;
+
+  /// Return a copy of stack with all registers but \par MBB live-is.
+  /// replaced by the unused register.
   Stack filteredByLiveIns(MachineBasicBlock &MBB,
                           const LiveIntervals &LIS) const;
+  /// Return a copy of stack with all registers but \par MBB live-outs.
+  /// replaced by the unused register.
   Stack filteredByLiveOuts(MachineBasicBlock &MBB,
                            const LiveIntervals &LIS) const;
   // Replace existing regs, defined in this MI (and not used) by UnusedReg
@@ -80,12 +91,15 @@ public:
 
   void filterByDeadDefs(MachineInstr &MI);
 
+  /// Occupy unused space in stack (filled with unused registers) with \par
+  /// Regs.
   void fillUnusedRegs(SmallVector<StackVreg, 16> &Regs);
 
   auto begin() { return Data.begin(); }
   auto begin() const { return Data.begin(); }
   auto end() { return Data.end(); }
   auto end() const { return Data.end(); }
+
   /// Return position of \par Elem in the stack.
   /// Precondition: \par Elem is in the stack.
   size_t position(const StackVreg& Elem) const {
@@ -111,7 +125,7 @@ public:
     assert(Slot < Data.size() && "Out of range access");
     return Data[Slot].VirtReg;
   }
-  /// Fill the specified \p Slot with \p Elem. Doesn't generate any instruction.
+  /// Fill the specified \p Slot with \p Elem.
   void set(size_t Slot, const StackVreg &Elem) {
     assert(Slot < Data.size() && "Out of range access");
     Data[Slot] = Elem;

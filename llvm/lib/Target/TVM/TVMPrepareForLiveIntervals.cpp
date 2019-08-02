@@ -62,14 +62,6 @@ FunctionPass *llvm::createTVMPrepareForLiveIntervals() {
   return new TVMPrepareForLiveIntervals();
 }
 
-// Test whether the given register has an ARGUMENT def.
-static bool HasArgumentDef(unsigned Reg, const MachineRegisterInfo &MRI) {
-  for (const auto &Def : MRI.def_instructions(Reg))
-    if (TVM::isArgument(Def))
-      return true;
-  return false;
-}
-
 bool TVMPrepareForLiveIntervals::runOnMachineFunction(MachineFunction &MF) {
   LLVM_DEBUG({
     dbgs() << "********** Prepare For LiveIntervals **********\n"
@@ -78,7 +70,6 @@ bool TVMPrepareForLiveIntervals::runOnMachineFunction(MachineFunction &MF) {
 
   bool Changed = false;
   MachineRegisterInfo &MRI = MF.getRegInfo();
-  const auto &TII = *MF.getSubtarget<TVMSubtarget>().getInstrInfo();
   MachineBasicBlock &Entry = *MF.begin();
 
   assert(!mustPreserveAnalysisID(LiveIntervalsID) &&
@@ -86,28 +77,6 @@ bool TVMPrepareForLiveIntervals::runOnMachineFunction(MachineFunction &MF) {
 
   // We don't preserve SSA form.
   MRI.leaveSSA();
-
-  // BranchFolding and perhaps other passes don't preserve IMPLICIT_DEF
-  // instructions. LiveIntervals requires that all paths to virtual register
-  // uses provide a definition. Insert IMPLICIT_DEFs in the entry block to
-  // conservatively satisfy this.
-  //
-  // TODO: This is fairly heavy-handed; find a better approach.
-  //
-  /*for (unsigned i = 0, e = MRI.getNumVirtRegs(); i < e; ++i) {
-    unsigned Reg = TargetRegisterInfo::index2VirtReg(i);
-
-    // Skip unused registers.
-    if (MRI.use_nodbg_empty(Reg))
-      continue;
-
-    // Skip registers that have an ARGUMENT definition.
-    if (HasArgumentDef(Reg, MRI))
-      continue;
-
-    BuildMI(Entry, Entry.begin(), DebugLoc(), TII.get(TVM::IMPLICIT_DEF), Reg);
-    Changed = true;
-  }*/
 
   // Move ARGUMENT_* instructions to the top of the entry block, so that their
   // liveness reflects the fact that these really are live-in values.

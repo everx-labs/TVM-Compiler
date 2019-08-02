@@ -27,13 +27,6 @@ class TVMFunctionInfo;
 MachineInstrBuilder BuildMI(MachineInstr *InsertPoint,
                             const MCInstrDesc &InstrDesc);
 
-template <typename KeyT, typename ValT>
-ValT &element(DenseMap<KeyT, ValT> &Container, KeyT Key) {
-  auto It = Container.find(Key);
-  assert(It != std::end(Container) && "Element not found");
-  return It->getSecond();
-}
-
 namespace TVM {
 
 bool isArgument(const MachineInstr &MI);

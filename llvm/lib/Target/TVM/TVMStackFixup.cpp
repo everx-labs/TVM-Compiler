@@ -545,9 +545,14 @@ operator()(const std::pair<Change, std::string> &pair) const {
                      .getInstr();
       },
       [&](blkdrop v){
-        MI = BuildMI(*MBB, InsertPt, DL, TII->get(TVM::BLKDROP))
-                     .addImm(v.sz)
-                     .getInstr();
+        if (v.isImm()) {
+          MI = BuildMI(*MBB, InsertPt, DL, TII->get(TVM::BLKDROP))
+                       .addImm(v.sz)
+                       .getInstr();
+        } else {
+          BuildMI(*MBB, InsertPt, DL, TII->get(TVM::CONST_U64_S)).addImm(v.sz);
+          MI = BuildMI(*MBB, InsertPt, DL, TII->get(TVM::DROPX)).getInstr();
+        }
       },
       [&](const doubleChange &v){
         unsigned Opcodes[] = {

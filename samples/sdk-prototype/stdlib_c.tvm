@@ -18,6 +18,7 @@
 	.internal-alias :store_work_slice, 14
 
 	.persistent-base 100
+	.global-base 1000000
 
     .selector
     ; s0 - func_id
@@ -140,6 +141,7 @@
     ; Initialize stack
     ; At initialization: 
     ; 1) C4 contains persistent_data
+    ; 1.5) Dict in C4 at persistent_base + 8 contains dictionary of global data
     ; 2) C5 contains ref to smart_contract_info
     ; 
     ; Result:
@@ -151,8 +153,15 @@
     ENDS                       ; ( smart_contract_info_slice )
     CTOS
     PUSHINT 2000000001         ; ( smart_contract_info_slice addr )
-    NEWDICT                    ; ( smart_contract_info_slice addr dict_slice )
-    PUSHINT 64                 ; ( smart_contract_info_slice addr dict-slice key-width )
+
+    PUSHINT 108
+    PUSH c4                    ; ( smart_contract_info_slice addr persistent_base+8 persistent-dict-cell )
+    CTOS
+    PUSHINT 64                 ; ( smart_contract_info_slice addr persistent_base+8 persistent-dict-slice addr-width )
+    DICTIGET                   ; ( smart_contract_info_slice addr global-dict-slice? flag )
+    THROWIFNOT 42
+
+    PUSHINT 64                 ; ( smart_contract_info_slice addr global-dict-slice key-width )
     DICTISET                   ; ( dict-slice' )
     NEWC STSLICE ENDC          ; ( dict_cell )
     POP c5
@@ -208,11 +217,14 @@
     DICTIGET ; (addr dict-slice key-width -- value-slice flag)
 
     THROWIFNOT 60
-    LDI 256 ENDS
+    PUSHINT 257 LDIX 
+    ENDS
 
     .internal   :store
     ; (addr val -- )
-    NEWC STI 256 ENDC
+    NEWC 
+    PUSHINT 257 STIX 
+    ENDC
     CTOS     ; (addr val-slice)
     XCHG s0, s1
     ; (val-slice addr)
@@ -282,6 +294,7 @@ tonstdlib_get_smart_contract_info:
     PUSHINT 64
     DICTIGET               ; ( addr dict-slice key-width -- smart_contract_info_cell flag )
     THROWIFNOT 60          ; ( smart_contract_info_cell )
+    JMP $:store_work_slice$
 
     ;
     ; Initialize work cell

@@ -1,17 +1,12 @@
 #include "tvm.h"
 
 unsigned tonstdlib_log_8 (unsigned value) {
-#if 0
-// TODO: fix problems in complex if!
-    if (value >= 65536) return 3;
-    else if (value >= 256) return 2;
-    else if (value >= 1) return 1;
-    else 
-    if (value >= 1) return 2;
-    return 0;
-#else
-    return (!!value) + (!!(value >> 8)) + (!!(value >> 16)) + (!!(value >> 24)) + (!!(value >> 32));
-#endif
+    unsigned result = 0;
+    while (value > 0) {
+        result ++;
+        value = value / 256;
+    }
+    return result;
 }
 
 void Serialize_Unsigned_Impl (unsigned width, unsigned val) {

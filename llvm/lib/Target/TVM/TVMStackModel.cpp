@@ -194,7 +194,8 @@ bool TVMStackModel::processInstruction(MachineInstr &MI, Stack &TheStack) {
     Fix.apply(TheStack);
     preTermStackStr = NeedStack.toString();
   } else {
-    auto Fix = StackFixup::DiffForArgs(TheStack, MIArgs(MI, *LIS));
+    auto Fix =
+        StackFixup::DiffForArgs(TheStack, MIArgs(MI, *LIS), MI.isCommutable());
     InsertMIs(Fix);
     Fix.apply(TheStack);
   }

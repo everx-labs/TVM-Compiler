@@ -48,7 +48,9 @@ public:
   ///  * Unused elements may be deleted/replaced freely.
   /// \par Src - current stack.
   /// \par Args - Argument Vregs with kill markers.
-  static StackFixup DiffForArgs(const Stack &Src, const MIArgs &Args);
+  /// \par IsCommutative - INSTR s0, s1 == INSTR s1, s0.
+  static StackFixup DiffForArgs(const Stack &Src, const MIArgs &Args,
+                                bool IsCommutative = false);
 
   void apply(Stack &stack) const;
 
@@ -234,7 +236,7 @@ public:
 private:
   void optimizeEqualXchgs();
   void optimizeBlkswap();
-  void optimize();
+  void optimize(bool IsCommutative = false);
 
   static Change makeRoll(unsigned deepElem);
   static Change makeRollRev(unsigned toDeepElem);

@@ -274,7 +274,8 @@ StackFixup StackFixup::DiffForReturn(const Stack &from,
   return rv;
 }
 
-StackFixup StackFixup::DiffForArgs(const Stack &From, const MIArgs &Args) {
+StackFixup StackFixup::DiffForArgs(const Stack &From, const MIArgs &Args,
+                                   bool IsCommutative) {
   StackFixup rv;
   if (!Args.size())
     return rv;
@@ -321,7 +322,7 @@ StackFixup StackFixup::DiffForArgs(const Stack &From, const MIArgs &Args) {
       ++Offset;
     }
   }
-  rv.optimize();
+  rv.optimize(IsCommutative);
   return rv;
 }
 
@@ -425,10 +426,17 @@ void StackFixup::optimizeEqualXchgs() {
   }
 }
 
-void StackFixup::optimize() {
+void StackFixup::optimize(bool IsCommutative) {
   if (Changes.empty())
     return;
   optimizeEqualXchgs();
+  // TODO: we can do more for commutative instructions.
+  if (IsCommutative && Changes.size() == 1u) {
+    auto &Change = Changes[0].first;
+    if (auto *Xchg = std::get_if<xchgTop>(&Change))
+      if (Xchg->i == 1u)
+        Changes.clear();
+  }
 }
 
 void StackFixup::operator()(const Stack &stack) {

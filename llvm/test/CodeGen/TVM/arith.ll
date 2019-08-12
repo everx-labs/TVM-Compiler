@@ -11,6 +11,14 @@ define i64 @addi64(i64 %par) nounwind {
   ret i64 %1
 }
 
+; CHECK-LABEL: addi64
+define i64 @addcommutative(i64 %a, i64 %b) {
+  ; CHECK-NOT: XCHG
+  ; CHECK: ADD
+  %1 = add i64 %b, %a
+  ret i64 %1
+}
+
 ; CHECK-LABEL: inci64
 define i64 @inci64(i64 %par) nounwind {
 ; CHECK: INC

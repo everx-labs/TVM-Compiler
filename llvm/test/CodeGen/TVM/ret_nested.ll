@@ -9,14 +9,15 @@ define i64 @g(i64 %N) nounwind {
 ; CHECK-LABEL: f:
 define i64 @f(i64 %N) nounwind {
 ; CHECK: PUSH c0
-; CHECK: PUSHCONT {
-; CHECK-NEXT: PUSHINT 1
-; CHECK-NEXT: PUSHINT $g$
-; CHECK-NEXT: CALL 1
-; CHECK-NEXT: XCHG s0, s1
-; CHECK-NEXT: POP	c0
-; CHECK-NEXT: RET
-; CHECK-NEXT: }
+; CHECK: PUSHCONT
+; CHECK: PUSHINT $g$
+; CHECK: PUSHINT 1
+; CHECK: XCHG s0, s1
+; CHECK: CALL 1
+; CHECK: XCHG s0, s1
+; CHECK: POP	c0
+; CHECK: }
+; CHECK: PUSHCONT
 ; CHECK: IFELSE
 
   %status = icmp sgt i64 %N, 0

@@ -128,27 +128,11 @@ define i64 @test24(i64 %x, i64 %y) nounwind {
 
 ; CHECK-LABEL: test25
 define i64 @test25(i64 %x, i64 %y, i64 %z) nounwind {
-<<<<<<< HEAD
-; [z, y, x]
-; CHECK: XCHG s0, s2
-; CHECK-NEXT: XCHG s1, s3
-; CHECK-NEXT: PUSHINT $sum$
-; [@sum, y, x, z]
-; CHECK-NEXT: CALL 1
-  %1 = call i64 @sum(i64 %x, i64 %y)
-; [x + y, z]
-; CHECK-NEXT: XCHG s0, s2
-; CHECK-NEXT: XCHG s1, s2
-; CHECK-NEXT: PUSHINT $sum$
-; [@sum, z, x + y]
-; CHECK-NEXT: CALL 1
-=======
 ; CHECK: PUSH c0
 ; CHECK: PUSHINT $sum$
 ; CHECK: CALL 1
   %1 = call i64 @sum(i64 %x, i64 %y)
 ; CHECK: CALL 1
->>>>>>> Fix of code generation for global address and external symbol operands
   %2 = call i64 @sum(i64 %1, i64 %z)
   ret i64 %2
 }

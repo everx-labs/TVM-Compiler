@@ -35,6 +35,7 @@ public:
   TargetLoweringObjectFile *getObjFileLowering() const override {
     return TLOF.get();
   }
+  void adjustPassManager(PassManagerBuilder &) override;
   bool usesPhysRegsForPEI() const override { return false; }
 
 private:

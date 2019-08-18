@@ -21,6 +21,8 @@
 #include "llvm/IR/Module.h"
 #include "llvm/Support/TargetRegistry.h"
 #include "llvm/Transforms/Utils.h"
+#include "llvm/Transforms/IPO.h"
+#include "llvm/Transforms/IPO/PassManagerBuilder.h"
 
 namespace llvm {
 
@@ -71,6 +73,14 @@ TVMTargetMachine::TVMTargetMachine(const Target &T, const Triple &TT,
       TLOF(make_unique<TargetLoweringObjectFileELF>()),
       Subtarget(TT, CPU, FS, *this) {
   initAsmInfo();
+}
+
+void TVMTargetMachine::adjustPassManager(PassManagerBuilder &Builder) {
+  Builder.addExtension(
+    PassManagerBuilder::EP_CGSCCOptimizerLate,
+    [](const PassManagerBuilder &, legacy::PassManagerBase &PM) {
+      PM.add(createArgumentPromotionPass(0));
+  });
 }
 
 namespace {

@@ -28,5 +28,5 @@ has_asmprinter = 1
 type = Library
 name = TVMCodeGen
 parent = TVM
-required_libraries = Analysis AsmPrinter CodeGen Core MC TVMAsmPrinter TVMDesc TVMInfo SelectionDAG Support Target TransformUtils
+required_libraries = Analysis AsmPrinter CodeGen Core IPO MC TVMAsmPrinter TVMDesc TVMInfo SelectionDAG Support Target TransformUtils
 add_to_library_groups = TVM

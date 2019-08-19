@@ -51,7 +51,7 @@ def getContractDetails(linker_stdout, entry_fn):
 
   for line in linker_stdout.split("\n"):
     contract_base_name_re = r'.*Saved contract to file (.*).tvc.*'
-    entry_addr_re         = r'.*Function {} *: id=([^,]*),.*'.format(entry_fn)
+    entry_addr_re         = r'.*Function {} *: id=([^,]*).*'.format(entry_fn)
 
     if re.match(contract_base_name_re, line):
       contract_base_name = re.sub(contract_base_name_re, '\\1', line)

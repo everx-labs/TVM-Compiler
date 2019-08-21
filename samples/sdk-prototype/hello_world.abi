@@ -1,5 +1,5 @@
 {
-    "ABI version" : 0,
+    "ABI version" : 1,
     "functions" : [{
         "name": "compute", "signed": false,
         "inputs": [],

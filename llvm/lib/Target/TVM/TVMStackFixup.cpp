@@ -461,21 +461,22 @@ void StackFixup::removeAllElem(Stack &stack, const StackVreg &vreg) {
 StackFixup::Change StackFixup::makeRoll(unsigned deepElem) {
   if (deepElem == 1)
     return xchgTop(deepElem);
+  if (roll(deepElem).isImmRoll())
+    return roll(deepElem);
   if (blkswap::goodFor(1, deepElem))
     return blkswap(1, deepElem);
-  // TODO: Implement roll when new standart (roll/rollx) will be supported
-  // return roll(deepElem);
-  return blkswap(1, deepElem);
+  return roll(deepElem);
 }
 
 StackFixup::Change StackFixup::makeRollRev(unsigned toDeepElem) {
   if (toDeepElem == 1)
     return xchgTop(toDeepElem);
+  roll RollOp(-static_cast<int>(toDeepElem));
+  if (RollOp.isImmRoll())
+    return RollOp;
   if (blkswap::goodFor(toDeepElem, 1))
     return blkswap(toDeepElem, 1);
-  // TODO: Implement roll when new standart (roll/rollx) will be supported
-  // return roll(-static_cast<int>(toDeepElem));
-  return blkswap(toDeepElem, 1);
+  return RollOp;
 }
 
 StackFixup::Change StackFixup::makeBlkSwap(unsigned deepElems,

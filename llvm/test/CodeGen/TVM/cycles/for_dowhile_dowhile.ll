@@ -1,44 +1,57 @@
-; RUN: llc < %s -march=tvm
-target datalayout = "E-S1024-i256:256:256"
+; RUN: llc < %s -march=tvm 
+; ModuleID = 'for_dowhile_dowhile.c'
+source_filename = "for_dowhile_dowhile.c"
+target datalayout = "E-S257-i1:257:257-i8:257:257-i16:257:257-i32:257:257-i64:257:257-i257:257:257-p:257:257-a:257:257"
 target triple = "tvm"
 
-; Function Attrs: nounwind uwtable
-define i64 @func(i64, i64, i64) nounwind {
-  %4 = icmp sgt i64 %0, 0
-  br i1 %4, label %5, label %8
+; Function Attrs: nounwind
+define dso_local i257 @func(i257 %n1, i257 %n2, i257 %n3) local_unnamed_addr #0 {
+entry:
+  %cmp19 = icmp sgt i257 %n1, 0
+  br i1 %cmp19, label %do.body.preheader, label %for.cond.cleanup
 
-; <label>:5:                                      ; preds = %3, %23
-  %6 = phi i64 [ %24, %23 ], [ 0, %3 ]
-  %7 = phi i64 [ %17, %23 ], [ 0, %3 ]
-  br label %10
+do.body.preheader:                                ; preds = %entry, %do.end6
+  %v1.021 = phi i257 [ %inc7, %do.end6 ], [ 0, %entry ]
+  %res.020 = phi i257 [ %add, %do.end6 ], [ 0, %entry ]
+  br label %do.body
 
-; <label>:8:                                      ; preds = %23, %3
-  %9 = phi i64 [ 0, %3 ], [ %17, %23 ]
-  ret i64 %9
+for.cond.cleanup:                                 ; preds = %do.end6, %entry
+  %res.0.lcssa = phi i257 [ 0, %entry ], [ %add, %do.end6 ]
+  ret i257 %res.0.lcssa
 
-; <label>:10:                                     ; preds = %5, %20
-  %11 = phi i64 [ %17, %20 ], [ %7, %5 ]
-  %12 = phi i64 [ %21, %20 ], [ 0, %5 ]
-  br label %13
+do.body:                                          ; preds = %do.body.preheader, %do.end
+  %res.1 = phi i257 [ %add, %do.end ], [ %res.020, %do.body.preheader ]
+  %v2.0 = phi i257 [ %inc3, %do.end ], [ 0, %do.body.preheader ]
+  br label %do.body1
 
-; <label>:13:                                     ; preds = %13, %10
-  %14 = phi i64 [ %11, %10 ], [ %17, %13 ]
-  %15 = phi i64 [ 0, %10 ], [ %18, %13 ]
-  %16 = tail call i64 @foo(i64 %6, i64 %12, i64 %15) #2
-  %17 = add i64 %16, %14
-  %18 = add i64 %15, 1
-  %19 = icmp slt i64 %18, %2
-  br i1 %19, label %13, label %20
+do.body1:                                         ; preds = %do.body1, %do.body
+  %res.2 = phi i257 [ %res.1, %do.body ], [ %add, %do.body1 ]
+  %v3.0 = phi i257 [ 0, %do.body ], [ %inc, %do.body1 ]
+  %call = tail call i257 @foo(i257 %v1.021, i257 %v2.0, i257 %v3.0) #2
+  %add = add nsw i257 %call, %res.2
+  %inc = add nuw nsw i257 %v3.0, 1
+  %cmp2 = icmp slt i257 %inc, %n3
+  br i1 %cmp2, label %do.body1, label %do.end
 
-; <label>:20:                                     ; preds = %13
-  %21 = add i64 %12, 1
-  %22 = icmp slt i64 %21, %1
-  br i1 %22, label %10, label %23
+do.end:                                           ; preds = %do.body1
+  %inc3 = add nuw nsw i257 %v2.0, 1
+  %cmp5 = icmp slt i257 %inc3, %n2
+  br i1 %cmp5, label %do.body, label %do.end6
 
-; <label>:23:                                     ; preds = %20
-  %24 = add i64 %6, 1
-  %25 = icmp eq i64 %24, %0
-  br i1 %25, label %8, label %5
+do.end6:                                          ; preds = %do.end
+  %inc7 = add nuw nsw i257 %v1.021, 1
+  %cmp = icmp slt i257 %inc7, %n1
+  br i1 %cmp, label %do.body.preheader, label %for.cond.cleanup
 }
 
-declare i64 @foo(i64, i64, i64) nounwind
+declare dso_local i257 @foo(i257, i257, i257) local_unnamed_addr #1
+
+attributes #0 = { nounwind "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "unsafe-fp-math"="false" "use-soft-float"="false" }
+attributes #1 = { "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "unsafe-fp-math"="false" "use-soft-float"="false" }
+attributes #2 = { nounwind }
+
+!llvm.module.flags = !{!0}
+!llvm.ident = !{!1}
+
+!0 = !{i32 1, !"wchar_size", i32 1}
+!1 = !{!"clang version 7.0.0 "}

@@ -1,45 +1,57 @@
-; RUN: llc < %s -march=tvm
-target datalayout = "E-S1024-i256:256:256"
+; RUN: llc < %s -march=tvm 
+; ModuleID = 'dowhile_dowhile_for.c'
+source_filename = "dowhile_dowhile_for.c"
+target datalayout = "E-S257-i1:257:257-i8:257:257-i16:257:257-i32:257:257-i64:257:257-i257:257:257-p:257:257-a:257:257"
 target triple = "tvm"
 
-; Function Attrs: nounwind uwtable
-define i64 @func(i64, i64, i64) nounwind
- {
-  %4 = icmp sgt i64 %2, 0
-  br i1 %4, label %5, label %24
+; Function Attrs: nounwind
+define dso_local i257 @func(i257 %n1, i257 %n2, i257 %n3) local_unnamed_addr #0 {
+entry:
+  %cmp19 = icmp sgt i257 %n3, 0
+  br i1 %cmp19, label %do.body.us, label %do.end7
 
-; <label>:5:                                      ; preds = %3, %21
-  %6 = phi i64 [ %18, %21 ], [ 0, %3 ]
-  %7 = phi i64 [ %22, %21 ], [ 0, %3 ]
-  br label %8
+do.body.us:                                       ; preds = %entry, %do.end.us-lcssa.us.us
+  %res.0.us = phi i257 [ %add.us.us, %do.end.us-lcssa.us.us ], [ 0, %entry ]
+  %v1.0.us = phi i257 [ %inc4.us, %do.end.us-lcssa.us.us ], [ 0, %entry ]
+  br label %do.body1.us.us
 
-; <label>:8:                                      ; preds = %5, %11
-  %9 = phi i64 [ %6, %5 ], [ %18, %11 ]
-  %10 = phi i64 [ 0, %5 ], [ %12, %11 ]
-  br label %14
+do.body1.us.us:                                   ; preds = %do.body.us, %for.cond.for.cond.cleanup_crit_edge.us.us
+  %res.1.us.us = phi i257 [ %res.0.us, %do.body.us ], [ %add.us.us, %for.cond.for.cond.cleanup_crit_edge.us.us ]
+  %v2.0.us.us = phi i257 [ 0, %do.body.us ], [ %inc2.us.us, %for.cond.for.cond.cleanup_crit_edge.us.us ]
+  br label %for.body.us.us
 
-; <label>:11:                                     ; preds = %14
-  %12 = add i64 %10, 1
-  %13 = icmp slt i64 %12, %1
-  br i1 %13, label %8, label %21
+for.cond.for.cond.cleanup_crit_edge.us.us:        ; preds = %for.body.us.us
+  %inc2.us.us = add nuw nsw i257 %v2.0.us.us, 1
+  %cmp3.us.us = icmp slt i257 %inc2.us.us, %n2
+  br i1 %cmp3.us.us, label %do.body1.us.us, label %do.end.us-lcssa.us.us
 
-; <label>:14:                                     ; preds = %14, %8
-  %15 = phi i64 [ 0, %8 ], [ %19, %14 ]
-  %16 = phi i64 [ %9, %8 ], [ %18, %14 ]
-  %17 = tail call i64 @foo(i64 %7, i64 %10, i64 %15) #2
-  %18 = add i64 %17, %16
-  %19 = add i64 %15, 1
-  %20 = icmp eq i64 %19, %2
-  br i1 %20, label %11, label %14
+for.body.us.us:                                   ; preds = %for.body.us.us, %do.body1.us.us
+  %v3.021.us.us = phi i257 [ 0, %do.body1.us.us ], [ %inc.us.us, %for.body.us.us ]
+  %res.220.us.us = phi i257 [ %res.1.us.us, %do.body1.us.us ], [ %add.us.us, %for.body.us.us ]
+  %call.us.us = tail call i257 @foo(i257 %v1.0.us, i257 %v2.0.us.us, i257 %v3.021.us.us) #2
+  %add.us.us = add nsw i257 %call.us.us, %res.220.us.us
+  %inc.us.us = add nuw nsw i257 %v3.021.us.us, 1
+  %cmp.us.us = icmp slt i257 %inc.us.us, %n3
+  br i1 %cmp.us.us, label %for.body.us.us, label %for.cond.for.cond.cleanup_crit_edge.us.us
 
-; <label>:21:                                     ; preds = %11
-  %22 = add i64 %7, 1
-  %23 = icmp slt i64 %22, %0
-  br i1 %23, label %5, label %24
+do.end.us-lcssa.us.us:                            ; preds = %for.cond.for.cond.cleanup_crit_edge.us.us
+  %inc4.us = add nuw nsw i257 %v1.0.us, 1
+  %cmp6.us = icmp slt i257 %inc4.us, %n1
+  br i1 %cmp6.us, label %do.body.us, label %do.end7
 
-; <label>:24:                                     ; preds = %21, %3
-  %25 = phi i64 [ 0, %3 ], [ %18, %21 ]
-  ret i64 %25
+do.end7:                                          ; preds = %do.end.us-lcssa.us.us, %entry
+  %res.2.lcssa.lcssa.lcssa = phi i257 [ 0, %entry ], [ %add.us.us, %do.end.us-lcssa.us.us ]
+  ret i257 %res.2.lcssa.lcssa.lcssa
 }
 
-declare i64 @foo(i64, i64, i64) nounwind
+declare dso_local i257 @foo(i257, i257, i257) local_unnamed_addr #1
+
+attributes #0 = { nounwind "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "unsafe-fp-math"="false" "use-soft-float"="false" }
+attributes #1 = { "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "unsafe-fp-math"="false" "use-soft-float"="false" }
+attributes #2 = { nounwind }
+
+!llvm.module.flags = !{!0}
+!llvm.ident = !{!1}
+
+!0 = !{i32 1, !"wchar_size", i32 1}
+!1 = !{!"clang version 7.0.0 "}

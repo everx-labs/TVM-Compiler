@@ -108,7 +108,7 @@ bool TVMContinuationsHoist::optimize() {
       MBBReg = FoundMI->getOperand(0).getReg();
       FoundMI->clearRegisterDeads(MBBReg);
     } else {
-      MBBReg = MRI->createVirtualRegister(&TVM::I64RegClass);
+      MBBReg = MRI->createVirtualRegister(&TVM::I257RegClass);
       BuildMI(*CommonDom, CommonDom->getFirstInstrTerminator(), DebugLoc(),
               TII->get(TVM::PUSHCONT_MBB), MBBReg).addMBB(TargetMBB).addImm(0);
     }

@@ -3,6 +3,7 @@
 // RUN: %clang -O3 -S -c -target tvm %S/../../../../../../../samples/sdk-prototype/ton-sdk/tvm.c -o %t.tvm
 // RUN: cat %t %t.messages %t.tvm > %t.combined
 // RUN: tvm-testrun --no-trace --entry test --stdlibc-path %S/../../../../../../../samples/sdk-prototype/stdlib_c.tvm < %t.combined | FileCheck %s
+// XFAIL: *
 
 #include <wallet.c>
 #include <ton-sdk/tvm.h>

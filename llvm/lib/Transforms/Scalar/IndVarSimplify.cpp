@@ -677,6 +677,10 @@ void IndVarSimplify::rewriteLoopExitValues(Loop *L, SCEVExpander &Rewriter) {
 
     // Only do the rewrite when the ExitValue can be expanded cheaply.
     // If LoopCanBeDel is true, rewrite exit value aggressively.
+    // TVM local begin
+    if (ByteSizeInBits == 257)
+      LoopCanBeDel = false;
+    // TVM local end
     if (ReplaceExitValue == OnlyCheapRepl && !LoopCanBeDel && Phi.HighCost) {
       DeadInsts.push_back(ExitVal);
       continue;

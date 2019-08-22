@@ -2058,7 +2058,7 @@ public:
   }
 
   /// Convert a size in bits to a size in characters.
-  CharUnits toCharUnitsFromBits(int64_t BitSize) const;
+  CharUnits toCharUnitsFromBits(int64_t BitSize, bool Trunc = true) const;
 
   /// Convert a size in characters to a size in bits.
   int64_t toBits(CharUnits CharSize) const;

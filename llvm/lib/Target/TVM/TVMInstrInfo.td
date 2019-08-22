@@ -17,48 +17,48 @@ include "TVMInstrFormats.td"
 // Type Profiles.
 //===----------------------------------------------------------------------===//
 def SDT_TVMCall         : SDTypeProfile<0, -1, [SDTCisVT<0, iPTR>]>;
-def SDT_TVMCallSeqStart : SDCallSeqStart<[SDTCisVT<0, i64>,
-                                          SDTCisVT<1, i64>]>;
-def SDT_TVMCallSeqEnd   : SDCallSeqEnd<[SDTCisVT<0, i64>, SDTCisVT<1, i64>]>;
+def SDT_TVMCallSeqStart : SDCallSeqStart<[SDTCisVT<0, i257>,
+                                          SDTCisVT<1, i257>]>;
+def SDT_TVMCallSeqEnd   : SDCallSeqEnd<[SDTCisVT<0, i257>, SDTCisVT<1, i257>]>;
 def SDT_TVMReturn       : SDTypeProfile<0, -1, []>;
-def SDT_TVMArgument     : SDTypeProfile<1, 1, [SDTCisVT<1, i64>]>;
+def SDT_TVMArgument     : SDTypeProfile<1, 1, [SDTCisVT<1, i257>]>;
 def SDT_TVMCall0        : SDTypeProfile<0, -1, [SDTCisPtrTy<0>]>;
 def SDT_TVMCall1        : SDTypeProfile<1, -1, [SDTCisPtrTy<1>]>;
 
-def SDT_TVMCtos         : SDTypeProfile<1, 1, [SDTCisVT<1, i64>]>;
+def SDT_TVMCtos         : SDTypeProfile<1, 1, [SDTCisVT<1, i257>]>;
 def SDT_TVMStSlice      : SDTypeProfile<1, 2, []>;
 def SDT_TVMNewc         : SDTypeProfile<1, 0, []>;
-def SDT_TVMEndc         : SDTypeProfile<1, 1, [SDTCisVT<1, i64>]>;
+def SDT_TVMEndc         : SDTypeProfile<1, 1, [SDTCisVT<1, i257>]>;
 def SDT_TVMPushRoot     : SDTypeProfile<1, 0, []>;
 def SDT_TVMDictGet      : SDTypeProfile<2, 3, []>;
 def SDT_TVMDictSt       : SDTypeProfile<1, 3, []>;
 def SDT_TVMDictLd       : SDTypeProfile<2, 2, []>;
 def SDT_TVMLdRef        : SDTypeProfile<2, 1, []>;
 def SDT_TVMSendRawMsg   : SDTypeProfile<0, 2, []>;
-def SDT_TVMIfElse       : SDTypeProfile<0, 3, [SDTCisVT<0, i64>,
-                                               SDTCisVT<1, i64>,
-                                               SDTCisVT<2, i64>]>;
-def SDT_TVMJumpX        : SDTypeProfile<0, 1, [SDTCisVT<0, i64>]>;
-def SDT_TVMIfJmp        : SDTypeProfile<0, 2, [SDTCisVT<0, i64>,
-                                               SDTCisVT<1, i64>]>;
+def SDT_TVMIfElse       : SDTypeProfile<0, 3, [SDTCisVT<0, i257>,
+                                               SDTCisVT<1, i257>,
+                                               SDTCisVT<2, i257>]>;
+def SDT_TVMJumpX        : SDTypeProfile<0, 1, [SDTCisVT<0, i257>]>;
+def SDT_TVMIfJmp        : SDTypeProfile<0, 2, [SDTCisVT<0, i257>,
+                                               SDTCisVT<1, i257>]>;
 
-// We need additional i64 operand after OtherVT, because otherwise
+// We need additional i257 operand after OtherVT, because otherwise
 //  OtherVT (BasicBlock) operand will be considered as a chain
-def SDT_TVMBBWrapper    : SDTypeProfile<1, 2, [SDTCisVT<0, i64>,
+def SDT_TVMBBWrapper    : SDTypeProfile<1, 2, [SDTCisVT<0, i257>,
                                                SDTCisVT<1, OtherVT>,
-                                               SDTCisVT<2, i64>]>;
+                                               SDTCisVT<2, i257>]>;
 
-def SDT_TVMAnd          : SDTypeProfile<1, 2, [SDTCisVT<0, i64>,
-                                               SDTCisVT<1, i64>,
-                                               SDTCisVT<2, i64>]>;
-def SDT_TVMMul          : SDTypeProfile<1, 2, [SDTCisVT<0, i64>,
-                                               SDTCisVT<1, i64>,
-                                               SDTCisVT<2, i64>]>;
-def SDT_TVMRShift       : SDTypeProfile<1, 2, [SDTCisVT<0, i64>,
-                                               SDTCisVT<1, i64>,
-                                               SDTCisVT<2, i64>]>;
-def SDT_TVMConstU64     : SDTypeProfile<1, 1,
-                          [SDTCisVT<0, i64>, SDTCisVT<1, i64>]>;
+def SDT_TVMAnd          : SDTypeProfile<1, 2, [SDTCisVT<0, i257>,
+                                               SDTCisVT<1, i257>,
+                                               SDTCisVT<2, i257>]>;
+def SDT_TVMMul          : SDTypeProfile<1, 2, [SDTCisVT<0, i257>,
+                                               SDTCisVT<1, i257>,
+                                               SDTCisVT<2, i257>]>;
+def SDT_TVMRShift       : SDTypeProfile<1, 2, [SDTCisVT<0, i257>,
+                                               SDTCisVT<1, i257>,
+                                               SDTCisVT<2, i257>]>;
+def SDT_TVMConstU257     : SDTypeProfile<1, 1,
+                           [SDTCisVT<0, i257>, SDTCisVT<1, i257>]>;
 def SDT_TVMGlobalAddressWrapper : SDTypeProfile<1, 1, [SDTCisPtrTy<0>]>;
 
 //===----------------------------------------------------------------------===//
@@ -100,7 +100,7 @@ def BBWrapper   : SDNode<"TVMISD::BBWrapper", SDT_TVMBBWrapper>;
 def TVMmul       : SDNode<"TVMISD::MUL", SDT_TVMMul, []>;
 def TVMand       : SDNode<"TVMISD::AND", SDT_TVMAnd, []>;
 def TVMrshift    : SDNode<"TVMISD::RSHIFT", SDT_TVMRShift, []>;
-def TVMconst_u64 : SDNode<"TVMISD::CONST_U64", SDT_TVMConstU64, []>;
+def TVMconst_u257 : SDNode<"TVMISD::CONST_U257", SDT_TVMConstU257, []>;
 
 def TVMGlobalAddressWrapper
     : SDNode<"TVMISD::GLOBAL_ADDRESS_WRAPPER", SDT_TVMGlobalAddressWrapper>;
@@ -117,21 +117,21 @@ def stack_op : Operand<i8>;
 
 // This operand represents builder argument (see A.6 Cell primitives)
 let OperandType = "OPERAND_BUILDER" in
-def builder_op : Operand<i64>;
+def builder_op : Operand<i257>;
 
 // This operand represents cell argument (see A.6 Cell primitives)
 let OperandType = "OPERAND_CELL" in
-def cell_op : Operand<i64>;
+def cell_op : Operand<i257>;
 
 // This operand represents slice argument (see A.6 Cell primitives)
 let OperandType = "OPERAND_SLICE" in
-def slice_op : Operand<i64>;
+def slice_op : Operand<i257>;
 
 let OperandType = "OPERAND_I64IMM" in
-def i64imm_op : Operand<i64>;
+def i257imm_op : Operand<i257>;
 
 let OperandType = "OPERAND_FUNCTION" in
-def function_op : Operand<i64>;
+def function_op : Operand<i257>;
 
 let OperandType = "OPERAND_BASIC_BLOCK" in
 def bb_op : Operand<OtherVT>;
@@ -140,21 +140,22 @@ def bb_op : Operand<OtherVT>;
 //===----------------------------------------------------------------------===//
 // Instruction list..
 
-defm ADJCALLSTACKDOWN : NRI<(outs), (ins i64imm:$amt, i64imm:$amt2),
+defm ADJCALLSTACKDOWN : NRI<(outs), (ins i257imm:$amt, i257imm:$amt2),
                             [(TVMcallseq_start timm:$amt, timm:$amt2)]>;
-defm ADJCALLSTACKUP : NRI<(outs), (ins i64imm:$amt, i64imm:$amt2),
+defm ADJCALLSTACKUP : NRI<(outs), (ins i257imm:$amt, i257imm:$amt2),
                           [(TVMcallseq_end timm:$amt, timm:$amt2)]>;
 
 let hasSideEffects = 1, Uses = [ARGUMENTS], isCodeGenOnly = 1 in
-defm ARGUMENT : I<(outs I64:$res), (ins i64imm:$argno),
-                  (outs), (ins i64imm:$argno),
-                  [(set I64:$res, (TVMargument timm:$argno))]>;
+defm ARGUMENT : I<(outs I257:$res), (ins i257imm:$argno),
+                  (outs), (ins i257imm:$argno),
+                  [(set I257:$res, (TVMargument timm:$argno))]>;
 
 // Auxiliary instruction for debugging purposes only: 
 // specifies number of arguments on stack for the function;
 // normally this number is taken from MachineInfo Param vector.
 let hasSideEffects = 1, isCodeGenOnly = 1 in
-defm ARGUMENT_NUM : I<(outs), (ins i64imm:$argnum), (outs), (ins i64imm:$argnum), []>;
+defm ARGUMENT_NUM : I<(outs), (ins i257imm:$argnum), (outs),
+                              (ins i257imm:$argnum), []>;
 
 include "TVMControlFlowInstrInfo.td"
 
@@ -234,7 +235,7 @@ defm ZERO : SI<(ins), "ZERO", 0x70>;
 }
 
 let isCodeGenOnly = 1 in
-defm REG_TO_REG_COPY : I<(outs I64:$dst), (ins I64:$src), (outs), (ins), []>;
+defm REG_TO_REG_COPY : I<(outs I257:$dst), (ins I257:$src), (outs), (ins), []>;
 
 //===----------------------------------------------------------------------===//
 // Arithmetic instructions
@@ -248,7 +249,7 @@ defm MIN      : BinaryRR<smin, "MIN", 0xb608>;
 defm MAX      : BinaryRR<smax, "MAX", 0xb609>;
 }
 let isCommutable = 1 in {
-defm MUL      : I<(outs I64:$dst), (ins I64:$lhs, I64:$rhs), (outs), (ins), [],
+defm MUL      : I<(outs I257:$dst), (ins I257:$lhs, I257:$rhs), (outs), (ins), [],
                   "MUL\t$dst, $lhs, $rhs", "MUL", 0xa8>;
 }
 
@@ -270,39 +271,27 @@ defm MULCONST : BinaryRI<mul, "MULCONST", simm8, 0xa7>;
 defm BITSIZE  : UnaryR<int_tvm_bitsize, "BITSIZE", 0xb602>;
 defm UBITSIZE : UnaryR<int_tvm_ubitsize, "UBITSIZE", 0xb603>;
 
-def : Pat<(srl I64:$val, imm:$off),
-          (SHRCONST (AND I64:$val, (CONST_U64 0xFFFFFFFFFFFFFFFF)), imm:$off)>;
+def : Pat<(srl I257:$val, imm:$off), (SHRCONST I257:$val, imm:$off)>;
 
-// mulhs a, b = (mul a, b) >> 64
-def : Pat<(mulhs I64:$a, I64:$b), (SHRCONST (MUL I64:$a, I64:$b), 64)>;
+// TODO: maybe support mulhs/mulhu using double-length multiply-shift operation
+def : Pat<(mul I257:$a, I257:$b), (MUL I257:$a, I257:$b)>;
+def : Pat<(TVMmul I257:$a, I257:$b), (MUL I257:$a, I257:$b)>;
+def : Pat<(TVMand I257:$a, I257:$b), (AND I257:$a, I257:$b)>;
+def : Pat<(TVMrshift I257:$a, timm:$b), (SHRCONST I257:$a, imm:$b)>;
+def : Pat<(TVMrshift I257:$a, I257:$b), (SHR I257:$a, I257:$b)>;
 
-// mulhu a, b = (mul truncU64(a), truncU64(b)) >> 64
-def : Pat<(mulhu I64:$a, I64:$b),
-          (SHRCONST (MUL (AND I64:$a, (CONST_U64 0xFFFFFFFFFFFFFFFF)),
-                         (AND I64:$b, (CONST_U64 0xFFFFFFFFFFFFFFFF))), 64)>;
-
-def : Pat<(mul I64:$a, I64:$b), (AND (MUL I64:$a, I64:$b),
-                                     (CONST_U64 0xFFFFFFFFFFFFFFFF))>;
-def : Pat<(TVMmul I64:$a, I64:$b), (MUL I64:$a, I64:$b)>;
-def : Pat<(TVMand I64:$a, I64:$b), (AND I64:$a, I64:$b)>;
-def : Pat<(TVMrshift I64:$a, timm:$b), (SHRCONST I64:$a, imm:$b)>;
-def : Pat<(TVMrshift I64:$a, I64:$b), (SHR I64:$a, I64:$b)>;
-
-// unsigned a / b = (a & -1) DIV (b & -1)
-// unsigned a % b = (a & -1) MOD (b & -1)
+// unsigned a / b = a DIV b
+// unsigned a % b = a MOD b
 class UintBinopPat<SDPatternOperator instr_op, Instruction instr> :
-  Pat<(instr_op I64:$a, I64:$b),
-      (instr (AND I64:$a, (CONST_U64 0xFFFFFFFFFFFFFFFF)),
-             (AND I64:$b, (CONST_U64 0xFFFFFFFFFFFFFFFF)))>;
+  Pat<(instr_op I257:$a, I257:$b), (instr I257:$a, I257:$b)>;
 def : UintBinopPat<udiv, DIV>;
 def : UintBinopPat<urem, MOD>;
 
-// int a / b = (abs(a) / abs(b)) & ((a xor b) & (1 << 63))
-// int a % b = (abs(a) % abs(b)) & ((a xor b) & (1 << 63))
+// TODO: restore DIV/MOD rounding correction
+//   OR do early conversion of '/', '%' into our intrinsics in clang
+//   to have described "round to minus infinity" behaviour
 class IntDivPat<SDPatternOperator instr_op, Instruction instr> :
-  Pat<(instr_op I64:$a, I64:$b),
-      (AND (instr (ABS I64:$a), (ABS I64:$b)),
-        (AND (XOR I64:$a, I64:$b), (SHL (CONST_U64 0x1), (CONST_U64 0x3f))))>;
+  Pat<(instr_op I257:$a, I257:$b), (instr I257:$a, I257:$b)>;
 def : IntDivPat<sdiv, DIV>;
 def : IntDivPat<srem, MOD>;
 
@@ -340,23 +329,23 @@ defm PRINT : I<(outs), (ins uimm8:$src), (outs), (ins uimm8:$src),
                [(int_tvm_print uimm8:$src)],
                "PRINT\t$src",
                "PRINT\t$src", 0xfe30>;
-defm DUMP_VALUE : I<(outs I64:$dst), (ins I64:$src), (outs), (ins),
-                    [(set I64:$dst, (int_tvm_dump_value I64:$src))],
+defm DUMP_VALUE : I<(outs I257:$dst), (ins I257:$src), (outs), (ins),
+                    [(set I257:$dst, (int_tvm_dump_value I257:$src))],
                     "DUMP\t$dst, $src",
                     "DUMP\t0", 0xfe20>;
-defm PRINT_VALUE : I<(outs I64:$dst), (ins I64:$src), (outs), (ins),
-                     [(set I64:$dst, (int_tvm_print_value I64:$src))],
+defm PRINT_VALUE : I<(outs I257:$dst), (ins I257:$src), (outs), (ins),
+                     [(set I257:$dst, (int_tvm_print_value I257:$src))],
                      "PRINT\t$dst, $src",
                      "PRINT\t0", 0xfe30>;
 
-defm LOGSTR : I<(outs), (ins I64:$addr),
-                (outs), (ins I64:$addr),
-                [(int_tvm_logstr (i64 (TVMGlobalAddressWrapper tglobaladdr : $addr)))],
+defm LOGSTR : I<(outs), (ins I257:$addr),
+                (outs), (ins I257:$addr),
+                [(int_tvm_logstr (i257 (TVMGlobalAddressWrapper tglobaladdr : $addr)))],
                 "LOGSTR\t$addr",
                 "LOGSTR\t$addr", 0xfef>;
-defm PRINTSTR : I<(outs), (ins I64:$addr),
-                  (outs), (ins I64:$addr),
-                  [(int_tvm_printstr (i64 (TVMGlobalAddressWrapper tglobaladdr : $addr)))],
+defm PRINTSTR : I<(outs), (ins I257:$addr),
+                  (outs), (ins I257:$addr),
+                  [(int_tvm_printstr (i257 (TVMGlobalAddressWrapper tglobaladdr : $addr)))],
                   "PRINTSTR\t$addr",
                   "PRINTSTR\t$addr", 0xfef>;
 
@@ -376,32 +365,30 @@ defm SGT : ComparisonInt<SETGT,  "GREATER", 0xbc>;
 defm SLE : ComparisonInt<SETLE,  "LEQ", 0xbb>;
 defm SGE : ComparisonInt<SETGE,  "GEQ", 0xbe>;
 
-// Unsigned comparison a ult b = (a & -1) slt (b & -1)
+// Unsigned comparison a ult b = (a slt b)
 class ComparisonUint<CondCode cond, Instruction instr> :
-  Pat<(setcc I64:$a, I64:$b, cond),
-      (instr (AND I64:$a, (CONST_U64 0xFFFFFFFFFFFFFFFF)),
-             (AND I64:$b, (CONST_U64 0xFFFFFFFFFFFFFFFF)))>;
+  Pat<(setcc I257:$a, I257:$b, cond), (instr I257:$a, I257:$b)>;
 def : ComparisonUint<SETULT, SLT>;
 def : ComparisonUint<SETUGT, SGT>;
 def : ComparisonUint<SETULE, SLE>;
 def : ComparisonUint<SETUGE, SGE>;
 
-defm ISZERO : I<(outs I64:$dst), (ins I64:$src), (outs), (ins),
-                 [(set I64:$dst, (setcc I64:$src, 0, SETEQ))],
+defm ISZERO : I<(outs I257:$dst), (ins I257:$src), (outs), (ins),
+                 [(set I257:$dst, (setcc I257:$src, 0, SETEQ))],
                  "ISZERO\t$dst, $src", "ISZERO", 0xc000>;
 
-defm CONDSEL : I<(outs I64:$dst), (ins I64:$lhs, I64:$rhs, I64:$cond),
+defm CONDSEL : I<(outs I257:$dst), (ins I257:$lhs, I257:$rhs, I257:$cond),
                  (outs), (ins),
-                 [(set I64:$dst, (select I64:$cond, I64:$lhs, I64:$rhs))],
+                 [(set I257:$dst, (select I257:$cond, I257:$lhs, I257:$rhs))],
                  "COND\t$dst, $lhs, $rhs, $cond", "CONDSEL", 0xe304>;
 
 // ISD::SELECT requires its operand to conform to getBooleanContents, but
 // TVM's CONDSEL interprets any non-zero value as true, so we can fold
 // a setne and seteq with 0 into a select.
-def : Pat<(select (i64 (seteq I64:$cond, 0)), I64:$lhs, I64:$rhs),
-          (CONDSEL I64:$lhs, I64:$rhs, I64:$cond)>;
-def : Pat<(select (i64 (setne I64:$cond, 0)), I64:$lhs, I64:$rhs),
-          (CONDSEL I64:$rhs, I64:$lhs, I64:$cond)>;
+def : Pat<(select (i257 (seteq I257:$cond, 0)), I257:$lhs, I257:$rhs),
+          (CONDSEL I257:$lhs, I257:$rhs, I257:$cond)>;
+def : Pat<(select (i257 (setne I257:$cond, 0)), I257:$lhs, I257:$rhs),
+          (CONDSEL I257:$rhs, I257:$lhs, I257:$cond)>;
 
 include "TVMCellInstrInfo.td"
 include "TVMDictionaryInstrInfo.td"

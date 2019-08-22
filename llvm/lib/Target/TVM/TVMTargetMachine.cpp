@@ -58,7 +58,8 @@ static CodeModel::Model getEffectiveCodeModel(Optional<CodeModel::Model> CM) {
 
 static std::string computeDataLayout(const Triple &TT, StringRef CPU,
                                      const TargetOptions &Options) {
-  return "E-S1024-i256:256:256";
+  return "E-S257-i1:257:257-i8:257:257-i16:257:257-i32:257:257-"
+         "i64:257:257-i257:257:257-p:257:257-a:257:257";
 }
 
 TVMTargetMachine::TVMTargetMachine(const Target &T, const Triple &TT,

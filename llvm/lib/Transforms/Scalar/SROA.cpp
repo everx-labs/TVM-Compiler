@@ -1134,8 +1134,9 @@ static Type *findCommonType(AllocaSlices::const_iterator B,
       // this for split integer operations where we want to use the type of the
       // entity causing the split. Also skip if the type is not a byte width
       // multiple.
-      if (UserITy->getBitWidth() % 8 != 0 ||
-          UserITy->getBitWidth() / 8 > (EndOffset - B->beginOffset()))
+      if (UserITy->getBitWidth() % ByteSizeInBits != 0 ||
+          UserITy->getBitWidth() / ByteSizeInBits >
+          (EndOffset - B->beginOffset()))
         continue;
 
       // Track the largest bitwidth integer type used in this way in case there
@@ -4030,10 +4031,10 @@ AllocaInst *SROA::rewritePartition(AllocaInst &AI, AllocaSlices &AS,
       SliceTy = TypePartitionTy;
   if ((!SliceTy || (SliceTy->isArrayTy() &&
                     SliceTy->getArrayElementType()->isIntegerTy())) &&
-      DL.isLegalInteger(P.size() * 8))
-    SliceTy = Type::getIntNTy(*C, P.size() * 8);
+      DL.isLegalInteger(P.size() * ByteSizeInBits))
+    SliceTy = Type::getIntNTy(*C, P.size() * ByteSizeInBits);
   if (!SliceTy)
-    SliceTy = ArrayType::get(Type::getInt8Ty(*C), P.size());
+    SliceTy = ArrayType::get(Type::getIntNTy(*C, ByteSizeInBits), P.size());
   assert(DL.getTypeAllocSize(SliceTy) >= P.size());
 
   bool IsIntegerPromotable = isIntegerWideningViable(P, SliceTy, DL);

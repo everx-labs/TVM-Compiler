@@ -16,6 +16,7 @@
 #include "TVM.h"
 #include "TVMInstrInfo.h"
 #include "TVMMCInstLower.h"
+#include "TVMMCExpr.h"
 #include "TVMMachineFunctionInfo.h"
 #include "TVMTargetMachine.h"
 #include "llvm/CodeGen/AsmPrinter.h"
@@ -50,6 +51,10 @@ public:
   void EmitInstruction(const MachineInstr *MI) override;
   std::string regToString(const MachineOperand &MO);
   void EmitBasicBlockStart(const MachineBasicBlock &MBB) const override;
+
+  /// Print a big LLVM constant int (>64 bit) to the .s file.
+  void EmitBigInt(const ConstantInt *CI) override;
+
   bool runOnMachineFunction(MachineFunction &MF) override;
 protected:
   void EmitSubBlockForPushcont(const TVMMCInstLower &lower, const MCInst &Inst,
@@ -201,6 +206,13 @@ void TVMAsmPrinter::EmitSubBlockForPushcont(const TVMMCInstLower &lower,
 
 void TVMAsmPrinter::EmitBasicBlockStart(const MachineBasicBlock &MBB) const {
   EmitBBEntry(MBB);
+}
+
+/// Print a big LLVM constant int (>64 bit) to the .s file.
+void TVMAsmPrinter::EmitBigInt(const ConstantInt *CI) {
+  auto Str = new (OutContext) SmallString<40>();
+  CI->getValue().toString(*Str, 16, true, true);
+  OutStreamer->EmitValue(TVMImmStringMCExpr::create(*Str, OutContext), 1);
 }
 
 bool TVMAsmPrinter::runOnMachineFunction(MachineFunction &MF) {

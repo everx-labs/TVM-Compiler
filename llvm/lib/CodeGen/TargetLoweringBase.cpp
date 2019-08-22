@@ -720,6 +720,34 @@ void TargetLoweringBase::setJumpIsExpensive(bool isExpensive) {
     JumpIsExpensive = isExpensive;
 }
 
+// TVM local begin
+static EVT findIntPromoteType(LLVMContext &Context,
+                              const TargetLoweringBase &TL, unsigned BitSize,
+                              bool &ReadyToExpand) {
+  ReadyToExpand = false;
+  MVT LastLegalInt = MVT::i1;
+  for (MVT VT : MVT::integer_valuetypes()) {
+    if (!TL.isTypeLegal(VT))
+      continue;
+    LastLegalInt = VT;
+    if (BitSize <= VT.getSizeInBits())
+      return VT;
+  }
+  // If we have enumerated all legal integers and no suitable type found,
+  //  promote to large legal type, multiplied by power-of-2
+  //  (to do later expands)
+  unsigned LegalBitWidth = LastLegalInt.getSizeInBits();
+  unsigned Mult = BitSize / LegalBitWidth;
+  if (BitSize % LegalBitWidth)
+    ++Mult;
+
+  unsigned Pow2Mult = 1 << Log2_32_Ceil(Mult);
+  unsigned PromotedBitWidth = LegalBitWidth * Pow2Mult;
+  ReadyToExpand = (PromotedBitWidth == BitSize);
+  return EVT::getIntegerVT(Context, PromotedBitWidth);
+}
+// TVM local end
+
 TargetLoweringBase::LegalizeKind
 TargetLoweringBase::getTypeConversion(LLVMContext &Context, EVT VT) const {
   // If this is a simple type, use the ComputeRegisterProp mechanism.
@@ -747,8 +775,13 @@ TargetLoweringBase::getTypeConversion(LLVMContext &Context, EVT VT) const {
     assert(VT.isInteger() && "Float types must be simple");
     unsigned BitSize = VT.getSizeInBits();
     // First promote to a power-of-two size, then expand if necessary.
-    if (BitSize < 8 || !isPowerOf2_32(BitSize)) {
-      EVT NVT = VT.getRoundIntegerType(Context);
+
+    // TVM local begin
+    // TVM - we need promoted type, which can be later expanded into two legals
+    bool ReadyToExpand = false;
+    EVT NVT = findIntPromoteType(Context, *this, BitSize, ReadyToExpand);
+    if (!ReadyToExpand) {
+      // TVM local end
       assert(NVT != VT && "Unable to round integer VT");
       LegalizeKind NextStep = getTypeConversion(Context, NVT);
       // Avoid multi-step promotion.

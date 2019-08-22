@@ -51,6 +51,19 @@ void TVMMCInstLower::lower(const MachineInstr *MI, MCInst &OutMI) {
     case MachineOperand::MO_Immediate:
       MCOp = MCOperand::createImm(MO.getImm());
       break;
+    case MachineOperand::MO_CImmediate:
+      if (MO.getCImm()->getValue().getMinSignedBits() <= 64) {
+        MCOp = MCOperand::createImm(MO.getCImm()->getSExtValue());
+        break;
+      } else {
+        auto Str = new (Ctx) SmallString<40>();
+        if (MI->getOpcode() == TVM::CONST_U257_S)
+          MO.getCImm()->getValue().toString(*Str, 16, false, true);
+        else
+          MO.getCImm()->getValue().toString(*Str, 16, true, true);
+        MCOp = MCOperand::createExpr(TVMImmStringMCExpr::create(*Str, Ctx));
+      }
+      break;
     case MachineOperand::MO_MachineBasicBlock: {
       auto *MBB = MO.getMBB();
       do { // we need to iterate all fallthrough blocks

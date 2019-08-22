@@ -2,11 +2,11 @@
 ; XFAIL:*
 
 source_filename = "ifelse.c"
-target datalayout = "E-S1024-i256:256:256"
+target datalayout = "E-S257-i1:257:257-i8:257:257-i16:257:257-i32:257:257-i64:257:257-i257:257:257-p:257:257-a:257:257"
 target triple = "tvm"
 
 ; Function Attrs: nounwind readnone
-define dso_local i64 @test_ifelse(i64 %a, i64 %b, i64 %c) local_unnamed_addr #0 !dbg !7 {
+define dso_local i257 @test_ifelse(i257 %a, i257 %b, i257 %c) local_unnamed_addr #0 !dbg !7 {
 entry:
     ; CHECK: XCHG	s0, s2                  ; { %1(a) | %2(b) | %4(c) }
     ; CHECK: ADD                            ; %3 = ADD %2(b), %1(a)
@@ -30,16 +30,16 @@ entry:
     ; CHECK: ADD                            ; %11 = ADD %10, %5(sum)
     ; CHECK-NEXT:                           ; { %11 }
 
-  call void @llvm.dbg.value(metadata i64 %a, metadata !13, metadata !DIExpression()), !dbg !17
-  call void @llvm.dbg.value(metadata i64 %b, metadata !14, metadata !DIExpression()), !dbg !18
-  call void @llvm.dbg.value(metadata i64 %c, metadata !15, metadata !DIExpression()), !dbg !19
-  %add = add nsw i64 %b, %a, !dbg !20
-  %add1 = add nsw i64 %add, %c, !dbg !21
-  call void @llvm.dbg.value(metadata i64 %add1, metadata !16, metadata !DIExpression()), !dbg !22
-  %cmp = icmp sgt i64 %add1, 1000, !dbg !23
-  %retval.0.v = select i1 %cmp, i64 100, i64 -200, !dbg !25
-  %retval.0 = add i64 %retval.0.v, %add1, !dbg !25
-  ret i64 %retval.0, !dbg !26
+  call void @llvm.dbg.value(metadata i257 %a, metadata !13, metadata !DIExpression()), !dbg !17
+  call void @llvm.dbg.value(metadata i257 %b, metadata !14, metadata !DIExpression()), !dbg !18
+  call void @llvm.dbg.value(metadata i257 %c, metadata !15, metadata !DIExpression()), !dbg !19
+  %add = add nsw i257 %b, %a, !dbg !20
+  %add1 = add nsw i257 %add, %c, !dbg !21
+  call void @llvm.dbg.value(metadata i257 %add1, metadata !16, metadata !DIExpression()), !dbg !22
+  %cmp = icmp sgt i257 %add1, 1000, !dbg !23
+  %retval.0.v = select i1 %cmp, i257 100, i257 -200, !dbg !25
+  %retval.0 = add i257 %retval.0.v, %add1, !dbg !25
+  ret i257 %retval.0, !dbg !26
 }
 
 ; Function Attrs: nounwind readnone speculatable
@@ -62,7 +62,7 @@ attributes #1 = { nounwind readnone speculatable }
 !7 = distinct !DISubprogram(name: "test_ifelse", scope: !1, file: !1, line: 3, type: !8, isLocal: false, isDefinition: true, scopeLine: 3, flags: DIFlagPrototyped, isOptimized: true, unit: !0, retainedNodes: !12)
 !8 = !DISubroutineType(types: !9)
 !9 = !{!10, !10, !10, !10}
-!10 = !DIDerivedType(tag: DW_TAG_typedef, name: "i64", file: !1, line: 1, baseType: !11)
+!10 = !DIDerivedType(tag: DW_TAG_typedef, name: "i257", file: !1, line: 1, baseType: !11)
 !11 = !DIBasicType(name: "long long int", size: 64, encoding: DW_ATE_signed)
 !12 = !{!13, !14, !15, !16}
 !13 = !DILocalVariable(name: "a", arg: 1, scope: !7, file: !1, line: 3, type: !10)

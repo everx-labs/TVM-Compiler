@@ -927,7 +927,10 @@ namespace {
                     Ctx.getTypeInfoDataSizeInChars(LastField->getType()).first);
       uint64_t MemcpySizeBits = LastFieldOffset + LastFieldSize -
                                 FirstByteOffset + Ctx.getCharWidth() - 1;
-      CharUnits MemcpySize = Ctx.toCharUnitsFromBits(MemcpySizeBits);
+      // TVM local begin - truncate flag for toCharUnitsFromBits
+      //   Or remove "+ Ctx.getCharWidth() - 1" here ^^
+      CharUnits MemcpySize = Ctx.toCharUnitsFromBits(MemcpySizeBits, true);
+      // TVM local end
       return MemcpySize;
     }
 

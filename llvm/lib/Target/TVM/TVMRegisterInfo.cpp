@@ -71,11 +71,11 @@ void TVMRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
          "We assume that variable-sized objects have already been lowered, "
          "and don't use FrameIndex operands.");
 
-  unsigned OffsetOperand = MRI.createVirtualRegister(&TVM::I64RegClass);
-  BuildMI(MBB, *II, II->getDebugLoc(), TII->get(TVM::CONST_I64), OffsetOperand)
+  unsigned OffsetOperand = MRI.createVirtualRegister(&TVM::I257RegClass);
+  BuildMI(MBB, *II, II->getDebugLoc(), TII->get(TVM::CONST_I257), OffsetOperand)
       .addImm(FrameOffset);
 
-  unsigned FIRegOperand = MRI.createVirtualRegister(&TVM::I64RegClass);
+  unsigned FIRegOperand = MRI.createVirtualRegister(&TVM::I257RegClass);
   BuildMI(MBB, *II, II->getDebugLoc(), TII->get(TVM::CALL_FRAMEIDX),
           FIRegOperand)
       .addReg(OffsetOperand);

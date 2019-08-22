@@ -1,9 +1,9 @@
 ; XFAIL: *
 ; RUN: llc < %s -march=tvm | FileCheck %s 
-target datalayout = "E-S1024-i256:256:256" 
+target datalayout = "E-S257-i1:257:257-i8:257:257-i16:257:257-i32:257:257-i64:257:257-i257:257:257-p:257:257-a:257:257" 
 target triple = "tvm"
 
-define i64 @calc (i64 %arg1, i64 %arg2, i64 %op) nounwind {
+define i257 @calc (i257 %arg1, i257 %arg2, i257 %op) nounwind {
 ; CHECK-LABEL: calc:
 ; CHECK-NEXT: DUP
 ; CHECK-NEXT: PUSHCONT {
@@ -44,22 +44,22 @@ define i64 @calc (i64 %arg1, i64 %arg2, i64 %op) nounwind {
 ; CHECK-NEXT:    RET
 ; CHECK-NEXT: }
 ; CHECK-NEXT: IFELSE
- switch i64 %op, label %noop [ i64 0, label %sum
-                               i64 1, label %sub
-                               i64 2, label %mul
-                               i64 3, label %div ]
+ switch i257 %op, label %noop [ i257 0, label %sum
+                               i257 1, label %sub
+                               i257 2, label %mul
+                               i257 3, label %div ]
 sum:
- %1 = add i64 %arg1, %arg2
- ret i64 %1
+ %1 = add i257 %arg1, %arg2
+ ret i257 %1
 sub:
- %2 = sub i64 %arg1, %arg2
- ret i64 %2
+ %2 = sub i257 %arg1, %arg2
+ ret i257 %2
 mul:
- %3 = mul i64 %arg1, %arg2
- ret i64 %3
+ %3 = mul i257 %arg1, %arg2
+ ret i257 %3
 div:
- %4 = sdiv i64 %arg1, %arg2
- ret i64 %4
+ %4 = sdiv i257 %arg1, %arg2
+ ret i257 %4
 noop:
- ret i64 0
+ ret i257 0
 }

@@ -779,7 +779,9 @@ static void InitializePredefinedMacros(const TargetInfo &TI,
   }
 
   // Define type sizing macros based on the target properties.
-  assert(TI.getCharWidth() == 8 && "Only support 8-bit char so far");
+  // TVM local begin
+  // assert(TI.getCharWidth() == 8 && "Only support 8-bit char so far");
+  // TVM local end
   Builder.defineMacro("__CHAR_BIT__", Twine(TI.getCharWidth()));
 
   DefineTypeSize("__SCHAR_MAX__", TargetInfo::SignedChar, TI, Builder);

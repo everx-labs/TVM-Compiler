@@ -1,4 +1,5 @@
 // RUN: %clang_cc1 -Wall -Werror -triple tvm-unknown-unknown -nostdsysteminc -emit-llvm -o - %s | FileCheck %s
+// REQUIRES: tvm-registered-target
 
 #include <stdint.h>
 

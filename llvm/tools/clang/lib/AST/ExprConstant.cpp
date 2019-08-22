@@ -9172,17 +9172,29 @@ bool IntExprEvaluator::VisitBinaryOperator(const BinaryOperator *E) {
 
     // Compute (LHSOffset - RHSOffset) / Size carefully, checking for
     // overflow in the final conversion to ptrdiff_t.
-    APSInt LHS(llvm::APInt(65, (int64_t)LHSOffset.getQuantity(), true), false);
-    APSInt RHS(llvm::APInt(65, (int64_t)RHSOffset.getQuantity(), true), false);
-    APSInt ElemSize(llvm::APInt(65, (int64_t)ElementSize.getQuantity(), true),
-                    false);
-    APSInt TrueResult = (LHS - RHS) / ElemSize;
-    APSInt Result = TrueResult.trunc(Info.Ctx.getIntWidth(E->getType()));
+    // TVM local begin
+    if (Info.Ctx.getIntWidth(E->getType()) <= 64) {
+      APSInt LHS(llvm::APInt(65, (int64_t)LHSOffset.getQuantity(), true), false);
+      APSInt RHS(llvm::APInt(65, (int64_t)RHSOffset.getQuantity(), true), false);
+      APSInt ElemSize(llvm::APInt(65, (int64_t)ElementSize.getQuantity(), true),
+                      false);
+      APSInt TrueResult = (LHS - RHS) / ElemSize;
+      APSInt Result = TrueResult.trunc(Info.Ctx.getIntWidth(E->getType()));
 
-    if (Result.extend(65) != TrueResult &&
-        !HandleOverflow(Info, E, TrueResult, E->getType()))
-      return false;
+      if (Result.extend(65) != TrueResult &&
+          !HandleOverflow(Info, E, TrueResult, E->getType()))
+        return false;
+      return Success(Result, E);
+    }
+    // FIXME: disabled overflow check for pointer types > 64 bit
+    int64_t LHS = LHSOffset.getQuantity();
+    int64_t RHS = RHSOffset.getQuantity();
+    int64_t ElemSize = ElementSize.getQuantity();
+    int64_t Val = (LHS - RHS) / ElemSize;
+    APSInt Result(llvm::APInt(Info.Ctx.getIntWidth(E->getType()), Val, true),
+                  false);
     return Success(Result, E);
+    // TVM local end
   }
 
   return ExprEvaluatorBaseTy::VisitBinaryOperator(E);

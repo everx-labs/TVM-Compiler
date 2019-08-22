@@ -1,4 +1,5 @@
 // RUN: %clang -O3 -S -c -target tvm %s -o - | tvm-testrun --no-trace --entry test --stdlibc-path %S/../../../../../../../samples/sdk-prototype/stdlib_c.tvm | FileCheck %s
+// XFAIL: *
 #include "../../../../../../../samples/sdk-prototype/transfer-80000001.c"
 #include "../../../../../../../samples/sdk-prototype/ton-sdk/messages.c"
 #include "../../../../../../../samples/sdk-prototype/ton-sdk/smart-contract-info.c"

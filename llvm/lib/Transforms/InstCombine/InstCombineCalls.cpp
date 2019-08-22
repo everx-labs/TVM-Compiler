@@ -133,6 +133,10 @@ Instruction *InstCombiner::SimplifyAnyMemTransfer(AnyMemTransferInst *MI) {
   uint64_t Size = MemOpLength->getLimitedValue();
   assert(Size && "0-sized memory transferring should be removed already.");
 
+  // TVM local begin
+  if (ByteSizeInBits != 8)
+    return nullptr;
+  // TVM local end
   if (Size > 8 || (Size&(Size-1)))
     return nullptr;  // If not 1/2/4/8 bytes, exit.
 
@@ -216,7 +220,9 @@ Instruction *InstCombiner::SimplifyAnyMemSet(AnyMemSetInst *MI) {
   assert(Len && "0-sized memory setting should be removed already.");
 
   // memset(s,c,n) -> store s, c (for n=1,2,4,8)
-  if (Len <= 8 && isPowerOf2_32((uint32_t)Len)) {
+  // TVM local begin
+  if (ByteSizeInBits == 8 && Len <= 8 && isPowerOf2_32((uint32_t)Len)) {
+    // TVM local end
     Type *ITy = IntegerType::get(MI->getContext(), Len*8);  // n=1 -> i8.
 
     Value *Dest = MI->getDest();

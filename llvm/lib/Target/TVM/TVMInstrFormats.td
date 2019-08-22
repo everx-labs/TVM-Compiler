@@ -60,30 +60,42 @@ def UImm8: ImmAsmOperand<0,255> { let Name = "UImm8"; }
 def UImm6: ImmAsmOperand<0,63> { let Name = "UImm6"; }
 def UImm1_256: ImmAsmOperand<1,256> { let Name = "UImm1_256"; }
 
-def UImm64 : Operand<i64>, ImmLeaf<i64, [{ (void)Imm; return true; }]> {
-  let PrintMethod = "printUimm64";
+def UImm257 : Operand<i257>, IntImmLeaf<i257, [{ (void)Imm; return true; }]> {
+  let PrintMethod = "printUimm257";
 }
 
-def simm8 : Operand<i64>, ImmLeaf<i64, [{
-  return Imm >=-128 && Imm <= 127 && Imm != 1;
+def simm8 : Operand<i257>, IntImmLeaf<i257, [{
+  if (Imm.getMinSignedBits() > 64)
+    return false;
+  int Val = Imm.getSExtValue();
+  return Val >=-128 && Val <= 127 && Val != 1;
 }]> {
   let ParserMatchClass = SImm8;
 }
 
-def uimm6 : Operand<i64>, ImmLeaf<i64, [{
-  return Imm >=0 && Imm <= 63;
+def uimm6 : Operand<i257>, IntImmLeaf<i257, [{
+  if (Imm.getMinSignedBits() > 64)
+    return false;
+  int Val = Imm.getSExtValue();
+  return Val >=0 && Val <= 63;
 }]> {
   let ParserMatchClass = UImm6;
 }
 
-def uimm8 : Operand<i64>, ImmLeaf<i64, [{
-  return Imm >=0 && Imm <= 255;
+def uimm8 : Operand<i257>, IntImmLeaf<i257, [{
+  if (Imm.getMinSignedBits() > 64)
+    return false;
+  int Val = Imm.getSExtValue();
+  return Val >=0 && Val <= 255;
 }]> {
   let ParserMatchClass = UImm8;
 }
 
-def uimm1_256 : Operand<i64>, ImmLeaf<i64, [{
-  return Imm >=1 && Imm <= 256;
+def uimm1_256 : Operand<i257>, IntImmLeaf<i257, [{
+  if (Imm.getMinSignedBits() > 64)
+    return false;
+  int Val = Imm.getSExtValue();
+  return Val >=1 && Val <= 256;
 }]> {
   let ParserMatchClass = UImm1_256;
 }
@@ -114,29 +126,29 @@ multiclass NRI<dag oops, dag iops, list<dag> pattern, string asmstr = "",
 }
 
 // Unary and binary instructions, for the local types that TVM supports.
-multiclass UnaryR<SDNode node, string name, bits<32> i64Inst> {
-  defm "" : I<(outs I64:$dst), (ins I64:$src), (outs), (ins),
-              [(set I64:$dst, (node I64:$src))],
+multiclass UnaryR<SDNode node, string name, bits<32> i257Inst> {
+  defm "" : I<(outs I257:$dst), (ins I257:$src), (outs), (ins),
+              [(set I257:$dst, (node I257:$src))],
               !strconcat(name, "\t$dst, $src"),
-              name, i64Inst>;
+              name, i257Inst>;
 }
 
-multiclass BinaryRR<SDNode node, string name, bits<32> i64Inst> {
-  defm "" : I<(outs I64:$dst), (ins I64:$lhs, I64:$rhs), (outs), (ins),
-              [(set I64:$dst, (node I64:$lhs, I64:$rhs))],
+multiclass BinaryRR<SDNode node, string name, bits<32> i257Inst> {
+  defm "" : I<(outs I257:$dst), (ins I257:$lhs, I257:$rhs), (outs), (ins),
+              [(set I257:$dst, (node I257:$lhs, I257:$rhs))],
               !strconcat(name, "\t$dst, $lhs, $rhs"),
-              name, i64Inst>;
+              name, i257Inst>;
 }
 
-multiclass BinaryRI<SDNode node, string name, ImmAsmOperand immtype, bits<32> i64Inst> {
-  defm "" : I<(outs I64:$dst), (ins I64:$lhs, immtype:$rhs), (outs), (ins immtype:$rhs),
-              [(set I64:$dst, (node I64:$lhs, immtype:$rhs))],
+multiclass BinaryRI<SDNode node, string name, ImmAsmOperand immtype, bits<32> i257Inst> {
+  defm "" : I<(outs I257:$dst), (ins I257:$lhs, immtype:$rhs), (outs), (ins immtype:$rhs),
+              [(set I257:$dst, (node I257:$lhs, immtype:$rhs))],
               !strconcat(name, "\t$dst, $lhs, $rhs"),
-              !strconcat(name, "\t$rhs"), i64Inst>;
+              !strconcat(name, "\t$rhs"), i257Inst>;
 }
 
 multiclass ComparisonInt<CondCode cond, string name, bits<32> inst> {
-  defm "" : I<(outs I64:$dst), (ins I64:$lhs, I64:$rhs), (outs), (ins),
-              [(set I64:$dst, (setcc I64:$lhs, I64:$rhs, cond))],
+  defm "" : I<(outs I257:$dst), (ins I257:$lhs, I257:$rhs), (outs), (ins),
+              [(set I257:$dst, (setcc I257:$lhs, I257:$rhs, cond))],
               !strconcat(name, "\t$dst, $lhs, $rhs"), name, inst>;
 }

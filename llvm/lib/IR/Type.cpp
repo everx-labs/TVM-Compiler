@@ -176,6 +176,9 @@ IntegerType *Type::getInt16Ty(LLVMContext &C) { return &C.pImpl->Int16Ty; }
 IntegerType *Type::getInt32Ty(LLVMContext &C) { return &C.pImpl->Int32Ty; }
 IntegerType *Type::getInt64Ty(LLVMContext &C) { return &C.pImpl->Int64Ty; }
 IntegerType *Type::getInt128Ty(LLVMContext &C) { return &C.pImpl->Int128Ty; }
+// TVM local begin
+IntegerType *Type::getInt257Ty(LLVMContext &C) { return &C.pImpl->Int257Ty; }
+// TVM local end
 
 IntegerType *Type::getIntNTy(LLVMContext &C, unsigned N) {
   return IntegerType::get(C, N);
@@ -249,6 +252,9 @@ IntegerType *IntegerType::get(LLVMContext &C, unsigned NumBits) {
   case  32: return cast<IntegerType>(Type::getInt32Ty(C));
   case  64: return cast<IntegerType>(Type::getInt64Ty(C));
   case 128: return cast<IntegerType>(Type::getInt128Ty(C));
+  // TVM local begin
+  case 257: return cast<IntegerType>(Type::getInt257Ty(C));
+  // TVM local end
   default:
     break;
   }

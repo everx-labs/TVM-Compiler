@@ -22,9 +22,8 @@ class TVMFrameLowering : public TargetFrameLowering {
 protected:
 
 public:
-  //TODO: Copied from MSP430. Check.
   explicit TVMFrameLowering()
-      : TargetFrameLowering(TargetFrameLowering::StackGrowsUp, 8, 0) {}
+      : TargetFrameLowering(TargetFrameLowering::StackGrowsUp, 1, 0) {}
 
   void emitPrologue(MachineFunction &MF, MachineBasicBlock &MBB) const override;
   void emitEpilogue(MachineFunction &MF, MachineBasicBlock &MBB) const override;

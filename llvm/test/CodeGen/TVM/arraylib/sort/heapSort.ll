@@ -1,178 +1,182 @@
-; RUN: llc < %s -march=tvm
-target datalayout = "E-S1024-i256:256:256"
+; RUN: llc < %s -march=tvm 
+; ModuleID = 'heapSort.c'
+source_filename = "heapSort.c"
+target datalayout = "E-S257-i1:257:257-i8:257:257-i16:257:257-i32:257:257-i64:257:257-i257:257:257-p:257:257-a:257:257"
 target triple = "tvm"
 
-; Function Attrs: norecurse nounwind sspstrong uwtable
-define dso_local void @downHeap(i64* nocapture, i64, i64) local_unnamed_addr #0 {
-  %4 = getelementptr inbounds i64, i64* %0, i64 %1
-  %5 = load i64, i64* %4, align 8, !tbaa !4
-  %6 = sdiv i64 %2, 2
-  %7 = icmp slt i64 %6, %1
-  br i1 %7, label %28, label %8
+; Function Attrs: norecurse nounwind
+define dso_local void @downHeap(i257* nocapture %a, i257 %k, i257 %n) local_unnamed_addr #0 {
+entry:
+  %arrayidx = getelementptr inbounds i257, i257* %a, i257 %k
+  %0 = load i257, i257* %arrayidx, align 1, !tbaa !2
+  %div = sdiv i257 %n, 2
+  %cmp32 = icmp slt i257 %div, %k
+  br i1 %cmp32, label %while.end, label %while.body
 
-; <label>:8:                                      ; preds = %3, %25
-  %9 = phi i64 [ %21, %25 ], [ %1, %3 ]
-  %10 = shl nsw i64 %9, 1
-  %11 = icmp slt i64 %10, %2
-  br i1 %11, label %12, label %20
+while.body:                                       ; preds = %entry, %if.end8
+  %k.addr.033 = phi i257 [ %child.0, %if.end8 ], [ %k, %entry ]
+  %mul = shl nsw i257 %k.addr.033, 1
+  %cmp1 = icmp slt i257 %mul, %n
+  br i1 %cmp1, label %land.lhs.true, label %if.end
 
-; <label>:12:                                     ; preds = %8
-  %13 = getelementptr inbounds i64, i64* %0, i64 %10
-  %14 = load i64, i64* %13, align 8, !tbaa !4
-  %15 = or i64 %10, 1
-  %16 = getelementptr inbounds i64, i64* %0, i64 %15
-  %17 = load i64, i64* %16, align 8, !tbaa !4
-  %18 = icmp slt i64 %14, %17
-  %19 = select i1 %18, i64 %15, i64 %10
-  br label %20
+land.lhs.true:                                    ; preds = %while.body
+  %arrayidx2 = getelementptr inbounds i257, i257* %a, i257 %mul
+  %1 = load i257, i257* %arrayidx2, align 1, !tbaa !2
+  %add = or i257 %mul, 1
+  %arrayidx3 = getelementptr inbounds i257, i257* %a, i257 %add
+  %2 = load i257, i257* %arrayidx3, align 1, !tbaa !2
+  %cmp4 = icmp slt i257 %1, %2
+  %spec.select = select i1 %cmp4, i257 %add, i257 %mul
+  br label %if.end
 
-; <label>:20:                                     ; preds = %12, %8
-  %21 = phi i64 [ %10, %8 ], [ %19, %12 ]
-  %22 = getelementptr inbounds i64, i64* %0, i64 %21
-  %23 = load i64, i64* %22, align 8, !tbaa !4
-  %24 = icmp slt i64 %5, %23
-  br i1 %24, label %25, label %28
+if.end:                                           ; preds = %land.lhs.true, %while.body
+  %child.0 = phi i257 [ %mul, %while.body ], [ %spec.select, %land.lhs.true ]
+  %arrayidx5 = getelementptr inbounds i257, i257* %a, i257 %child.0
+  %3 = load i257, i257* %arrayidx5, align 1, !tbaa !2
+  %cmp6 = icmp slt i257 %0, %3
+  %arrayidx10 = getelementptr inbounds i257, i257* %a, i257 %k.addr.033
+  br i1 %cmp6, label %if.end8, label %while.end
 
-; <label>:25:                                     ; preds = %20
-  %26 = getelementptr inbounds i64, i64* %0, i64 %9
-  store i64 %23, i64* %26, align 8, !tbaa !4
-  %27 = icmp sgt i64 %21, %6
-  br i1 %27, label %28, label %8
+if.end8:                                          ; preds = %if.end
+  store i257 %3, i257* %arrayidx10, align 1, !tbaa !2
+  %cmp = icmp sgt i257 %child.0, %div
+  br i1 %cmp, label %while.end.loopexit, label %while.body
 
-; <label>:28:                                     ; preds = %25, %20, %3
-  %29 = phi i64 [ %1, %3 ], [ %9, %20 ], [ %21, %25 ]
-  %30 = getelementptr inbounds i64, i64* %0, i64 %29
-  store i64 %5, i64* %30, align 8, !tbaa !4
+while.end.loopexit:                               ; preds = %if.end8
+  %arrayidx5.le = getelementptr inbounds i257, i257* %a, i257 %child.0
+  br label %while.end
+
+while.end:                                        ; preds = %if.end, %while.end.loopexit, %entry
+  %arrayidx11.pre-phi = phi i257* [ %arrayidx, %entry ], [ %arrayidx5.le, %while.end.loopexit ], [ %arrayidx10, %if.end ]
+  store i257 %0, i257* %arrayidx11.pre-phi, align 1, !tbaa !2
   ret void
 }
 
-; Function Attrs: norecurse nounwind sspstrong uwtable
-define dso_local void @heapSort(i64* nocapture, i64) local_unnamed_addr #0 {
-  %3 = icmp sgt i64 %1, 1
-  br i1 %3, label %6, label %4
+; Function Attrs: norecurse nounwind
+define dso_local void @heapSort(i257* nocapture %a, i257 %size) local_unnamed_addr #0 {
+entry:
+  %cmp63 = icmp sgt i257 %size, 1
+  br i1 %cmp63, label %for.body.lr.ph, label %for.end12
 
-; <label>:4:                                      ; preds = %2
-  %5 = add nsw i64 %1, -1
-  br label %10
+for.body.lr.ph:                                   ; preds = %entry
+  %div69 = lshr i257 %size, 1
+  %sub1 = add nsw i257 %size, -1
+  %div.i = sdiv i257 %sub1, 2
+  br label %for.body
 
-; <label>:6:                                      ; preds = %2
-  %7 = lshr i64 %1, 1
-  %8 = add nsw i64 %1, -1
-  %9 = sdiv i64 %8, 2
-  br label %13
+for.cond3.preheader:                              ; preds = %downHeap.exit
+  br i1 %cmp63, label %for.body5, label %for.end12
 
-; <label>:10:                                     ; preds = %39, %4
-  %11 = phi i64 [ %5, %4 ], [ %8, %39 ]
-  %12 = icmp sgt i64 %11, 0
-  br i1 %12, label %43, label %76
+for.body:                                         ; preds = %for.body.lr.ph, %downHeap.exit
+  %i.064.in = phi i257 [ %div69, %for.body.lr.ph ], [ %i.064, %downHeap.exit ]
+  %i.064 = add nsw i257 %i.064.in, -1
+  %arrayidx.i = getelementptr inbounds i257, i257* %a, i257 %i.064
+  %0 = load i257, i257* %arrayidx.i, align 1, !tbaa !2
+  %cmp32.i = icmp slt i257 %div.i, %i.064
+  br i1 %cmp32.i, label %downHeap.exit, label %while.body.i
 
-; <label>:13:                                     ; preds = %6, %39
-  %14 = phi i64 [ %7, %6 ], [ %15, %39 ]
-  %15 = add nsw i64 %14, -1
-  %16 = getelementptr inbounds i64, i64* %0, i64 %15
-  %17 = load i64, i64* %16, align 8, !tbaa !4
-  %18 = icmp slt i64 %9, %15
-  br i1 %18, label %39, label %19
+while.body.i:                                     ; preds = %for.body, %if.end8.i
+  %k.addr.033.i = phi i257 [ %child.0.i, %if.end8.i ], [ %i.064, %for.body ]
+  %mul.i = shl nsw i257 %k.addr.033.i, 1
+  %cmp1.i = icmp slt i257 %mul.i, %sub1
+  br i1 %cmp1.i, label %land.lhs.true.i, label %if.end.i
 
-; <label>:19:                                     ; preds = %13, %36
-  %20 = phi i64 [ %32, %36 ], [ %15, %13 ]
-  %21 = shl nsw i64 %20, 1
-  %22 = icmp slt i64 %21, %8
-  br i1 %22, label %23, label %31
+land.lhs.true.i:                                  ; preds = %while.body.i
+  %arrayidx2.i = getelementptr inbounds i257, i257* %a, i257 %mul.i
+  %1 = load i257, i257* %arrayidx2.i, align 1, !tbaa !2
+  %add.i = or i257 %mul.i, 1
+  %arrayidx3.i = getelementptr inbounds i257, i257* %a, i257 %add.i
+  %2 = load i257, i257* %arrayidx3.i, align 1, !tbaa !2
+  %cmp4.i = icmp slt i257 %1, %2
+  %spec.select.i = select i1 %cmp4.i, i257 %add.i, i257 %mul.i
+  br label %if.end.i
 
-; <label>:23:                                     ; preds = %19
-  %24 = getelementptr inbounds i64, i64* %0, i64 %21
-  %25 = load i64, i64* %24, align 8, !tbaa !4
-  %26 = or i64 %21, 1
-  %27 = getelementptr inbounds i64, i64* %0, i64 %26
-  %28 = load i64, i64* %27, align 8, !tbaa !4
-  %29 = icmp slt i64 %25, %28
-  %30 = select i1 %29, i64 %26, i64 %21
-  br label %31
+if.end.i:                                         ; preds = %land.lhs.true.i, %while.body.i
+  %child.0.i = phi i257 [ %mul.i, %while.body.i ], [ %spec.select.i, %land.lhs.true.i ]
+  %arrayidx5.i = getelementptr inbounds i257, i257* %a, i257 %child.0.i
+  %3 = load i257, i257* %arrayidx5.i, align 1, !tbaa !2
+  %cmp6.i = icmp slt i257 %0, %3
+  %arrayidx10.i = getelementptr inbounds i257, i257* %a, i257 %k.addr.033.i
+  br i1 %cmp6.i, label %if.end8.i, label %downHeap.exit
 
-; <label>:31:                                     ; preds = %23, %19
-  %32 = phi i64 [ %21, %19 ], [ %30, %23 ]
-  %33 = getelementptr inbounds i64, i64* %0, i64 %32
-  %34 = load i64, i64* %33, align 8, !tbaa !4
-  %35 = icmp slt i64 %17, %34
-  br i1 %35, label %36, label %39
+if.end8.i:                                        ; preds = %if.end.i
+  store i257 %3, i257* %arrayidx10.i, align 1, !tbaa !2
+  %cmp.i = icmp sgt i257 %child.0.i, %div.i
+  br i1 %cmp.i, label %downHeap.exit.loopexit.split.loop.exit, label %while.body.i
 
-; <label>:36:                                     ; preds = %31
-  %37 = getelementptr inbounds i64, i64* %0, i64 %20
-  store i64 %34, i64* %37, align 8, !tbaa !4
-  %38 = icmp sgt i64 %32, %9
-  br i1 %38, label %39, label %19
+downHeap.exit.loopexit.split.loop.exit:           ; preds = %if.end8.i
+  %arrayidx5.i.le = getelementptr inbounds i257, i257* %a, i257 %child.0.i
+  br label %downHeap.exit
 
-; <label>:39:                                     ; preds = %31, %36, %13
-  %40 = phi i64 [ %15, %13 ], [ %32, %36 ], [ %20, %31 ]
-  %41 = getelementptr inbounds i64, i64* %0, i64 %40
-  store i64 %17, i64* %41, align 8, !tbaa !4
-  %42 = icmp sgt i64 %15, 0
-  br i1 %42, label %13, label %10
+downHeap.exit:                                    ; preds = %if.end.i, %downHeap.exit.loopexit.split.loop.exit, %for.body
+  %arrayidx11.pre-phi.i = phi i257* [ %arrayidx.i, %for.body ], [ %arrayidx5.i.le, %downHeap.exit.loopexit.split.loop.exit ], [ %arrayidx10.i, %if.end.i ]
+  store i257 %0, i257* %arrayidx11.pre-phi.i, align 1, !tbaa !2
+  %cmp = icmp sgt i257 %i.064.in, 1
+  br i1 %cmp, label %for.body, label %for.cond3.preheader
 
-; <label>:43:                                     ; preds = %10, %71
-  %44 = phi i64 [ %74, %71 ], [ %11, %10 ]
-  %45 = phi i64 [ %44, %71 ], [ %1, %10 ]
-  %46 = getelementptr inbounds i64, i64* %0, i64 %44
-  %47 = load i64, i64* %46, align 8, !tbaa !4
-  %48 = load i64, i64* %0, align 8, !tbaa !4
-  store i64 %48, i64* %46, align 8, !tbaa !4
-  store i64 %47, i64* %0, align 8, !tbaa !4
-  %49 = add nsw i64 %45, -2
-  %50 = sdiv i64 %49, 2
-  br label %51
+for.body5:                                        ; preds = %for.cond3.preheader, %downHeap.exit53
+  %i.159.in = phi i257 [ %i.159, %downHeap.exit53 ], [ %size, %for.cond3.preheader ]
+  %i.159 = add nsw i257 %i.159.in, -1
+  %arrayidx = getelementptr inbounds i257, i257* %a, i257 %i.159
+  %4 = load i257, i257* %arrayidx, align 1, !tbaa !2
+  %5 = load i257, i257* %a, align 1, !tbaa !2
+  store i257 %5, i257* %arrayidx, align 1, !tbaa !2
+  store i257 %4, i257* %a, align 1, !tbaa !2
+  %sub9 = add nsw i257 %i.159.in, -2
+  %div.i29 = sdiv i257 %sub9, 2
+  br label %while.body.i34
 
-; <label>:51:                                     ; preds = %43, %68
-  %52 = phi i64 [ %64, %68 ], [ 0, %43 ]
-  %53 = shl nsw i64 %52, 1
-  %54 = icmp slt i64 %53, %49
-  br i1 %54, label %55, label %63
+while.body.i34:                                   ; preds = %for.body5, %if.end8.i49
+  %k.addr.033.i31 = phi i257 [ %child.0.i41, %if.end8.i49 ], [ 0, %for.body5 ]
+  %mul.i32 = shl nsw i257 %k.addr.033.i31, 1
+  %cmp1.i33 = icmp slt i257 %mul.i32, %sub9
+  br i1 %cmp1.i33, label %land.lhs.true.i40, label %if.end.i44
 
-; <label>:55:                                     ; preds = %51
-  %56 = getelementptr inbounds i64, i64* %0, i64 %53
-  %57 = load i64, i64* %56, align 8, !tbaa !4
-  %58 = or i64 %53, 1
-  %59 = getelementptr inbounds i64, i64* %0, i64 %58
-  %60 = load i64, i64* %59, align 8, !tbaa !4
-  %61 = icmp slt i64 %57, %60
-  %62 = select i1 %61, i64 %58, i64 %53
-  br label %63
+land.lhs.true.i40:                                ; preds = %while.body.i34
+  %arrayidx2.i35 = getelementptr inbounds i257, i257* %a, i257 %mul.i32
+  %6 = load i257, i257* %arrayidx2.i35, align 1, !tbaa !2
+  %add.i36 = or i257 %mul.i32, 1
+  %arrayidx3.i37 = getelementptr inbounds i257, i257* %a, i257 %add.i36
+  %7 = load i257, i257* %arrayidx3.i37, align 1, !tbaa !2
+  %cmp4.i38 = icmp slt i257 %6, %7
+  %spec.select.i39 = select i1 %cmp4.i38, i257 %add.i36, i257 %mul.i32
+  br label %if.end.i44
 
-; <label>:63:                                     ; preds = %55, %51
-  %64 = phi i64 [ %53, %51 ], [ %62, %55 ]
-  %65 = getelementptr inbounds i64, i64* %0, i64 %64
-  %66 = load i64, i64* %65, align 8, !tbaa !4
-  %67 = icmp slt i64 %47, %66
-  br i1 %67, label %68, label %71
+if.end.i44:                                       ; preds = %land.lhs.true.i40, %while.body.i34
+  %child.0.i41 = phi i257 [ %mul.i32, %while.body.i34 ], [ %spec.select.i39, %land.lhs.true.i40 ]
+  %arrayidx5.i42 = getelementptr inbounds i257, i257* %a, i257 %child.0.i41
+  %8 = load i257, i257* %arrayidx5.i42, align 1, !tbaa !2
+  %cmp6.i43 = icmp slt i257 %4, %8
+  %arrayidx10.i47 = getelementptr inbounds i257, i257* %a, i257 %k.addr.033.i31
+  br i1 %cmp6.i43, label %if.end8.i49, label %downHeap.exit53
 
-; <label>:68:                                     ; preds = %63
-  %69 = getelementptr inbounds i64, i64* %0, i64 %52
-  store i64 %66, i64* %69, align 8, !tbaa !4
-  %70 = icmp sgt i64 %64, %50
-  br i1 %70, label %71, label %51
+if.end8.i49:                                      ; preds = %if.end.i44
+  store i257 %8, i257* %arrayidx10.i47, align 1, !tbaa !2
+  %cmp.i48 = icmp sgt i257 %child.0.i41, %div.i29
+  br i1 %cmp.i48, label %downHeap.exit53.split.loop.exit70, label %while.body.i34
 
-; <label>:71:                                     ; preds = %63, %68
-  %72 = phi i64 [ %52, %63 ], [ %64, %68 ]
-  %73 = getelementptr inbounds i64, i64* %0, i64 %72
-  store i64 %47, i64* %73, align 8, !tbaa !4
-  %74 = add nsw i64 %44, -1
-  %75 = icmp sgt i64 %74, 0
-  br i1 %75, label %43, label %76
+downHeap.exit53.split.loop.exit70:                ; preds = %if.end8.i49
+  %arrayidx5.i42.le = getelementptr inbounds i257, i257* %a, i257 %child.0.i41
+  br label %downHeap.exit53
 
-; <label>:76:                                     ; preds = %71, %10
+downHeap.exit53:                                  ; preds = %if.end.i44, %downHeap.exit53.split.loop.exit70
+  %arrayidx11.pre-phi.i52 = phi i257* [ %arrayidx5.i42.le, %downHeap.exit53.split.loop.exit70 ], [ %arrayidx10.i47, %if.end.i44 ]
+  store i257 %4, i257* %arrayidx11.pre-phi.i52, align 1, !tbaa !2
+  %cmp4 = icmp sgt i257 %i.159.in, 2
+  br i1 %cmp4, label %for.body5, label %for.end12
+
+for.end12:                                        ; preds = %downHeap.exit53, %entry, %for.cond3.preheader
   ret void
 }
 
-attributes #0 = { norecurse nounwind sspstrong uwtable "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "less-precise-fpmad"="false" "min-legal-vector-width"="0" "no-frame-pointer-elim"="false" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="-3dnow,-3dnowa,-aes,-avx,-avx2,-avx512bitalg,-avx512bw,-avx512cd,-avx512dq,-avx512er,-avx512f,-avx512ifma,-avx512pf,-avx512vbmi,-avx512vbmi2,-avx512vl,-avx512vnni,-avx512vpopcntdq,-f16c,-fma,-fma4,-fxsr,-gfni,-mmx,-pclmul,-sha,-sse,-sse2,-sse3,-sse4.1,-sse4.2,-sse4a,-ssse3,-vaes,-vpclmulqdq,-x87,-xop,-xsave,-xsaveopt" "unsafe-fp-math"="false" "use-soft-float"="false" }
+attributes #0 = { norecurse nounwind "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "unsafe-fp-math"="false" "use-soft-float"="false" }
 
-!llvm.module.flags = !{!0, !1, !2}
-!llvm.ident = !{!3}
+!llvm.module.flags = !{!0}
+!llvm.ident = !{!1}
 
-!0 = !{i32 1, !"wchar_size", i32 4}
-!1 = !{i32 7, !"PIC Level", i32 2}
-!2 = !{i32 7, !"PIE Level", i32 2}
-!3 = !{!"clang version 8.0.0 (tags/RELEASE_800/final)"}
-!4 = !{!5, !5, i64 0}
-!5 = !{!"long", !6, i64 0}
-!6 = !{!"omnipotent char", !7, i64 0}
-!7 = !{!"Simple C/C++ TBAA"}
+!0 = !{i32 1, !"wchar_size", i32 1}
+!1 = !{!"clang version 7.0.0 "}
+!2 = !{!3, !3, i64 0}
+!3 = !{!"long", !4, i64 0}
+!4 = !{!"omnipotent char", !5, i64 0}
+!5 = !{!"Simple C/C++ TBAA"}

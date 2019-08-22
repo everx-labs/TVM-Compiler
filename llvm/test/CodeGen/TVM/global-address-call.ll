@@ -1,33 +1,33 @@
 ; RUN: llc < %s -march=tvm -asm-verbose=false | FileCheck %s
 source_filename = "sum-global-array.c"
-target datalayout = "E-S1024-i256:256:256"
+target datalayout = "E-S257-i1:257:257-i8:257:257-i16:257:257-i32:257:257-i64:257:257-i257:257:257-p:257:257-a:257:257"
 target triple = "tvm-unknown-unknown"
 
-@array = dso_local global [9 x i64] [i64 1, i64 2, i64 3, i64 4, i64 5, i64 6, i64 7, i64 8, i64 9], align 16
+@array = dso_local global [9 x i257] [i257 1, i257 2, i257 3, i257 4, i257 5, i257 6, i257 7, i257 8, i257 9], align 1
 
 ; Function Attrs: noinline nounwind optnone
-define dso_local i64 @sum(i64* %array, i64 %idx) #0 {
+define dso_local i257 @sum(i257* %array, i257 %idx) #0 {
 entry:
-  %array.addr = alloca i64*, align 8
-  %idx.addr = alloca i64, align 8
-  store i64* %array, i64** %array.addr, align 8
-  store i64 %idx, i64* %idx.addr, align 8
-  ret i64 0
+  %array.addr = alloca i257*, align 1
+  %idx.addr = alloca i257, align 1
+  store i257* %array, i257** %array.addr, align 1
+  store i257 %idx, i257* %idx.addr, align 1
+  ret i257 0
 }
 
 ; Function Attrs: noinline nounwind optnone
 ; CHECK-LABEL: main
-define dso_local i64 @main() #0 {
+define dso_local i257 @main() #0 {
 ; CHECK: PUSHINT $sum$
 ; CHECK: PUSHINT 0
 ; CHECK: CALL 1
-  %retval = alloca i64, align 8
-  %x = alloca i64*, align 8
-  store i64 0, i64* %retval, align 8
-  store i64* getelementptr inbounds ([9 x i64], [9 x i64]* @array, i32 0, i32 0), i64** %x, align 8
-  %call = call i64 @sum(i64* getelementptr inbounds ([9 x i64], [9 x i64]* @array, i32 0, i32 0), i64 0)
-  %1 = load i64*, i64** %x, align 8
-  %call1 = call i64 @sum(i64* %1, i64 0)
-  %add = add nsw i64 %call, %call1
-  ret i64 %add
+  %retval = alloca i257, align 1
+  %x = alloca i257*, align 1
+  store i257 0, i257* %retval, align 1
+  store i257* getelementptr inbounds ([9 x i257], [9 x i257]* @array, i32 0, i32 0), i257** %x, align 1
+  %call = call i257 @sum(i257* getelementptr inbounds ([9 x i257], [9 x i257]* @array, i32 0, i32 0), i257 0)
+  %1 = load i257*, i257** %x, align 1
+  %call1 = call i257 @sum(i257* %1, i257 0)
+  %add = add nsw i257 %call, %call1
+  ret i257 %add
 }

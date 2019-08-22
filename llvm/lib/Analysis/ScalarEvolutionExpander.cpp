@@ -2041,6 +2041,13 @@ SCEVExpander::getRelatedExistingExpansion(const SCEV *S, const Instruction *At,
   return None;
 }
 
+// TVM local begin
+static bool TVMHighCostCast(const DataLayout &DL, const SCEV *S) {
+  auto Ty = cast<SCEVCastExpr>(S)->getType();
+  return Ty->isIntegerTy() && !DL.fitsInLegalInteger(Ty->getIntegerBitWidth());
+}
+// TVM local end
+
 bool SCEVExpander::isHighCostExpansionHelper(
     const SCEV *S, Loop *L, const Instruction *At,
     SmallPtrSetImpl<const SCEV *> &Processed) {
@@ -2059,9 +2066,17 @@ bool SCEVExpander::isHighCostExpansionHelper(
     return isHighCostExpansionHelper(cast<SCEVTruncateExpr>(S)->getOperand(),
                                      L, At, Processed);
   case scZeroExtend:
+    // TVM local begin
+    if (TVMHighCostCast(DL, S))
+      return true;
+    // TVM local end
     return isHighCostExpansionHelper(cast<SCEVZeroExtendExpr>(S)->getOperand(),
                                      L, At, Processed);
   case scSignExtend:
+    // TVM local begin
+    if (TVMHighCostCast(DL, S))
+      return true;
+    // TVM local end
     return isHighCostExpansionHelper(cast<SCEVSignExtendExpr>(S)->getOperand(),
                                      L, At, Processed);
   }

@@ -878,8 +878,11 @@ int StringLiteral::mapCharByteWidth(TargetInfo const &target,StringKind k) {
       CharByteWidth = target.getChar32Width();
       break;
   }
-  assert((CharByteWidth & 7) == 0 && "Assumes character size is byte multiple");
-  CharByteWidth /= 8;
+  // TVM local begin
+  assert((CharByteWidth % ByteSizeInBits) == 0
+         && "Assumes character size is byte multiple");
+  CharByteWidth /= ByteSizeInBits;
+  // TVM local end
   assert((CharByteWidth==1 || CharByteWidth==2 || CharByteWidth==4)
          && "character byte widths supported are 1, 2, and 4 only");
   return CharByteWidth;

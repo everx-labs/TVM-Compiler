@@ -1248,13 +1248,15 @@ CharLiteralParser::CharLiteralParser(const char *begin, const char *end,
   // FIXME: The "Value" is an uint64_t so we can handle char literals of
   // up to 64-bits.
   // FIXME: This extensively assumes that 'char' is 8-bits.
-  assert(PP.getTargetInfo().getCharWidth() == 8 &&
-         "Assumes char is 8 bits");
-  assert(PP.getTargetInfo().getIntWidth() <= 64 &&
-         (PP.getTargetInfo().getIntWidth() & 7) == 0 &&
-         "Assumes sizeof(int) on target is <= 64 and a multiple of char");
-  assert(PP.getTargetInfo().getWCharWidth() <= 64 &&
-         "Assumes sizeof(wchar) on target is <= 64");
+  // TVM local begin
+  // assert(PP.getTargetInfo().getCharWidth() == 8 &&
+  //        "Assumes char is 8 bits");
+  // assert(PP.getTargetInfo().getIntWidth() <= 64 &&
+  //        (PP.getTargetInfo().getIntWidth() & 7) == 0 &&
+  //        "Assumes sizeof(int) on target is <= 64 and a multiple of char");
+  // assert(PP.getTargetInfo().getWCharWidth() <= 64 &&
+  //        "Assumes sizeof(wchar) on target is <= 64");
+  // TVM local end
 
   SmallVector<uint32_t, 4> codepoint_buffer;
   codepoint_buffer.resize(end - begin);
@@ -1509,10 +1511,13 @@ void StringLiteralParser::init(ArrayRef<Token> StringToks){
 
   // TODO: K&R warning: "traditional C rejects string constant concatenation"
 
+  // TVM local begin
   // Get the width in bytes of char/wchar_t/char16_t/char32_t
   CharByteWidth = getCharWidth(Kind, Target);
-  assert((CharByteWidth & 7) == 0 && "Assumes character size is byte multiple");
-  CharByteWidth /= 8;
+  assert((CharByteWidth % ByteSizeInBits) == 0
+         && "Assumes character size is byte multiple");
+  CharByteWidth /= ByteSizeInBits;
+  // TVM local end
 
   // The output buffer size needs to be large enough to hold wide characters.
   // This is a worst-case assumption which basically corresponds to L"" "long".

@@ -1692,7 +1692,9 @@ TypeInfo ASTContext::getTypeInfo(const Type *T) const {
 /// should take a QualType, &c.
 TypeInfo ASTContext::getTypeInfoImpl(const Type *T) const {
   uint64_t Width = 0;
-  unsigned Align = 8;
+  // TVM local begin
+  unsigned Align = ByteSizeInBits;
+  // TVM local end
   bool AlignIsRequired = false;
   unsigned AS = 0;
   switch (T->getTypeClass()) {
@@ -1711,7 +1713,9 @@ TypeInfo ASTContext::getTypeInfoImpl(const Type *T) const {
   case Type::FunctionProto:
     // GCC extension: alignof(function) = 32 bits
     Width = 0;
-    Align = 32;
+    // TVM local begin
+    Align = ByteSizeInBits * 4;
+    // TVM local end
     break;
 
   case Type::IncompleteArray:
@@ -1759,7 +1763,9 @@ TypeInfo ASTContext::getTypeInfoImpl(const Type *T) const {
     case BuiltinType::Void:
       // GCC extension: alignof(void) = 8 bits.
       Width = 0;
-      Align = 8;
+      // TVM local begin
+      Align = ByteSizeInBits;
+      // TVM local end
       break;
     case BuiltinType::Bool:
       Width = Target->getBoolWidth();
@@ -1953,8 +1959,10 @@ TypeInfo ASTContext::getTypeInfoImpl(const Type *T) const {
     const auto *TT = cast<TagType>(T);
 
     if (TT->getDecl()->isInvalidDecl()) {
-      Width = 8;
-      Align = 8;
+      // TVM local begin
+      Width = ByteSizeInBits;
+      Align = ByteSizeInBits;
+      // TVM local end
       break;
     }
 
@@ -2052,7 +2060,11 @@ TypeInfo ASTContext::getTypeInfoImpl(const Type *T) const {
     break;
   }
 
-  assert(llvm::isPowerOf2_32(Align) && "Alignment must be power of 2");
+  // TVM local begin
+  assert((Align % ByteSizeInBits == 0) &&
+         llvm::isPowerOf2_32(Align / ByteSizeInBits) &&
+         "Alignment must be power of 2 in bytes");
+  // TVM local end
   return TypeInfo(Width, Align, AlignIsRequired);
 }
 
@@ -2088,10 +2100,15 @@ unsigned ASTContext::getOpenMPDefaultSimdAlign(QualType T) const {
   return SimdAlign;
 }
 
+// TVM local begin
 /// toCharUnitsFromBits - Convert a size in bits to a size in characters.
-CharUnits ASTContext::toCharUnitsFromBits(int64_t BitSize) const {
-  return CharUnits::fromQuantity(BitSize / getCharWidth());
+CharUnits ASTContext::toCharUnitsFromBits(int64_t BitSize, bool Trunc) const {
+  int64_t CharWidth = getCharWidth();
+  if (Trunc)
+    return CharUnits::fromQuantity(BitSize / CharWidth);
+  return CharUnits::fromQuantity((BitSize + (CharWidth - 1)) / CharWidth);
 }
+// TVM local end
 
 /// toBits - Convert a size in characters to a size in characters.
 int64_t ASTContext::toBits(CharUnits CharSize) const {

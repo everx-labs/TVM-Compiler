@@ -257,6 +257,10 @@ private:
   /// returns an i32, the lower 16 bits of which coincide with Op, and the upper
   /// 16 bits of which contain rubbish.
   SDValue GetPromotedInteger(SDValue Op) {
+    // TVM local begin
+    if (TLI.isTypeLegal(Op.getValueType()))
+      return Op;
+    // TVM local end
     TableId &PromotedId = PromotedIntegers[getTableId(Op)];
     SDValue PromotedOp = getSDValue(PromotedId);
     assert(PromotedOp.getNode() && "Operand wasn't promoted?");

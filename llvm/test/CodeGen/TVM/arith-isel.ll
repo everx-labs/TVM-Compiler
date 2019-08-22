@@ -1,135 +1,133 @@
 ; RUN: llc < %s -march=tvm -stop-after expand-isel-pseudos | FileCheck %s
-target datalayout = "E-S1024-i256:256:256"
+target datalayout = "E-S257-i1:257:257-i8:257:257-i16:257:257-i32:257:257-i64:257:257-i257:257:257-p:257:257-a:257:257"
 target triple = "tvm"
 
-define i64 @addi64(i64 %par) nounwind {
-; CHECK: %[[VR1:[0-9]+]]:i64 = ARGUMENT 0
-; CHECK: %[[VR0:[0-9]+]]:i64 = CONST_I64 12345
-; CHECK: %[[VR2:[0-9]+]]:i64 = ADD killed %[[VR1]], killed %[[VR0]]
-  %1 = add i64 %par, 12345
-; CHECK: RETURN_I64 killed %[[VR2]]
-	ret i64 %1
+define i257 @addi257(i257 %par) nounwind {
+; CHECK: %[[VR1:[0-9]+]]:i257 = ARGUMENT i257 0
+; CHECK: %[[VR0:[0-9]+]]:i257 = CONST_I257 i257 12345
+; CHECK: %[[VR2:[0-9]+]]:i257 = ADD killed %[[VR1]], killed %[[VR0]]
+  %1 = add i257 %par, 12345
+; CHECK: RETURN_I257 killed %[[VR2]]
+	ret i257 %1
 }
 
-define i64 @subi64(i64 %par, i64 %par2) nounwind {
-; CHECK-DAG: %[[VR0:[0-9]+]]:i64 = ARGUMENT 0
-; CHECK-DAG: %[[VR1:[0-9]+]]:i64 = ARGUMENT 1
-; CHECK: %[[VR2:[0-9]+]]:i64 = SUB killed %[[VR0]], killed %[[VR1]]
-  %1 = sub i64 %par, %par2
-; CHECK: RETURN_I64 killed %[[VR2]]
-  ret i64 %1
+define i257 @subi257(i257 %par, i257 %par2) nounwind {
+; CHECK-DAG: %[[VR0:[0-9]+]]:i257 = ARGUMENT i257 0
+; CHECK-DAG: %[[VR1:[0-9]+]]:i257 = ARGUMENT i257 1
+; CHECK: %[[VR2:[0-9]+]]:i257 = SUB killed %[[VR0]], killed %[[VR1]]
+  %1 = sub i257 %par, %par2
+; CHECK: RETURN_I257 killed %[[VR2]]
+  ret i257 %1
 }
 
 ;TODO complete the test, should be permutation optimization
-define i64 @subri64(i64 %x, i64 %y) nounwind {
- %1 = sub i64  0, %x
- %2 = add i64 %1, %y
- ret i64 %2
+define i257 @subri257(i257 %x, i257 %y) nounwind {
+ %1 = sub i257  0, %x
+ %2 = add i257 %1, %y
+ ret i257 %2
 }
 
-define i64 @negate(i64 %x) nounwind {
-; CHECK: %[[VR0:[0-9]+]]:i64 = ARGUMENT 0, implicit $arguments
-; CHECK: %[[VR1:[0-9]+]]:i64 = NEGATE killed %[[VR0]]
- %1 = sub i64 0, %x
-; CHECK: RETURN_I64 killed %[[VR1]]
- ret i64 %1
+define i257 @negate(i257 %x) nounwind {
+; CHECK: %[[VR0:[0-9]+]]:i257 = ARGUMENT i257 0, implicit $arguments
+; CHECK: %[[VR1:[0-9]+]]:i257 = NEGATE killed %[[VR0]]
+ %1 = sub i257 0, %x
+; CHECK: RETURN_I257 killed %[[VR1]]
+ ret i257 %1
 }
 
-define i64 @increment(i64 %x) nounwind {
-; CHECK: %[[VR0:[0-9]+]]:i64 = ARGUMENT 0, implicit $arguments
-; CHECK: %[[VR1:[0-9]+]]:i64 = INC killed %[[VR0]]
- %1 = add i64 1, %x
-; CHECK: RETURN_I64 killed %[[VR1]]
- ret i64 %1
+define i257 @increment(i257 %x) nounwind {
+; CHECK: %[[VR0:[0-9]+]]:i257 = ARGUMENT i257 0, implicit $arguments
+; CHECK: %[[VR1:[0-9]+]]:i257 = INC killed %[[VR0]]
+ %1 = add i257 1, %x
+; CHECK: RETURN_I257 killed %[[VR1]]
+ ret i257 %1
 }
 
-define i64 @decrement(i64 %x) nounwind {
-; CHECK: %[[VR0:[0-9]+]]:i64 = ARGUMENT 0, implicit $arguments
-; CHECK: %[[VR1:[0-9]+]]:i64 = DEC killed %[[VR0]]
- %1 = add i64 -1, %x
-; CHECK: RETURN_I64 killed %[[VR1]]
- ret i64 %1
+define i257 @decrement(i257 %x) nounwind {
+; CHECK: %[[VR0:[0-9]+]]:i257 = ARGUMENT i257 0, implicit $arguments
+; CHECK: %[[VR1:[0-9]+]]:i257 = DEC killed %[[VR0]]
+ %1 = add i257 -1, %x
+; CHECK: RETURN_I257 killed %[[VR1]]
+ ret i257 %1
 }
 
-define i64 @mul (i64 %x) nounwind {
-; CHECK: %[[VR1:[0-9]+]]:i64 = ARGUMENT 0, implicit $arguments
-; CHECK: %[[VR0:[0-9]+]]:i64 = CONST_I64 1666
-; CHECK: %[[VR2:[0-9]+]]:i64 = MUL killed %[[VR1]], killed %[[VR0]]
-; CHECK: %[[VR3:[0-9]+]]:i64 = CONST_U64 -1
-; CHECK: %[[VR4:[0-9]+]]:i64 = AND killed %[[VR2]], killed %[[VR3]]
- %1 = mul i64 1666, %x
-; CHECK: RETURN_I64 killed %[[VR4]]
- ret i64 %1
+define i257 @mul (i257 %x) nounwind {
+; CHECK: %[[VR1:[0-9]+]]:i257 = ARGUMENT i257 0, implicit $arguments
+; CHECK: %[[VR0:[0-9]+]]:i257 = CONST_I257 i257 1666
+; CHECK: %[[VR2:[0-9]+]]:i257 = MUL killed %[[VR1]], killed %[[VR0]]
+ %1 = mul i257 1666, %x
+; CHECK: RETURN_I257 killed %[[VR2]]
+ ret i257 %1
 }
 
-define i64 @div (i64 %x) nounwind {
-; CHECK: %[[VR0:[0-9]+]]:i64 = ARGUMENT 0, implicit $arguments
-; CHECK: %[[VR1:[0-9]+]]:i64 = CONST_I64 1666
-; CHECK: %[[VR2:[0-9]+]]:i64 = DIV killed %[[VR1]], killed %[[VR0]]
- %1 = call i64 @llvm.tvm.div(i64 1666, i64 %x)
-; CHECK: RETURN_I64 killed %[[VR2]]
- ret i64 %1
+define i257 @div (i257 %x) nounwind {
+; CHECK: %[[VR0:[0-9]+]]:i257 = ARGUMENT i257 0, implicit $arguments
+; CHECK: %[[VR1:[0-9]+]]:i257 = CONST_I257 i257 1666
+; CHECK: %[[VR2:[0-9]+]]:i257 = DIV killed %[[VR1]], killed %[[VR0]]
+ %1 = call i257 @llvm.tvm.div(i257 1666, i257 %x)
+; CHECK: RETURN_I257 killed %[[VR2]]
+ ret i257 %1
 }
 
-define i64 @and (i64 %x, i64 %y) nounwind {
-; CHECK-DAG: %[[VR0:[0-9]+]]:i64 = ARGUMENT 1
-; CHECK-DAG: %[[VR1:[0-9]+]]:i64 = ARGUMENT 0
-; CHECK: %[[VR2:[0-9]+]]:i64 = AND killed %[[VR1]], killed %[[VR0]]
- %1 = and i64 %x, %y
-; CHECK: RETURN_I64 killed %[[VR2]]
- ret i64 %1
+define i257 @and (i257 %x, i257 %y) nounwind {
+; CHECK-DAG: %[[VR0:[0-9]+]]:i257 = ARGUMENT i257 1
+; CHECK-DAG: %[[VR1:[0-9]+]]:i257 = ARGUMENT i257 0
+; CHECK: %[[VR2:[0-9]+]]:i257 = AND killed %[[VR1]], killed %[[VR0]]
+ %1 = and i257 %x, %y
+; CHECK: RETURN_I257 killed %[[VR2]]
+ ret i257 %1
 }
 
-define i64 @or (i64 %x, i64 %y) nounwind {
-; CHECK-DAG: %[[VR0:[0-9]+]]:i64 = ARGUMENT 1
-; CHECK-DAG: %[[VR1:[0-9]+]]:i64 = ARGUMENT 0
-; CHECK: %[[VR2:[0-9]+]]:i64 = OR killed %[[VR1]], killed %[[VR0]]
- %1 = or i64 %x, %y
-; CHECK: RETURN_I64 killed %[[VR2]]
- ret i64 %1
+define i257 @or (i257 %x, i257 %y) nounwind {
+; CHECK-DAG: %[[VR0:[0-9]+]]:i257 = ARGUMENT i257 1
+; CHECK-DAG: %[[VR1:[0-9]+]]:i257 = ARGUMENT i257 0
+; CHECK: %[[VR2:[0-9]+]]:i257 = OR killed %[[VR1]], killed %[[VR0]]
+ %1 = or i257 %x, %y
+; CHECK: RETURN_I257 killed %[[VR2]]
+ ret i257 %1
 }
 
-define i64 @xor (i64 %x, i64 %y) nounwind {
-; CHECK-DAG: %[[VR0:[0-9]+]]:i64 = ARGUMENT 1
-; CHECK-DAG: %[[VR1:[0-9]+]]:i64 = ARGUMENT 0
-; CHECK: %[[VR2:[0-9]+]]:i64 = XOR killed %[[VR1]], killed %[[VR0]]
- %1 = xor i64 %x, %y
-; CHECK: RETURN_I64 killed %[[VR2]]
- ret i64 %1
+define i257 @xor (i257 %x, i257 %y) nounwind {
+; CHECK-DAG: %[[VR0:[0-9]+]]:i257 = ARGUMENT i257 1
+; CHECK-DAG: %[[VR1:[0-9]+]]:i257 = ARGUMENT i257 0
+; CHECK: %[[VR2:[0-9]+]]:i257 = XOR killed %[[VR1]], killed %[[VR0]]
+ %1 = xor i257 %x, %y
+; CHECK: RETURN_I257 killed %[[VR2]]
+ ret i257 %1
 }
 
-define i64 @not (i64 %x) nounwind {
-; CHECK: %[[VR2:[0-9]+]]:i64 = NOT killed %[[VR0]]
- %1 = xor i64 %x, -1
-; CHECK: RETURN_I64 killed %[[VR2]]
- ret i64 %1
+define i257 @not (i257 %x) nounwind {
+; CHECK: %[[VR2:[0-9]+]]:i257 = NOT killed %[[VR0]]
+ %1 = xor i257 %x, -1
+; CHECK: RETURN_I257 killed %[[VR2]]
+ ret i257 %1
 }
 
 
-define i64 @mod (i64 %x, i64 %y) nounwind {
-; CHECK-DAG: %[[VR0:[0-9]+]]:i64 = ARGUMENT 1
-; CHECK-DAG: %[[VR1:[0-9]+]]:i64 = ARGUMENT 0
-; CHECK: %[[VR2:[0-9]+]]:i64 = MOD killed %[[VR1]], killed %[[VR0]]
-  %1 = call i64 @llvm.tvm.mod(i64 %x, i64 %y)
-; CHECK: RETURN_I64 killed %[[VR2]]
-  ret i64 %1
+define i257 @mod (i257 %x, i257 %y) nounwind {
+; CHECK-DAG: %[[VR0:[0-9]+]]:i257 = ARGUMENT i257 1
+; CHECK-DAG: %[[VR1:[0-9]+]]:i257 = ARGUMENT i257 0
+; CHECK: %[[VR2:[0-9]+]]:i257 = MOD killed %[[VR1]], killed %[[VR0]]
+  %1 = call i257 @llvm.tvm.mod(i257 %x, i257 %y)
+; CHECK: RETURN_I257 killed %[[VR2]]
+  ret i257 %1
 }
 
-define i64 @addconst(i64 %x) nounwind {
-; CHECK: %[[VR0:[0-9]+]]:i64 = ARGUMENT 0
-; CHECK: %[[VR1:[0-9]+]]:i64 = ADDCONST killed %[[VR0]], 12
-  %1 = add i64 %x, 12
-; CHECK: RETURN_I64 killed %[[VR1]]
-  ret i64 %1
+define i257 @addconst(i257 %x) nounwind {
+; CHECK: %[[VR0:[0-9]+]]:i257 = ARGUMENT i257 0
+; CHECK: %[[VR1:[0-9]+]]:i257 = ADDCONST killed %[[VR0]], i257 12
+  %1 = add i257 %x, 12
+; CHECK: RETURN_I257 killed %[[VR1]]
+  ret i257 %1
 }
 
-define i64 @mulconst(i64 %x) nounwind {
-; CHECK: %[[VR0:[0-9]+]]:i64 = ARGUMENT 0
-; CHECK: %[[VR1:[0-9]+]]:i64 = MULCONST killed %[[VR0]], 127
-  %1 = mul i64 %x, 127
-; CHECK: RETURN_I64 killed %[[VR1]]
-  ret i64 %1
+define i257 @mulconst(i257 %x) nounwind {
+; CHECK: %[[VR0:[0-9]+]]:i257 = ARGUMENT i257 0
+; CHECK: %[[VR1:[0-9]+]]:i257 = MULCONST killed %[[VR0]], i257 127
+  %1 = mul i257 %x, 127
+; CHECK: RETURN_I257 killed %[[VR1]]
+  ret i257 %1
 }
 
-declare i64 @llvm.tvm.div(i64, i64) nounwind
-declare i64 @llvm.tvm.mod(i64, i64) nounwind
+declare i257 @llvm.tvm.div(i257, i257) nounwind
+declare i257 @llvm.tvm.mod(i257, i257) nounwind

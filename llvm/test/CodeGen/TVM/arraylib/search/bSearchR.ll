@@ -1,55 +1,56 @@
-; RUN: llc < %s -march=tvm
-target datalayout = "E-S1024-i256:256:256"
+; RUN: llc < %s -march=tvm 
+; ModuleID = 'bSearchR.c'
+source_filename = "bSearchR.c"
+target datalayout = "E-S257-i1:257:257-i8:257:257-i16:257:257-i32:257:257-i64:257:257-i257:257:257-p:257:257-a:257:257"
 target triple = "tvm"
 
-; Function Attrs: nounwind readonly sspstrong uwtable
-define dso_local i64 @bSearchR(i64* readonly, i64, i64, i64) local_unnamed_addr #0 {
-  %5 = icmp sgt i64 %1, %2
-  br i1 %5, label %24, label %6
+; Function Attrs: nounwind readonly
+define dso_local i257 @bSearchR(i257* readonly %arr, i257 %start, i257 %end, i257 %key) local_unnamed_addr #0 {
+entry:
+  %cmp2729 = icmp sgt i257 %start, %end
+  br i1 %cmp2729, label %cleanup, label %if.then.lr.ph
 
-; <label>:6:                                      ; preds = %4, %21
-  %7 = phi i64 [ %10, %21 ], [ %2, %4 ]
-  %8 = phi i64 [ %22, %21 ], [ %1, %4 ]
-  br label %9
+if.then.lr.ph:                                    ; preds = %entry, %if.then5
+  %end.tr.ph31 = phi i257 [ %end.tr28, %if.then5 ], [ %end, %entry ]
+  %start.tr.ph30 = phi i257 [ %add6, %if.then5 ], [ %start, %entry ]
+  br label %if.then
 
-; <label>:9:                                      ; preds = %16, %6
-  %10 = phi i64 [ %7, %6 ], [ %17, %16 ]
-  %11 = add nsw i64 %10, %8
-  %12 = sdiv i64 %11, 2
-  %13 = getelementptr inbounds i64, i64* %0, i64 %12
-  %14 = load i64, i64* %13, align 8, !tbaa !4
-  %15 = icmp sgt i64 %14, %3
-  br i1 %15, label %16, label %19
+if.then:                                          ; preds = %if.then2, %if.then.lr.ph
+  %end.tr28 = phi i257 [ %end.tr.ph31, %if.then.lr.ph ], [ %sub, %if.then2 ]
+  %add = add nsw i257 %end.tr28, %start.tr.ph30
+  %div = sdiv i257 %add, 2
+  %arrayidx = getelementptr inbounds i257, i257* %arr, i257 %div
+  %0 = load i257, i257* %arrayidx, align 1, !tbaa !2
+  %cmp1 = icmp sgt i257 %0, %key
+  br i1 %cmp1, label %if.then2, label %if.end
 
-; <label>:16:                                     ; preds = %9
-  %17 = add nsw i64 %12, -1
-  %18 = icmp slt i64 %8, %12
-  br i1 %18, label %9, label %24
+if.then2:                                         ; preds = %if.then
+  %sub = add nsw i257 %div, -1
+  %cmp = icmp slt i257 %start.tr.ph30, %div
+  br i1 %cmp, label %if.then, label %cleanup
 
-; <label>:19:                                     ; preds = %9
-  %20 = icmp slt i64 %14, %3
-  br i1 %20, label %21, label %24
+if.end:                                           ; preds = %if.then
+  %cmp4 = icmp slt i257 %0, %key
+  br i1 %cmp4, label %if.then5, label %cleanup
 
-; <label>:21:                                     ; preds = %19
-  %22 = add nsw i64 %12, 1
-  %23 = icmp slt i64 %12, %10
-  br i1 %23, label %6, label %24
+if.then5:                                         ; preds = %if.end
+  %add6 = add nsw i257 %div, 1
+  %cmp27 = icmp slt i257 %div, %end.tr28
+  br i1 %cmp27, label %if.then.lr.ph, label %cleanup
 
-; <label>:24:                                     ; preds = %21, %19, %16, %4
-  %25 = phi i64 [ -1, %4 ], [ -1, %16 ], [ -1, %21 ], [ %12, %19 ]
-  ret i64 %25
+cleanup:                                          ; preds = %if.then5, %if.end, %if.then2, %entry
+  %retval.0 = phi i257 [ -1, %entry ], [ -1, %if.then2 ], [ -1, %if.then5 ], [ %div, %if.end ]
+  ret i257 %retval.0
 }
 
-attributes #0 = { nounwind readonly sspstrong uwtable "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "less-precise-fpmad"="false" "min-legal-vector-width"="0" "no-frame-pointer-elim"="false" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="-3dnow,-3dnowa,-aes,-avx,-avx2,-avx512bitalg,-avx512bw,-avx512cd,-avx512dq,-avx512er,-avx512f,-avx512ifma,-avx512pf,-avx512vbmi,-avx512vbmi2,-avx512vl,-avx512vnni,-avx512vpopcntdq,-f16c,-fma,-fma4,-fxsr,-gfni,-mmx,-pclmul,-sha,-sse,-sse2,-sse3,-sse4.1,-sse4.2,-sse4a,-ssse3,-vaes,-vpclmulqdq,-x87,-xop,-xsave,-xsaveopt" "unsafe-fp-math"="false" "use-soft-float"="false" }
+attributes #0 = { nounwind readonly "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "unsafe-fp-math"="false" "use-soft-float"="false" }
 
-!llvm.module.flags = !{!0, !1, !2}
-!llvm.ident = !{!3}
+!llvm.module.flags = !{!0}
+!llvm.ident = !{!1}
 
-!0 = !{i32 1, !"wchar_size", i32 4}
-!1 = !{i32 7, !"PIC Level", i32 2}
-!2 = !{i32 7, !"PIE Level", i32 2}
-!3 = !{!"clang version 8.0.0 (tags/RELEASE_800/final)"}
-!4 = !{!5, !5, i64 0}
-!5 = !{!"long", !6, i64 0}
-!6 = !{!"omnipotent char", !7, i64 0}
-!7 = !{!"Simple C/C++ TBAA"}
+!0 = !{i32 1, !"wchar_size", i32 1}
+!1 = !{!"clang version 7.0.0 "}
+!2 = !{!3, !3, i64 0}
+!3 = !{!"long", !4, i64 0}
+!4 = !{!"omnipotent char", !5, i64 0}
+!5 = !{!"Simple C/C++ TBAA"}

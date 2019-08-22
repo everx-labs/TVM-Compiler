@@ -4,8 +4,8 @@ define void @foo() {
         ret void
 }
 
-define i32 @main() {
+define i257 @main() {
         call void @foo( )
-        ret i32 0
+        ret i257 0
 }
 

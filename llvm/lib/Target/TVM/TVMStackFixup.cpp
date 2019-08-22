@@ -632,9 +632,9 @@ operator()(const std::pair<Change, std::string> &pair) const {
                        .addImm(v.deepSz).addImm(v.topSz)
                        .getInstr();
         } else {
-          BuildMI(*MBB, InsertPt, DL, TII->get(TVM::CONST_U64_S)).
+          BuildMI(*MBB, InsertPt, DL, TII->get(TVM::CONST_U257_S)).
                   addImm(v.deepSz);
-          BuildMI(*MBB, InsertPt, DL, TII->get(TVM::CONST_U64_S)).
+          BuildMI(*MBB, InsertPt, DL, TII->get(TVM::CONST_U257_S)).
                   addImm(v.topSz);
           MI = BuildMI(*MBB, InsertPt, DL, TII->get(TVM::BLKSWX)).getInstr();
         }
@@ -647,7 +647,7 @@ operator()(const std::pair<Change, std::string> &pair) const {
                        .getInstr();
         } else {
           auto rollOp = v.i > 0 ? TVM::ROLLX : TVM::ROLLREVX;
-          BuildMI(*MBB, InsertPt, DL, TII->get(TVM::CONST_U64_S)).
+          BuildMI(*MBB, InsertPt, DL, TII->get(TVM::CONST_U257_S)).
                   addImm(std::abs(v.i));
           MI = BuildMI(*MBB, InsertPt, DL, TII->get(rollOp)).getInstr();
         }
@@ -664,7 +664,7 @@ operator()(const std::pair<Change, std::string> &pair) const {
                        .addImm(v.sz)
                        .getInstr();
         } else {
-          BuildMI(*MBB, InsertPt, DL, TII->get(TVM::CONST_U64_S)).addImm(v.sz);
+          BuildMI(*MBB, InsertPt, DL, TII->get(TVM::CONST_U257_S)).addImm(v.sz);
           MI = BuildMI(*MBB, InsertPt, DL, TII->get(TVM::DROPX)).getInstr();
         }
       },

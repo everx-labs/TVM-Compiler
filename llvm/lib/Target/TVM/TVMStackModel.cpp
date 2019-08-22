@@ -429,7 +429,7 @@ bool TVMStackModel::runOnMachineFunction(MachineFunction &MF) {
       break;
     unsigned Reg = MI.getOperand(0).getReg();
     assert(!MFI->isVRegStackified(Reg));
-    unsigned ArgNo = NumArgs - MI.getOperand(1).getImm() - 1;
+    unsigned ArgNo = NumArgs - MI.getOperand(1).getCImm()->getZExtValue() - 1;
     StartStack.set(ArgNo, StackVreg(Reg, findDebugValue(MI, Reg)));
     MI.eraseFromParent();
     Changed = true;
@@ -541,7 +541,7 @@ void TVMStackModel::rewriteToSForm(MachineInstr &MI, std::string &PreTermStackSt
   unsigned NewOpcode = TVM::RegForm2SForm[MI.getOpcode()];
 
   size_t NumGlobals = llvm::count_if(MI.uses(), [](const MachineOperand& MO) { return MO.isGlobal() || MO.isSymbol(); });
-  size_t NumImms = llvm::count_if(MI.uses(), [](const MachineOperand& MO) { return MO.isImm(); });
+  size_t NumImms = llvm::count_if(MI.uses(), [](const MachineOperand& MO) { return MO.isImm() || MO.isCImm(); });
 
   if (NewOpcode >= 0) {
     // Global operands and external symbols are represented using GlobalAddress
@@ -594,8 +594,11 @@ void TVMStackModel::rewriteToSForm(MachineInstr &MI, std::string &PreTermStackSt
         // Imms are expected to be in continuous sequence
         //  in register version of MI
         const auto &Op = MI.getOperand(NumOperands - NumImms + I);
-        assert(Op.isImm() && "Expected Imm");
-        MIB.addImm(Op.getImm());
+        assert(Op.isImm() || Op.isCImm() && "Expected Imm or CImm");
+        if (Op.isImm())
+          MIB.addImm(Op.getImm());
+        else
+          MIB.addCImm(Op.getCImm());
       }
     }
 

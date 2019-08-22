@@ -289,4 +289,8 @@ StackFixup Stack::operator-(const Stack &v) const {
   return StackFixup::Diff(*this, v);
 }
 
+void StackVreg::print(const Stack &S) const {
+  S.printElement(dbgs(), *this);
+}
+
 } // namespace llvm

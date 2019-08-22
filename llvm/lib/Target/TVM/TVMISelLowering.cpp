@@ -66,27 +66,41 @@ TVMTargetLowering::TVMTargetLowering(const TargetMachine &TM,
 
   // Set up the register classes.
   // addRegisterClass(MVT::i8,  &TVM::GR8RegClass);
-  addRegisterClass(MVT::i64, &TVM::I64RegClass);
+  addRegisterClass(MVT::i257, &TVM::I257RegClass);
 
   // Compute derived properties from the register classes
   computeRegisterProperties(STI.getRegisterInfo());
 
-  setOperationAction(ISD::GlobalAddress, MVT::i64, Custom);
-  setOperationAction(ISD::FrameIndex, MVT::i64, Custom);
-  setOperationAction(ISD::ExternalSymbol, MVT::i64, Custom);
+  setOperationAction(ISD::MULHS, MVT::i257, Expand);
+  setOperationAction(ISD::MULHU, MVT::i257, Expand);
+  setOperationAction(ISD::SMUL_LOHI, MVT::i257, Expand);
+  setOperationAction(ISD::UMUL_LOHI, MVT::i257, Expand);
+  setOperationAction(ISD::MULHS, MVT::i256, Expand);
+  setOperationAction(ISD::MULHU, MVT::i256, Expand);
+  setOperationAction(ISD::SMUL_LOHI, MVT::i256, Expand);
+  setOperationAction(ISD::UMUL_LOHI, MVT::i256, Expand);
+
+  setOperationAction(ISD::GlobalAddress, MVT::i256, Custom);
+  setOperationAction(ISD::GlobalAddress, MVT::i257, Custom);
+  setOperationAction(ISD::LOAD, MVT::i256, Custom);
+  setOperationAction(ISD::STORE, MVT::i256, Custom);
+  setOperationAction(ISD::TargetFrameIndex, MVT::i256, Custom);
+  setOperationAction(ISD::FrameIndex, MVT::i256, Custom);
+  setOperationAction(ISD::FrameIndex, MVT::i257, Custom);
+  setOperationAction(ISD::ExternalSymbol, MVT::i256, Custom);
+  setOperationAction(ISD::ExternalSymbol, MVT::i257, Custom);
   setOperationAction(ISD::BR, MVT::Other, Custom);
   setOperationAction(ISD::BRCOND, MVT::Other, Custom);
   setOperationAction(ISD::CopyToReg, MVT::Other, Custom);
 
+  setOperationAction(ISD::ADD, MVT::i256, Promote);
+
   // Custom lowering for intrinsics that unrolls into more than one
   // MIR instructions.
   setOperationAction(ISD::INTRINSIC_W_CHAIN, MVT::Other, Custom);
-  setOperationAction(ISD::ABS, MVT::i64, Legal);
-  setOperationAction(ISD::SMAX, MVT::i64, Legal);
-  setOperationAction(ISD::SMIN, MVT::i64, Legal);
-
-  setOperationAction(ISD::SMUL_LOHI, MVT::i64, Custom);
-  setOperationAction(ISD::UMUL_LOHI, MVT::i64, Custom);
+  setOperationAction(ISD::ABS, MVT::i257, Legal);
+  setOperationAction(ISD::SMAX, MVT::i257, Legal);
+  setOperationAction(ISD::SMIN, MVT::i257, Legal);
 
   setMinFunctionAlignment(1);
   setPrefFunctionAlignment(1);
@@ -100,9 +114,11 @@ TVMTargetLowering::TVMTargetLowering(const TargetMachine &TM,
   // Support of truncate, sext, zext
   setTargetDAGCombine(ISD::TRUNCATE);
 
+  setTargetDAGCombine(ISD::ANY_EXTEND);
+
   // Expand these forms; we pattern-match the forms that we can handle in isel.
   for (auto Op : {ISD::BR_CC, ISD::SELECT_CC})
-    setOperationAction(Op, MVT::i64, Expand);
+    setOperationAction(Op, MVT::i257, Expand);
 }
 
 //===----------------------------------------------------------------------===//
@@ -160,8 +176,8 @@ SDValue TVMTargetLowering::LowerCall(CallLoweringInfo &CLI,
   SmallVectorImpl<SDValue> &OutVals = CLI.OutVals;
   for (unsigned i = 0; i < Outs.size(); ++i) {
     const ISD::OutputArg &Out = Outs[i];
-    assert(Out.VT.SimpleTy == MVT::SimpleValueType::i64 &&
-           "only i64 is supported");
+    assert(Out.VT.SimpleTy == MVT::SimpleValueType::i257 &&
+           "only i257 is supported");
   }
 
   // Compute the operands for the CALLn node.
@@ -174,8 +190,8 @@ SDValue TVMTargetLowering::LowerCall(CallLoweringInfo &CLI,
   for (const auto &In : Ins) {
     // TODO: add checks for In.Flags (copy from
     // WebAssemblyTargetLowering::LowerCall())
-    assert(In.VT.SimpleTy == MVT::SimpleValueType::i64 &&
-           "only i64 is supported");
+    assert(In.VT.SimpleTy == MVT::SimpleValueType::i257 &&
+           "only i257 is supported");
     InTys.push_back(In.VT);
   }
   InTys.push_back(MVT::Other);
@@ -267,7 +283,7 @@ SDValue TVMTargetLowering::LowerFormalArguments(
     // registers.
     InVals.push_back(In.Used ? DAG.getNode(TVMISD::ARGUMENT, DL, In.VT,
                                            DAG.getTargetConstant(InVals.size(),
-                                                                 DL, MVT::i64))
+                                                                 DL, MVT::i257))
                              : DAG.getUNDEF(In.VT));
     FI->addParam(In.VT);
   }
@@ -283,12 +299,12 @@ SDValue TVMTargetLowering::SaveC0(SDValue Chain, const SDLoc &DL,
 
   // Save c0 for further return lowering
   SDValue GetC0Ops[] = {
-      DAG.getTargetConstant(Intrinsic::tvm_getreg, DL, MVT::i64),
-      DAG.getConstant(0, DL, MVT::i64)};
-  SDValue GetC0 = DAG.getNode(ISD::INTRINSIC_WO_CHAIN, DL, MVT::i64, GetC0Ops);
+      DAG.getTargetConstant(Intrinsic::tvm_getreg, DL, MVT::i257),
+      DAG.getConstant(0, DL, MVT::i257)};
+  SDValue GetC0 = DAG.getNode(ISD::INTRINSIC_WO_CHAIN, DL, MVT::i257, GetC0Ops);
 
   MachineRegisterInfo &MRI = MF.getRegInfo();
-  unsigned C0VirtReg = MRI.createVirtualRegister(&TVM::I64RegClass);
+  unsigned C0VirtReg = MRI.createVirtualRegister(&TVM::I257RegClass);
   SDValue C0VirtRegNode = DAG.getCopyToReg(Chain, DL, C0VirtReg, GetC0);
 
   FI->setC0VirtReg(C0VirtReg);
@@ -324,13 +340,28 @@ SDValue TVMTargetLowering::RestoreC0(SDValue Chain, const SDLoc &DL,
     return Chain;
 
   unsigned C0VirtReg = FI->getC0VirtReg();
-  SDValue GetC0VirtReg = DAG.getCopyFromReg(Chain, DL, C0VirtReg, MVT::i64);
+  SDValue GetC0VirtReg = DAG.getCopyFromReg(Chain, DL, C0VirtReg, MVT::i257);
   SDValue SetC0Ops[] = {
-      Chain, DAG.getTargetConstant(Intrinsic::tvm_setreg, DL, MVT::i64),
-      DAG.getConstant(0, DL, MVT::i64), GetC0VirtReg};
+      Chain, DAG.getTargetConstant(Intrinsic::tvm_setreg, DL, MVT::i257),
+      DAG.getConstant(0, DL, MVT::i257), GetC0VirtReg};
   SDValue SetC0 = DAG.getNode(ISD::INTRINSIC_VOID, DL, MVT::Other, SetC0Ops);
 
   return SetC0;
+}
+
+EVT TVMTargetLowering::getOptimalMemOpType(uint64_t Size, unsigned DstAlign,
+                                           unsigned SrcAlign, bool IsMemset,
+                                           bool ZeroMemset,
+                                           bool MemcpyStrSrc,
+                                           MachineFunction &MF) const {
+  return MVT::i257;
+}
+
+bool TVMTargetLowering::allowsMisalignedMemoryAccesses(EVT VT,
+                                                       unsigned AddrSpace,
+                                                       unsigned Align,
+                                                       bool *Fast) const {
+  return true;
 }
 
 //===----------------------------------------------------------------------===//
@@ -341,20 +372,21 @@ SDValue TVMTargetLowering::LowerOperation(SDValue Op, SelectionDAG &DAG) const {
   switch (Op.getOpcode()) {
   case ISD::GlobalAddress:
     return LowerGlobalAddress(Op, DAG);
+  case ISD::LOAD:
+    return LowerLoad(Op, DAG);
+  case ISD::STORE:
+    return LowerStore(Op, DAG);
   case ISD::ExternalSymbol:
     return LowerExternalSymbol(Op, DAG);
   case ISD::BR:
     return LowerBR(Op, DAG);
   case ISD::BRCOND:
     return LowerBRCOND(Op, DAG);
+  case ISD::TargetFrameIndex:
   case ISD::FrameIndex:
     return LowerFrameIndex(Op, DAG);
   case ISD::CopyToReg:
     return LowerCopyToReg(Op, DAG);
-  case ISD::SMUL_LOHI:
-    return LowerSMUL_LOHI(Op, DAG);
-  case ISD::UMUL_LOHI:
-    return LowerUMUL_LOHI(Op, DAG);
   case ISD::INTRINSIC_W_CHAIN:
     return LowerINTRINSIC_W_CHAIN(Op, DAG);
   default:
@@ -362,11 +394,62 @@ SDValue TVMTargetLowering::LowerOperation(SDValue Op, SelectionDAG &DAG) const {
   }
 }
 
+/// Replace a node with an illegal result type with a new node built out of
+/// custom code.
+void TVMTargetLowering::ReplaceNodeResults(SDNode *N,
+                                           SmallVectorImpl<SDValue> &Results,
+                                           SelectionDAG &DAG) const {
+  switch (N->getOpcode()) {
+  default:
+    llvm_unreachable("Do not know how to custom type legalize this operation!");
+  case ISD::GlobalAddress:
+    Results.push_back(LowerGlobalAddress(SDValue(N, 0), DAG));
+    return;
+  case ISD::ExternalSymbol:
+    Results.push_back(LowerExternalSymbol(SDValue(N, 0), DAG));
+    return;
+  case ISD::TargetFrameIndex:
+  case ISD::FrameIndex:
+    Results.push_back(LowerFrameIndex(SDValue(N, 0), DAG));
+    return;
+  case ISD::LOAD:
+    LowerOperationWrapper(N, Results, DAG);
+    return;
+  }
+}
+
+/// Places new result values for the node in Results (their number
+/// and types must exactly match those of the original return values of
+/// the node), or leaves Results empty, which indicates that the node is not
+/// to be custom lowered after all.
+void TVMTargetLowering::LowerOperationWrapper(SDNode *N,
+                                              SmallVectorImpl<SDValue> &Results,
+                                              SelectionDAG &DAG) const {
+  // Code taken from X86 backend
+  SDValue Res = LowerOperation(SDValue(N, 0), DAG);
+
+  if (!Res.getNode())
+    return;
+
+  assert((N->getNumValues() <= Res->getNumValues()) &&
+      "Lowering returned the wrong number of results!");
+
+  // Places new result values base on N result number.
+  // In some cases Res has more result values
+  // than original node, chain should be dropped(last value).
+  for (unsigned I = 0, E = N->getNumValues(); I != E; ++I)
+    Results.push_back(Res.getValue(I));
+}
+
 SDValue TVMTargetLowering::PerformDAGCombine(SDNode *N,
                                              DAGCombinerInfo &DCI) const {
   SelectionDAG &DAG = DCI.DAG;
   SDLoc DL(N);
   switch (N->getOpcode()) {
+  case ISD::ANY_EXTEND:
+    if (N->getOperand(0)->getValueType(0) == N->getValueType(0))
+      return N->getOperand(0);
+    break;
   case ISD::TRUNCATE: {
     // TVM uses only one value type for all operations. This leads to folding
     // of all truncate nodes during legalization because there is no truncation
@@ -412,7 +495,7 @@ SDValue TVMTargetLowering::LowerGlobalAddress(SDValue Op,
                                               SelectionDAG &DAG) const {
   SDLoc DL(Op);
   const auto *GA = cast<GlobalAddressSDNode>(Op);
-  EVT VT = Op.getValueType();
+  EVT VT = MVT::i257;
   assert(GA->getTargetFlags() == 0 &&
          "Unexpected target flags on generic GlobalAddressSDNode");
   if (GA->getAddressSpace() != 0)
@@ -422,11 +505,58 @@ SDValue TVMTargetLowering::LowerGlobalAddress(SDValue Op,
       DAG.getTargetGlobalAddress(GA->getGlobal(), DL, VT, GA->getOffset()));
 }
 
+SDValue TVMTargetLowering::LowerLoad(SDValue Op, SelectionDAG &DAG) const {
+  assert(Op.getOpcode() == ISD::LOAD && "Wrong op");
+  const auto *Ld = cast<LoadSDNode>(Op);
+  SDLoc DL(Op);
+  auto VT = Op.getValueType();
+  auto Chain = Ld->getChain();
+  auto Ptr = Ld->getBasePtr();
+
+  if (Ptr.getOpcode() == ISD::TRUNCATE)
+    Ptr = Ptr.getOperand(0);
+  if (Ptr.getValueType() != MVT::i257)
+    Ptr = DAG.getNode(ISD::ANY_EXTEND, DL, MVT::i257, Ptr);
+
+  if (Ld->getMemoryVT() == MVT::i256) {
+    return DAG.getExtLoad(ISD::ZEXTLOAD, DL, MVT::i257, Chain, Ptr, MVT::i256,
+                          Ld->getMemOperand());
+  }
+  assert(Ld->getMemoryVT() == MVT::i257 && "Wrong Mem VT");
+  assert(Ld->getExtensionType() == ISD::NON_EXTLOAD && "Non-expected ext load");
+  return DAG.getLoad(VT, DL, Chain, Ptr, Ld->getMemOperand());
+}
+
+SDValue TVMTargetLowering::LowerStore(SDValue Op, SelectionDAG &DAG) const {
+  assert(Op.getOpcode() == ISD::STORE && "Wrong op");
+  const auto *St = cast<StoreSDNode>(Op);
+  SDLoc DL(Op);
+  auto Chain = St->getChain();
+  auto Ptr = St->getBasePtr();
+  auto Val = St->getValue();
+  auto PtrVT = Ptr.getValueType();
+  assert((PtrVT == MVT::i256 || PtrVT == MVT::i257) && "Wrong Ptr type");
+  if (Ptr.getOpcode() == ISD::TRUNCATE)
+    Ptr = Ptr.getOperand(0);
+  if (Ptr.getValueType() != MVT::i257)
+    Ptr = DAG.getNode(ISD::ANY_EXTEND, DL, MVT::i257, Ptr);
+  if (Val.getValueType() != MVT::i257)
+    Val = DAG.getNode(ISD::ANY_EXTEND, DL, MVT::i257, Val);
+  if (St->getMemoryVT() == MVT::i256) {
+    return DAG.getTruncStore(Chain, DL, Val, Ptr, MVT::i256,
+                             St->getMemOperand());
+  }
+  assert(St->getMemoryVT() == MVT::i257 && "Wrong Mem VT");
+  assert(!St->isTruncatingStore() && "Non-expected trunc store");
+
+  return DAG.getStore(Chain, DL, Val, Ptr, St->getMemOperand());
+}
+
 SDValue TVMTargetLowering::LowerExternalSymbol(SDValue Op,
                                                SelectionDAG &DAG) const {
   SDLoc DL(Op);
   const auto *ES = cast<ExternalSymbolSDNode>(Op);
-  EVT VT = Op.getValueType();
+  EVT VT = MVT::i257;
   assert(ES->getTargetFlags() == 0 &&
          "Unexpected target flags on generic ExternalSymbolSDNode");
   // Code excerpt: copied from WebAssembly
@@ -445,18 +575,18 @@ SDValue TVMTargetLowering::LowerBR(SDValue Op,
   SDLoc DL(Op);
   SDValue Chain = Op.getOperand(0);
   SDValue Dest  = Op.getOperand(1);
-  SDValue Zero = DAG.getTargetConstant(0, DL, MVT::i64);
+  SDValue Zero = DAG.getTargetConstant(0, DL, MVT::i257);
   if (Chain.getOpcode() == ISD::BRCOND) {
     SDValue PrevChain = Chain->getOperand(0), Cond = Chain->getOperand(1),
             ThenBr = Chain->getOperand(2), ElseBr = Dest;
 
-    ThenBr = DAG.getNode(TVMISD::BBWrapper, DL, MVT::i64, ThenBr, Zero);
-    ElseBr = DAG.getNode(TVMISD::BBWrapper, DL, MVT::i64, ElseBr, Zero);
+    ThenBr = DAG.getNode(TVMISD::BBWrapper, DL, MVT::i257, ThenBr, Zero);
+    ElseBr = DAG.getNode(TVMISD::BBWrapper, DL, MVT::i257, ElseBr, Zero);
 
     return DAG.getNode(TVMISD::IFELSE, DL, MVT::Other, PrevChain, Cond,
                        ThenBr, ElseBr);
   }
-  Dest = DAG.getNode(TVMISD::BBWrapper, DL, MVT::i64, Dest, Zero);
+  Dest = DAG.getNode(TVMISD::BBWrapper, DL, MVT::i257, Dest, Zero);
   return DAG.getNode(TVMISD::JUMPX, DL, MVT::Other, Chain, Dest);
 }
 
@@ -466,8 +596,8 @@ SDValue TVMTargetLowering::LowerBRCOND(SDValue Op,
   SDValue Chain = Op.getOperand(0);
   SDValue Cond  = Op.getOperand(1);
   SDValue Dest  = Op.getOperand(2);
-  SDValue Zero = DAG.getTargetConstant(0, DL, MVT::i64);
-  Dest = DAG.getNode(TVMISD::BBWrapper, DL, MVT::i64, Dest, Zero);
+  SDValue Zero = DAG.getTargetConstant(0, DL, MVT::i257);
+  Dest = DAG.getNode(TVMISD::BBWrapper, DL, MVT::i257, Dest, Zero);
   return DAG.getNode(TVMISD::IFJMP, DL, MVT::Other, Chain, Dest, Cond);
 }
 
@@ -507,52 +637,7 @@ SDValue TVMTargetLowering::LowerCopyToReg(SDValue Op, SelectionDAG &DAG) const {
 SDValue TVMTargetLowering::LowerFrameIndex(SDValue Op,
                                            SelectionDAG &DAG) const {
   int FI = cast<FrameIndexSDNode>(Op)->getIndex();
-  return DAG.getTargetFrameIndex(FI, Op.getValueType());
-}
-
-SDValue TVMTargetLowering::LowerSMUL_LOHI(SDValue Op, SelectionDAG &DAG) const {
-  EVT VT = Op.getValueType();
-  SDLoc DL(Op);
-  SDValue Ops[2];
-
-  auto L = Op.getOperand(0);
-  auto R = Op.getOperand(1);
-
-  // Mul = L * R
-  // Op0 = Mul & (uint64)-1.
-  // Op1 = Mul >> 64
-  SDValue Mul = DAG.getNode(TVMISD::MUL, DL, VT, L, R);
-  SDValue U64Mask = DAG.getTargetConstant((uint64_t)(int64_t)-1, DL, VT);
-  SDValue Offset = DAG.getTargetConstant(64, DL, VT);
-  SDValue U64 = DAG.getNode(TVMISD::CONST_U64, DL, VT, U64Mask);
-  Ops[0] = DAG.getNode(TVMISD::AND, DL, VT, Mul, U64);
-  Ops[1] = DAG.getNode(TVMISD::RSHIFT, DL, VT, Mul, Offset);
-  return DAG.getMergeValues(Ops, DL);
-}
-
-SDValue TVMTargetLowering::LowerUMUL_LOHI(SDValue Op, SelectionDAG &DAG) const {
-  EVT VT = Op.getValueType();
-  SDLoc DL(Op);
-  SDValue Ops[2];
-
-  auto L = Op.getOperand(0);
-  auto R = Op.getOperand(1);
-
-  // UMul = (L & (uint64)-1) * (R & (uint64)-1)
-  // Op0 = Mul & (uint64)-1.
-  // Op1 = Mul >> 64
-
-  SDValue U64Mask = DAG.getTargetConstant((uint64_t)(int64_t)-1, DL, VT);
-  SDValue U64 = DAG.getNode(TVMISD::CONST_U64, DL, VT, U64Mask);
-  L = DAG.getNode(TVMISD::AND, DL, VT, L, U64);
-  R = DAG.getNode(TVMISD::AND, DL, VT, R, U64);
-
-  SDValue Mul = DAG.getNode(TVMISD::MUL, DL, VT, L, R);
-  SDValue Offset = DAG.getTargetConstant(64, DL, VT);
-
-  Ops[0] = DAG.getNode(TVMISD::AND, DL, VT, Mul, U64);
-  Ops[1] = DAG.getNode(TVMISD::RSHIFT, DL, VT, Mul, Offset);
-  return DAG.getMergeValues(Ops, DL);
+  return DAG.getTargetFrameIndex(FI, MVT::i257);
 }
 
 SDValue TVMTargetLowering::LowerINTRINSIC_W_CHAIN(SDValue Op,
@@ -565,30 +650,30 @@ SDValue TVMTargetLowering::LowerINTRINSIC_W_CHAIN(SDValue Op,
     break;
   /// Instrinsic operands are {chain, ID, parameters...} tuple.
   case Intrinsic::tvm_get_persistent_data: {
-    SDValue Result = DAG.getNode(TVMISD::PUSHROOT, DL, MVT::i64, Chain);
-    Result = DAG.getNode(TVMISD::CTOS, DL, MVT::i64, Result);
+    SDValue Result = DAG.getNode(TVMISD::PUSHROOT, DL, MVT::i257, Chain);
+    Result = DAG.getNode(TVMISD::CTOS, DL, MVT::i257, Result);
     return DAG.getMergeValues({Result.getValue(0), Chain}, DL);
   }
   case Intrinsic::tvm_inttoslice: {
-    SDValue Precision = DAG.getConstant(256, DL, MVT::i64);
-    SDValue Result = DAG.getNode(TVMISD::NEWC, DL, MVT::i64);
-    Result = DAG.getNode(TVMISD::STU, DL, MVT::i64, Op->getOperand(2),
+    SDValue Precision = DAG.getConstant(256, DL, MVT::i257);
+    SDValue Result = DAG.getNode(TVMISD::NEWC, DL, MVT::i257);
+    Result = DAG.getNode(TVMISD::STU, DL, MVT::i257, Op->getOperand(2),
                          Result.getValue(0), Precision);
-    Result = DAG.getNode(TVMISD::ENDC, DL, MVT::i64, Result);
-    Result = DAG.getNode(TVMISD::CTOS, DL, MVT::i64, Result);
+    Result = DAG.getNode(TVMISD::ENDC, DL, MVT::i257, Result);
+    Result = DAG.getNode(TVMISD::CTOS, DL, MVT::i257, Result);
     return DAG.getMergeValues({Result.getValue(0), Chain}, DL);
   }
   case Intrinsic::tvm_stoc: {
-    SDValue Result = DAG.getNode(TVMISD::NEWC, DL, MVT::i64);
+    SDValue Result = DAG.getNode(TVMISD::NEWC, DL, MVT::i257);
     Result =
-        DAG.getNode(TVMISD::STSLICE, DL, MVT::i64, Op->getOperand(2), Result);
-    Result = DAG.getNode(TVMISD::ENDC, DL, MVT::i64, Result);
+        DAG.getNode(TVMISD::STSLICE, DL, MVT::i257, Op->getOperand(2), Result);
+    Result = DAG.getNode(TVMISD::ENDC, DL, MVT::i257, Result);
     return DAG.getMergeValues({Result.getValue(0), Chain}, DL);
   }
   case Intrinsic::tvm_ldu: {
-    SDValue Precision = DAG.getConstant(256, DL, MVT::i64);
+    SDValue Precision = DAG.getConstant(256, DL, MVT::i257);
     SDValue Result =
-        DAG.getNode(TVMISD::LDU, DL, DAG.getVTList(MVT::i64, MVT::i64),
+        DAG.getNode(TVMISD::LDU, DL, DAG.getVTList(MVT::i257, MVT::i257),
                     Op->getOperand(2), Precision);
     return DAG.getMergeValues({Result.getValue(0), Result.getValue(1), Chain},
                               DL);
@@ -596,27 +681,27 @@ SDValue TVMTargetLowering::LowerINTRINSIC_W_CHAIN(SDValue Op,
   case Intrinsic::tvm_retrieve_signed: {
     // arguments: slice, from, len
     SDValue Skip1 =
-        DAG.getNode(TVMISD::LDSLICEX, DL, DAG.getVTList(MVT::i64, MVT::i64),
+        DAG.getNode(TVMISD::LDSLICEX, DL, DAG.getVTList(MVT::i257, MVT::i257),
                     Op->getOperand(2), Op->getOperand(3));
     SDValue Result =
-        DAG.getNode(TVMISD::LDIX, DL, DAG.getVTList(MVT::i64, MVT::i64),
+        DAG.getNode(TVMISD::LDIX, DL, DAG.getVTList(MVT::i257, MVT::i257),
                     Skip1.getValue(0), Op->getOperand(4));
     return DAG.getMergeValues({Result.getValue(0), Chain}, DL);
   }
   case Intrinsic::tvm_retrieve_unsigned: {
     // arguments: slice, from, len
     SDValue Skip1 =
-        DAG.getNode(TVMISD::LDSLICEX, DL, DAG.getVTList(MVT::i64, MVT::i64),
+        DAG.getNode(TVMISD::LDSLICEX, DL, DAG.getVTList(MVT::i257, MVT::i257),
                     Op->getOperand(2), Op->getOperand(3));
     SDValue Result =
-        DAG.getNode(TVMISD::LDUX, DL, DAG.getVTList(MVT::i64, MVT::i64),
+        DAG.getNode(TVMISD::LDUX, DL, DAG.getVTList(MVT::i257, MVT::i257),
                     Skip1.getValue(0), Op->getOperand(4));
     return DAG.getMergeValues({Result.getValue(0), Chain}, DL);
   }
   case Intrinsic::tvm_retrieve_ref: {
     // arguments: slice
     SDValue Result =
-        DAG.getNode(TVMISD::LDREF, DL, DAG.getVTList(MVT::i64, MVT::i64),
+        DAG.getNode(TVMISD::LDREF, DL, DAG.getVTList(MVT::i257, MVT::i257),
                     Op->getOperand(2));
     return DAG.getMergeValues({Result.getValue(1), Chain}, DL);
   }

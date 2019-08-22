@@ -1,16 +1,14 @@
 ; RUN: llc < %s -march=tvm | FileCheck %s
 
-target datalayout = "E-S1024-i256:256:256"
+target datalayout = "E-S257-i1:257:257-i8:257:257-i16:257:257-i32:257:257-i64:257:257-i257:257:257-p:257:257-a:257:257"
 target triple = "tvm"
 
 ; Function Attrs: norecurse nounwind readnone
-define dso_local i64 @test_srl(i64 %val) local_unnamed_addr nounwind {
+define dso_local i257 @test_srl(i257 %val) local_unnamed_addr nounwind {
 ; CHECK-LABEL: test_srl:
 entry:
-; CHECK: PUSHINT 18446744073709551615
-; CHECK: AND
 ; CHECK: RSHIFT	16
-  %shr = lshr i64 %val, 16
-  ret i64 %shr
+  %shr = lshr i257 %val, 16
+  ret i257 %shr
 }
 

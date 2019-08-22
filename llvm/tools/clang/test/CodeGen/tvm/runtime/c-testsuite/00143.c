@@ -1,4 +1,3 @@
-// XFAIL: *
 // RUN: %clang -w -O3 -S -c -target tvm %s -o - | tvm-testrun --no-trace --entry test_entry_point | FileCheck %S/shared.h
 
 /* Disgusting, no?  But it compiles and runs just fine.  I feel a combination of

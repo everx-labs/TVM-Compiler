@@ -1,26 +1,26 @@
 ; XFAIL: *
 ; RUN: llc < %s -march=tvm | FileCheck %s 
-target datalayout = "E-S1024-i256:256:256" 
+target datalayout = "E-S257-i1:257:257-i8:257:257-i16:257:257-i32:257:257-i64:257:257-i257:257:257-p:257:257-a:257:257"  
 target triple = "tvm" 
 
-define { i64, i64 } @muldivmod (i64 %dvd1, i64 %dvd2, i64 %dvr) nounwind {
+define { i257, i257 } @muldivmod (i257 %dvd1, i257 %dvd2, i257 %dvr) nounwind {
 ; CHECK-LABEL: muldivmod:
 ; CHECK: MULDIVMOD
- %dvd = mul i64 %dvd1, %dvd2
- %dvds    = icmp slt i64 0, %dvd
- %dvrs    = icmp slt i64 0, %dvr
- %qtnt    = sdiv i64 %dvd, %dvr
- %rem     = srem i64 %dvd, %dvr
- %rnz     = icmp ne i64 0, %rem
+ %dvd = mul i257 %dvd1, %dvd2
+ %dvds    = icmp slt i257 0, %dvd
+ %dvrs    = icmp slt i257 0, %dvr
+ %qtnt    = sdiv i257 %dvd, %dvr
+ %rem     = srem i257 %dvd, %dvr
+ %rnz     = icmp ne i257 0, %rem
  %qtntneg = xor i1 %dvds, %dvrs
  %docor   = and i1 %qtntneg, %rnz
- %cor     = select i1 %docor, i64 -1, i64 0
- %qtntfin   = add i64 %qtnt, %cor
+ %cor     = select i1 %docor, i257 -1, i257 0
+ %qtntfin   = add i257 %qtnt, %cor
  
- %qmuldd1 = mul i64 %qtntfin, %dvr
- %remfin  = sub i64 %dvd, %qmuldd1
+ %qmuldd1 = mul i257 %qtntfin, %dvr
+ %remfin  = sub i257 %dvd, %qmuldd1
  
- %agg1 = insertvalue {i64, i64} undef, i64 %remfin, 0
- %agg2 = insertvalue {i64, i64} %agg1, i64 %qtntfin, 1
- ret { i64, i64 } %agg2
+ %agg1 = insertvalue {i257, i257} undef, i257 %remfin, 0
+ %agg2 = insertvalue {i257, i257} %agg1, i257 %qtntfin, 1
+ ret { i257, i257 } %agg2
 }

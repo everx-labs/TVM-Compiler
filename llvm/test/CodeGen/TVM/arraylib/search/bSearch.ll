@@ -1,46 +1,47 @@
-; RUN: llc < %s -march=tvm
-target datalayout = "E-S1024-i256:256:256"
+; RUN: llc < %s -march=tvm 
+; ModuleID = 'bSearch.c'
+source_filename = "bSearch.c"
+target datalayout = "E-S257-i1:257:257-i8:257:257-i16:257:257-i32:257:257-i64:257:257-i257:257:257-p:257:257-a:257:257"
 target triple = "tvm"
 
-; Function Attrs: norecurse nounwind readonly sspstrong uwtable
-define dso_local i64 @bSearch(i64* nocapture readonly, i64, i64) local_unnamed_addr #0 {
-  %4 = icmp slt i64 %1, 0
-  br i1 %4, label %20, label %5
+; Function Attrs: norecurse nounwind readonly
+define dso_local i257 @bSearch(i257* nocapture readonly %arr, i257 %size, i257 %key) local_unnamed_addr #0 {
+entry:
+  %cmp19 = icmp slt i257 %size, 0
+  br i1 %cmp19, label %cleanup, label %while.body
 
-; <label>:5:                                      ; preds = %3, %13
-  %6 = phi i64 [ %18, %13 ], [ %1, %3 ]
-  %7 = phi i64 [ %17, %13 ], [ 0, %3 ]
-  %8 = add nsw i64 %6, %7
-  %9 = sdiv i64 %8, 2
-  %10 = getelementptr inbounds i64, i64* %0, i64 %9
-  %11 = load i64, i64* %10, align 8, !tbaa !4
-  %12 = icmp eq i64 %11, %2
-  br i1 %12, label %20, label %13
+while.body:                                       ; preds = %entry, %if.end
+  %end.021 = phi i257 [ %end.1, %if.end ], [ %size, %entry ]
+  %start.020 = phi i257 [ %start.1, %if.end ], [ 0, %entry ]
+  %add = add nsw i257 %end.021, %start.020
+  %div = sdiv i257 %add, 2
+  %arrayidx = getelementptr inbounds i257, i257* %arr, i257 %div
+  %0 = load i257, i257* %arrayidx, align 1, !tbaa !2
+  %cmp1 = icmp eq i257 %0, %key
+  br i1 %cmp1, label %cleanup, label %if.end
 
-; <label>:13:                                     ; preds = %5
-  %14 = icmp sgt i64 %11, %2
-  %15 = add nsw i64 %9, -1
-  %16 = add nsw i64 %9, 1
-  %17 = select i1 %14, i64 %7, i64 %16
-  %18 = select i1 %14, i64 %15, i64 %6
-  %19 = icmp sgt i64 %17, %18
-  br i1 %19, label %20, label %5
+if.end:                                           ; preds = %while.body
+  %cmp3 = icmp sgt i257 %0, %key
+  %sub = add nsw i257 %div, -1
+  %add5 = add nsw i257 %div, 1
+  %start.1 = select i1 %cmp3, i257 %start.020, i257 %add5
+  %end.1 = select i1 %cmp3, i257 %sub, i257 %end.021
+  %cmp = icmp sgt i257 %start.1, %end.1
+  br i1 %cmp, label %cleanup, label %while.body
 
-; <label>:20:                                     ; preds = %5, %13, %3
-  %21 = phi i64 [ -1, %3 ], [ -1, %13 ], [ %9, %5 ]
-  ret i64 %21
+cleanup:                                          ; preds = %while.body, %if.end, %entry
+  %retval.0 = phi i257 [ -1, %entry ], [ -1, %if.end ], [ %div, %while.body ]
+  ret i257 %retval.0
 }
 
-attributes #0 = { norecurse nounwind readonly sspstrong uwtable "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "less-precise-fpmad"="false" "min-legal-vector-width"="0" "no-frame-pointer-elim"="false" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="-3dnow,-3dnowa,-aes,-avx,-avx2,-avx512bitalg,-avx512bw,-avx512cd,-avx512dq,-avx512er,-avx512f,-avx512ifma,-avx512pf,-avx512vbmi,-avx512vbmi2,-avx512vl,-avx512vnni,-avx512vpopcntdq,-f16c,-fma,-fma4,-fxsr,-gfni,-mmx,-pclmul,-sha,-sse,-sse2,-sse3,-sse4.1,-sse4.2,-sse4a,-ssse3,-vaes,-vpclmulqdq,-x87,-xop,-xsave,-xsaveopt" "unsafe-fp-math"="false" "use-soft-float"="false" }
+attributes #0 = { norecurse nounwind readonly "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "unsafe-fp-math"="false" "use-soft-float"="false" }
 
-!llvm.module.flags = !{!0, !1, !2}
-!llvm.ident = !{!3}
+!llvm.module.flags = !{!0}
+!llvm.ident = !{!1}
 
-!0 = !{i32 1, !"wchar_size", i32 4}
-!1 = !{i32 7, !"PIC Level", i32 2}
-!2 = !{i32 7, !"PIE Level", i32 2}
-!3 = !{!"clang version 8.0.0 (tags/RELEASE_800/final)"}
-!4 = !{!5, !5, i64 0}
-!5 = !{!"long", !6, i64 0}
-!6 = !{!"omnipotent char", !7, i64 0}
-!7 = !{!"Simple C/C++ TBAA"}
+!0 = !{i32 1, !"wchar_size", i32 1}
+!1 = !{!"clang version 7.0.0 "}
+!2 = !{!3, !3, i64 0}
+!3 = !{!"long", !4, i64 0}
+!4 = !{!"omnipotent char", !5, i64 0}
+!5 = !{!"Simple C/C++ TBAA"}

@@ -5101,16 +5101,23 @@ static SDValue getMemsetStringVal(EVT VT, const SDLoc &dl, SelectionDAG &DAG,
 
   assert(!VT.isVector() && "Can't handle vector type here!");
   unsigned NumVTBits = VT.getSizeInBits();
-  unsigned NumVTBytes = NumVTBits / 8;
+  // TVM local begin
+  unsigned NumVTBytes = NumVTBits / ByteSizeInBits;
+  // TVM local end
   unsigned NumBytes = std::min(NumVTBytes, unsigned(Slice.Length));
 
   APInt Val(NumVTBits, 0);
   if (DAG.getDataLayout().isLittleEndian()) {
     for (unsigned i = 0; i != NumBytes; ++i)
-      Val |= (uint64_t)(unsigned char)Slice[i] << i*8;
+      // TVM local begin
+      Val |= (uint64_t)(unsigned char)Slice[i] << i*ByteSizeInBits;
+    // TVM local end
   } else {
     for (unsigned i = 0; i != NumBytes; ++i)
-      Val |= (uint64_t)(unsigned char)Slice[i] << (NumVTBytes-i-1)*8;
+      // TVM local begin
+      Val |= (uint64_t)(unsigned char)Slice[i]
+          << (NumVTBytes-i-1)*ByteSizeInBits;
+    // TVM local end
   }
 
   // If the "cost" of materializing the integer immediate is less than the cost
@@ -5142,8 +5149,10 @@ static bool isMemSrcFromConstant(SDValue Src, ConstantDataArraySlice &Slice) {
   if (!G)
     return false;
 
-  return getConstantDataArrayInfo(G->getGlobal(), Slice, 8,
+  // TVM local begin
+  return getConstantDataArrayInfo(G->getGlobal(), Slice, ByteSizeInBits,
                                   SrcDelta + G->getOffset());
+  // TVM local end
 }
 
 /// Determines the optimal series of memory ops to replace the memset / memcpy.
@@ -5177,14 +5186,18 @@ static bool FindOptimalMemOpLowering(std::vector<EVT> &MemOps,
     // Use the largest integer type whose alignment constraints are satisfied.
     // We only need to check DstAlign here as SrcAlign is always greater or
     // equal to DstAlign (or zero).
-    VT = MVT::i64;
-    while (DstAlign && DstAlign < VT.getSizeInBits() / 8 &&
+    // TVM local begin
+    VT = MVT::i257;
+    while (DstAlign && DstAlign < VT.getSizeInBits() / ByteSizeInBits &&
            !TLI.allowsMisalignedMemoryAccesses(VT, DstAS, DstAlign))
       VT = (MVT::SimpleValueType)(VT.getSimpleVT().SimpleTy - 1);
+    // TVM local end
     assert(VT.isInteger());
 
     // Find the largest legal integer type.
-    MVT LVT = MVT::i64;
+    // TVM local begin
+    MVT LVT = MVT::i257;
+    // TVM local end
     while (!TLI.isTypeLegal(LVT))
       LVT = (MVT::SimpleValueType)(LVT.SimpleTy - 1);
     assert(LVT.isInteger());
@@ -5197,7 +5210,9 @@ static bool FindOptimalMemOpLowering(std::vector<EVT> &MemOps,
 
   unsigned NumMemOps = 0;
   while (Size != 0) {
-    unsigned VTSize = VT.getSizeInBits() / 8;
+    // TVM local begin
+    unsigned VTSize = VT.getSizeInBits() / ByteSizeInBits;
+    // TVM local end
     while (VTSize > Size) {
       // For now, only use non-vector load / store's for the left-over pieces.
       EVT NewVT = VT;
@@ -5225,7 +5240,9 @@ static bool FindOptimalMemOpLowering(std::vector<EVT> &MemOps,
             break;
         } while (!TLI.isSafeMemOpType(NewVT.getSimpleVT()));
       }
-      NewVTSize = NewVT.getSizeInBits() / 8;
+      // TVM local begin
+      NewVTSize = NewVT.getSizeInBits() / ByteSizeInBits;
+      // TVM local end
 
       // If the new VT cannot cover all of the remaining bits, then consider
       // issuing a (or a pair of) unaligned and overlapping load / store.
@@ -5356,7 +5373,9 @@ static SDValue getMemcpyLoadsAndStores(SelectionDAG &DAG, const SDLoc &dl,
   uint64_t SrcOff = 0, DstOff = 0;
   for (unsigned i = 0; i != NumMemOps; ++i) {
     EVT VT = MemOps[i];
-    unsigned VTSize = VT.getSizeInBits() / 8;
+    // TVM local begin
+    unsigned VTSize = VT.getSizeInBits() / ByteSizeInBits;
+    // TVM local end
     SDValue Value, Store;
 
     if (VTSize > Size) {
@@ -5527,7 +5546,9 @@ static SDValue getMemmoveLoadsAndStores(SelectionDAG &DAG, const SDLoc &dl,
   unsigned NumMemOps = MemOps.size();
   for (unsigned i = 0; i < NumMemOps; i++) {
     EVT VT = MemOps[i];
-    unsigned VTSize = VT.getSizeInBits() / 8;
+    // TVM local begin
+    unsigned VTSize = VT.getSizeInBits() / ByteSizeInBits;
+    // TVM local end
     SDValue Value;
 
     bool isDereferenceable =
@@ -5547,7 +5568,9 @@ static SDValue getMemmoveLoadsAndStores(SelectionDAG &DAG, const SDLoc &dl,
   OutChains.clear();
   for (unsigned i = 0; i < NumMemOps; i++) {
     EVT VT = MemOps[i];
-    unsigned VTSize = VT.getSizeInBits() / 8;
+    // TVM local begin
+    unsigned VTSize = VT.getSizeInBits() / ByteSizeInBits;
+    // TVM local end
     SDValue Store;
 
     Store = DAG.getStore(Chain, dl, LoadValues[i],
@@ -5630,7 +5653,9 @@ static SDValue getMemsetStores(SelectionDAG &DAG, const SDLoc &dl,
 
   for (unsigned i = 0; i < NumMemOps; i++) {
     EVT VT = MemOps[i];
-    unsigned VTSize = VT.getSizeInBits() / 8;
+    // TVM local begin
+    unsigned VTSize = VT.getSizeInBits() / ByteSizeInBits;
+    // TVM local end
     if (VTSize > Size) {
       // Issuing an unaligned load / store pair  that overlaps with the previous
       // pair. Adjust the offset accordingly.
@@ -5654,7 +5679,9 @@ static SDValue getMemsetStores(SelectionDAG &DAG, const SDLoc &dl,
         DstPtrInfo.getWithOffset(DstOff), Align,
         isVol ? MachineMemOperand::MOVolatile : MachineMemOperand::MONone);
     OutChains.push_back(Store);
-    DstOff += VT.getSizeInBits() / 8;
+    // TVM local begin
+    DstOff += VT.getSizeInBits() / ByteSizeInBits;
+    // TVM local end
     Size -= VTSize;
   }
 
@@ -8399,8 +8426,10 @@ bool SelectionDAG::areNonVolatileConsecutiveLoads(LoadSDNode *LD,
   if (LD->getChain() != Base->getChain())
     return false;
   EVT VT = LD->getValueType(0);
-  if (VT.getSizeInBits() / 8 != Bytes)
+  // TVM local begin
+  if (VT.getSizeInBits() / ByteSizeInBits != Bytes)
     return false;
+  // TVM local end
 
   auto BaseLocDecomp = BaseIndexOffset::match(Base, *this);
   auto LocDecomp = BaseIndexOffset::match(LD, *this);

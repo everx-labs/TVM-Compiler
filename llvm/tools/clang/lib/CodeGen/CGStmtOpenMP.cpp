@@ -1466,7 +1466,7 @@ static void emitAlignedClause(CodeGenFunction &CGF,
         Alignment =
             CGF.getContext()
                 .toCharUnitsFromBits(CGF.getContext().getOpenMPDefaultSimdAlign(
-                    E->getType()->getPointeeType()))
+                    E->getType()->getPointeeType()), true)
                 .getQuantity();
       }
       assert((Alignment == 0 || llvm::isPowerOf2_32(Alignment)) &&

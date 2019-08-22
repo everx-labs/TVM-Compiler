@@ -30,25 +30,38 @@ public:
   explicit TVMTargetInfo(const llvm::Triple &T, const TargetOptions &)
       : TargetInfo(T) {
     NoAsmVariants = true;
-    SuitableAlign = 128;
+    SuitableAlign = 257;
+    LongDoubleAlign = 257;
+    LargeArrayAlign = 257;
+    SimdDefaultAlign = 257;
+    PointerAlign = 257;
+    BoolAlign = 257;
+    CharAlign = 257;
+    ShortAlign = 257;
+    IntAlign = 257;
+    LongAlign = 257;
+    LongLongAlign = 257;
+
     LargeArrayMinWidth = 128;
-    LargeArrayAlign = 128;
-    SimdDefaultAlign = 128;
     SigAtomicType = SignedLong;
-    LongDoubleWidth = LongDoubleAlign = 128;
+
+    LongDoubleWidth = 256;
     LongDoubleFormat = &llvm::APFloat::IEEEquad();
 
-    MaxAtomicPromoteWidth = MaxAtomicInlineWidth = 64;
-    PointerWidth = PointerAlign = 64;
-    BoolWidth = BoolAlign = 64;
-    IntWidth = IntAlign = 64;
-    LongWidth = LongAlign = 64;
-    LongLongWidth = LongLongAlign = 64;
+    MaxAtomicPromoteWidth = MaxAtomicInlineWidth = 257;
+    PointerWidth = 257;
+    BoolWidth = 257;
+    CharWidth = 257;
+    ShortWidth = 257;
+    IntWidth = 257;
+    LongWidth = 257;
+    LongLongWidth = 257;
 
     SizeType = UnsignedLong;
     PtrDiffType = SignedLong;
     IntPtrType = SignedLong;
-    resetDataLayout("E-S1024-i256:256:256");
+    resetDataLayout("E-S257-i1:257:257-i8:257:257-i16:257:257-i32:257:257-"
+                    "i64:257:257-i257:257:257-p:257:257-a:257:257");
   }
 
 private:

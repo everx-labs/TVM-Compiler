@@ -2219,14 +2219,19 @@ static int isRepeatedByteSequence(const ConstantDataSequential *V) {
 static int isRepeatedByteSequence(const Value *V, const DataLayout &DL) {
   if (const ConstantInt *CI = dyn_cast<ConstantInt>(V)) {
     uint64_t Size = DL.getTypeAllocSizeInBits(V->getType());
-    assert(Size % 8 == 0);
+    // TVM local begin
+    assert(Size % ByteSizeInBits == 0);
 
     // Extend the element to take zero padding into account.
     APInt Value = CI->getValue().zextOrSelf(Size);
-    if (!Value.isSplat(8))
+    if (!Value.isSplat(ByteSizeInBits))
       return -1;
 
-    return Value.zextOrTrunc(8).getZExtValue();
+    auto ExtValue = Value.zextOrTrunc(ByteSizeInBits);
+    if (ExtValue.getActiveBits() > 64)
+      return -1;
+    return ExtValue.getZExtValue();
+    // TVM local end
   }
   if (const ConstantArray *CA = dyn_cast<ConstantArray>(V)) {
     // Make sure all array elements are sequences of the same repeated
@@ -2368,7 +2373,9 @@ static void emitGlobalConstantFP(APFloat APF, Type *ET, AsmPrinter &AP) {
   // Now iterate through the APInt chunks, emitting them in endian-correct
   // order, possibly with a smaller chunk at beginning/end (e.g. for x87 80-bit
   // floats).
-  unsigned NumBytes = API.getBitWidth() / 8;
+  // TVM local begin
+  unsigned NumBytes = API.getBitWidth() / ByteSizeInBits;
+  // TVM local end
   unsigned TrailingBytes = NumBytes % sizeof(uint64_t);
   const uint64_t *p = API.getRawData();
 
@@ -2567,10 +2574,22 @@ static void emitGlobalConstantImpl(const DataLayout &DL, const Constant *CV,
     case 2:
     case 4:
     case 8:
-      if (AP.isVerbose())
-        AP.OutStreamer->GetCommentOS() << format("0x%" PRIx64 "\n",
-                                                 CI->getZExtValue());
-      AP.OutStreamer->EmitIntValue(CI->getZExtValue(), Size);
+      // TVM local begin
+      if (AP.isVerbose()) {
+        if (CI->getValue().getActiveBits() <= 64)
+          AP.OutStreamer->GetCommentOS() << format("0x%" PRIx64 "\n",
+                                                   CI->getZExtValue());
+        else if (CI->getValue().getMinSignedBits() <= 64)
+          AP.OutStreamer->GetCommentOS() << format("0x%" PRIx64 "\n",
+                                                   CI->getSExtValue());
+      }
+      if (CI->getValue().getActiveBits() <= 64)
+        AP.OutStreamer->EmitIntValue(CI->getZExtValue(), Size);
+      else if (CI->getValue().getMinSignedBits() <= 64)
+        AP.OutStreamer->EmitIntValue(CI->getSExtValue(), Size);
+      else
+        AP.EmitBigInt(CI);
+      // TVM local end
       return;
     default:
       emitGlobalConstantLargeInt(CI, AP);
@@ -2638,6 +2657,14 @@ void AsmPrinter::EmitGlobalConstant(const DataLayout &DL, const Constant *CV) {
     OutStreamer->EmitIntValue(0, 1);
   }
 }
+
+// TVM local begin
+/// Print a big LLVM constant int (>64 bit) to the .s file.
+void AsmPrinter::EmitBigInt(const ConstantInt *CI) {
+  (void)CI;
+  llvm_unreachable("unimplemented");
+}
+// TVM local end
 
 void AsmPrinter::EmitMachineConstantPoolValue(MachineConstantPoolValue *MCPV) {
   // Target doesn't support this yet!

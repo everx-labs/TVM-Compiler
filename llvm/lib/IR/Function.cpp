@@ -675,7 +675,10 @@ enum IIT_Info {
   IIT_STRUCT6 = 38,
   IIT_STRUCT7 = 39,
   IIT_STRUCT8 = 40,
-  IIT_F128 = 41
+  IIT_F128 = 41,
+  // TVM local begin
+  IIT_I257 = 42
+  // TVM local end
 };
 
 static void DecodeIITType(unsigned &NextElt, ArrayRef<unsigned char> Infos,
@@ -731,6 +734,11 @@ static void DecodeIITType(unsigned &NextElt, ArrayRef<unsigned char> Infos,
   case IIT_I128:
     OutputTable.push_back(IITDescriptor::get(IITDescriptor::Integer, 128));
     return;
+  // TVM local begin
+  case IIT_I257:
+    OutputTable.push_back(IITDescriptor::get(IITDescriptor::Integer, 257));
+    return;
+  // TVM local end
   case IIT_V1:
     OutputTable.push_back(IITDescriptor::get(IITDescriptor::Vector, 1));
     DecodeIITType(NextElt, Infos, OutputTable);

@@ -63,8 +63,8 @@ void TVMFrameLowering::emitPrologue(MachineFunction &MF,
     if (MBB.getBasicBlock() == &Fn.getEntryBlock())
       BuildMI(MBB, InsertPt, DL, TII->get(TVM::LOGSTR)).addGlobalAddress(&Fn);
   }
-  unsigned StSizeReg = MRI.createVirtualRegister(&TVM::I64RegClass);
-  BuildMI(MBB, InsertPt, DL, TII->get(TVM::CONST_I64), StSizeReg)
+  unsigned StSizeReg = MRI.createVirtualRegister(&TVM::I257RegClass);
+  BuildMI(MBB, InsertPt, DL, TII->get(TVM::CONST_I257), StSizeReg)
       .addImm(StackSize);
   BuildMI(MBB, InsertPt, DL, TII->get(TVM::CALL_ENTER)).addReg(StSizeReg);
 }
@@ -84,8 +84,8 @@ void TVMFrameLowering::emitEpilogue(MachineFunction &MF,
   if (InsertPt != MBB.end())
     DL = InsertPt->getDebugLoc();
 
-  unsigned StSizeReg = MRI.createVirtualRegister(&TVM::I64RegClass);
-  BuildMI(MBB, InsertPt, DL, TII->get(TVM::CONST_I64), StSizeReg)
+  unsigned StSizeReg = MRI.createVirtualRegister(&TVM::I257RegClass);
+  BuildMI(MBB, InsertPt, DL, TII->get(TVM::CONST_I257), StSizeReg)
       .addImm(StackSize);
   BuildMI(MBB, InsertPt, DL, TII->get(TVM::CALL_LEAVE)).addReg(StSizeReg);
 }

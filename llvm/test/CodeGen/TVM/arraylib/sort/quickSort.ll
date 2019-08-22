@@ -1,91 +1,92 @@
-; RUN: llc < %s -march=tvm
-target datalayout = "E-S1024-i256:256:256"
+; RUN: llc < %s -march=tvm 
+; ModuleID = 'quickSort.c'
+source_filename = "quickSort.c"
+target datalayout = "E-S257-i1:257:257-i8:257:257-i16:257:257-i32:257:257-i64:257:257-i257:257:257-p:257:257-a:257:257"
 target triple = "tvm"
 
-; Function Attrs: nounwind sspstrong uwtable
-define dso_local void @quickSortR(i64*, i64) local_unnamed_addr #0 {
-  br label %3
+; Function Attrs: nounwind
+define dso_local void @quickSortR(i257* %a, i257 %N) local_unnamed_addr #0 {
+entry:
+  br label %tailrecurse
 
-; <label>:3:                                      ; preds = %39, %2
-  %4 = phi i64* [ %0, %2 ], [ %40, %39 ]
-  %5 = phi i64 [ %1, %2 ], [ %41, %39 ]
-  %6 = ashr i64 %5, 1
-  %7 = getelementptr inbounds i64, i64* %4, i64 %6
-  %8 = load i64, i64* %7, align 8, !tbaa !4
-  br label %9
+tailrecurse:                                      ; preds = %if.then19, %entry
+  %a.tr = phi i257* [ %a, %entry ], [ %add.ptr, %if.then19 ]
+  %N.tr = phi i257 [ %N, %entry ], [ %sub, %if.then19 ]
+  %shr = ashr i257 %N.tr, 1
+  %arrayidx = getelementptr inbounds i257, i257* %a.tr, i257 %shr
+  %0 = load i257, i257* %arrayidx, align 1, !tbaa !2
+  br label %do.body
 
-; <label>:9:                                      ; preds = %30, %3
-  %10 = phi i64 [ %5, %3 ], [ %31, %30 ]
-  %11 = phi i64 [ 0, %3 ], [ %32, %30 ]
-  br label %12
+do.body:                                          ; preds = %do.cond, %tailrecurse
+  %j.0 = phi i257 [ %N.tr, %tailrecurse ], [ %j.2, %do.cond ]
+  %i.0 = phi i257 [ 0, %tailrecurse ], [ %i.2, %do.cond ]
+  br label %while.cond
 
-; <label>:12:                                     ; preds = %12, %9
-  %13 = phi i64 [ %11, %9 ], [ %17, %12 ]
-  %14 = getelementptr inbounds i64, i64* %4, i64 %13
-  %15 = load i64, i64* %14, align 8, !tbaa !4
-  %16 = icmp slt i64 %15, %8
-  %17 = add nsw i64 %13, 1
-  br i1 %16, label %12, label %18
+while.cond:                                       ; preds = %while.cond, %do.body
+  %i.1 = phi i257 [ %i.0, %do.body ], [ %inc, %while.cond ]
+  %arrayidx1 = getelementptr inbounds i257, i257* %a.tr, i257 %i.1
+  %1 = load i257, i257* %arrayidx1, align 1, !tbaa !2
+  %cmp = icmp slt i257 %1, %0
+  %inc = add nsw i257 %i.1, 1
+  br i1 %cmp, label %while.cond, label %while.cond2.preheader
 
-; <label>:18:                                     ; preds = %12
-  %19 = getelementptr inbounds i64, i64* %4, i64 %13
-  br label %20
+while.cond2.preheader:                            ; preds = %while.cond
+  %arrayidx1.le = getelementptr inbounds i257, i257* %a.tr, i257 %i.1
+  br label %while.cond2
 
-; <label>:20:                                     ; preds = %20, %18
-  %21 = phi i64 [ %25, %20 ], [ %10, %18 ]
-  %22 = getelementptr inbounds i64, i64* %4, i64 %21
-  %23 = load i64, i64* %22, align 8, !tbaa !4
-  %24 = icmp sgt i64 %23, %8
-  %25 = add nsw i64 %21, -1
-  br i1 %24, label %20, label %26
+while.cond2:                                      ; preds = %while.cond2, %while.cond2.preheader
+  %j.1 = phi i257 [ %dec, %while.cond2 ], [ %j.0, %while.cond2.preheader ]
+  %arrayidx3 = getelementptr inbounds i257, i257* %a.tr, i257 %j.1
+  %2 = load i257, i257* %arrayidx3, align 1, !tbaa !2
+  %cmp4 = icmp sgt i257 %2, %0
+  %dec = add nsw i257 %j.1, -1
+  br i1 %cmp4, label %while.cond2, label %while.end6
 
-; <label>:26:                                     ; preds = %20
-  %27 = icmp sgt i64 %13, %21
-  br i1 %27, label %30, label %28
+while.end6:                                       ; preds = %while.cond2
+  %cmp7 = icmp sgt i257 %i.1, %j.1
+  br i1 %cmp7, label %do.cond, label %if.then
 
-; <label>:28:                                     ; preds = %26
-  %29 = getelementptr inbounds i64, i64* %4, i64 %21
-  store i64 %23, i64* %19, align 8, !tbaa !4
-  store i64 %15, i64* %29, align 8, !tbaa !4
-  br label %30
+if.then:                                          ; preds = %while.end6
+  %arrayidx3.le = getelementptr inbounds i257, i257* %a.tr, i257 %j.1
+  store i257 %2, i257* %arrayidx1.le, align 1, !tbaa !2
+  store i257 %1, i257* %arrayidx3.le, align 1, !tbaa !2
+  br label %do.cond
 
-; <label>:30:                                     ; preds = %26, %28
-  %31 = phi i64 [ %25, %28 ], [ %21, %26 ]
-  %32 = phi i64 [ %17, %28 ], [ %13, %26 ]
-  %33 = icmp sgt i64 %32, %31
-  br i1 %33, label %34, label %9
+do.cond:                                          ; preds = %while.end6, %if.then
+  %j.2 = phi i257 [ %dec, %if.then ], [ %j.1, %while.end6 ]
+  %i.2 = phi i257 [ %inc, %if.then ], [ %i.1, %while.end6 ]
+  %cmp14 = icmp sgt i257 %i.2, %j.2
+  br i1 %cmp14, label %do.end, label %do.body
 
-; <label>:34:                                     ; preds = %30
-  %35 = icmp sgt i64 %31, 0
-  br i1 %35, label %36, label %37
+do.end:                                           ; preds = %do.cond
+  %cmp15 = icmp sgt i257 %j.2, 0
+  br i1 %cmp15, label %if.then16, label %if.end17
 
-; <label>:36:                                     ; preds = %34
-  tail call void @quickSortR(i64* nonnull %4, i64 %31)
-  br label %37
+if.then16:                                        ; preds = %do.end
+  tail call void @quickSortR(i257* nonnull %a.tr, i257 %j.2)
+  br label %if.end17
 
-; <label>:37:                                     ; preds = %36, %34
-  %38 = icmp sgt i64 %5, %32
-  br i1 %38, label %39, label %42
+if.end17:                                         ; preds = %if.then16, %do.end
+  %cmp18 = icmp sgt i257 %N.tr, %i.2
+  br i1 %cmp18, label %if.then19, label %if.end20
 
-; <label>:39:                                     ; preds = %37
-  %40 = getelementptr inbounds i64, i64* %4, i64 %32
-  %41 = sub nsw i64 %5, %32
-  br label %3
+if.then19:                                        ; preds = %if.end17
+  %add.ptr = getelementptr inbounds i257, i257* %a.tr, i257 %i.2
+  %sub = sub nsw i257 %N.tr, %i.2
+  br label %tailrecurse
 
-; <label>:42:                                     ; preds = %37
+if.end20:                                         ; preds = %if.end17
   ret void
 }
 
-attributes #0 = { nounwind sspstrong uwtable "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "less-precise-fpmad"="false" "min-legal-vector-width"="0" "no-frame-pointer-elim"="false" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="-3dnow,-3dnowa,-aes,-avx,-avx2,-avx512bitalg,-avx512bw,-avx512cd,-avx512dq,-avx512er,-avx512f,-avx512ifma,-avx512pf,-avx512vbmi,-avx512vbmi2,-avx512vl,-avx512vnni,-avx512vpopcntdq,-f16c,-fma,-fma4,-fxsr,-gfni,-mmx,-pclmul,-sha,-sse,-sse2,-sse3,-sse4.1,-sse4.2,-sse4a,-ssse3,-vaes,-vpclmulqdq,-x87,-xop,-xsave,-xsaveopt" "unsafe-fp-math"="false" "use-soft-float"="false" }
+attributes #0 = { nounwind "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "unsafe-fp-math"="false" "use-soft-float"="false" }
 
-!llvm.module.flags = !{!0, !1, !2}
-!llvm.ident = !{!3}
+!llvm.module.flags = !{!0}
+!llvm.ident = !{!1}
 
-!0 = !{i32 1, !"wchar_size", i32 4}
-!1 = !{i32 7, !"PIC Level", i32 2}
-!2 = !{i32 7, !"PIE Level", i32 2}
-!3 = !{!"clang version 8.0.0 (tags/RELEASE_800/final)"}
-!4 = !{!5, !5, i64 0}
-!5 = !{!"long", !6, i64 0}
-!6 = !{!"omnipotent char", !7, i64 0}
-!7 = !{!"Simple C/C++ TBAA"}
+!0 = !{i32 1, !"wchar_size", i32 1}
+!1 = !{!"clang version 7.0.0 "}
+!2 = !{!3, !3, i64 0}
+!3 = !{!"long", !4, i64 0}
+!4 = !{!"omnipotent char", !5, i64 0}
+!5 = !{!"Simple C/C++ TBAA"}

@@ -1,17 +1,17 @@
 ; RUN: llc < %s -march=tvm | FileCheck %s
 
-target datalayout = "E-S1024-i256:256:256"
+target datalayout = "E-S257-i1:257:257-i8:257:257-i16:257:257-i32:257:257-i64:257:257-i257:257:257-p:257:257-a:257:257"
 target triple = "tvm"
 
 ; Function Attrs: norecurse nounwind readnone
-define dso_local i64 @sum(i64 %a0, i64 %a1, i64 %a2, i64 %a3, i64 %a4, i64 %a5, i64 %a6, i64 %a7, i64 %a8, i64 %a9, i64 %a10, i64 %a11, i64 %a12, i64 %a13, i64 %a14, i64 %a15, i64 %a16) local_unnamed_addr #0 {
+define dso_local i257 @sum(i257 %a0, i257 %a1, i257 %a2, i257 %a3, i257 %a4, i257 %a5, i257 %a6, i257 %a7, i257 %a8, i257 %a9, i257 %a10, i257 %a11, i257 %a12, i257 %a13, i257 %a14, i257 %a15, i257 %a16) local_unnamed_addr #0 {
 ; CHECK-LABEL: sum:
 ; CHECK XCHG	s0, s16
 ; CHECK XCHG	s0, s1
 ; CHECK XCHG	s0, s16
 entry:
-  %add = add nsw i64 %a16, %a0
-  ret i64 %add
+  %add = add nsw i257 %a16, %a0
+  ret i257 %add
 }
 
 attributes #0 = { norecurse nounwind readnone "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "unsafe-fp-math"="false" "use-soft-float"="false" }

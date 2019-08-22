@@ -208,16 +208,19 @@ namespace llvm {
       return (V==MVT::iAny || V==MVT::fAny || V==MVT::vAny || V==MVT::iPTRAny);
     }
 
-    /// Return true if the bit size is a multiple of 8.
+    // TVM local begin
+    /// Return true if the bit size is a multiple of ByteSizeInBits.
     bool isByteSized() const {
-      return (getSizeInBits() & 7) == 0;
+      return (getSizeInBits() % ByteSizeInBits) == 0;
     }
 
     /// Return true if the size is a power-of-two number of bytes.
     bool isRound() const {
       unsigned BitSize = getSizeInBits();
-      return BitSize >= 8 && !(BitSize & (BitSize - 1));
+      return (BitSize >= ByteSizeInBits) && (BitSize % ByteSizeInBits == 0) &&
+          isPowerOf2_32(BitSize / ByteSizeInBits);
     }
+    // TVM local end
 
     /// Return true if this has the same number of bits as VT.
     bool bitsEq(EVT VT) const {
@@ -299,17 +302,19 @@ namespace llvm {
       return getScalarType().getSizeInBits();
     }
 
+    // TVM local begin
     /// Return the number of bytes overwritten by a store of the specified value
     /// type.
     unsigned getStoreSize() const {
-      return (getSizeInBits() + 7) / 8;
+      return (getSizeInBits() + (ByteSizeInBits - 1)) / ByteSizeInBits;
     }
 
     /// Return the number of bits overwritten by a store of the specified value
     /// type.
     unsigned getStoreSizeInBits() const {
-      return getStoreSize() * 8;
+      return getStoreSize() * ByteSizeInBits;
     }
+    // TVM local end
 
     /// Rounds the bit-width of the given integer EVT up to the nearest power of
     /// two (and at least to eight), and returns the integer EVT with that

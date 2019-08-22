@@ -1,3 +1,4 @@
+// XFAIL: *
 // RUN: %clang -O3 -S -c -target tvm -I %S/../../../../../../../samples/sdk-prototype %s -o - | tvm-testrun --no-trace --entry main | FileCheck %s
 
 #include <ton-sdk/debug.h>

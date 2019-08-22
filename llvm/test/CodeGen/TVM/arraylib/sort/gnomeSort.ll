@@ -1,51 +1,52 @@
-; RUN: llc < %s -march=tvm
-target datalayout = "E-S1024-i256:256:256"
+; RUN: llc < %s -march=tvm 
+; ModuleID = 'gnomeSort.c'
+source_filename = "gnomeSort.c"
+target datalayout = "E-S257-i1:257:257-i8:257:257-i16:257:257-i32:257:257-i64:257:257-i257:257:257-p:257:257-a:257:257"
 target triple = "tvm"
 
-; Function Attrs: norecurse nounwind sspstrong uwtable
-define dso_local void @gnome_sort(i64* nocapture, i64) local_unnamed_addr #0 {
-  %3 = icmp sgt i64 %1, 1
-  br i1 %3, label %5, label %4
+; Function Attrs: norecurse nounwind
+define dso_local void @gnome_sort(i257* nocapture %A, i257 %N) local_unnamed_addr #0 {
+entry:
+  %cmp29 = icmp sgt i257 %N, 1
+  br i1 %cmp29, label %for.body, label %for.cond.cleanup
 
-; <label>:4:                                      ; preds = %17, %2
+for.cond.cleanup:                                 ; preds = %for.inc, %entry
   ret void
 
-; <label>:5:                                      ; preds = %2, %17
-  %6 = phi i64 [ %20, %17 ], [ 1, %2 ]
-  %7 = phi i64 [ %19, %17 ], [ 0, %2 ]
-  %8 = getelementptr inbounds i64, i64* %0, i64 %7
-  %9 = load i64, i64* %8, align 8, !tbaa !4
-  %10 = getelementptr inbounds i64, i64* %0, i64 %6
-  %11 = load i64, i64* %10, align 8, !tbaa !4
-  %12 = icmp sgt i64 %9, %11
-  br i1 %12, label %13, label %17
+for.body:                                         ; preds = %entry, %for.inc
+  %add31 = phi i257 [ %add, %for.inc ], [ 1, %entry ]
+  %i.030 = phi i257 [ %inc, %for.inc ], [ 0, %entry ]
+  %arrayidx = getelementptr inbounds i257, i257* %A, i257 %i.030
+  %0 = load i257, i257* %arrayidx, align 1, !tbaa !2
+  %arrayidx2 = getelementptr inbounds i257, i257* %A, i257 %add31
+  %1 = load i257, i257* %arrayidx2, align 1, !tbaa !2
+  %cmp3 = icmp sgt i257 %0, %1
+  br i1 %cmp3, label %if.then, label %for.inc
 
-; <label>:13:                                     ; preds = %5
-  store i64 %11, i64* %8, align 8, !tbaa !4
-  store i64 %9, i64* %10, align 8, !tbaa !4
-  %14 = icmp eq i64 %7, 0
-  %15 = add nsw i64 %7, -2
-  %16 = select i1 %14, i64 0, i64 %15
-  br label %17
+if.then:                                          ; preds = %for.body
+  store i257 %1, i257* %arrayidx, align 1, !tbaa !2
+  store i257 %0, i257* %arrayidx2, align 1, !tbaa !2
+  %cmp10 = icmp eq i257 %i.030, 0
+  %sub = add nsw i257 %i.030, -2
+  %spec.select = select i1 %cmp10, i257 0, i257 %sub
+  br label %for.inc
 
-; <label>:17:                                     ; preds = %5, %13
-  %18 = phi i64 [ %16, %13 ], [ %7, %5 ]
-  %19 = add nsw i64 %18, 1
-  %20 = add nsw i64 %18, 2
-  %21 = icmp slt i64 %20, %1
-  br i1 %21, label %5, label %4
+for.inc:                                          ; preds = %for.body, %if.then
+  %i.2 = phi i257 [ %spec.select, %if.then ], [ %i.030, %for.body ]
+  %inc = add nsw i257 %i.2, 1
+  %add = add nsw i257 %i.2, 2
+  %cmp = icmp slt i257 %add, %N
+  br i1 %cmp, label %for.body, label %for.cond.cleanup
 }
 
-attributes #0 = { norecurse nounwind sspstrong uwtable "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "less-precise-fpmad"="false" "min-legal-vector-width"="0" "no-frame-pointer-elim"="false" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="-3dnow,-3dnowa,-aes,-avx,-avx2,-avx512bitalg,-avx512bw,-avx512cd,-avx512dq,-avx512er,-avx512f,-avx512ifma,-avx512pf,-avx512vbmi,-avx512vbmi2,-avx512vl,-avx512vnni,-avx512vpopcntdq,-f16c,-fma,-fma4,-fxsr,-gfni,-mmx,-pclmul,-sha,-sse,-sse2,-sse3,-sse4.1,-sse4.2,-sse4a,-ssse3,-vaes,-vpclmulqdq,-x87,-xop,-xsave,-xsaveopt" "unsafe-fp-math"="false" "use-soft-float"="false" }
+attributes #0 = { norecurse nounwind "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "unsafe-fp-math"="false" "use-soft-float"="false" }
 
-!llvm.module.flags = !{!0, !1, !2}
-!llvm.ident = !{!3}
+!llvm.module.flags = !{!0}
+!llvm.ident = !{!1}
 
-!0 = !{i32 1, !"wchar_size", i32 4}
-!1 = !{i32 7, !"PIC Level", i32 2}
-!2 = !{i32 7, !"PIE Level", i32 2}
-!3 = !{!"clang version 8.0.0 (tags/RELEASE_800/final)"}
-!4 = !{!5, !5, i64 0}
-!5 = !{!"long", !6, i64 0}
-!6 = !{!"omnipotent char", !7, i64 0}
-!7 = !{!"Simple C/C++ TBAA"}
+!0 = !{i32 1, !"wchar_size", i32 1}
+!1 = !{!"clang version 7.0.0 "}
+!2 = !{!3, !3, i64 0}
+!3 = !{!"long", !4, i64 0}
+!4 = !{!"omnipotent char", !5, i64 0}
+!5 = !{!"Simple C/C++ TBAA"}

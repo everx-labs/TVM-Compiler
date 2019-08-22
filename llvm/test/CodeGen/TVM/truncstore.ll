@@ -1,15 +1,15 @@
 ; RUN: llc < %s -march=tvm | FileCheck %s
 
-target datalayout = "E-S1024-i256:256:256"
+target datalayout = "E-S257-i1:257:257-i8:257:257-i16:257:257-i32:257:257-i64:257:257-i257:257:257-p:257:257-a:257:257"
 target triple = "tvm"
 
 ; Function Attrs: norecurse nounwind
 ; CHECK-LABEL: trucate
-define dso_local void @trucate(i64 %i, i8* nocapture %c) local_unnamed_addr #0 {
+define dso_local void @trucate(i257 %i, i256* nocapture %c) local_unnamed_addr #0 {
 entry:
 ;CHECK: CALL  $:store$
-  %conv = trunc i64 %i to i8
-  store i8 %conv, i8* %c, align 1, !tbaa !2
+  %conv = trunc i257 %i to i256
+  store i256 %conv, i256* %c, align 1, !tbaa !2
   ret void
 }
 
@@ -20,6 +20,6 @@ attributes #0 = { norecurse nounwind "correctly-rounded-divide-sqrt-fp-math"="fa
 
 !0 = !{i32 1, !"wchar_size", i32 8}
 !1 = !{!"clang version 7.0.0 (tags/RELEASE_700/final)"}
-!2 = !{!3, !3, i64 0}
-!3 = !{!"omnipotent char", !4, i64 0}
+!2 = !{!3, !3, i257 0}
+!3 = !{!"omnipotent char", !4, i257 0}
 !4 = !{!"Simple C/C++ TBAA"}

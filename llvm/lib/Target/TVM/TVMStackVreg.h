@@ -23,6 +23,8 @@
 
 namespace llvm {
 
+class Stack;
+
 struct StackVreg {
   unsigned VirtReg = 0;
   const DILocalVariable *DbgVar = nullptr;
@@ -39,6 +41,7 @@ struct StackVreg {
   bool operator != (const StackVreg &R) const {
     return VirtReg != R.VirtReg;
   }
+  void print(const Stack &S) const;
 };
 
 } // namespace llvm

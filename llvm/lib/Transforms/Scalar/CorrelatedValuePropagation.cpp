@@ -521,9 +521,10 @@ static bool processUDivOrURem(BinaryOperator *Instr, LazyValueInfo *LVI) {
     OperandRange = OperandRange.unionWith(
         LVI->getConstantRange(Operand, Instr->getParent()));
   }
-  // Don't shrink below 8 bits wide.
+  // Don't shrink below byte wide.
   unsigned NewWidth = std::max<unsigned>(
-      PowerOf2Ceil(OperandRange.getUnsignedMax().getActiveBits()), 8);
+      PowerOf2Ceil(OperandRange.getUnsignedMax().getActiveBits()),
+        ByteSizeInBits);
   // NewWidth might be greater than OrigWidth if OrigWidth is not a power of
   // two.
   if (NewWidth >= OrigWidth)

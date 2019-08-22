@@ -354,17 +354,19 @@ public:
     return PTy && isNonIntegralPointerType(PTy);
   }
 
+  // TVM local begin
   /// Layout pointer size, in bits
   /// FIXME: The defaults need to be removed once all of
   /// the backends/clients are updated.
   unsigned getPointerSizeInBits(unsigned AS = 0) const {
-    return getPointerSize(AS) * 8;
+    return getPointerSize(AS) * ByteSizeInBits;
   }
 
   /// Size in bits of index used for address calculation in getelementptr.
   unsigned getIndexSizeInBits(unsigned AS) const {
-    return getIndexSize(AS) * 8;
+    return getIndexSize(AS) * ByteSizeInBits;
   }
+  // TVM local end
 
   /// Layout pointer size, in bits, based on the type.  If this function is
   /// called with a pointer type, then the type size of the pointer is returned.
@@ -377,9 +379,11 @@ public:
   /// The function should be called with pointer or vector of pointers type.
   unsigned getIndexTypeSizeInBits(Type *Ty) const;
 
+  // TVM local begin
   unsigned getPointerTypeSize(Type *Ty) const {
-    return getPointerTypeSizeInBits(Ty) / 8;
+    return getPointerTypeSizeInBits(Ty) / ByteSizeInBits;
   }
+  // TVM local end
 
   /// Size examples:
   ///
@@ -404,12 +408,13 @@ public:
   /// have a size (Type::isSized() must return true).
   uint64_t getTypeSizeInBits(Type *Ty) const;
 
+  // TVM local begin
   /// Returns the maximum number of bytes that may be overwritten by
   /// storing the specified type.
   ///
   /// For example, returns 5 for i36 and 10 for x86_fp80.
   uint64_t getTypeStoreSize(Type *Ty) const {
-    return (getTypeSizeInBits(Ty) + 7) / 8;
+    return (getTypeSizeInBits(Ty) + (ByteSizeInBits - 1)) / ByteSizeInBits;
   }
 
   /// Returns the maximum number of bits that may be overwritten by
@@ -417,8 +422,9 @@ public:
   ///
   /// For example, returns 40 for i36 and 80 for x86_fp80.
   uint64_t getTypeStoreSizeInBits(Type *Ty) const {
-    return 8 * getTypeStoreSize(Ty);
+    return ByteSizeInBits * getTypeStoreSize(Ty);
   }
+  // TVM local end
 
   /// Returns the offset in bytes between successive objects of the
   /// specified type, including alignment padding.
@@ -436,7 +442,9 @@ public:
   /// This is the amount that alloca reserves for this type. For example,
   /// returns 96 or 128 for x86_fp80, depending on alignment.
   uint64_t getTypeAllocSizeInBits(Type *Ty) const {
-    return 8 * getTypeAllocSize(Ty);
+    // TVM local begin
+    return ByteSizeInBits * getTypeAllocSize(Ty);
+    // TVM local end
   }
 
   /// Returns the minimum ABI-required alignment for the specified type.
@@ -528,7 +536,9 @@ class StructLayout {
 public:
   uint64_t getSizeInBytes() const { return StructSize; }
 
-  uint64_t getSizeInBits() const { return 8 * StructSize; }
+  // TVM local begin
+  uint64_t getSizeInBits() const { return ByteSizeInBits * StructSize; }
+  // TVM local end
 
   unsigned getAlignment() const { return StructAlignment; }
 
@@ -546,7 +556,9 @@ public:
   }
 
   uint64_t getElementOffsetInBits(unsigned Idx) const {
-    return getElementOffset(Idx) * 8;
+    // TVM local begin
+    return getElementOffset(Idx) * ByteSizeInBits;
+    // TVM local end
   }
 
 private:

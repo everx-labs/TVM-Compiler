@@ -177,6 +177,9 @@ def llvm_i8_ty         : LLVMType<i8>;
 def llvm_i16_ty        : LLVMType<i16>;
 def llvm_i32_ty        : LLVMType<i32>;
 def llvm_i64_ty        : LLVMType<i64>;
+// TVM local begin
+def llvm_i257_ty       : LLVMType<i257>;
+// TVM local end
 def llvm_half_ty       : LLVMType<f16>;
 def llvm_float_ty      : LLVMType<f32>;
 def llvm_double_ty     : LLVMType<f64>;

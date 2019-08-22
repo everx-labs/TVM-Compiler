@@ -20,6 +20,10 @@
 #include <new>
 #include <stddef.h>
 
+// TVM local begin
+static const unsigned ByteSizeInBits = 257;
+// TVM local end
+
 #if defined(_MSC_VER)
 #include <sal.h>
 #endif

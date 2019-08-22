@@ -1,154 +1,152 @@
 ; XFAIL: *
-; RUN: llc < %s -march=tvm
-target datalayout = "E-S1024-i256:256:256"
+; RUN: llc < %s -march=tvm 
+; ModuleID = 'mergeSort.c'
+source_filename = "mergeSort.c"
+target datalayout = "E-S257-i1:257:257-i8:257:257-i16:257:257-i32:257:257-i64:257:257-i257:257:257-p:257:257-a:257:257"
 target triple = "tvm"
 
-; Function Attrs: norecurse nounwind sspstrong uwtable
-define dso_local void @merge(i64* nocapture, i64, i64, i64) local_unnamed_addr #0 {
-  %5 = sub i64 %2, %1
-  %6 = add i64 %5, 1
-  %7 = sub i64 %3, %2
-  %8 = alloca i64, i64 %6, align 16
-  %9 = alloca i64, i64 %7, align 16
-  %10 = bitcast i64* %9 to i8*
-  %11 = icmp slt i64 %5, 0
-  br i1 %11, label %19, label %12
+; Function Attrs: norecurse nounwind
+define dso_local void @merge(i257* nocapture %arr, i257 %l, i257 %m, i257 %r) local_unnamed_addr #0 {
+entry:
+  %sub = sub nsw i257 %m, %l
+  %add = add nsw i257 %sub, 1
+  %sub1 = sub nsw i257 %r, %m
+  %vla = alloca i257, i257 %add, align 1
+  %vla2 = alloca i257, i257 %sub1, align 1
+  %cmp107 = icmp slt i257 %sub, 0
+  br i1 %cmp107, label %for.cond6.preheader, label %for.body
 
-; <label>:12:                                     ; preds = %4
-  %13 = bitcast i64* %8 to i8*
-  %14 = add i64 %2, 1
-  %15 = sub i64 %14, %1
-  %16 = getelementptr i64, i64* %0, i64 %1
-  %17 = bitcast i64* %16 to i8*
-  %18 = shl i64 %15, 3
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* nonnull align 16 %13, i8* align 8 %17, i64 %18, i1 false)
-  br label %19
+for.cond6.preheader:                              ; preds = %for.body, %entry
+  %cmp7105 = icmp sgt i257 %sub1, 0
+  br i1 %cmp7105, label %for.body8, label %while.cond28.preheader
 
-; <label>:19:                                     ; preds = %12, %4
-  %20 = icmp sgt i64 %7, 0
-  br i1 %20, label %21, label %29
+for.body:                                         ; preds = %entry, %for.body
+  %i.0108 = phi i257 [ %inc, %for.body ], [ 0, %entry ]
+  %add4 = add nsw i257 %i.0108, %l
+  %arrayidx = getelementptr inbounds i257, i257* %arr, i257 %add4
+  %0 = load i257, i257* %arrayidx, align 1, !tbaa !2
+  %arrayidx5 = getelementptr inbounds i257, i257* %vla, i257 %i.0108
+  store i257 %0, i257* %arrayidx5, align 1, !tbaa !2
+  %inc = add nuw nsw i257 %i.0108, 1
+  %cmp = icmp slt i257 %i.0108, %sub
+  br i1 %cmp, label %for.body, label %for.cond6.preheader
 
-; <label>:21:                                     ; preds = %19
-  %22 = add i64 %2, 1
-  %23 = getelementptr i64, i64* %0, i64 %22
-  %24 = bitcast i64* %23 to i8*
-  %25 = sub i64 %3, %2
-  %26 = shl i64 %25, 3
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* nonnull align 16 %10, i8* align 8 %24, i64 %26, i1 false)
-  %27 = icmp sgt i64 %5, -1
-  %28 = and i1 %20, %27
-  br i1 %28, label %41, label %29
+while.cond.preheader:                             ; preds = %for.body8
+  %cmp1696 = icmp sgt i257 %sub, -1
+  %or.cond98 = and i1 %cmp7105, %cmp1696
+  br i1 %or.cond98, label %while.body, label %while.cond28.preheader
 
-; <label>:29:                                     ; preds = %55, %19, %21
-  %30 = phi i64 [ %1, %21 ], [ %1, %19 ], [ %58, %55 ]
-  %31 = phi i64 [ 0, %21 ], [ 0, %19 ], [ %56, %55 ]
-  %32 = phi i64 [ 0, %21 ], [ 0, %19 ], [ %57, %55 ]
-  %33 = icmp sgt i64 %32, %5
-  br i1 %33, label %62, label %34
+for.body8:                                        ; preds = %for.cond6.preheader, %for.body8
+  %j.0106 = phi i257 [ %add9, %for.body8 ], [ 0, %for.cond6.preheader ]
+  %add9 = add nuw nsw i257 %j.0106, 1
+  %add10 = add i257 %add9, %m
+  %arrayidx11 = getelementptr inbounds i257, i257* %arr, i257 %add10
+  %1 = load i257, i257* %arrayidx11, align 1, !tbaa !2
+  %arrayidx12 = getelementptr inbounds i257, i257* %vla2, i257 %j.0106
+  store i257 %1, i257* %arrayidx12, align 1, !tbaa !2
+  %cmp7 = icmp slt i257 %add9, %sub1
+  br i1 %cmp7, label %for.body8, label %while.cond.preheader
 
-; <label>:34:                                     ; preds = %29
-  %35 = getelementptr i64, i64* %0, i64 %30
-  %36 = bitcast i64* %35 to i8*
-  %37 = getelementptr i64, i64* %8, i64 %32
-  %38 = bitcast i64* %37 to i8*
-  %39 = sub i64 %6, %32
-  %40 = shl i64 %39, 3
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* align 8 %36, i8* align 8 %38, i64 %40, i1 false)
-  br label %73
+while.cond28.preheader:                           ; preds = %if.end, %for.cond6.preheader, %while.cond.preheader
+  %k.0.lcssa = phi i257 [ %l, %while.cond.preheader ], [ %l, %for.cond6.preheader ], [ %inc27, %if.end ]
+  %j.1.lcssa = phi i257 [ 0, %while.cond.preheader ], [ 0, %for.cond6.preheader ], [ %j.2, %if.end ]
+  %i.1.lcssa = phi i257 [ 0, %while.cond.preheader ], [ 0, %for.cond6.preheader ], [ %i.2, %if.end ]
+  %cmp2993 = icmp sgt i257 %i.1.lcssa, %sub
+  br i1 %cmp2993, label %while.cond36.preheader, label %while.body30
 
-; <label>:41:                                     ; preds = %21, %55
-  %42 = phi i64 [ %57, %55 ], [ 0, %21 ]
-  %43 = phi i64 [ %56, %55 ], [ 0, %21 ]
-  %44 = phi i64 [ %58, %55 ], [ %1, %21 ]
-  %45 = getelementptr inbounds i64, i64* %8, i64 %42
-  %46 = load i64, i64* %45, align 8, !tbaa !4
-  %47 = getelementptr inbounds i64, i64* %9, i64 %43
-  %48 = load i64, i64* %47, align 8, !tbaa !4
-  %49 = icmp sgt i64 %46, %48
-  %50 = getelementptr inbounds i64, i64* %0, i64 %44
-  br i1 %49, label %53, label %51
+while.body:                                       ; preds = %while.cond.preheader, %if.end
+  %i.1101 = phi i257 [ %i.2, %if.end ], [ 0, %while.cond.preheader ]
+  %j.1100 = phi i257 [ %j.2, %if.end ], [ 0, %while.cond.preheader ]
+  %k.099 = phi i257 [ %inc27, %if.end ], [ %l, %while.cond.preheader ]
+  %arrayidx18 = getelementptr inbounds i257, i257* %vla, i257 %i.1101
+  %2 = load i257, i257* %arrayidx18, align 1, !tbaa !2
+  %arrayidx19 = getelementptr inbounds i257, i257* %vla2, i257 %j.1100
+  %3 = load i257, i257* %arrayidx19, align 1, !tbaa !2
+  %cmp20 = icmp sgt i257 %2, %3
+  %arrayidx25 = getelementptr inbounds i257, i257* %arr, i257 %k.099
+  br i1 %cmp20, label %if.else, label %if.then
 
-; <label>:51:                                     ; preds = %41
-  store i64 %46, i64* %50, align 8, !tbaa !4
-  %52 = add nsw i64 %42, 1
-  br label %55
+if.then:                                          ; preds = %while.body
+  store i257 %2, i257* %arrayidx25, align 1, !tbaa !2
+  %inc23 = add nsw i257 %i.1101, 1
+  br label %if.end
 
-; <label>:53:                                     ; preds = %41
-  store i64 %48, i64* %50, align 8, !tbaa !4
-  %54 = add nsw i64 %43, 1
-  br label %55
+if.else:                                          ; preds = %while.body
+  store i257 %3, i257* %arrayidx25, align 1, !tbaa !2
+  %inc26 = add nsw i257 %j.1100, 1
+  br label %if.end
 
-; <label>:55:                                     ; preds = %53, %51
-  %56 = phi i64 [ %43, %51 ], [ %54, %53 ]
-  %57 = phi i64 [ %52, %51 ], [ %42, %53 ]
-  %58 = add nsw i64 %44, 1
-  %59 = icmp sle i64 %57, %5
-  %60 = icmp slt i64 %56, %7
-  %61 = and i1 %60, %59
-  br i1 %61, label %41, label %29
+if.end:                                           ; preds = %if.else, %if.then
+  %j.2 = phi i257 [ %j.1100, %if.then ], [ %inc26, %if.else ]
+  %i.2 = phi i257 [ %inc23, %if.then ], [ %i.1101, %if.else ]
+  %inc27 = add nsw i257 %k.099, 1
+  %cmp16 = icmp sle i257 %i.2, %sub
+  %cmp17 = icmp slt i257 %j.2, %sub1
+  %or.cond = and i1 %cmp17, %cmp16
+  br i1 %or.cond, label %while.body, label %while.cond28.preheader
 
-; <label>:62:                                     ; preds = %73, %29
-  %63 = phi i64 [ %30, %29 ], [ %77, %73 ]
-  %64 = icmp slt i64 %31, %7
-  br i1 %64, label %65, label %79
+while.cond36.preheader:                           ; preds = %while.body30, %while.cond28.preheader
+  %k.1.lcssa = phi i257 [ %k.0.lcssa, %while.cond28.preheader ], [ %inc34, %while.body30 ]
+  %cmp3790 = icmp slt i257 %j.1.lcssa, %sub1
+  br i1 %cmp3790, label %while.body38, label %while.end43
 
-; <label>:65:                                     ; preds = %62
-  %66 = getelementptr i64, i64* %0, i64 %63
-  %67 = bitcast i64* %66 to i8*
-  %68 = getelementptr i64, i64* %9, i64 %31
-  %69 = bitcast i64* %68 to i8*
-  %70 = sub i64 %3, %31
-  %71 = sub i64 %70, %2
-  %72 = shl i64 %71, 3
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* align 8 %67, i8* align 8 %69, i64 %72, i1 false)
-  br label %79
+while.body30:                                     ; preds = %while.cond28.preheader, %while.body30
+  %i.395 = phi i257 [ %inc33, %while.body30 ], [ %i.1.lcssa, %while.cond28.preheader ]
+  %k.194 = phi i257 [ %inc34, %while.body30 ], [ %k.0.lcssa, %while.cond28.preheader ]
+  %arrayidx31 = getelementptr inbounds i257, i257* %vla, i257 %i.395
+  %4 = load i257, i257* %arrayidx31, align 1, !tbaa !2
+  %arrayidx32 = getelementptr inbounds i257, i257* %arr, i257 %k.194
+  store i257 %4, i257* %arrayidx32, align 1, !tbaa !2
+  %inc33 = add nsw i257 %i.395, 1
+  %inc34 = add nsw i257 %k.194, 1
+  %cmp29 = icmp slt i257 %i.395, %sub
+  br i1 %cmp29, label %while.body30, label %while.cond36.preheader
 
-; <label>:73:                                     ; preds = %34, %73
-  %74 = phi i64 [ %76, %73 ], [ %32, %34 ]
-  %75 = phi i64 [ %77, %73 ], [ %30, %34 ]
-  %76 = add nsw i64 %74, 1
-  %77 = add nsw i64 %75, 1
-  %78 = icmp slt i64 %74, %5
-  br i1 %78, label %73, label %62
+while.body38:                                     ; preds = %while.cond36.preheader, %while.body38
+  %j.392 = phi i257 [ %inc41, %while.body38 ], [ %j.1.lcssa, %while.cond36.preheader ]
+  %k.291 = phi i257 [ %inc42, %while.body38 ], [ %k.1.lcssa, %while.cond36.preheader ]
+  %arrayidx39 = getelementptr inbounds i257, i257* %vla2, i257 %j.392
+  %5 = load i257, i257* %arrayidx39, align 1, !tbaa !2
+  %arrayidx40 = getelementptr inbounds i257, i257* %arr, i257 %k.291
+  store i257 %5, i257* %arrayidx40, align 1, !tbaa !2
+  %inc41 = add nsw i257 %j.392, 1
+  %inc42 = add nsw i257 %k.291, 1
+  %cmp37 = icmp slt i257 %inc41, %sub1
+  br i1 %cmp37, label %while.body38, label %while.end43
 
-; <label>:79:                                     ; preds = %65, %62
+while.end43:                                      ; preds = %while.body38, %while.cond36.preheader
   ret void
 }
 
-; Function Attrs: nounwind sspstrong uwtable
-define dso_local void @mergeSort(i64*, i64, i64) local_unnamed_addr #1 {
-  %4 = icmp sgt i64 %2, %1
-  br i1 %4, label %5, label %10
+; Function Attrs: nounwind
+define dso_local void @mergeSort(i257* %arr, i257 %l, i257 %r) local_unnamed_addr #1 {
+entry:
+  %cmp = icmp sgt i257 %r, %l
+  br i1 %cmp, label %if.then, label %if.end
 
-; <label>:5:                                      ; preds = %3
-  %6 = sub nsw i64 %2, %1
-  %7 = sdiv i64 %6, 2
-  %8 = add nsw i64 %7, %1
-  tail call void @mergeSort(i64* %0, i64 %1, i64 %8)
-  %9 = add nsw i64 %8, 1
-  tail call void @mergeSort(i64* %0, i64 %9, i64 %2)
-  tail call void @merge(i64* %0, i64 %1, i64 %8, i64 %2)
+if.then:                                          ; preds = %entry
+  %sub = sub nsw i257 %r, %l
+  %div = sdiv i257 %sub, 2
+  %add = add nsw i257 %div, %l
+  tail call void @mergeSort(i257* %arr, i257 %l, i257 %add)
+  %add1 = add nsw i257 %add, 1
+  tail call void @mergeSort(i257* %arr, i257 %add1, i257 %r)
+  tail call void @merge(i257* %arr, i257 %l, i257 %add, i257 %r)
   ret void
 
-; <label>:10:                                     ; preds = %3
+if.end:                                           ; preds = %entry
   ret void
 }
 
-; Function Attrs: argmemonly nounwind
-declare void @llvm.memcpy.p0i8.p0i8.i64(i8* nocapture writeonly, i8* nocapture readonly, i64, i1) #2
+attributes #0 = { norecurse nounwind "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "unsafe-fp-math"="false" "use-soft-float"="false" }
+attributes #1 = { nounwind "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "unsafe-fp-math"="false" "use-soft-float"="false" }
 
-attributes #0 = { norecurse nounwind sspstrong uwtable "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "less-precise-fpmad"="false" "min-legal-vector-width"="0" "no-frame-pointer-elim"="false" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="-3dnow,-3dnowa,-aes,-avx,-avx2,-avx512bitalg,-avx512bw,-avx512cd,-avx512dq,-avx512er,-avx512f,-avx512ifma,-avx512pf,-avx512vbmi,-avx512vbmi2,-avx512vl,-avx512vnni,-avx512vpopcntdq,-f16c,-fma,-fma4,-fxsr,-gfni,-mmx,-pclmul,-sha,-sse,-sse2,-sse3,-sse4.1,-sse4.2,-sse4a,-ssse3,-vaes,-vpclmulqdq,-x87,-xop,-xsave,-xsaveopt" "unsafe-fp-math"="false" "use-soft-float"="false" }
-attributes #1 = { nounwind sspstrong uwtable "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "less-precise-fpmad"="false" "min-legal-vector-width"="0" "no-frame-pointer-elim"="false" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="-3dnow,-3dnowa,-aes,-avx,-avx2,-avx512bitalg,-avx512bw,-avx512cd,-avx512dq,-avx512er,-avx512f,-avx512ifma,-avx512pf,-avx512vbmi,-avx512vbmi2,-avx512vl,-avx512vnni,-avx512vpopcntdq,-f16c,-fma,-fma4,-fxsr,-gfni,-mmx,-pclmul,-sha,-sse,-sse2,-sse3,-sse4.1,-sse4.2,-sse4a,-ssse3,-vaes,-vpclmulqdq,-x87,-xop,-xsave,-xsaveopt" "unsafe-fp-math"="false" "use-soft-float"="false" }
-attributes #2 = { argmemonly nounwind }
+!llvm.module.flags = !{!0}
+!llvm.ident = !{!1}
 
-!llvm.module.flags = !{!0, !1, !2}
-!llvm.ident = !{!3}
-
-!0 = !{i32 1, !"wchar_size", i32 4}
-!1 = !{i32 7, !"PIC Level", i32 2}
-!2 = !{i32 7, !"PIE Level", i32 2}
-!3 = !{!"clang version 8.0.0 (tags/RELEASE_800/final)"}
-!4 = !{!5, !5, i64 0}
-!5 = !{!"long", !6, i64 0}
-!6 = !{!"omnipotent char", !7, i64 0}
-!7 = !{!"Simple C/C++ TBAA"}
+!0 = !{i32 1, !"wchar_size", i32 1}
+!1 = !{!"clang version 7.0.0 "}
+!2 = !{!3, !3, i64 0}
+!3 = !{!"long", !4, i64 0}
+!4 = !{!"omnipotent char", !5, i64 0}
+!5 = !{!"Simple C/C++ TBAA"}

@@ -2,8 +2,8 @@
 target triple = "tvm"
 
 ; CHECK-LABEL: test
-define i64 @test() {
-; CHECK: PUSHINT 8
+define i257 @test() {
+; CHECK: PUSHINT 1
 ; CHECK-NEXT: CALL $:enter$
 ; CHECK-NEXT: PUSH c0
 ; CHECK-NEXT: PUSHINT 0
@@ -13,12 +13,10 @@ define i64 @test() {
 ; CHECK-NEXT: PUSHINT 0
 ; CHECK-NEXT: CALL $:frameidx$
 ; CHECK-NEXT: CALL $:load$
-; CHECK-NEXT: PUSHINT 8
+; CHECK-NEXT: PUSHINT 1
 ; CHECK-NEXT: CALL $:leave$
-; CHECK-NEXT: SWAP
-; CHECK-NEXT: DROP
-  %v = alloca i64, align 8
-  store i64 18234, i64* %v, align 8
-  %1 = load i64, i64* %v, align 8
-  ret i64 %1
+  %v = alloca i257, align 1
+  store i257 18234, i257* %v, align 1
+  %1 = load i257, i257* %v, align 1
+  ret i257 %1
 }

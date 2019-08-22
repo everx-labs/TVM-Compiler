@@ -38,11 +38,30 @@ public:
   explicit TVMTargetLowering(const TargetMachine &TM, const TVMSubtarget &STI);
 
   MVT getScalarShiftAmountTy(const DataLayout &, EVT) const override {
-    return MVT::i64;
+    return MVT::i257;
+  }
+  /// Return the ValueType of the result of SETCC operations.
+  EVT getSetCCResultType(const DataLayout &DL, LLVMContext &Context,
+                         EVT VT) const override {
+    return MVT::i257;
   }
 
   /// LowerOperation - Provide custom lowering hooks for some operations.
   SDValue LowerOperation(SDValue Op, SelectionDAG &DAG) const override;
+
+  /// Replace the results of node with an illegal result
+  /// type with new values built out of custom code.
+  void ReplaceNodeResults(SDNode *N, SmallVectorImpl<SDValue> &Results,
+                          SelectionDAG &DAG) const override;
+
+  /// Places new result values for the node in Results (their number
+  /// and types must exactly match those of the original return values of
+  /// the node), or leaves Results empty, which indicates that the node is not
+  /// to be custom lowered after all.
+  void LowerOperationWrapper(SDNode *N,
+                             SmallVectorImpl<SDValue> &Results,
+                             SelectionDAG &DAG) const override;
+
   /// Provide custom lowering hooks for intrinsics that unroll to more than one
   /// MIR instructions.
   SDValue LowerINTRINSIC_W_CHAIN(SDValue Op, SelectionDAG &DAG) const;
@@ -53,6 +72,15 @@ public:
 
   SDValue PerformDAGCombine(SDNode *N, DAGCombinerInfo &DCI) const override;
 
+  EVT getOptimalMemOpType(uint64_t Size, unsigned DstAlign, unsigned SrcAlign,
+                          bool IsMemset, bool ZeroMemset, bool MemcpyStrSrc,
+                          MachineFunction &MF) const override;
+
+  /// Returns true if the target allows unaligned memory accesses of the
+  /// specified type.
+  bool allowsMisalignedMemoryAccesses(EVT VT, unsigned AddrSpace = 0,
+                                      unsigned Align = 1,
+                                      bool *Fast = nullptr) const override;
 private:
   SDValue LowerCall(CallLoweringInfo &CLI,
                     SmallVectorImpl<SDValue> &InVals) const override;
@@ -72,6 +100,8 @@ private:
 
   // Custom lowering hooks.
   SDValue LowerGlobalAddress(SDValue Op, SelectionDAG &DAG) const;
+  SDValue LowerLoad(SDValue Op, SelectionDAG &DAG) const;
+  SDValue LowerStore(SDValue Op, SelectionDAG &DAG) const;
   SDValue LowerExternalSymbol(SDValue Op, SelectionDAG &DAG) const;
   SDValue LowerBR(SDValue Op, SelectionDAG &DAG) const;
   SDValue LowerBRCOND(SDValue Op, SelectionDAG &DAG) const;

@@ -35,4 +35,4 @@ def VALUE_STACK : TVMReg<"STACK">;
 def ARGUMENTS : TVMReg<"ARGUMENTS">;
 
 def DUMMY  : TVMReg<"DUMMY">;
-def I64 : TVMRegClass<[i64], 64, (add DUMMY, SP)>;
+def I257 : TVMRegClass<[i257], 257, (add DUMMY, SP)>;

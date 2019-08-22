@@ -1,129 +1,132 @@
-; RUN: llc < %s -march=tvm
-target datalayout = "E-S1024-i256:256:256"
+; RUN: llc < %s -march=tvm 
+; ModuleID = 'quickSortI.c'
+source_filename = "quickSortI.c"
+target datalayout = "E-S257-i1:257:257-i8:257:257-i16:257:257-i32:257:257-i64:257:257-i257:257:257-p:257:257-a:257:257"
 target triple = "tvm"
 
-; Function Attrs: nounwind sspstrong uwtable
-define dso_local void @qSortI(i64* nocapture, i64) local_unnamed_addr #0 {
-  %3 = alloca [50 x i64], align 16
-  %4 = alloca [50 x i64], align 16
-  %5 = bitcast [50 x i64]* %3 to i8*
-  call void @llvm.lifetime.start.p0i8(i64 400, i8* nonnull %5) #2
-  %6 = bitcast [50 x i64]* %4 to i8*
-  call void @llvm.lifetime.start.p0i8(i64 400, i8* nonnull %6) #2
-  %7 = getelementptr inbounds [50 x i64], [50 x i64]* %3, i64 0, i64 1
-  store i64 0, i64* %7, align 8, !tbaa !4
-  %8 = add nsw i64 %1, -1
-  %9 = getelementptr inbounds [50 x i64], [50 x i64]* %4, i64 0, i64 1
-  store i64 %8, i64* %9, align 8, !tbaa !4
-  br label %10
+; Function Attrs: nounwind
+define dso_local void @qSortI(i257* nocapture %a, i257 %size) local_unnamed_addr #0 {
+entry:
+  %lbstack = alloca [50 x i257], align 1
+  %ubstack = alloca [50 x i257], align 1
+  %0 = bitcast [50 x i257]* %lbstack to i8*
+  call void @llvm.lifetime.start.p0i8(i64 50, i8* nonnull %0) #2
+  %1 = bitcast [50 x i257]* %ubstack to i8*
+  call void @llvm.lifetime.start.p0i8(i64 50, i8* nonnull %1) #2
+  %arrayidx = getelementptr inbounds [50 x i257], [50 x i257]* %lbstack, i257 0, i257 1
+  store i257 0, i257* %arrayidx, align 1, !tbaa !2
+  %sub = add nsw i257 %size, -1
+  %arrayidx1 = getelementptr inbounds [50 x i257], [50 x i257]* %ubstack, i257 0, i257 1
+  store i257 %sub, i257* %arrayidx1, align 1, !tbaa !2
+  br label %do.body
 
-; <label>:10:                                     ; preds = %69, %2
-  %11 = phi i64 [ %8, %2 ], [ %73, %69 ]
-  %12 = phi i64 [ 0, %2 ], [ %71, %69 ]
-  %13 = phi i64 [ 1, %2 ], [ %64, %69 ]
-  %14 = add nsw i64 %13, -1
-  br label %15
+do.body:                                          ; preds = %do.cond40.do.body_crit_edge, %entry
+  %2 = phi i257 [ %sub, %entry ], [ %.pre99, %do.cond40.do.body_crit_edge ]
+  %3 = phi i257 [ 0, %entry ], [ %.pre, %do.cond40.do.body_crit_edge ]
+  %stackpos.0 = phi i257 [ 1, %entry ], [ %stackpos.4, %do.cond40.do.body_crit_edge ]
+  %dec = add nsw i257 %stackpos.0, -1
+  br label %do.body4
 
-; <label>:15:                                     ; preds = %62, %10
-  %16 = phi i64 [ %11, %10 ], [ %63, %62 ]
-  %17 = phi i64 [ %14, %10 ], [ %64, %62 ]
-  %18 = phi i64 [ %12, %10 ], [ %65, %62 ]
-  %19 = add nsw i64 %18, %16
-  %20 = ashr i64 %19, 1
-  %21 = getelementptr inbounds i64, i64* %0, i64 %20
-  %22 = load i64, i64* %21, align 8, !tbaa !4
-  br label %23
+do.body4:                                         ; preds = %do.cond37, %do.body
+  %ub.0 = phi i257 [ %2, %do.body ], [ %ub.1, %do.cond37 ]
+  %stackpos.1 = phi i257 [ %dec, %do.body ], [ %stackpos.4, %do.cond37 ]
+  %lb.0 = phi i257 [ %3, %do.body ], [ %lb.1, %do.cond37 ]
+  %add = add nsw i257 %lb.0, %ub.0
+  %shr = ashr i257 %add, 1
+  %arrayidx5 = getelementptr inbounds i257, i257* %a, i257 %shr
+  %4 = load i257, i257* %arrayidx5, align 1, !tbaa !2
+  br label %do.body6
 
-; <label>:23:                                     ; preds = %44, %15
-  %24 = phi i64 [ %16, %15 ], [ %45, %44 ]
-  %25 = phi i64 [ %18, %15 ], [ %46, %44 ]
-  br label %26
+do.body6:                                         ; preds = %do.cond, %do.body4
+  %j.0 = phi i257 [ %ub.0, %do.body4 ], [ %j.2, %do.cond ]
+  %i.0 = phi i257 [ %lb.0, %do.body4 ], [ %i.2, %do.cond ]
+  br label %while.cond
 
-; <label>:26:                                     ; preds = %26, %23
-  %27 = phi i64 [ %25, %23 ], [ %31, %26 ]
-  %28 = getelementptr inbounds i64, i64* %0, i64 %27
-  %29 = load i64, i64* %28, align 8, !tbaa !4
-  %30 = icmp slt i64 %29, %22
-  %31 = add nsw i64 %27, 1
-  br i1 %30, label %26, label %32
+while.cond:                                       ; preds = %while.cond, %do.body6
+  %i.1 = phi i257 [ %i.0, %do.body6 ], [ %inc, %while.cond ]
+  %arrayidx7 = getelementptr inbounds i257, i257* %a, i257 %i.1
+  %5 = load i257, i257* %arrayidx7, align 1, !tbaa !2
+  %cmp = icmp slt i257 %5, %4
+  %inc = add nsw i257 %i.1, 1
+  br i1 %cmp, label %while.cond, label %while.cond8.preheader
 
-; <label>:32:                                     ; preds = %26
-  %33 = getelementptr inbounds i64, i64* %0, i64 %27
-  br label %34
+while.cond8.preheader:                            ; preds = %while.cond
+  %arrayidx7.le = getelementptr inbounds i257, i257* %a, i257 %i.1
+  br label %while.cond8
 
-; <label>:34:                                     ; preds = %34, %32
-  %35 = phi i64 [ %39, %34 ], [ %24, %32 ]
-  %36 = getelementptr inbounds i64, i64* %0, i64 %35
-  %37 = load i64, i64* %36, align 8, !tbaa !4
-  %38 = icmp slt i64 %22, %37
-  %39 = add nsw i64 %35, -1
-  br i1 %38, label %34, label %40
+while.cond8:                                      ; preds = %while.cond8, %while.cond8.preheader
+  %j.1 = phi i257 [ %dec12, %while.cond8 ], [ %j.0, %while.cond8.preheader ]
+  %arrayidx9 = getelementptr inbounds i257, i257* %a, i257 %j.1
+  %6 = load i257, i257* %arrayidx9, align 1, !tbaa !2
+  %cmp10 = icmp slt i257 %4, %6
+  %dec12 = add nsw i257 %j.1, -1
+  br i1 %cmp10, label %while.cond8, label %while.end13
 
-; <label>:40:                                     ; preds = %34
-  %41 = icmp sgt i64 %27, %35
-  br i1 %41, label %44, label %42
+while.end13:                                      ; preds = %while.cond8
+  %cmp14 = icmp sgt i257 %i.1, %j.1
+  br i1 %cmp14, label %do.cond, label %if.then
 
-; <label>:42:                                     ; preds = %40
-  %43 = getelementptr inbounds i64, i64* %0, i64 %35
-  store i64 %37, i64* %33, align 8, !tbaa !4
-  store i64 %29, i64* %43, align 8, !tbaa !4
-  br label %44
+if.then:                                          ; preds = %while.end13
+  %arrayidx9.le = getelementptr inbounds i257, i257* %a, i257 %j.1
+  store i257 %6, i257* %arrayidx7.le, align 1, !tbaa !2
+  store i257 %5, i257* %arrayidx9.le, align 1, !tbaa !2
+  br label %do.cond
 
-; <label>:44:                                     ; preds = %40, %42
-  %45 = phi i64 [ %39, %42 ], [ %35, %40 ]
-  %46 = phi i64 [ %31, %42 ], [ %27, %40 ]
-  %47 = icmp sgt i64 %46, %45
-  br i1 %47, label %48, label %23
+do.cond:                                          ; preds = %while.end13, %if.then
+  %j.2 = phi i257 [ %dec12, %if.then ], [ %j.1, %while.end13 ]
+  %i.2 = phi i257 [ %inc, %if.then ], [ %i.1, %while.end13 ]
+  %cmp21 = icmp sgt i257 %i.2, %j.2
+  br i1 %cmp21, label %do.end, label %do.body6
 
-; <label>:48:                                     ; preds = %44
-  %49 = icmp slt i64 %46, %20
-  br i1 %49, label %50, label %56
+do.end:                                           ; preds = %do.cond
+  %cmp22 = icmp slt i257 %i.2, %shr
+  br i1 %cmp22, label %if.then23, label %if.else
 
-; <label>:50:                                     ; preds = %48
-  %51 = icmp slt i64 %46, %16
-  br i1 %51, label %52, label %62
+if.then23:                                        ; preds = %do.end
+  %cmp24 = icmp slt i257 %i.2, %ub.0
+  br i1 %cmp24, label %if.then25, label %do.cond37
 
-; <label>:52:                                     ; preds = %50
-  %53 = add nsw i64 %17, 1
-  %54 = getelementptr inbounds [50 x i64], [50 x i64]* %3, i64 0, i64 %53
-  store i64 %46, i64* %54, align 8, !tbaa !4
-  %55 = getelementptr inbounds [50 x i64], [50 x i64]* %4, i64 0, i64 %53
-  store i64 %16, i64* %55, align 8, !tbaa !4
-  br label %62
+if.then25:                                        ; preds = %if.then23
+  %inc26 = add nsw i257 %stackpos.1, 1
+  %arrayidx27 = getelementptr inbounds [50 x i257], [50 x i257]* %lbstack, i257 0, i257 %inc26
+  store i257 %i.2, i257* %arrayidx27, align 1, !tbaa !2
+  %arrayidx28 = getelementptr inbounds [50 x i257], [50 x i257]* %ubstack, i257 0, i257 %inc26
+  store i257 %ub.0, i257* %arrayidx28, align 1, !tbaa !2
+  br label %do.cond37
 
-; <label>:56:                                     ; preds = %48
-  %57 = icmp sgt i64 %45, %18
-  br i1 %57, label %58, label %62
+if.else:                                          ; preds = %do.end
+  %cmp30 = icmp sgt i257 %j.2, %lb.0
+  br i1 %cmp30, label %if.then31, label %do.cond37
 
-; <label>:58:                                     ; preds = %56
-  %59 = add nsw i64 %17, 1
-  %60 = getelementptr inbounds [50 x i64], [50 x i64]* %3, i64 0, i64 %59
-  store i64 %18, i64* %60, align 8, !tbaa !4
-  %61 = getelementptr inbounds [50 x i64], [50 x i64]* %4, i64 0, i64 %59
-  store i64 %45, i64* %61, align 8, !tbaa !4
-  br label %62
+if.then31:                                        ; preds = %if.else
+  %inc32 = add nsw i257 %stackpos.1, 1
+  %arrayidx33 = getelementptr inbounds [50 x i257], [50 x i257]* %lbstack, i257 0, i257 %inc32
+  store i257 %lb.0, i257* %arrayidx33, align 1, !tbaa !2
+  %arrayidx34 = getelementptr inbounds [50 x i257], [50 x i257]* %ubstack, i257 0, i257 %inc32
+  store i257 %j.2, i257* %arrayidx34, align 1, !tbaa !2
+  br label %do.cond37
 
-; <label>:62:                                     ; preds = %56, %58, %50, %52
-  %63 = phi i64 [ %45, %52 ], [ %45, %50 ], [ %16, %58 ], [ %16, %56 ]
-  %64 = phi i64 [ %53, %52 ], [ %17, %50 ], [ %59, %58 ], [ %17, %56 ]
-  %65 = phi i64 [ %18, %52 ], [ %18, %50 ], [ %46, %58 ], [ %46, %56 ]
-  %66 = icmp slt i64 %65, %63
-  br i1 %66, label %15, label %67
+do.cond37:                                        ; preds = %if.else, %if.then31, %if.then23, %if.then25
+  %ub.1 = phi i257 [ %j.2, %if.then25 ], [ %j.2, %if.then23 ], [ %ub.0, %if.then31 ], [ %ub.0, %if.else ]
+  %stackpos.4 = phi i257 [ %inc26, %if.then25 ], [ %stackpos.1, %if.then23 ], [ %inc32, %if.then31 ], [ %stackpos.1, %if.else ]
+  %lb.1 = phi i257 [ %lb.0, %if.then25 ], [ %lb.0, %if.then23 ], [ %i.2, %if.then31 ], [ %i.2, %if.else ]
+  %cmp38 = icmp slt i257 %lb.1, %ub.1
+  br i1 %cmp38, label %do.body4, label %do.cond40
 
-; <label>:67:                                     ; preds = %62
-  %68 = icmp eq i64 %64, 0
-  br i1 %68, label %74, label %69
+do.cond40:                                        ; preds = %do.cond37
+  %cmp41 = icmp eq i257 %stackpos.4, 0
+  br i1 %cmp41, label %do.end42, label %do.cond40.do.body_crit_edge
 
-; <label>:69:                                     ; preds = %67
-  %70 = getelementptr inbounds [50 x i64], [50 x i64]* %3, i64 0, i64 %64
-  %71 = load i64, i64* %70, align 8, !tbaa !4
-  %72 = getelementptr inbounds [50 x i64], [50 x i64]* %4, i64 0, i64 %64
-  %73 = load i64, i64* %72, align 8, !tbaa !4
-  br label %10
+do.cond40.do.body_crit_edge:                      ; preds = %do.cond40
+  %arrayidx2.phi.trans.insert = getelementptr inbounds [50 x i257], [50 x i257]* %lbstack, i257 0, i257 %stackpos.4
+  %.pre = load i257, i257* %arrayidx2.phi.trans.insert, align 1, !tbaa !2
+  %arrayidx3.phi.trans.insert = getelementptr inbounds [50 x i257], [50 x i257]* %ubstack, i257 0, i257 %stackpos.4
+  %.pre99 = load i257, i257* %arrayidx3.phi.trans.insert, align 1, !tbaa !2
+  br label %do.body
 
-; <label>:74:                                     ; preds = %67
-  call void @llvm.lifetime.end.p0i8(i64 400, i8* nonnull %6) #2
-  call void @llvm.lifetime.end.p0i8(i64 400, i8* nonnull %5) #2
+do.end42:                                         ; preds = %do.cond40
+  call void @llvm.lifetime.end.p0i8(i64 50, i8* nonnull %1) #2
+  call void @llvm.lifetime.end.p0i8(i64 50, i8* nonnull %0) #2
   ret void
 }
 
@@ -133,18 +136,16 @@ declare void @llvm.lifetime.start.p0i8(i64, i8* nocapture) #1
 ; Function Attrs: argmemonly nounwind
 declare void @llvm.lifetime.end.p0i8(i64, i8* nocapture) #1
 
-attributes #0 = { nounwind sspstrong uwtable "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "less-precise-fpmad"="false" "min-legal-vector-width"="0" "no-frame-pointer-elim"="false" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="-3dnow,-3dnowa,-aes,-avx,-avx2,-avx512bitalg,-avx512bw,-avx512cd,-avx512dq,-avx512er,-avx512f,-avx512ifma,-avx512pf,-avx512vbmi,-avx512vbmi2,-avx512vl,-avx512vnni,-avx512vpopcntdq,-f16c,-fma,-fma4,-fxsr,-gfni,-mmx,-pclmul,-sha,-sse,-sse2,-sse3,-sse4.1,-sse4.2,-sse4a,-ssse3,-vaes,-vpclmulqdq,-x87,-xop,-xsave,-xsaveopt" "unsafe-fp-math"="false" "use-soft-float"="false" }
+attributes #0 = { nounwind "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "unsafe-fp-math"="false" "use-soft-float"="false" }
 attributes #1 = { argmemonly nounwind }
 attributes #2 = { nounwind }
 
-!llvm.module.flags = !{!0, !1, !2}
-!llvm.ident = !{!3}
+!llvm.module.flags = !{!0}
+!llvm.ident = !{!1}
 
-!0 = !{i32 1, !"wchar_size", i32 4}
-!1 = !{i32 7, !"PIC Level", i32 2}
-!2 = !{i32 7, !"PIE Level", i32 2}
-!3 = !{!"clang version 8.0.0 (tags/RELEASE_800/final)"}
-!4 = !{!5, !5, i64 0}
-!5 = !{!"long", !6, i64 0}
-!6 = !{!"omnipotent char", !7, i64 0}
-!7 = !{!"Simple C/C++ TBAA"}
+!0 = !{i32 1, !"wchar_size", i32 1}
+!1 = !{!"clang version 7.0.0 "}
+!2 = !{!3, !3, i64 0}
+!3 = !{!"long", !4, i64 0}
+!4 = !{!"omnipotent char", !5, i64 0}
+!5 = !{!"Simple C/C++ TBAA"}

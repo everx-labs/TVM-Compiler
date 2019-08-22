@@ -121,7 +121,8 @@ defm THROWIF : I<(outs), (ins I64 : $cond, uimm6 : $exception),
 defm THROWIFNOT : I<(outs), (ins I64 : $cond, uimm6 : $exception),
                     (outs), (ins uimm6 : $exception),
                     [(int_tvm_throwif (not I64 : $cond), uimm6 : $exception)],
-                    "THROWIFNOT\t$cond", "THROWIFNOT", 0xf2a>;
+                    "THROWIFNOT\t$exception, $cond",
+                    "THROWIFNOT\t$exception", 0xf2a>;
 
 // Load and store subroutine calls
 defm CALL_LOAD : I<(outs I64 : $value), (ins I64 : $addr),

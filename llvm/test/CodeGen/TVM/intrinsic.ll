@@ -101,14 +101,14 @@ define i64 @ldslicex(i64 %slice, i64 %size) nounwind {
 
 ; CHECK-LABEL: throws
 define void @throws(i64 %cond) {
-; CHEC: THROWIF 42
+; CHECK: THROWIF 42
   call void @llvm.tvm.throwif(i64 %cond, i64 42)
   ret void
 }
 
 ; CHECK-LABEL: throws_neg
 define void @throws_neg(i64 %cond) {
-; CHEC: THROWIFNOT 42
+; CHECK: THROWIFNOT 42
   %1 = xor i64 %cond, -1
   call void @llvm.tvm.throwif(i64 %1, i64 42)
   ret void

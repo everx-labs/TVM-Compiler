@@ -67,6 +67,14 @@ public:
   /// the correct data.
   bool processInstruction(MachineInstr &MI, Stack &TheStack);
 
+  /// Calculate required stack manipulations to ship arguments to \par MI.
+  StackFixup prepareStackFor(MachineInstr &MI, const Stack &StackBefore,
+                             std::string *DebugMessage = nullptr);
+
+  /// Calculate stack after \par MI execution.
+  /// This fixup is not supposed to be code generated.
+  void modelInstructionExecution(MachineInstr &MI, Stack &StackBefore);
+
   static char ID; // Pass identification, replacement for typeid
   TVMStackModel() : MachineFunctionPass(ID) {}
 
@@ -89,6 +97,12 @@ private:
   /// in the end the pass must ensure that the control flow leaves stack in
   /// final stack configuration.
   void fillBlocksBeginEndPatterns(MachineFunction &MF);
+
+  /// Rewrite an instruction in Reg-form to S-form.
+  /// \see TVMInstructionInfo.td to learn more.
+  void rewriteToSForm(MachineInstr &MI, std::string& PreTermStackString,
+                      Stack &TheStack);
+
 
   /// Append \par MMB live-ins to \par vregs
   void gatherBlockLiveIns(MachineBasicBlock &MBB, std::set<unsigned> &vregs);
@@ -173,172 +187,15 @@ TVMStackModel::prepareInstructionComment(const MachineInstr &MI) const {
 }
 
 bool TVMStackModel::processInstruction(MachineInstr &MI, Stack &TheStack) {
-  if (MI.isImplicitDef())
-    return false;
-
   auto *MBB = MI.getParent();
-
-#ifndef NDEBUG
-  {
-    SmallVector<StackVreg, 32> Vregs(
-          llvm::make_filter_range(TheStack, [](StackVreg vreg) {
-            return vreg.VirtReg != TVMFunctionInfo::UnusedReg;
-          }));
-
-    llvm::sort(Vregs.begin(), Vregs.end());
-    auto it = std::unique(Vregs.begin(), Vregs.end());
-    assert(it == Vregs.end() && "Vreg duplicates found in stack");
-  }
-#endif
-
   StackFixup::InstructionGenerator InsertMIs(TII, MFI, MBB, MI);
+  std::string PreTermStackStr;
+  StackFixup Fix = prepareStackFor(MI, TheStack, &PreTermStackStr);
+  InsertMIs(Fix);
+  Fix.apply(TheStack);
 
-  TheStack = TheStack.filteredByMIdefs(MI);
-
-  size_t NumDefs = MI.getNumDefs();
-  size_t NumOperands = MI.getNumOperands();
-
-  // FIXME: wrong assumption. There is no function scope in TVM so RET
-  // terminates the current continuation - not necessary a function.
-  if (MI.isReturn()) {
-    assert(NumOperands <= 2 && "Multiple returns are not implemented yet");
-    if (NumOperands == 0)
-      InsertMIs(StackFixup::DiffForReturn(TheStack));
-    else
-      InsertMIs(StackFixup::DiffForReturn(TheStack, MI.getOperand(0).getReg()));
-    return true;
-  }
-
-  std::string preTermStackStr;
-  if (MI.isTerminator() && MBB->succ_size()) {
-    // For terminator instruction we need to prepare stack as
-    //  dst road pattern plus required arguments
-    auto AfterTermStack = BBInfo[MBB].fixedEnd();
-    auto NeedStack = AfterTermStack.withArgs(MIArgs(MI, *LIS));
-    auto Fix = NeedStack - TheStack;
-    InsertMIs(Fix);
-    Fix.apply(TheStack);
-    preTermStackStr = NeedStack.toString();
-  } else {
-    auto Fix =
-        StackFixup::DiffForArgs(TheStack, MIArgs(MI, *LIS), MI.isCommutable());
-    InsertMIs(Fix);
-    Fix.apply(TheStack);
-  }
-
-  size_t NumStackOperands = 0, NumGlobals = 0, NumImms = 0;
-  for (const MachineOperand &Op : MI.uses()) {
-    if (Op.isGlobal() || Op.isSymbol())
-      NumGlobals++;
-    else if (Op.isImm())
-      NumImms++;
-    else if (Op.isReg())
-      NumStackOperands++;
-  }
-  unsigned NewOpcode = TVM::RegForm2SForm[MI.getOpcode()];
-  unsigned NumToConsume = NumStackOperands;
-#ifndef NDEBUG
-  // Let's ensure that consumed registers are used in instruction
-  // TODO: Doesn't cover numerous corner cases. Covering them would require to
-  // reimplement consumption under NDEBUG or extending consumption interface.
-  auto revUses = reverse(MI.uses());
-  for (unsigned I = 0; I < NumToConsume; I++) {
-    if (MI.isCommutable()) {
-      auto regUse = llvm::find_if(revUses, [&](const MachineOperand &Op) {
-        return Op.isReg() && TheStack.reg(I) == Op.getReg();
-      });
-      assert(regUse != revUses.end()
-          && "Consuming register not used in instruction");
-    } else {
-      auto regUse = llvm::find_if(revUses, [&](const MachineOperand &Op) {
-        return Op.isReg();
-      });
-      assert(regUse != revUses.end()
-          && "Consuming register not used in instruction");
-
-      assert(regUse->isUndef() || regUse->getReg() == TheStack.reg(I)
-             && "Wrong register for consuming in instruction");
-
-      revUses = llvm::make_range(++regUse, revUses.end());
-    }
-  }
-#endif
-  TheStack.consumeArguments(NumToConsume);
-
-  for (size_t ROpNo = 0; ROpNo < NumDefs; ++ROpNo) {
-    const auto &Operand = MI.getOperand(NumDefs - ROpNo - 1);
-    assert(Operand.isReg() && "Def must be a register");
-    TheStack.addDef(Operand.getReg(), findDebugValue(MI, Operand.getReg()));
-  }
-  if (NewOpcode >= 0) {
-    // Global operands and external symbols are represented using GlobalAddress
-    // and ExternalSymbol DAG nodes. Because of convention of instruction
-    // operands ordering global addresses and external symbols must be placed
-    // first before instruction. To avoid custom logic of stack reordering for
-    // global/external operands, we transfrom all GlobalAddress and
-    // ExternalSymbol nodes to the chain of PUSH_GLOBAL_ADDRESS(_S) instruction
-    // and TargetGlobalAddress / TargetExternalSymbol nodes. So by default only
-    // PUSH_GLOBAL_ADDRESS instruction may have global/external operand. This
-    // instruction has definition with address which can be normally processed
-    // using stack model for all further uses of the address result.
-    // There are may be exceptions when the transformation to
-    // PUSH_GLOBAL_ADDRESS is not needed (for example, for instructions with
-    // immediate string operands like LOGSTR). For such cases operands will be
-    // passed up to lowering to MCInst where they can be customly processed.
-
-    // add global addresses before the command
-    // TODO: continuation must be modelled in the stack then.
-    for (unsigned I = 0; I < NumGlobals; I++) {
-      const auto &Op = MI.getOperand(NumDefs + I);
-      assert((Op.isGlobal() || Op.isSymbol()) &&
-             "Expected GlobalAddress/ExternalSymbol");
-      if (NewOpcode == TVM::PUSH_GLOBAL_ADDRESS_S) {
-        if (Op.isGlobal()) {
-          BuildMI(&MI, TII->get(TVM::PUSHCONT_LABEL))
-              .addGlobalAddress(Op.getGlobal(), Op.getOffset());
-        } else {
-          BuildMI(&MI, TII->get(TVM::PUSHCONT_LABEL))
-              .addExternalSymbol(Op.getSymbolName(), Op.getOffset());
-        }
-      }
-    }
-
-    MachineInstrBuilder MIB = BuildMI(&MI, TII->get(NewOpcode));
-
-    if (NewOpcode != TVM::PUSH_GLOBAL_ADDRESS_S) {
-      for (unsigned I = 0; I < NumGlobals; I++) {
-        const auto &Op = MI.getOperand(NumDefs + I);
-        assert(Op.isGlobal() && "Expected GlobalAddress");
-        MIB->addOperand(Op);
-      }
-    }
-
-    // Additional immediate is fake op for TVM::PUSHCONT_MBB operation
-    if (MI.getOpcode() == TVM::PUSHCONT_MBB) {
-      MIB->addOperand(MI.getOperand(1));
-    } else {
-      for (unsigned I = 0; I < NumImms; I++) {
-        // Imms are expected to be in continuous sequence
-        //  in register version of MI
-        const auto &Op = MI.getOperand(NumOperands - NumImms + I);
-        assert(Op.isImm() && "Expected Imm");
-        MIB.addImm(Op.getImm());
-      }
-    }
-
-    TheStack.filterByDeadDefs(MI);
-
-    if (NumDefs)
-      MFI->addStackModelComment(MIB.getInstr(), prepareInstructionComment(MI));
-
-    if (MI.isTerminator())
-      MFI->addStackModelComment(MIB.getInstr(), preTermStackStr + " => " +
-                                TheStack.toString());
-    else
-      MFI->addStackModelComment(MIB.getInstr(), TheStack.toString());
-
-    MI.removeFromParent();
-  }
+  modelInstructionExecution(MI, TheStack);
+  rewriteToSForm(MI, PreTermStackStr, TheStack);
   return true;
 }
 
@@ -584,4 +441,175 @@ bool TVMStackModel::runOnMachineFunction(MachineFunction &MF) {
     Changed = true;
 
   return Changed;
+}
+
+/// Model stack for a single instruction.
+StackFixup TVMStackModel::prepareStackFor(MachineInstr &MI,
+                                          const Stack &StackBefore,
+                                          std::string *DebugMessage) {
+  if (MI.isImplicitDef())
+    return {};
+
+  auto *MBB = MI.getParent();
+
+#ifndef NDEBUG
+  {
+    SmallVector<StackVreg, 32> Vregs(
+        llvm::make_filter_range(StackBefore, [](StackVreg vreg) {
+          return vreg.VirtReg != TVMFunctionInfo::UnusedReg;
+        }));
+
+    llvm::sort(Vregs.begin(), Vregs.end());
+    auto it = std::unique(Vregs.begin(), Vregs.end());
+    assert(it == Vregs.end() && "Vreg duplicates found in stack");
+  }
+#endif
+
+  // TODO: We can do it inplace.
+  Stack TheStack = StackBefore.filteredByMIdefs(MI);
+
+  size_t NumOperands = MI.getNumOperands();
+
+  // FIXME: wrong assumption. There is no function scope in TVM so RET
+  // terminates the current continuation - not necessary a function.
+  if (MI.isReturn()) {
+    assert(NumOperands <= 2 && "Multiple returns are not implemented yet");
+    if (NumOperands == 0)
+      return StackFixup::DiffForReturn(TheStack);
+    else
+      return StackFixup::DiffForReturn(TheStack, MI.getOperand(0).getReg());
+  }
+
+  if (MI.isTerminator() && MBB->succ_size()) {
+    // For terminator instruction we need to prepare stack as
+    //  dst road pattern plus required arguments
+    auto AfterTermStack = BBInfo[MBB].fixedEnd();
+    auto NeedStack = AfterTermStack.withArgs(MIArgs(MI, *LIS));
+    auto Fix = NeedStack - TheStack;
+    if (DebugMessage)
+      *DebugMessage = NeedStack.toString();
+    return Fix;
+  } else {
+    return StackFixup::DiffForArgs(TheStack, MIArgs(MI, *LIS),
+                                   MI.isCommutable());
+  }
+}
+
+void TVMStackModel::modelInstructionExecution(MachineInstr &MI,
+                                              Stack &StackBefore) {
+  size_t NumDefs = MI.getNumDefs();
+  size_t NumStackOperands = llvm::count_if(MI.uses(), [](const MachineOperand& MO) { return MO.isReg(); });
+  unsigned NumToConsume = NumStackOperands;
+#ifndef NDEBUG
+  // Let's ensure that consumed registers are used in instruction
+  // TODO: Doesn't cover numerous corner cases. Covering them would require to
+  // reimplement consumption under NDEBUG or extending consumption interface.
+  auto revUses = reverse(MI.uses());
+  for (unsigned I = 0; I < NumToConsume; I++) {
+    if (MI.isCommutable()) {
+      auto regUse = llvm::find_if(revUses, [&](const MachineOperand &Op) {
+        return Op.isReg() && StackBefore.reg(I) == Op.getReg();
+      });
+      assert(regUse != revUses.end() &&
+             "Consuming register not used in instruction");
+    } else {
+      auto regUse = llvm::find_if(
+          revUses, [&](const MachineOperand &Op) { return Op.isReg(); });
+      assert(regUse != revUses.end() &&
+             "Consuming register not used in instruction");
+
+      assert(regUse->isUndef() ||
+             regUse->getReg() == StackBefore.reg(I) &&
+                 "Wrong register for consuming in instruction");
+
+      revUses = llvm::make_range(++regUse, revUses.end());
+    }
+  }
+#endif
+  StackBefore.consumeArguments(NumToConsume);
+  for (size_t ROpNo = 0; ROpNo < NumDefs; ++ROpNo) {
+    const auto &Operand = MI.getOperand(NumDefs - ROpNo - 1);
+    assert(Operand.isReg() && "Def must be a register");
+    StackBefore.addDef(Operand.getReg(), findDebugValue(MI, Operand.getReg()));
+  }
+}
+
+void TVMStackModel::rewriteToSForm(MachineInstr &MI, std::string &PreTermStackString,
+                                   Stack &TheStack) {
+  size_t NumDefs = MI.getNumDefs();
+  size_t NumOperands = MI.getNumOperands();
+  unsigned NewOpcode = TVM::RegForm2SForm[MI.getOpcode()];
+
+  size_t NumGlobals = llvm::count_if(MI.uses(), [](const MachineOperand& MO) { return MO.isGlobal(); });
+  size_t NumImms = llvm::count_if(MI.uses(), [](const MachineOperand& MO) { return MO.isImm(); });
+
+  if (NewOpcode >= 0) {
+    // Global operands and external symbols are represented using GlobalAddress
+    // and ExternalSymbol DAG nodes. Because of convention of instruction
+    // operands ordering global addresses and external symbols must be placed
+    // first before instruction. To avoid custom logic of stack reordering for
+    // global/external operands, we transfrom all GlobalAddress and
+    // ExternalSymbol nodes to the chain of PUSH_GLOBAL_ADDRESS(_S) instruction
+    // and TargetGlobalAddress / TargetExternalSymbol nodes. So by default only
+    // PUSH_GLOBAL_ADDRESS instruction may have global/external operand. This
+    // instruction has definition with address which can be normally processed
+    // using stack model for all further uses of the address result.
+    // There are may be exceptions when the transformation to
+    // PUSH_GLOBAL_ADDRESS is not needed (for example, for instructions with
+    // immediate string operands like LOGSTR). For such cases operands will be
+    // passed up to lowering to MCInst where they can be customly processed.
+
+    // add global addresses before the command
+    // TODO: continuation must be modelled in the stack then.
+    for (unsigned I = 0; I < NumGlobals; I++) {
+      const auto &Op = MI.getOperand(NumDefs + I);
+      assert((Op.isGlobal() || Op.isSymbol()) &&
+             "Expected GlobalAddress/ExternalSymbol");
+      if (NewOpcode == TVM::PUSH_GLOBAL_ADDRESS_S) {
+        if (Op.isGlobal()) {
+          BuildMI(&MI, TII->get(TVM::PUSHCONT_LABEL))
+              .addGlobalAddress(Op.getGlobal(), Op.getOffset());
+        } else {
+          BuildMI(&MI, TII->get(TVM::PUSHCONT_LABEL))
+              .addExternalSymbol(Op.getSymbolName(), Op.getOffset());
+        }
+      }
+    }
+
+    MachineInstrBuilder MIB = BuildMI(&MI, TII->get(NewOpcode));
+
+    if (NewOpcode != TVM::PUSH_GLOBAL_ADDRESS_S) {
+      for (unsigned I = 0; I < NumGlobals; I++) {
+        const auto &Op = MI.getOperand(NumDefs + I);
+        assert(Op.isGlobal() && "Expected GlobalAddress");
+        MIB->addOperand(Op);
+      }
+    }
+
+    // Additional immediate is fake op for TVM::PUSHCONT_MBB operation
+    if (MI.getOpcode() == TVM::PUSHCONT_MBB) {
+      MIB->addOperand(MI.getOperand(1));
+    } else {
+      for (unsigned I = 0; I < NumImms; I++) {
+        // Imms are expected to be in continuous sequence
+        //  in register version of MI
+        const auto &Op = MI.getOperand(NumOperands - NumImms + I);
+        assert(Op.isImm() && "Expected Imm");
+        MIB.addImm(Op.getImm());
+      }
+    }
+
+    TheStack.filterByDeadDefs(MI);
+
+    if (NumDefs)
+      MFI->addStackModelComment(MIB.getInstr(), prepareInstructionComment(MI));
+
+    if (MI.isTerminator())
+      MFI->addStackModelComment(MIB.getInstr(),
+                                PreTermStackString + " => " + TheStack.toString());
+    else
+      MFI->addStackModelComment(MIB.getInstr(), TheStack.toString());
+
+    MI.removeFromParent();
+  }
 }

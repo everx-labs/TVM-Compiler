@@ -26,6 +26,7 @@
     SETCP0
     ACCEPT
     PUSHREFSLICE        ; dictionary of methods in first reference
+    PLDDICT
     OVER
     NEQINT 1
     PUSHCONT {          ; if func_id negative or zero - direct call to method
@@ -159,13 +160,15 @@
     PUSHINT 108
     PUSH c4                    ; ( c7 smart_contract_info_slice addr persistent_base+8 persistent-dict-cell )
     CTOS
-    PUSHINT 64                 ; ( c7 smart_contract_info_slice addr persistent_base+8 persistent-dict-slice addr-width )
+    PLDDICT
+    PUSHINT 64                 ; ( c7 smart_contract_info_slice addr persistent_base+8 persistent-dict addr-width )
     DICTIGET                   ; ( c7 smart_contract_info_slice addr global-dict-slice? flag )
-    THROWIFNOT 42
+    THROWIFNOT 42              ; ( c7 smart_contract_info_slice addr global-dict-slice )
+    PLDDICT                    ; ( c7 smart_contract_info_slice addr global-dict )
 
-    PUSHINT 64                 ; ( c7 smart_contract_info_slice addr global-dict-slice key-width )
-    DICTISET                   ; ( c7 dict-slice' )
-    NEWC STSLICE ENDC          ; ( c7 dict_cell )
+    PUSHINT 64                 ; ( c7 smart_contract_info_slice addr global-dict key-width )
+    DICTISET                   ; ( c7 dict' )
+    NEWC STDICT ENDC           ; ( c7 dict_cell )
     TPUSH                      ; ( c7' ) c7=(slice_with_smart_contract_info_ref, dict_cell)
     POP c7
 
@@ -188,8 +191,9 @@
     PUSH c7                    ; ( c7 addr c7 )
     SECOND                     ; ( c7 addr dict-cell )
     CTOS                       ; ( c7 addr dict-slice )
-    PUSHINT 64                 ; ( c7 addr dict-slice key-width )
-    DICTIGET                   ; ( c7 addr dict-slice key-width -- value-slice flag)
+    PLDDICT                    ; ( c7 addr dict )
+    PUSHINT 64                 ; ( c7 addr dict key-width )
+    DICTIGET                   ; ( c7 addr dict key-width -- value-slice flag)
     THROWIFNOT 60              ; ( c7 smart-contract-info-ref )
     NEWC STSLICE ENDC
     NEWC STREF ENDC            ; ( c7 cell-with-smart-contract-info-ref )
@@ -223,8 +227,9 @@
     IFELSE
 
     CTOS
+    PLDDICT
     PUSHINT 64
-    DICTIGET ; (addr dict-slice key-width -- value-slice flag)
+    DICTIGET ; (addr dict key-width -- value-slice flag)
 
     THROWIFNOT 60
     PUSHINT 257 LDIX 
@@ -245,9 +250,10 @@
     PUSHCONT { 
         PUSH c4
         CTOS     ; (val-slice addr dict-slice)
+        PLDDICT  ; (val-slice addr dict)
         PUSHINT 64
-        DICTISET ; (val-slice addr dict-slice key-width -- dict-slice')
-        NEWC STSLICE ENDC
+        DICTISET ; (val-slice addr dict key-width -- dict')
+        NEWC STDICT ENDC
         POP c4
     }
     PUSHCONT {
@@ -255,9 +261,10 @@
         DUP
         SECOND
         CTOS     ; (c7 val-slice addr dict-slice)
+        PLDDICT  ; (c7 val-slice addr dict)
         PUSHINT 64
-        DICTISET ; (c7 val-slice addr dict-slice key-width -- c7 dict-slice')
-        NEWC STSLICE ENDC
+        DICTISET ; (c7 val-slice addr dict key-width -- c7 dict')
+        NEWC STDICT ENDC
         SETSECOND
         POP c7
     }
@@ -281,8 +288,9 @@
     PUSH c7
     SECOND
     CTOS
+    PLDDICT
     PUSHINT 64
-    DICTIGET               ; ( addr dict-slice key-width -- slice_with_smart_contract_info_ref flag )
+    DICTIGET               ; ( addr dict key-width -- slice_with_smart_contract_info_ref flag )
     THROWIFNOT 60
 
     ;
@@ -295,9 +303,10 @@
     PUSH c7
     SECOND
     CTOS                   ; ( c7 cell addr dict-slice)
+    PLDDICT                ; ( c7 cell addr dict)
     PUSHINT 64
-    DICTISET               ; ( c7 cell addr dict-slice key-width -- c7 dict-slice' )
-    NEWC STSLICE ENDC
+    DICTISET               ; ( c7 cell addr dict key-width -- c7 dict' )
+    NEWC STDICT ENDC
     SETSECOND
     POP c7                 ; ( )
 
@@ -309,8 +318,9 @@ tonstdlib_get_smart_contract_info:
     PUSH c7
     SECOND
     CTOS
+    PLDDICT
     PUSHINT 64
-    DICTIGET               ; ( addr dict-slice key-width -- smart_contract_info_cell flag )
+    DICTIGET               ; ( addr dict key-width -- smart_contract_info_cell flag )
     THROWIFNOT 60          ; ( smart_contract_info_cell )
     JMP $:store_work_slice$
 

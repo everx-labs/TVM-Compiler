@@ -142,53 +142,61 @@
     ; At initialization: 
     ; 1) C4 contains persistent_data
     ; 1.5) Dict in C4 at persistent_base + 8 contains dictionary of global data
-    ; 2) C5 contains ref to smart_contract_info
+    ; 2) C7 contains ref to tuple with smart_contract_info at first item
     ; 
     ; Result:
-    ; 1) C5 contains dictionary with stack
-    ; 2) At key 2000000001 dict. C5 contains ref to smart_contract_info
-    PUSH c5
-    CTOS                       ; ( slice_with_smart_contract_info_ref )
-    LDREF                      ; ( smart_contract_info_slice slice_with_smart_contract_info_ref )
-    ENDS                       ; ( smart_contract_info_slice )
+    ; 1) C7 contains tuple (smart_contract_info, memory dictionary)
+    ; 2) At key 2000000001 the dictionary contains ref to smart_contract_info
+    PUSH c7
+    DUP
+    FIRST
+    CTOS                       ; ( c7 slice_with_smart_contract_info_ref )
+    LDREF                      ; ( c7 smart_contract_info_slice slice_with_smart_contract_info_ref )
+    ENDS                       ; ( c7 smart_contract_info_slice )
     CTOS
-    PUSHINT 2000000001         ; ( smart_contract_info_slice addr )
+    PUSHINT 2000000001         ; ( c7 smart_contract_info_slice addr )
 
     PUSHINT 108
-    PUSH c4                    ; ( smart_contract_info_slice addr persistent_base+8 persistent-dict-cell )
+    PUSH c4                    ; ( c7 smart_contract_info_slice addr persistent_base+8 persistent-dict-cell )
     CTOS
-    PUSHINT 64                 ; ( smart_contract_info_slice addr persistent_base+8 persistent-dict-slice addr-width )
-    DICTIGET                   ; ( smart_contract_info_slice addr global-dict-slice? flag )
+    PUSHINT 64                 ; ( c7 smart_contract_info_slice addr persistent_base+8 persistent-dict-slice addr-width )
+    DICTIGET                   ; ( c7 smart_contract_info_slice addr global-dict-slice? flag )
     THROWIFNOT 42
 
-    PUSHINT 64                 ; ( smart_contract_info_slice addr global-dict-slice key-width )
-    DICTISET                   ; ( dict-slice' )
-    NEWC STSLICE ENDC          ; ( dict_cell )
-    POP c5
+    PUSHINT 64                 ; ( c7 smart_contract_info_slice addr global-dict-slice key-width )
+    DICTISET                   ; ( c7 dict-slice' )
+    NEWC STSLICE ENDC          ; ( c7 dict_cell )
+    TPUSH                      ; ( c7' ) c7=(slice_with_smart_contract_info_ref, dict_cell)
+    POP c7
 
     PUSHINT 1000000000         ; ( new_stack_base_pointer )
     CALL $:store_bp$           ; ( )
     RET
 
     .internal	:term_fstack
-    ; Terminate stack -- copy values back from C5
+    ; Terminate stack -- copy values back from C7
     ; 
     ; Before termination: 
-    ; 1) C5 contains dictionary with stack
-    ; 2) At key -99999 dict. C5 contains ref to smart_contract_info
+    ; 1) C7 contains a tuple (smart_contract_info, memory dictionary)
+    ; 2) At key -99999 the dictionary contains the ref to smart_contract_info
     ; 
     ; Result:
-    ; 1) C5 ref to smart_contract_info; dict. is dropped
-
-    PUSHINT 2000000001         ; ( addr )
-    PUSH c5                    ; ( addr dict-cell )
-    CTOS                       ; ( addr dict-slice )
-    PUSHINT 64                 ; ( addr dict-slice key-width )
-    DICTIGET                   ; ( addr dict-slice key-width -- value-slice flag)
-    THROWIFNOT 60              ; ( smart-contract-info-ref )
+    ; 1) C7 contains ref to tuple with smart_contract_info at first item; dict. is dropped
+    ; todo: update
+    PUSH c7                    ; ( c7 )
+    PUSHINT 2000000001         ; ( c7 addr )
+    PUSH c7                    ; ( c7 addr c7 )
+    SECOND                     ; ( c7 addr dict-cell )
+    CTOS                       ; ( c7 addr dict-slice )
+    PUSHINT 64                 ; ( c7 addr dict-slice key-width )
+    DICTIGET                   ; ( c7 addr dict-slice key-width -- value-slice flag)
+    THROWIFNOT 60              ; ( c7 smart-contract-info-ref )
     NEWC STSLICE ENDC
-    NEWC STREF ENDC            ; ( cell-with-smart-contract-info-ref )
-    POP c5                     ; reset c5 value back to smart_contract_info
+    NEWC STREF ENDC            ; ( c7 cell-with-smart-contract-info-ref )
+    SETFIRST                   ; ( c7' )
+    TPOP
+    DROP
+    POP c7                     ; reset c7 value back to smart_contract_info
 
     .internal   :enter
     CALL $:load_bp$
@@ -208,10 +216,12 @@
     PUSHINT 100000
     LESS
     PUSHCONT { PUSH c4 }
-    PUSHCONT { PUSH c5 }
+    PUSHCONT {
+      PUSH c7
+      SECOND
+    }
     IFELSE
 
-    ;PUSH c5
     CTOS
     PUSHINT 64
     DICTIGET ; (addr dict-slice key-width -- value-slice flag)
@@ -241,12 +251,15 @@
         POP c4
     }
     PUSHCONT {
-        PUSH c5
-        CTOS     ; (val-slice addr dict-slice)
+        PUSH c7
+        DUP
+        SECOND
+        CTOS     ; (c7 val-slice addr dict-slice)
         PUSHINT 64
-        DICTISET ; (val-slice addr dict-slice key-width -- dict-slice')
+        DICTISET ; (c7 val-slice addr dict-slice key-width -- c7 dict-slice')
         NEWC STSLICE ENDC
-        POP c5
+        SETSECOND
+        POP c7
     }
     IFELSE
 
@@ -265,7 +278,8 @@
     ;
     .internal	:load_work_slice
     PUSHINT 2000000002     ; ( builder-cell-address )
-    PUSH c5
+    PUSH c7
+    SECOND
     CTOS
     PUSHINT 64
     DICTIGET               ; ( addr dict-slice key-width -- slice_with_smart_contract_info_ref flag )
@@ -276,20 +290,24 @@
     ; ( builder-cell -- )
     ;
     .internal	:store_work_slice
-    PUSHINT 2000000002     ; ( cell addr )
-    PUSH c5
-    CTOS                   ; ( cell addr dict-slice)
+    PUSH c7
+    PUSHINT 2000000002     ; ( c7 cell addr )
+    PUSH c7
+    SECOND
+    CTOS                   ; ( c7 cell addr dict-slice)
     PUSHINT 64
-    DICTISET               ; ( cell addr dict-slice key-width -- dict-slice' )
+    DICTISET               ; ( c7 cell addr dict-slice key-width -- c7 dict-slice' )
     NEWC STSLICE ENDC
-    POP c5                 ; ( )
+    SETSECOND
+    POP c7                 ; ( )
 
     ; smart contract info --- get it from stack
     .globl	tonstdlib_get_smart_contract_info
     .type	tonstdlib_get_smart_contract_info,@function
 tonstdlib_get_smart_contract_info:
     PUSHINT 2000000001     ; address of slice with smart_contract_info_ref
-    PUSH c5
+    PUSH c7
+    SECOND
     CTOS
     PUSHINT 64
     DICTIGET               ; ( addr dict-slice key-width -- smart_contract_info_cell flag )

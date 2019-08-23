@@ -5,7 +5,7 @@
 	.internal-alias :parse_msg,         3
 
 	.internal-alias :init_fstack,       4
-        .internal-alias :term_fstack,       10
+    .internal-alias :term_fstack,       10
 	.internal-alias :enter,             5
 	.internal-alias :leave,             6
 	.internal-alias :load,              7
@@ -16,6 +16,7 @@
 	.internal-alias :store_bp,          12
 	.internal-alias :load_work_slice,  13
 	.internal-alias :store_work_slice, 14
+    .internal-alias :encode_grams,     15
 
 	.persistent-base 100
 	.global-base 1000000
@@ -35,7 +36,7 @@
     }
     PUSHCONT {          ; get dictionary with methods
         PUSHINT 32
-        DICTIGET
+        DICTIGETREF
         THROWIFNOT 52   ; no dictionary of methods
         PUSHINT 32
         DICTUGETJMP     ; execute method and return
@@ -49,42 +50,42 @@
     ;   s0 - body slice
     ;ret: 
     ;   s0 - body slice (modified: without ref0)
-    ;throws exception if ABI version is unsupported
-    ;throws exception if auth flag is not found in authentication dictionary.
+    ;   s1 - sender pubkey: integer
+    ;throws exception if signature cell is missing
     ;throws exception if signature is invalid
 
-    DUP
-    PUSHINT 40          ;preload ABI ver and func_id in separate slice
-    PLDSLICEX
-    LDU 8               ;load ABI version
-    LDU 32              ;load func id
-    ENDS
+    PUSHINT 0
     SWAP
-    THROWIF 55
-    PUSHREFSLICE
+    DUP
+    SREMPTY         ;body must have reference, if not - throw exception
+    THROWIF 40      ;signature cell not found 
+    LDREFRTOS       ;detach signature slice
     DUP
     SEMPTY
-    IFRET
-    PUSHINT 32          ;key len in auth dictionary
-    DICTUGET            ;load method's flag 
-    THROWIFNOT 41       ;not found exception
-    PLDU 1
     PUSHCONT {
-        DUP
-        SREMPTY         ;body must have reference, if not - throw exception
-        THROWIF 40      ;access denied exception
-        LDREFRTOS       ;detach signature slice
-        OVER
-        HASHSU
-        SWAP    
-        PUSHROOT        ;load persistent data
-        CTOS            
-        LDU 256         ;load public key
-        DROP            ;drop remaining data slice
-        CHKSIGNU
-        THROWIFNOT 40   ;access denied exception
+        DROP
     }
-    IF
+    IFJMP
+    OVER
+    HASHSU
+    SWAP
+    PUSHINT 512
+    LDSLICEX
+    LDU 256
+    DROP
+    ;save sender key
+    DUP
+    POP s5
+    ;now check signature
+    CHKSIGNU
+    THROWIFNOT 40   ;access denied exception
+    RET
+
+    .globl  tvm_sender_pubkey
+    .type   tvm_sender_pubkey, @function
+tvm_sender_pubkey:    
+    PUSH c7
+    INDEX 2
 
     .internal   :main_external
     ; s0 - msg body: slice
@@ -102,9 +103,10 @@
     CALL $:authenticate$ ;assume that function returns nothing
 
     ;call msg parser
-    PUSH s1     ;push msg cell on top
+    PUSH s2     ;push msg cell on top
     CALL $:parse_msg$    ;assume thar parser returns slice - dictionary with msg fields
-
+    ;stack: msg_slice body sender_pubkey
+    ROT
     ; Initialize C stack
     CALL $:init_fstack$
 
@@ -138,38 +140,81 @@
     XCHG s0, s1
     CALL $:store$
 
+    .internal   :encode_grams
+	;s0 - value: integer (u64)
+	;s1 - builder
+	DUP
+	PUSHCONT {
+		DUP
+		UBITSIZE    ; bit count used by integer
+		PUSHINT 8
+		DIVC        ; calculate number of bytes needed for integer
+		DUP
+		PUSH s3     ; push builder
+		STU 4       ; store len (bytes)
+		SWAP
+		PUSHINT 8
+		MUL         ; calculate bits for integer (rounded to byte)
+		STUX        ; store value
+		NIP
+	}
+	PUSHCONT {
+		DROP
+		PUSHINT 0
+		STUR 4
+	}
+	IFELSE
+
     .internal   :init_fstack
+    ;s0 - pubkey
     ; Initialize stack
     ; At initialization: 
     ; 1) C4 contains persistent_data
     ; 1.5) Dict in C4 at persistent_base + 8 contains dictionary of global data
-    ; 2) C7 contains ref to tuple with smart_contract_info at first item
+    ; 2) C7 contains tuple with smart_contract_info at first item
     ; 
     ; Result:
     ; 1) C7 contains tuple (smart_contract_info, memory dictionary)
-    ; 2) At key 2000000001 the dictionary contains ref to smart_contract_info
-    PUSH c7
-    DUP
-    FIRST
-    CTOS                       ; ( c7 slice_with_smart_contract_info_ref )
-    LDREF                      ; ( c7 smart_contract_info_slice slice_with_smart_contract_info_ref )
-    ENDS                       ; ( c7 smart_contract_info_slice )
-    CTOS
-    PUSHINT 2000000001         ; ( c7 smart_contract_info_slice addr )
 
+    ;load smart_contract_info tuple and pack to slice
+    PUSH c7
+    FIRST
+    EXPLODE 9   ;unpack tuple
+    DROP        ;drop number of items
+    REVERSE 9, 0
+    NEWC
+    STU 32      ;magic
+    STU 16      ;actions
+    STU 16      ;msgs_sent
+    STU 32      ;unixtime
+    STU 64      ;block_lt
+    STU 64      ;trans_lt
+    STU 256     ;rand_seed
+    SWAP        
+    EXPLODE 2   ;unpack remaining_balance tuple
+    DROP DROP   ;drop count and other currency cell
+    CALL $:encode_grams$
+    STSLICECONST 0
+    STSLICE     ;store myself:MsgAddressInt
+    ENDC
+    CTOS
+    
+    PUSHINT 2000000001
     PUSHINT 108
-    PUSH c4                    ; ( c7 smart_contract_info_slice addr persistent_base+8 persistent-dict-cell )
+    PUSH c4                    ; (pubkey sci_slice sci_addr persistent_base+8 persistent-dict-cell )
     CTOS
     PLDDICT
-    PUSHINT 64                 ; ( c7 smart_contract_info_slice addr persistent_base+8 persistent-dict addr-width )
-    DICTIGET                   ; ( c7 smart_contract_info_slice addr global-dict-slice? flag )
-    THROWIFNOT 42              ; ( c7 smart_contract_info_slice addr global-dict-slice )
-    PLDDICT                    ; ( c7 smart_contract_info_slice addr global-dict )
-
-    PUSHINT 64                 ; ( c7 smart_contract_info_slice addr global-dict key-width )
-    DICTISET                   ; ( c7 dict' )
-    NEWC STDICT ENDC           ; ( c7 dict_cell )
-    TPUSH                      ; ( c7' ) c7=(slice_with_smart_contract_info_ref, dict_cell)
+    PUSHINT 64                 ; (pubkey persistent_base+8 persistent-dict addr-width )
+    DICTIGET                   ; (pubkey global-dict? flag )
+    THROWIFNOT 42              ; (pubkey global-dict )
+    PLDDICT                    ; (pubkey global-dict )
+    PUSHINT 64
+    DICTISET                   ; (pubkey global-dict )
+    NEWC STDICT ENDC           ; (pubkey dict_cell )
+    PUSH c7 SWAP               ; (pubkey c7 dict_cell )
+    TPUSH                      ; (pubkey c7' ) c7=(slice_with_smart_contract_info_ref, dict_cell)
+    SWAP                       ; (c7' pubkey)
+    TPUSH                      ; as THIRD     
     POP c7
 
     PUSHINT 1000000000         ; ( new_stack_base_pointer )
@@ -184,23 +229,12 @@
     ; 2) At key -99999 the dictionary contains the ref to smart_contract_info
     ; 
     ; Result:
-    ; 1) C7 contains ref to tuple with smart_contract_info at first item; dict. is dropped
+    ; 1) C7 contains singleton (smart_contract_info);
     ; todo: update
     PUSH c7                    ; ( c7 )
-    PUSHINT 2000000001         ; ( c7 addr )
-    PUSH c7                    ; ( c7 addr c7 )
-    SECOND                     ; ( c7 addr dict-cell )
-    CTOS                       ; ( c7 addr dict-slice )
-    PLDDICT                    ; ( c7 addr dict )
-    PUSHINT 64                 ; ( c7 addr dict key-width )
-    DICTIGET                   ; ( c7 addr dict key-width -- value-slice flag)
-    THROWIFNOT 60              ; ( c7 smart-contract-info-ref )
-    NEWC STSLICE ENDC
-    NEWC STREF ENDC            ; ( c7 cell-with-smart-contract-info-ref )
-    SETFIRST                   ; ( c7' )
-    TPOP
+    TPOP                       ; drop global memory dictionary
     DROP
-    POP c7                     ; reset c7 value back to smart_contract_info
+    POP c7                     ; reset c7
 
     .internal   :enter
     CALL $:load_bp$
@@ -258,13 +292,13 @@
     }
     PUSHCONT {
         PUSH c7
-        DUP
         SECOND
         CTOS     ; (c7 val-slice addr dict-slice)
         PLDDICT  ; (c7 val-slice addr dict)
         PUSHINT 64
         DICTISET ; (c7 val-slice addr dict key-width -- c7 dict')
         NEWC STDICT ENDC
+        PUSH c7 SWAP
         SETSECOND
         POP c7
     }
@@ -290,7 +324,7 @@
     CTOS
     PLDDICT
     PUSHINT 64
-    DICTIGET               ; ( addr dict key-width -- slice_with_smart_contract_info_ref flag )
+    DICTIGET               ; ( addr dict key-width -- work-slice flag )
     THROWIFNOT 60
 
     ;
@@ -298,15 +332,15 @@
     ; ( builder-cell -- )
     ;
     .internal	:store_work_slice
-    PUSH c7
-    PUSHINT 2000000002     ; ( c7 cell addr )
+    PUSHINT 2000000002     ; ( cell addr )
     PUSH c7
     SECOND
-    CTOS                   ; ( c7 cell addr dict-slice)
-    PLDDICT                ; ( c7 cell addr dict)
+    CTOS                   ; ( cell addr dict)
+    PLDDICT
     PUSHINT 64
-    DICTISET               ; ( c7 cell addr dict key-width -- c7 dict' )
+    DICTISET               ; ( cell addr dict key-width -- dict' )
     NEWC STDICT ENDC
+    PUSH c7 SWAP
     SETSECOND
     POP c7                 ; ( )
 
@@ -318,9 +352,8 @@ tonstdlib_get_smart_contract_info:
     PUSH c7
     SECOND
     CTOS
-    PLDDICT
     PUSHINT 64
-    DICTIGET               ; ( addr dict key-width -- smart_contract_info_cell flag )
+    DICTIGET               ; ( addr dict key-width -- smart_contract_info_slice flag )
     THROWIFNOT 60          ; ( smart_contract_info_cell )
     JMP $:store_work_slice$
 
@@ -331,7 +364,7 @@ tonstdlib_get_smart_contract_info:
     .globl	tonstdlib_create_empty_work_slice
     .type	tonstdlib_create_empty_work_slice,@function
 tonstdlib_create_empty_work_slice:
-    NEWC ENDC CTOS         ; create empty cell: ( empty_cell )
+    PUSHSLICE x4_         ; create empty slice: ( empty_slice )
     JMP $:store_work_slice$
 
     ;

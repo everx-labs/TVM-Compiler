@@ -364,7 +364,7 @@ tonstdlib_get_smart_contract_info:
     .globl	tonstdlib_create_empty_work_slice
     .type	tonstdlib_create_empty_work_slice,@function
 tonstdlib_create_empty_work_slice:
-    PUSHSLICE x4_         ; create empty slice: ( empty_slice )
+    PUSHSLICE x8_         ; create empty slice: ( empty_slice )
     JMP $:store_work_slice$
 
     ;

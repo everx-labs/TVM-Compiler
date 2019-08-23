@@ -38,14 +38,15 @@ void test()
 //CHECK-NEXT: bounced     : false
 //CHECK-NEXT: source      : 0:0000000000000000000000000000000000000000000000000000000080000001
 //CHECK-NEXT: destination : 0:0000000000000000000000000000000000000000000000000000000080000001
-//CHECK-NEXT: value       : CurrencyCollection: Grams vui7[len = 1, value = 3], other curencies:
+//CHECK-NEXT: value       : CurrencyCollection: Grams vui16[len = 1, value = 3], other curencies:
 //CHECK-NEXT: count: 0
-//CHECK-NEXT: ihr_fee     : vui7[len = 0, value = 0]
-//CHECK-NEXT: fwd_fee     : vui7[len = 0, value = 0]
+//CHECK-NEXT: ihr_fee     : vui16[len = 0, value = 0]
+//CHECK-NEXT: fwd_fee     : vui16[len = 0, value = 0]
 //CHECK-NEXT: created_lt  : 0
 //CHECK-NEXT: created_at  : 0
 //CHECK-NEXT: init  : None
-//CHECK-NEXT: body  : Some(CellData { references: [], data: [0, 1], cell_type: Ordinary, level: 0, hashes: None, depths: None })
+//CHECK-NEXT: body : Some(SliceData { cell: CellData { references: [], data: [8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 32, 0, 0, 0, 68, 12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 128], cell_type: Ordinary, level_mask: LevelMask(0), store_hashes: false, hashes: Some([UInt256([195, 103, 148, 50, 124, 214, 173, 221, 226, 130, 13, 226, 83, 193, 131, 87, 70, 67, 23, 46, 162, 20, 82, 212, 95, 81, 116, 10, 250, 241, 142, 84])]), depths: Some([0]) }, data_window: 657..672, references_window: 0..0 })
+//CHECK-NEXT: body_hex: 0000
 //CHECK-EMPTY:
 //CHECK-NEXT: TEST COMPLETED
   constructor_Impl();

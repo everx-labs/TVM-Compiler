@@ -13,7 +13,7 @@
 
 #define TVM_DEBUG_PRINT(S, ...)                                                \
   {                                                                            \
-    __builtin_tvm_logstr(S);                                                   \
+    __builtin_tvm_printstr(S);                                                   \
     TON_DEBUG_JOIN(tonstdlib_debug_print,                                      \
                    TON_DEBUG_GET_ARG_COUNT(__VA_ARGS__))                       \
     (__VA_ARGS__);                                                             \

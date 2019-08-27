@@ -259,7 +259,7 @@ pipeline {
 	stage ('Tag as latest') {
             when {
                 expression {
-                    GIT_BRANCH = 'origin/' + sh(returnStdout: true, script: 'git rev-parse --abbrev-ref HEAD').trim()
+                    GIT_BRANCH = "origin/${BRANCH_NAME}"
                     return GIT_BRANCH == G_promoted_branch || params.FORCE_PROMOTE_LATEST
                 } 
             }

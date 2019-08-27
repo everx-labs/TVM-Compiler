@@ -228,7 +228,7 @@ pipeline {
                                 script {
                                     G_dockerimage = "tonlabs/ton_compiler:${GIT_COMMIT}"
                                     docker.image(G_dockerimage).inside("-u root") {
-					    sh 'sh prerequesites.sh'
+					    sh 'sh /app/install.sh'
 					    sh 'clang-7 --version'
 					    sh 'clang --version'
 				    }

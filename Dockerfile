@@ -28,8 +28,8 @@ RUN find /home/user/LLVM -name "*.a" -type f -delete
 RUN find /home/user/LLVM -type f -not -name 'clang' -not -name 'clang++' -not -name 'clang-cl'  -not -name 'clang-cpp'   -not -name 'clang-7' -delete
 
 FROM alpine
-COPY --from=build-ton-compiler /home/user/TON-Compiler/samples/sdk-prototype /usr/bin/sdk-prototype
+COPY --from=build-ton-compiler /home/user/TON-Compiler/samples/sdk-prototype /app
 COPY --from=build-ton-compiler /home/user/LLVM /usr/bin/LLVM
 COPY --from=build-ton-compiler /home/user/LLVM/bin/clang /usr/bin/
 COPY --from=build-ton-compiler /home/user/LLVM/bin/clang-7 /usr/bin/
-COPY --from=build-ton-compiler /home/user/TON-Compiler/prerequesites.sh /usr/bin/prerequesites.sh
+COPY --from=build-ton-compiler /home/user/TON-Compiler/install.sh /app/install.sh

@@ -25,7 +25,7 @@ RUN cd /home/user/TON-Compiler/llvm/build && cmake -DCMAKE_BUILD_TYPE=MinSizeRel
     && ninja clang && ninja install
 
 RUN find /home/user/LLVM -name "*.a" -type f -delete
-RUN find /home/user/LLVM -type f -not -name 'clang' -not -name 'clang++' -not -name 'clang-cl'  -not -name 'clang-cpp'   -not -name 'clang-7' -delete
+RUN find /home/user/LLVM -type f -not -name 'clang' -not -name 'clang++' -not -name 'clang-cl'  -not -name 'clang-cpp'   -not -name 'clang-7' -not -name 'llc' -not -name 'FileCheck' -not -name 'tvm-testrun' -delete
 
 FROM alpine
 COPY --from=build-ton-compiler /home/user/TON-Compiler/samples/sdk-prototype /app

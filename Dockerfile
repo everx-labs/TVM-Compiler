@@ -22,7 +22,7 @@ COPY . TON-Compiler
 RUN mkdir -p /home/user/TON-Compiler/llvm/build
 
 RUN cd /home/user/TON-Compiler/llvm/build && cmake -DCMAKE_BUILD_TYPE=MinSizeRel -DLLVM_BUILD_TOOLS=OFF -DCMAKE_EXE_LINKER_FLAGS=-fuse-ld=gold -DCMAKE_INSTALL_PREFIX=/home/user/LLVM -DLLVM_EXPERIMENTAL_TARGETS_TO_BUILD=TVM -DLLVM_TARGETS_TO_BUILD=X86 -GNinja .. \
-    && ninja clang && ninja install
+    && ninja clang llc FileCheck tvm-testrun && ninja install
 
 RUN find /home/user/LLVM -name "*.a" -type f -delete
 RUN find /home/user/LLVM -type f -not -name 'clang' -not -name 'clang++' -not -name 'clang-cl'  -not -name 'clang-cpp'   -not -name 'clang-7' -not -name 'llc' -not -name 'FileCheck' -not -name 'tvm-testrun' -delete

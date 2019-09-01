@@ -21,15 +21,16 @@ get_owner_dict:
    %cond1 = icmp ne i257 %bal_owner_ref_stat, 0
    br i1 %cond1, label %get_bal, label %retres
  get_bal:
-   %bal_owner_struct = call {i257, slice} @llvm.tvm.ldu(slice %bal_owner_ref)
+   %bal_owner_struct = call {i257, slice} @llvm.tvm.ldu(slice %bal_owner_ref, i257 256)
    %bal_owner = extractvalue {i257, slice} %bal_owner_struct, 0
    br label %retres
 retres:
    %retval = phi i257 [0, %entry], [0, %get_owner_dict], [%bal_owner, %get_bal]
    ret i257 %retval
 }
+
 declare cell @llvm.tvm.get.persistent.data() nounwind
 declare slice @llvm.tvm.ctos(cell %cell) nounwind
-declare {slice, i257} @llvm.tvm.dictuget(i257 %key, slice %dict_id, i257 %keylen) nounwind
+declare {slice, i257} @llvm.tvm.dictuget(i257 %key, slice %dict_id, i257 %keylen)
 declare {slice, slice} @llvm.tvm.ldrefrtos(slice %slice) nounwind
-declare {i257, slice} @llvm.tvm.ldu(slice %slice) nounwind
+declare {i257, slice} @llvm.tvm.ldu(slice %slice, i257 %precision) nounwind

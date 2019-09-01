@@ -2,6 +2,103 @@
 target datalayout = "E-S257-i1:257:257-i8:257:257-i16:257:257-i32:257:257-i64:257:257-i257:257:257-p:257:257-a:257:257"
 target triple = "tvm"
 
+; =================================== A.3 =====================================
+; CHECK-LABEL: first
+define i257 @first(i257 %tuple) {
+; CHECK: FIRST
+  %elem = call i257 @llvm.tvm.first(i257 %tuple)
+  ret i257 %elem
+}
+
+; CHECK-LABEL: second
+define i257 @second(i257 %tuple) {
+; CHECK: SECOND
+  %elem = call i257 @llvm.tvm.second(i257 %tuple)
+  ret i257 %elem
+}
+
+; CHECK-LABEL: setfirst
+define i257 @setfirst(i257 %tuple, i257 %value) {
+; CHECK: SETFIRST
+  %newtuple = call i257 @llvm.tvm.setfirst(i257 %tuple, i257 %value)
+  ret i257 %newtuple
+}
+
+; CHECK-LABEL: setsecond
+define i257 @setsecond(i257 %tuple, i257 %value) {
+; CHECK: SETSECOND
+  %newtuple = call i257 @llvm.tvm.setsecond(i257 %tuple, i257 %value)
+  ret i257 %newtuple
+}
+
+; =================================== A.4 =====================================
+; CHECK-LABEL: pushref
+define cell @pushref() nounwind {
+; CHECK: PUSHREF
+  %ref = call cell @llvm.tvm.pushref()
+  ret cell %ref
+}
+
+; CHECK-LABEL: pushrefslice
+define slice @pushrefslice() nounwind {
+; CHECK: PUSHREFSLICE
+  %ref = call cell @llvm.tvm.pushref()
+  %slice = call slice @llvm.tvm.ctos(cell %ref)
+  ret slice %slice
+}
+
+; =================================== A.6 =====================================
+; CHECK-LABEL: sempty
+define slice @sempty(slice %slice) {
+; CHECK: SEMPTY
+  %empty = call slice @llvm.tvm.sempty(slice %slice)
+  ret slice %empty
+}
+
+; CHECK-LABEL: sdempty
+define slice @sdempty(slice %slice) {
+; CHECK: SDEMPTY
+  %empty = call slice @llvm.tvm.sdempty(slice %slice)
+  ret slice %empty
+}
+
+; CHECK-LABEL: srempty
+define slice @srempty(slice %slice) {
+; CHECK: SREMPTY
+  %refempty = call slice @llvm.tvm.srempty(slice %slice)
+  ret slice %refempty
+}
+
+; =================================== A.7 =====================================
+; CHECK-LABEL: ends
+define void @ends(slice %cell) {
+; CHECK: ENDS
+  call void @llvm.tvm.ends(slice %cell)
+  ret void
+}
+
+; CHECK-LABEL: sti
+define builder @sti(i257 %value, builder %builder) {
+; CHECK: STI 42
+  %newbuilder = call builder @llvm.tvm.sti(i257 %value, builder %builder, i257 42)
+  ret builder %newbuilder
+}
+
+; CHECK-LABEL: stix
+define builder @stix(i257 %value, builder %builder, i257 %size) {
+; CHECK: STIX
+  %newbuilder = call builder @llvm.tvm.sti(i257 %value, builder %builder, i257 %size)
+  ret builder %newbuilder
+}
+
+; CHECK-LABEL: stux
+define builder @stux(i257 %value, builder %builder, i257 %size) {
+; CHECK: STUX
+  %newbuilder = call builder @llvm.tvm.stu(i257 %value, builder %builder, i257 %size)
+  ret builder %newbuilder
+}
+
+; =================================== A.X =====================================
 ; CHECK-LABEL: newdict
 define slice @newdict() nounwind {
 ; CHECK: NEWDICT
@@ -181,26 +278,102 @@ define void @dumpstktop() {
   ret void
 }
 
+; =================================== A.10 ====================================
+; CHECK-LABEL: plddict
+define cell @plddict(slice %slice) readnone {
+; CHECK PLDDICT
+  %dict = call cell @llvm.tvm.plddict(slice %slice)
+  ret cell %dict
+}
+
+; CHECK-LABEL: stdicts
+define builder @stdicts(slice %slice, builder %builder) readnone {
+; CHECK STDICTS
+  %dict = call builder @llvm.tvm.stdicts(slice %slice, builder %builder)
+  ret builder %dict
+}
+
+; CHECK-LABEL: stdict
+define builder @stdict(cell %dict, builder %builder) readnone {
+; CHECK STDICT
+  %dictnew = call builder @llvm.tvm.stdict(cell %dict, builder %builder)
+  ret builder %dictnew
+}
+; =================================== A.11 ====================================
+; CHECK-LABEL: accept
+define void @accept() {
+; CHECK: ACCEPT
+  call void @llvm.tvm.accept()
+  ret void
+}
+
+; CHECK-LABEL: hashcu
+define i257 @hashcu(cell %cell) {
+; CHECK: HASHCU
+  %result = call i257 @llvm.tvm.hashcu(cell %cell)
+  ret i257 %result
+}
+
+; CHECK-LABEL: hashsu
+define i257 @hashsu(cell %cell) {
+; CHECK: HASHSU
+  %result = call i257 @llvm.tvm.hashsu(cell %cell)
+  ret i257 %result
+}
+
+; CHECK-LABEL: chksignu
+define i257 @chksignu(i257 %hash, slice %signature, i257 %key) {
+; CHECK: CHKSIGNU
+  %result = call i257 @llvm.tvm.chksignu(i257 %hash, slice %signature, i257 %key)
+  ret i257 %result
+}
+; =================================== A.13 ====================================
+; CHECK-LABEL: setcp
+define void @setcp() {
+; CHECK: SETCP 42
+  call void @llvm.tvm.setcp(i257 42)
+  ret void
+}
+
+declare void @llvm.tvm.nop()
+declare i257 @llvm.tvm.first(i257 %tuple)
+declare i257 @llvm.tvm.second(i257 %tuple)
+declare i257 @llvm.tvm.setfirst(i257 %tuple, i257 %value)
+declare i257 @llvm.tvm.setsecond(i257 %tuple, i257 %value)
+declare cell @llvm.tvm.pushref()
+declare slice @llvm.tvm.sempty(slice %slice)
+declare slice @llvm.tvm.sdempty(slice %slice)
+declare slice @llvm.tvm.srempty(slice %slice)
+declare void @llvm.tvm.ends(slice %slice)
+declare slice @llvm.tvm.ctos(cell %cell)
+declare builder @llvm.tvm.sti(i257 %value, builder %builder, i257 %size)
+declare builder @llvm.tvm.stu(i257 %value, builder %builder, i257 %size)
 declare slice @llvm.tvm.newdict() nounwind
 declare builder @llvm.tvm.newc() nounwind
 declare cell @llvm.tvm.get.persistent.data() nounwind
 declare i257 @llvm.tvm.getreg(i257 %regno) nounwind
 declare void @llvm.tvm.setreg(i257 %regno, i257 %value) nounwind
 declare void @llvm.tvm.set.persistent.data(cell %root) nounwind
-declare slice @llvm.tvm.ctos(cell %cell) nounwind
 declare slice @llvm.tvm.inttoslice(i257 %val) nounwind
 declare builder @llvm.tvm.stslice(slice %slice, builder %builder) nounwind
 declare cell @llvm.tvm.stoc(slice %slice) nounwind
 declare {slice, slice} @llvm.tvm.ldslicex(slice %slice, i257 %size) nounwind
 declare {cell, slice} @llvm.tvm.ldref(slice %slice) nounwind
+declare cell @llvm.tvm.plddict(slice %dict)
+declare builder @llvm.tvm.stdict(cell %dict, builder %builder)
+declare builder @llvm.tvm.stdicts(slice %slice, builder %builder)
 declare builder @llvm.tvm.stref(cell %cell, builder %builder) nounwind
 declare void @llvm.tvm.throwif(i257 %cond, i257 %exception)
 declare void @llvm.tvm.throw(i257 %exception)
-declare void @llvm.tvm.nop()
+declare void @llvm.tvm.accept()
+declare i257 @llvm.tvm.chksignu(i257 %hash, slice %signature, i257 %key)
+declare i257 @llvm.tvm.hashcu(cell %cell)
+declare i257 @llvm.tvm.hashsu(cell %cell)
+declare void @llvm.tvm.setcp(i257 %codepage)
+declare void @llvm.tvm.dump(i257 %slot)
+declare void @llvm.tvm.dump.value(i257 %slot)
 declare void @llvm.tvm.dumpstk()
-declare void @llvm.tvm.dumpstktop(i257 %count)
-declare void @llvm.tvm.dump(i257 %stack_index)
-declare void @llvm.tvm.dump.value(i257 %value)
-declare void @llvm.tvm.print(i257 %stack_index)
-declare void @llvm.tvm.print.value(i257 %value)
+declare void @llvm.tvm.dumpstktop(i257 %number)
 declare void @llvm.tvm.logflush()
+declare void @llvm.tvm.print(i257 %number)
+declare void @llvm.tvm.print.value(i257 %number)

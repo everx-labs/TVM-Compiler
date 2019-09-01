@@ -85,10 +85,7 @@ def TVMpushroot : SDNode<"TVMISD::PUSHROOT", SDT_TVMPushRoot, []>;
 def TVMdictuget : SDNode<"TVMISD::DICTUGET", SDT_TVMDictGet, [SDNPHasChain]>;
 def TVMsti      : SDNode<"TVMISD::STI", SDT_TVMDictSt, []>;
 def TVMstu      : SDNode<"TVMISD::STU", SDT_TVMDictSt, []>;
-def TVMldu      : SDNode<"TVMISD::LDU", SDT_TVMDictLd, []>;
 def TVMldref    : SDNode<"TVMISD::LDREF", SDT_TVMLdRef, []>;
-def TVMldix     : SDNode<"TVMISD::LDIX", SDT_TVMDictLd, []>;
-def TVMldux     : SDNode<"TVMISD::LDUX", SDT_TVMDictLd, []>;
 def TVMnewc     : SDNode<"TVMISD::NEWC", SDT_TVMNewc, []>;
 def TVMldslicex : SDNode<"TVMISD::LDSLICEX", SDT_TVMDictLd, []>;
 def TVMsendrawmsg : SDNode<"TVMISD::SENDRAWMSG", SDT_TVMSendRawMsg, [SDNPHasChain]>;
@@ -405,5 +402,10 @@ def : Pat<(select (i257 (seteq I257:$cond, 0)), I257:$lhs, I257:$rhs),
 def : Pat<(select (i257 (setne I257:$cond, 0)), I257:$lhs, I257:$rhs),
           (CONDSEL I257:$rhs, I257:$lhs, I257:$cond)>;
 
+include "TVMTupleInstrInfo.td"
+include "TVMLiteralInstrInfo.td"
+include "TVMComparisonInstrInfo.td"
 include "TVMCellInstrInfo.td"
 include "TVMDictionaryInstrInfo.td"
+include "TVMApplicationInstrInfo.td"
+include "TVMCodepageInstrInfo.td"

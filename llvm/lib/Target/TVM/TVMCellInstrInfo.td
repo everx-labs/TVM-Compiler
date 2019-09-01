@@ -31,46 +31,65 @@ defm CTOS : I<(outs Slice:$slice), (ins Cell:$cell), (outs), (ins),
               "CTOS\t$slice, $cell", "CTOS", 0xd0>;
 def : Pat<(int_tvm_ctos Cell:$cell), (CTOS Cell:$cell)>;
 
-defm STI : I<(outs Builder:$obldr),
-             (ins I257:$val, Builder:$bldr, uimm1_256:$precision),
-             (outs), (ins uimm8:$precision),
-             [(set Builder:$obldr, (TVMsti I257:$val, Builder:$bldr, uimm1_256:$precision))],
-             "STI\t $precision, $obldr, $val, $bldr", "STI\t$precision", 0xcaff>;
+defm ENDS : I0<(outs), (ins Slice : $slice),
+               [(int_tvm_ends Slice : $slice)],
+               "ENDS", 0xd1>;
 
-let hasSideEffects = 1 in
-defm STU : I<(outs Builder:$obldr),
-             (ins I257:$val, Builder:$bldr, uimm1_256:$precision),
-             (outs), (ins uimm8:$precision),
-             [(set Builder:$obldr, (TVMstu I257:$val, Builder:$bldr, uimm1_256:$precision))],
-             "STU\t $precision, $obldr, $val, $bldr", "STU\t$precision", 0xcbff>;
-def : Pat<(int_tvm_stu I257:$val, Builder:$bldr, uimm1_256:$precision),
-          (STU I257:$val, Builder:$bldr, uimm1_256:$precision)>;
+let hasSideEffects = 1 in {
+defm STI : I<(outs Builder : $builder),
+             (ins I257 : $val, Builder : $builderi, uimm0_257 : $precision),
+             (outs), (ins uimm0_257 : $precision),
+             [(set Builder : $builder, (TVMsti I257 : $val, Builder : $builderi,
+               uimm0_257 : $precision))],
+             "STI\t$precision", "STI\t$precision", 0xca>;
+
+defm STU : I<(outs Builder : $obldr),
+             (ins I257 : $val, Builder : $bldr, uimm0_256 : $precision),
+             (outs), (ins uimm0_256 : $precision),
+             [(set Builder : $obldr, (TVMstu I257 : $val, Builder : $bldr,
+               uimm0_256 : $precision))],
+             "STU\t$precision, $obldr, $val, $bldr", "STU\t$precision", 0xcb>;
+}
+
+def : Pat<(int_tvm_stu I257 : $val, Builder : $bldr, uimm0_256 : $precision),
+          (STU I257 : $val, Builder : $bldr, uimm0_256 : $precision)>;
+
+def : Pat<(int_tvm_sti I257 : $val, Builder : $bldr, uimm0_257 : $precision),
+          (STI I257 : $val, Builder : $bldr, uimm0_257 : $precision)>;
 
 defm STREF : I<(outs Builder:$obldr), (ins Cell:$icell, Builder:$ibldr),
                (outs), (ins),
                [(set Builder:$obldr, (int_tvm_stref Cell:$icell, Builder:$ibldr))],
+
                "STREF\t$obldr, $icell, $ibldr", "STREF", 0xcc>;
 
-defm LDU : I<(outs I257:$x, Slice:$sliceo),
-             (ins Slice:$slicei, uimm8:$precision),
-             (outs), (ins uimm8:$precision),
-             [(set I257:$x, Slice:$sliceo, (TVMldu Slice:$slicei, uimm1_256:$precision))],
+defm LDI : I<(outs I257 : $x, Slice : $sliceo),
+             (ins Slice : $slicei, uimm0_257 : $precision),
+             (outs), (ins uimm0_257 : $precision),
+             [(set I257 : $x, Slice : $sliceo,
+               (int_tvm_ldi Slice : $slicei, uimm0_257 : $precision))],
+             "LDI\t $precision, $slicei, $x, $sliceo",
+             "LDI\t $precision", 0xd2>;
+
+defm LDU : I<(outs I257 : $x, Slice : $sliceo),
+             (ins Slice : $slicei, uimm0_256 : $precision),
+             (outs), (ins uimm0_256 : $precision),
+             [(set I257 : $x, Slice : $sliceo,
+               (int_tvm_ldu Slice : $slicei, uimm0_256 : $precision))],
              "LDU\t $precision, $slicei, $x, $sliceo",
-             "LDU\t $precision", 0xd3ff>;
+             "LDU\t $precision", 0xd3>;
 
-defm LDIX : I<(outs I257:$x, Slice:$sliceo),
-              (ins Slice:$slicei, I257:$precision),
-              (outs), (ins),
-              [(set I257:$x, Slice:$sliceo, (TVMldix Slice:$slicei, I257:$precision))],
-              "LDIX\t $precision, $slicei, $x, $sliceo",
-              "LDIX", 0xd700>;
+defm LDIX : I0<(outs I257 : $x, Slice : $sliceo),
+               (ins Slice : $slicei, I257 : $precision),
+               [(set I257 : $x, Slice : $sliceo,
+                 (int_tvm_ldi Slice : $slicei, I257 : $precision))],
+               "LDIX", 0xd700>;
 
-defm LDUX : I<(outs I257:$x, Slice:$sliceo),
-              (ins Slice:$slicei, I257:$precision),
-              (outs), (ins),
-              [(set I257:$x, Slice:$sliceo, (TVMldux Slice:$slicei, I257:$precision))],
-              "LDUX\t$precision, $slicei, $x, $sliceo",
-              "LDUX", 0xd701>;
+defm LDUX : I0<(outs I257 : $x, Slice : $sliceo),
+               (ins Slice : $slicei, I257 : $precision),
+               [(set I257 : $x, Slice : $sliceo,
+                 (int_tvm_ldu Slice : $slicei, I257 : $precision))],
+               "LDUX", 0xd701>;
 
 /// TODO: It should be a pipehole optimization for LDREF; SWAP; CTOS
 defm LDREFRTOS : I<(outs Slice:$cellslice, Slice:$sliceo), (ins Slice:$slicei),
@@ -111,3 +130,15 @@ defm SENDRAWMSG : I<(outs), (ins Cell:$cell, I257:$flags),
                     "SENDRAWMSG\t$cell, $flags", "SENDRAWMSG", 0xfb00>;
 def : Pat<(int_tvm_sendrawmsg Cell:$cell, I257:$flags),
           (SENDRAWMSG Cell:$cell, I257:$flags)>;
+
+defm STIX : I0<(outs Builder : $builder),
+               (ins I257 : $value, Builder : $builderi, I257 : $size),
+               [(set Builder : $builder, (int_tvm_sti I257 : $value,
+                                          Builder : $builderi, I257 : $size))],
+               "STIX", 0xcf00>;
+
+defm STUX : I0<(outs Builder : $builder),
+               (ins I257 : $value, Builder : $builderi, I257 : $size),
+               [(set Builder : $builder, (int_tvm_stu I257 : $value,
+                                          Builder : $builderi, I257 : $size))],
+               "STUX", 0xcf01>;

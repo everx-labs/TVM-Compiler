@@ -55,10 +55,12 @@ class ImmAsmOperand<int Low, int High> : AsmOperandClass {
   let DiagnosticString = "operand must be an immediate in the range [" # Low # "," # High # "]";
 }
 
-def SImm8: ImmAsmOperand<-128,127> { let Name = "SImm8"; }
-def UImm8: ImmAsmOperand<0,255> { let Name = "UImm8"; }
-def UImm6: ImmAsmOperand<0,63> { let Name = "UImm6"; }
+def SImm8    : ImmAsmOperand<-128,127> { let Name = "SImm8"; }
+def UImm8    : ImmAsmOperand<0,255> { let Name = "UImm8"; }
+def UImm6    : ImmAsmOperand<0,63> { let Name = "UImm6"; }
 def UImm1_256: ImmAsmOperand<1,256> { let Name = "UImm1_256"; }
+def UImm0_257: ImmAsmOperand<0,257> { let Name = "UImm0_257"; }
+def UImm0_256: ImmAsmOperand<0,257> { let Name = "UImm0_256"; }
 
 def UImm257 : Operand<i257>, IntImmLeaf<i257, [{ (void)Imm; return true; }]> {
   let PrintMethod = "printUimm257";
@@ -100,6 +102,17 @@ def uimm1_256 : Operand<i257>, IntImmLeaf<i257, [{
   let ParserMatchClass = UImm1_256;
 }
 
+def uimm0_257 : Operand<i257>, ImmLeaf<i257, [{
+  return Imm >=0 && Imm <= 257;
+}]> {
+  let ParserMatchClass = UImm0_257;
+}
+
+def uimm0_256 : Operand<i257>, ImmLeaf<i257, [{
+  return Imm >=0 && Imm <= 257;
+}]> {
+  let ParserMatchClass = UImm0_256;
+}
 //===----------------------------------------------------------------------===//
 // Multiclasses for instructions
 //===----------------------------------------------------------------------===//
@@ -108,8 +121,15 @@ multiclass I<dag oops_r, dag iops_r, dag oops_s, dag iops_s,
              list<dag> pattern_r, string asmstr_r = "", string asmstr_s = "",
              bits<32> inst = -1> {
   def "" : NI<oops_r, iops_r, pattern_r, 0, asmstr_r, inst>;
-  let isStackForm = 1 in
+  let isStackForm = 1, isCodeGenOnly = 1 in
   def _S : NI<oops_s, iops_s, [], 1, asmstr_s, inst>;
+}
+
+multiclass I0<dag oops_r, dag iops_r, list<dag> pattern, string asmstr = "",
+              bits<32> inst = -1> {
+  def "" : NI<oops_r, iops_r, pattern, 0, asmstr, inst>;
+  let isStackForm = 1, isCodeGenOnly = 1 in
+  def _S : NI<(outs), (ins), [], 1, asmstr>;
 }
 
 // Stack manipulation instructions.

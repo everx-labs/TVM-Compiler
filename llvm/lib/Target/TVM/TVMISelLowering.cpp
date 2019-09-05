@@ -43,6 +43,8 @@ using namespace llvm;
 
 #define DEBUG_TYPE "tvm-lower"
 
+constexpr int PUSH_C0_FUNCTION_UNIQUE_ID = -2;
+
 //===----------------------------------------------------------------------===//
 // Command line options for TVM
 //===----------------------------------------------------------------------===//
@@ -281,19 +283,35 @@ SDValue TVMTargetLowering::SaveC0(SDValue Chain, const SDLoc &DL,
 
   // Save c0 for further return lowering
   SDValue GetC0Ops[] = {
-      Chain, DAG.getTargetConstant(Intrinsic::tvm_getreg, DL, MVT::i64),
+      DAG.getTargetConstant(Intrinsic::tvm_getreg, DL, MVT::i64),
       DAG.getConstant(0, DL, MVT::i64)};
-  SDVTList VTs = DAG.getVTList(MVT::i64, MVT::Other);
-  SDValue GetC0 = DAG.getNode(ISD::INTRINSIC_W_CHAIN, DL, VTs, GetC0Ops);
+  SDValue GetC0 = DAG.getNode(ISD::INTRINSIC_WO_CHAIN, DL, MVT::i64, GetC0Ops);
 
   MachineRegisterInfo &MRI = MF.getRegInfo();
   unsigned C0VirtReg = MRI.createVirtualRegister(&TVM::I64RegClass);
   SDValue C0VirtRegNode = DAG.getCopyToReg(Chain, DL, C0VirtReg, GetC0);
 
   FI->setC0VirtReg(C0VirtReg);
+  C0VirtRegNode.getNode()->setNodeId(PUSH_C0_FUNCTION_UNIQUE_ID);
 
   return C0VirtRegNode;
 }
+
+namespace {
+
+bool hasPushC0Predecessor(SDNode *Node) {
+  if (Node->getNodeId() == PUSH_C0_FUNCTION_UNIQUE_ID)
+    return true;
+
+  for (const SDUse &Use : Node->ops()) {
+    if (hasPushC0Predecessor(Use.getNode()))
+      return true;
+  }
+
+  return false;
+}
+
+} // namespace
 
 SDValue TVMTargetLowering::RestoreC0(SDValue Chain, const SDLoc &DL,
                                      SelectionDAG &DAG) const {
@@ -301,6 +319,9 @@ SDValue TVMTargetLowering::RestoreC0(SDValue Chain, const SDLoc &DL,
   auto *FI = MF.getInfo<TVMFunctionInfo>();
 
   assert(FI->hasC0VirtReg() && "C0 virtual register has not been saved");
+
+  if (hasPushC0Predecessor(Chain.getNode()))
+    return Chain;
 
   unsigned C0VirtReg = FI->getC0VirtReg();
   SDValue GetC0VirtReg = DAG.getCopyFromReg(Chain, DL, C0VirtReg, MVT::i64);

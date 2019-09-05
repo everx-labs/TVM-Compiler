@@ -88,13 +88,11 @@ define i64 @test22(i64 %x) nounwind {
 
 ; CHECK-LABEL: test23
 define i64 @test23(i64 %x, i64 %y) nounwind {
-; CHECK: PUSH c0
 ; CHECK: PUSHINT $pow2$
 ; CHECK: CALL 1
   %1 = call i64 @pow2(i64 %x)
 ; CHECK: CALL 1
   %2 = call i64 @pow2(i64 %y)
-; CHECK: POP c0
 ; CHECK: ADD
   %3 = add i64 %1, %2
   ret i64 %3
@@ -108,18 +106,15 @@ define i64 @sum(i64 %x, i64 %y) nounwind {
 ; CHECK-LABEL: test24
 define i64 @test24(i64 %x, i64 %y) nounwind {
 ; [x, y]
-; CHECK: PUSH c0
-; [x, y, c0]
 ; CHECK: PUSHINT $sum$
-; [x, y, c0, $sum]
-; [x, y, c0, $sum, x, y, $sum]
+; [x, y, $sum]
+; [x, y, $sum, x, y, $sum]
 ; CHECK: CALL 1
-; [x, y, c0, $sum, x + y]
+; [x, y, $sum, x + y]
   %1 = call i64 @sum(i64 %x, i64 %y)
 ; CHECK: CALL 1
-; [c0, x + y, y + x]
+; [x + y, y + x]
   %2 = call i64 @sum(i64 %y, i64 %x)
-; CHECK: POP c0
 ; [x + y, y + x]
   %3 = mul i64 %1, %2
 ; CHECK: MUL
@@ -128,7 +123,6 @@ define i64 @test24(i64 %x, i64 %y) nounwind {
 
 ; CHECK-LABEL: test25
 define i64 @test25(i64 %x, i64 %y, i64 %z) nounwind {
-; CHECK: PUSH c0
 ; CHECK: PUSHINT $sum$
 ; CHECK: CALL 1
   %1 = call i64 @sum(i64 %x, i64 %y)

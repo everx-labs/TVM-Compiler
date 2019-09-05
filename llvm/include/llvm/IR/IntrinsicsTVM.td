@@ -39,7 +39,7 @@ let TargetPrefix = "tvm" in {
                Intrinsic<[llvm_i64_ty], []>;
   def int_tvm_getreg :
     GCCBuiltin<"__builtin_tvm_getreg">,
-               Intrinsic<[llvm_i64_ty], [llvm_i64_ty]>;
+               Intrinsic<[llvm_i64_ty], [llvm_i64_ty], [IntrNoMem]>;
   def int_tvm_setreg :
     GCCBuiltin<"__builtin_tvm_setreg">,
                Intrinsic<[], [llvm_i64_ty, llvm_i64_ty]>;

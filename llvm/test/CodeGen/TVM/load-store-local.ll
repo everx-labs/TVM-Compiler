@@ -13,10 +13,10 @@ define i64 @test() {
 ; CHECK-NEXT: PUSHINT 0
 ; CHECK-NEXT: CALL $:frameidx$
 ; CHECK-NEXT: CALL $:load$
-; CHECK-NEXT: SWAP
-; CHECK-NEXT: POP c0
 ; CHECK-NEXT: PUSHINT 8
 ; CHECK-NEXT: CALL $:leave$
+; CHECK-NEXT: SWAP
+; CHECK-NEXT: DROP
   %v = alloca i64, align 8
   store i64 18234, i64* %v, align 8
   %1 = load i64, i64* %v, align 8

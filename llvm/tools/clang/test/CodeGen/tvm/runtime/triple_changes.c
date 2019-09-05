@@ -63,7 +63,7 @@ int triple_pxp(int a, int b, int c, int d) {
 __attribute__((noinline))
 int triple_ppx(int a, int b, int c, int d) {
 // CHECK-LABEL: triple_ppx
-// CHECK: PU2XC
+// CHECK: XCPUXC
   int rv = g(0, 1);
   rv += g(a, b) * d;
   return (rv + a) * b;

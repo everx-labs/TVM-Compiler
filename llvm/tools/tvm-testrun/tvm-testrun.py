@@ -39,9 +39,9 @@ def getPathToLinker():
 
   return None
 
-def getPathToStdlibC(linker_path):
+def getPathToStdlibC(linker_path, subdir=""):
   linker_bin_dir = os.path.dirname(linker_path)
-  stdlibc_path   = linker_bin_dir + "/../../stdlib_c.tvm"
+  stdlibc_path   = linker_bin_dir + "/" + subdir + "stdlib_c.tvm"
 
   return stdlibc_path
 
@@ -124,6 +124,8 @@ def main():
   stdlibc_path = args.stdlibc_path
   if stdlibc_path == "":
     stdlibc_path = getPathToStdlibC(linker_path)
+    if not os.path.isfile(stdlibc_path):
+      stdlibc_path = getPathToStdlibC(linker_path, "../../")
 
   if not os.path.isfile(stdlibc_path):
   	eprint("stdlib_c.tvm has not been found")

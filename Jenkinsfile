@@ -244,6 +244,19 @@ pipeline {
                                 }
                             }
                             post {
+                                failure {script{G_buildstatus = "failure"}}
+                            }
+                        }
+                        stage('Test in compiler-kit') {
+                            steps {
+                                script {
+                                    def params = [
+                                      [$class: 'StringParameterValue', name: 'dockerimage_ton_compiler', value: "${G_dockerimage}"]
+                                    ]
+                                    build job : "Infrastructure/compilers/master", parameters : params
+                                }
+                            }
+                            post {
                                 success {
                                     script{
                                         G_buildstatus = "success"

@@ -40,6 +40,11 @@ class TVMPeephole final : public MachineFunctionPass {
   }
 
   bool runOnMachineFunction(MachineFunction &MF) override;
+  bool runOnMachineBasicBlock(MachineBasicBlock &MBB,
+                              const TargetInstrInfo &TII);
+  bool runImplicitReturnOptimization(MachineBasicBlock &MBB,
+                                     const TargetInstrInfo &TII);
+  bool runMbbInlineOptimization(MachineBasicBlock &MBB);
 
 public:
   static char ID;
@@ -73,22 +78,77 @@ MaybeOptimizeReturn(MachineInstr &MI, const TargetInstrInfo& TII) {
   return true;
 }
 
+bool TVMPeephole::runImplicitReturnOptimization(MachineBasicBlock &MBB,
+                                                const TargetInstrInfo &TII) {
+  auto &MI = MBB.back();
+  return MI.isReturn() && MaybeOptimizeReturn(MI, TII);
+}
+
+bool TVMPeephole::runMbbInlineOptimization(MachineBasicBlock &MBB) {
+  auto InstrIter = MBB.instr_rbegin();
+  auto &JmpX = *InstrIter;
+
+  if (JmpX.getOpcode() != TVM::JMPX_S)
+    return false;
+
+  ++InstrIter;
+
+  if (InstrIter == MBB.instr_rend())
+    return false;
+
+  auto &PushContMBB = *InstrIter;
+
+  if (PushContMBB.getOpcode() != TVM::PUSHCONT_MBB_S)
+    return false;
+
+  assert(PushContMBB.getNumOperands() >= 1 &&
+         PushContMBB.getOperand(0).isMBB() &&
+         "MachineBasicBlock should be an operand for PUSHCONT_MBB_S");
+
+  LLVM_DEBUG(
+      { dbgs() << "  inline JMPX  %bb." + Twine(MBB.getNumber()) << "\n"; });
+
+  const MachineBasicBlock &SourceMBB = *PushContMBB.getOperand(0).getMBB();
+  auto InsertionIter = InstrIter.getReverse();
+  MachineFunction *MF = MBB.getParent();
+
+  for (auto &MI : SourceMBB) {
+    MF->CloneMachineInstrBundle(MBB, InsertionIter, MI);
+  }
+
+  PushContMBB.eraseFromParent();
+  JmpX.eraseFromParent();
+
+  return true;
+}
+
+bool TVMPeephole::runOnMachineBasicBlock(MachineBasicBlock &MBB,
+                                         const TargetInstrInfo &TII) {
+  bool Changed = false;
+
+  Changed |= runImplicitReturnOptimization(MBB, TII);
+
+  while (runMbbInlineOptimization(MBB))
+    Changed |= true;
+
+  return Changed;
+}
+
 bool TVMPeephole::runOnMachineFunction(MachineFunction &MF) {
   LLVM_DEBUG({
     dbgs() << "********** Peephole **********\n"
            << "********** Function: " << MF.getName() << '\n';
   });
 
-  const auto &TII = *MF.getSubtarget<TVMSubtarget>().getInstrInfo();
+  const auto *TII = MF.getSubtarget<TVMSubtarget>().getInstrInfo();
+
+  assert(TII && "TargetInstrInfo must be a valid object");
 
   bool Changed = false;
 
   for (auto &MBB : MF) {
-    auto& MI = MBB.back();
-    if (MI.isReturn())
-      Changed |= MaybeOptimizeReturn(MI, TII);
+    Changed |= runOnMachineBasicBlock(MBB, *TII);
   }
-
 
   return Changed;
 }

@@ -65,7 +65,7 @@ def getContractDetails(linker_stdout, entry_fn):
   return {"contract": contract_base_name, "entry": entry_addr}
 
 def linkProgram(linker_path, stdlibc_path, asm_file_path, entry_fn):
-  cmd_line = "{} compile --debug --lib {} {}".format(linker_path, stdlibc_path, asm_file_path)
+  cmd_line = "{} compile {} --debug --lib {}".format(linker_path, asm_file_path, stdlibc_path)
   
   with os.popen(cmd_line) as stream:
     linker_stdout    = stream.read()

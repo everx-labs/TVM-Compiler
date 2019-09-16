@@ -192,6 +192,12 @@ pipeline {
                         }
                     }
                     stage('Tests') {
+                        when {
+                            expression {
+                                GIT_BRANCH = "origin/${BRANCH_NAME}"
+                                return GIT_BRANCH == G_promoted_branch || params.FORCE_PROMOTE_LATEST
+                            }
+                        }
                         steps{
                             dir('llvm/build'){
                                 bat label: 'Tests', script: '''

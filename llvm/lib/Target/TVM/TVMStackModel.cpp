@@ -540,7 +540,7 @@ void TVMStackModel::rewriteToSForm(MachineInstr &MI, std::string &PreTermStackSt
   size_t NumOperands = MI.getNumOperands();
   unsigned NewOpcode = TVM::RegForm2SForm[MI.getOpcode()];
 
-  size_t NumGlobals = llvm::count_if(MI.uses(), [](const MachineOperand& MO) { return MO.isGlobal(); });
+  size_t NumGlobals = llvm::count_if(MI.uses(), [](const MachineOperand& MO) { return MO.isGlobal() || MO.isSymbol(); });
   size_t NumImms = llvm::count_if(MI.uses(), [](const MachineOperand& MO) { return MO.isImm(); });
 
   if (NewOpcode >= 0) {

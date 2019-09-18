@@ -21,7 +21,11 @@
 #include <stddef.h>
 
 // TVM local begin
-static const unsigned ByteSizeInBits = 257;
+#ifdef LLVM_BYTE_SIZE_IN_BITS
+static const unsigned ByteSizeInBits = LLVM_BYTE_SIZE_IN_BITS;
+#else
+static const unsigned ByteSizeInBits = 8;
+#endif
 // TVM local end
 
 #if defined(_MSC_VER)

@@ -21,8 +21,11 @@ COPY . TON-Compiler
 
 RUN mkdir -p /home/user/TON-Compiler/llvm/build
 
-RUN cd /home/user/TON-Compiler/llvm/build && cmake -DCMAKE_BUILD_TYPE=MinSizeRel -DLLVM_BUILD_TOOLS=OFF -DCMAKE_EXE_LINKER_FLAGS=-fuse-ld=gold -DCMAKE_INSTALL_PREFIX=/home/user/LLVM -DLLVM_EXPERIMENTAL_TARGETS_TO_BUILD=TVM -DLLVM_TARGETS_TO_BUILD=X86 -GNinja .. \
-    && ninja clang llc FileCheck tvm-testrun count not llvm-config && ninja install
+RUN cd /home/user/TON-Compiler/llvm/build && cmake -DCMAKE_BUILD_TYPE=MinSizeRel -DLLVM_BUILD_TOOLS=OFF -DCMAKE_EXE_LINKER_FLAGS=-fuse-ld=gold -DCMAKE_INSTALL_PREFIX=/home/user/LLVM -DLLVM_EXPERIMENTAL_TARGETS_TO_BUILD=TVM -DLLVM_TARGETS_TO_BUILD=X86 -DLLVM_BYTE_SIZE_IN_BITS=257 -GNinja ..
+
+RUN cd /home/user/TON-Compiler/llvm/build && ninja clang llc FileCheck tvm-testrun count not llvm-config
+RUN cd /home/user/TON-Compiler/llvm/build && ninja check-llvm-codegen-tvm
+RUN cd /home/user/TON-Compiler/llvm/build && ninja install
 
 RUN cp -v /home/user/TON-Compiler/llvm/build/bin/llc /home/user/LLVM/bin
 RUN cp -v /home/user/TON-Compiler/llvm/build/bin/FileCheck /home/user/LLVM/bin

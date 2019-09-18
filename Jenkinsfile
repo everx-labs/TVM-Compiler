@@ -101,7 +101,6 @@ pipeline {
                                 -DCMAKE_C_COMPILER=clang \
                                 -DCMAKE_CXX_COMPILER=clang++ \
                                 -DLLVM_TARGETS_TO_BUILD="X86" \
-                                -DLLVM_EXPERIMENTAL_TARGETS_TO_BUILD="TVM" \
                                 -DBUILD_SHARED_LIBS=On \
                                 -DLLVM_OPTIMIZED_TABLEGEN=On \
                                 -DLLVM_USE_LINKER=lld ..'

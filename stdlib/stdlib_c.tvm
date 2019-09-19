@@ -1,0 +1,608 @@
+    .internal-alias :main_external,     -1
+    .internal-alias :main_internal,     0
+    .internal-alias :general_purpose,   1
+    .internal-alias :authenticate,      2
+    .internal-alias :parse_msg,         3
+
+    .internal-alias :init_fstack,       4
+    .internal-alias :term_fstack,       10
+    .internal-alias :enter,             5
+    .internal-alias :leave,             6
+    .internal-alias :load,              7
+    .internal-alias :store,             8
+    .internal-alias :frameidx,          9
+
+    .internal-alias :load_work_slice,  13
+    .internal-alias :store_work_slice, 14
+    .internal-alias :encode_grams,     15
+
+    .persistent-base 100
+    .global-base 1000000
+
+; ======================================================
+; Part 1. Initialization and termination of the contract
+; ======================================================
+
+    .selector
+    ; s0 - func_id
+    ; s1.. - other data
+    SETCP0
+    ACCEPT
+    PUSHREFSLICE        ; dictionary of methods in first reference
+    PLDDICT
+    OVER
+    NEQINT 1
+    PUSHCONT {          ; if func_id negative or zero - direct call to method
+        PUSHINT 32
+        DICTIGETJMP     ; execute method and return
+    }
+    PUSHCONT {          ; get dictionary with methods
+        PUSHINT 32
+        DICTIGET
+        THROWIFNOT 52   ; no dictionary of methods
+        PLDDICT
+        PUSHINT 32
+        DICTUGETJMP     ; execute method and return
+        THROW 51
+    }
+    IFELSE
+
+    .internal   :authenticate
+    ;ref0 must contains auth dictionary
+    ;args: 
+    ;   s0 - body slice
+    ;ret: 
+    ;   s0 - body slice (modified: without ref0)
+    ;   s1 - sender pubkey: integer
+    ;throws exception if signature cell is missing
+    ;throws exception if signature is invalid
+
+    PUSHINT 0
+    SWAP
+    DUP
+    SREMPTY         ;body must have reference, if not - throw exception
+    THROWIF 40      ;signature cell not found 
+    LDREFRTOS       ;detach signature slice
+    DUP
+    SEMPTY
+    PUSHCONT {
+        DROP
+    }
+    IFJMP
+    OVER
+    HASHSU
+    SWAP
+    PUSHINT 512
+    LDSLICEX
+    LDU 256
+    DROP
+    ;save sender key
+    DUP
+    POP s5
+    ;now check signature
+    CHKSIGNU
+    THROWIFNOT 40   ;access denied exception
+    RET
+
+    .globl  tvm_sender_pubkey
+    .type   tvm_sender_pubkey, @function
+tvm_sender_pubkey:    
+    PUSH c7
+    INDEX 2
+
+    .internal   :main_external
+    ; s0 - msg body: slice
+    ; s1 - msg: cell
+    ; s2 - gram balance of msg: int
+    ; s3 - gram balance of contract: int
+
+    ;check whether the message body is empty
+    DUP
+    SDEMPTY
+    IFRET       ;return if body is empty: that is an initialization message
+    ;TODO: implement better reaction on init messages
+
+    ;call signature checker (can throw exception if signature is invalid)
+    CALL $:authenticate$ ;assume that function returns nothing
+
+    ;call msg parser
+    PUSH s2     ;push msg cell on top
+    CALL $:parse_msg$    ;assume thar parser returns slice - dictionary with msg fields
+    ;stack: msg_slice body sender_pubkey
+    ROT
+    ; Initialize C stack
+    CALL $:init_fstack$
+
+    SWAP
+    ;parse ABI version (1 byte) and load function id (4 bytes)
+    LDU 8       ;load ABI version
+    SWAP  
+    THROWIF 55  ; only version 0 is supported now
+    LDU 32      ;load func id
+    DUP
+    CALL $:store_work_slice$
+    SWAP
+    CALL 1      ;public method call
+    JMP $:term_fstack$
+
+    .internal   :main_internal
+    RET         ;contract ignores internal msgs by default 
+
+    .internal   :parse_msg
+    CTOS        ;TODO: use parser from contract_api library
+
+
+; ==========================================
+; Part 2. C-specific functionality (runtime)
+; ==========================================
+
+; Global variables allocation (allocation of C7 tuple cells)
+; GLOB 0 (FIRST)  -- Smart contract info
+; GLOB 1 (SECOND) -- Global variables dictionary
+; GLOB 2 (THIRD)  -- Public signature
+; GLOB 3          -- Reading work slice
+; GLOB 4          -- Old spec. Smart contract info (packed into slice)
+; GLOB 5          -- BP (frame pointer)
+; GLOB 6          -- Writing builder cell
+
+    .internal   :encode_grams
+    ;s0 - value: integer (u64)
+    ;s1 - builder
+    DUP
+    PUSHCONT {
+        DUP
+        UBITSIZE    ; bit count used by integer
+        PUSHINT 8
+        DIVC        ; calculate number of bytes needed for integer
+        DUP
+        PUSH s3     ; push builder
+        STU 4       ; store len (bytes)
+        SWAP
+        PUSHINT 8
+        MUL         ; calculate bits for integer (rounded to byte)
+        STUX        ; store value
+    NIP
+    }
+    PUSHCONT {
+        DROP
+        PUSHINT 0
+        STUR 4
+    }
+    IFELSE
+
+    .internal   :init_fstack
+    ; s0 - pubkey
+    ;
+    ; Initialize stack
+    ; At initialization: 
+    ; 1) C4 contains persistent_data
+    ; 2) Dict in C4 at persistent_base + 8 contains dictionary of global data
+    ; 3) C7 contains tuple with smart_contract_info as first item
+    ; 
+    ; Result:
+    ; 1) C7 contains initialized global memory (see spec above)
+
+    ;
+    ; Step 1. Put public key to third (2) global variable
+    ; [* _ . _ _ _ _]
+    ; 
+    SETGLOB 2
+
+    ;
+    ; Step 2. Load smart_contract_info tuple and pack to slice
+    ; c7 initialization state: [* _ * _ . _ _]
+    ;
+    PUSH c7 FIRST ; (should be GETGLOB 0, but does not work)
+    EXPLODE 10  ;unpack tuple
+
+    POP s1      ;drop global config
+    DROP        ;drop number of items
+
+    REVERSE 9, 0
+    NEWC
+    STU 32      ;magic
+    STU 16      ;actions
+    STU 16      ;msgs_sent
+    STU 32      ;unixtime
+    STU 64      ;block_lt
+    STU 64      ;trans_lt
+    STU 256     ;rand_seed
+    SWAP        
+    EXPLODE 2   ;unpack remaining_balance tuple
+    DROP DROP   ;drop count and other currency cell
+    CALL $:encode_grams$
+    STSLICECONST 0
+    STSLICE     ;store myself:MsgAddressInt
+    ENDC
+    CTOS
+
+    SETGLOB 4   ;Store smart_contract_info slice into GLOB 4
+
+    ;
+    ; Step 3. Initialize global vars dictionary
+    ; c7 initialization state: [* . * _ * _ _]
+    ;
+    PUSHINT 108
+    PUSH c4                    ; ( persistent_base+8 persistent-dict-cell )
+    CTOS
+    PLDDICT                    ; ( persistent_base+8 persistent-dict )
+    PUSHINT 64                 ; ( persistent_base+8 persistent-dict addr-width )
+    DICTIGET                   ; ( global-dict-slice? flag )
+    THROWIFNOT 42              ; ( global-dict-slice )
+    PLDDICT                    ; ( global-dict )
+    SETGLOB 1
+
+    ; Step 4. Initialize BP
+    ; c7 initialization state: [* * * _ * . _]
+    PUSHINT 1000000000         ; ( new_stack_base_pointer )
+    SETGLOB 5
+
+    ; Work slices (fourth (idx 3) and seventh (idx 6) elements of c7) 
+    ; are initialized on demand
+    RET
+
+    .internal	:term_fstack
+    ; Terminate stack -- copy values back from C7
+    ; 
+    ; Before termination: 
+    ; 1) C7 contains a tuple (smart_contract_info, memory dictionary, other data)
+    ; 
+    ; Result:
+    ; 1) C7 contains singleton (smart_contract_info);
+    ; todo: update
+    PUSH c7                    ; ( c7 )
+    FIRST                      ; ( sci )
+    SINGLE                     ; ( [sci] )
+    POP c7                     ; Set c7 to sci singleton
+
+    .internal   :enter
+    GETGLOB 5
+    SWAP
+    SUB
+    SETGLOB 5
+
+    .internal   :leave
+    GETGLOB 5
+    ADD
+    SETGLOB 5
+
+    .internal   :load
+    ; ( addr -- value )
+    ; If addr < 100000 --- persistent address
+    DUP
+    PUSHINT 100000
+    LESS
+    PUSHCONT { PUSH c4 CTOS PLDDICT }
+    PUSHCONT { GETGLOB 1 }
+    IFELSE
+
+    PUSHINT 64
+    DICTIGET ; (addr dict key-width -- value-slice flag)
+
+    THROWIFNOT 60
+    PUSHINT 257 LDIX 
+    ENDS
+
+    .internal   :store
+    ; (addr val -- )
+    NEWC 
+    PUSHINT 257 STIX 
+    ENDC
+    CTOS         ; (addr val-slice)
+    XCHG s0, s1  ; (val-slice addr)
+
+    DUP          ; (val-slice addr addr)
+    PUSHINT 100000
+    LESS         ; (val-slice addr persistent?)
+    PUSHCONT { 
+        PUSH c4
+        CTOS     ; (val-slice addr dict-slice)
+        PLDDICT  ; (val-slice addr dict)
+        PUSHINT 64
+        DICTISET ; (val-slice addr dict key-width -- dict')
+        NEWC STDICT ENDC
+        POP c4
+    }
+    PUSHCONT {
+        GETGLOB 1   ; ( val-slice addr -- val-slice addr dict )
+        PUSHINT 64  ; ( val-slice addr dict key-width )
+        DICTISET    ; ( val-slice addr dict key-width -- c7 dict')
+        SETGLOB 1
+    }
+    IFELSE
+
+    .internal   :frameidx
+    GETGLOB 5
+    ADD
+
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ; User-level functions and constants ;
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+    ;
+    ; Get writing builder
+    ; ( -- cell-of-builder )
+    ;
+    .internal	:load_work_slice
+    GETGLOB 6
+    ENDC
+
+    ;
+    ; Set reading builder cell (internal call)
+    ; ( builder-cell -- )
+    ;
+    .internal	:store_work_slice
+    SETGLOB 3
+
+    ;
+    ; Initialize work cell with smart contract info
+    ;
+    .globl	tonstdlib_get_smart_contract_info
+    .type	tonstdlib_get_smart_contract_info,@function
+tonstdlib_get_smart_contract_info:
+    GETGLOB 4
+    SETGLOB 3
+
+    ;
+    ; Initialize writing builder
+    ; ( -- )
+    ;
+    .globl	tonstdlib_create_empty_work_slice
+    .type	tonstdlib_create_empty_work_slice,@function
+tonstdlib_create_empty_work_slice:
+    NEWC
+    SETGLOB 6
+
+    ;
+    ; Append work cell with an integer:
+    ; ( int-value width -- )
+    ;
+    .globl	tonstdlib_work_slice_store_int
+    .type	tonstdlib_work_slice_store_int,@function
+tonstdlib_work_slice_store_int:
+;    GETGLOB 3                  ; ( int-value width work-slice )
+;    NEWC STSLICE               ; ( uint-value width work-cell-builder )
+;    SWAP                       ; ( uint-value work-cell-builder width )
+;    STIX                       ; ( work-cell-builder' )
+;    ENDC                       ; ( work-cell )
+;    CTOS                       ; ( work-slice )
+;    SETGLOB 3
+
+    GETGLOB 6                  ; ( int-value width work-builder )
+    SWAP                       ; ( int-value work-builder width )
+    STIX                       ; ( work-builder' )
+    SETGLOB 6                  ; ( )
+
+
+    ;
+    ; Append work cell with an unsigned integer:
+    ; ( uint-value width -- )
+    ;
+    .globl	tonstdlib_work_slice_store_uint
+    .type	tonstdlib_work_slice_store_uint,@function
+tonstdlib_work_slice_store_uint:
+;    GETGLOB 3                  ; ( uint-value width work-slice )
+;    NEWC STSLICE               ; ( uint-value width work-cell-builder )
+;    SWAP                       ; ( uint-value work-cell-builder width )
+;    STUX                       ; ( work-cell-builder )
+;    ENDC                       ; ( work-cell )
+;    CTOS                       ; ( work-slice )
+;    SETGLOB 3
+
+    GETGLOB 6                  ; ( uint-value width work-builder )
+    SWAP                       ; ( uint-value work-builder width )
+    STUX                       ; ( work-builder' )
+    SETGLOB 6                  ; ( )
+
+    ;
+    ; Load integer from work cell:
+    ; ( width -- int-value )
+    ;
+    .globl	tonstdlib_work_slice_load_int
+    .type	tonstdlib_work_slice_load_int,@function
+tonstdlib_work_slice_load_int:
+    GETGLOB 3                  ; ( width work-slice )
+    SWAP                       ; ( work-slice width )
+    LDIX                       ; ( int-value work-slice' )
+    SETGLOB 3
+
+    ;
+    ; Load unsigned from work cell:
+    ; ( width -- uint-value )
+    ;
+    .globl	tonstdlib_work_slice_load_uint
+    .type	tonstdlib_work_slice_load_uint,@function
+tonstdlib_work_slice_load_uint:
+    GETGLOB 3                  ; ( width work-slice )
+    SWAP                       ; ( work-slice width )
+    LDUX                       ; ( int-value work-slice' )
+    SETGLOB 3
+
+    ;
+    ; Get builder cell 
+    ; ( -- builder-cell )
+    ;
+    .globl	tonstdlib_get_work_slice
+    .type	tonstdlib_get_work_slice,@function
+tonstdlib_get_work_slice:
+    GETGLOB 6
+    ENDC
+
+    ;
+    ; Send raw message: takes message from work slice
+    ; ( flags -- )
+    ;
+    .globl	tonstdlib_send_work_slice_as_rawmsg
+    .type	tonstdlib_send_work_slice_as_rawmsg,@function
+tonstdlib_send_work_slice_as_rawmsg:
+    GETGLOB 6
+    ENDC
+    SWAP
+    SENDRAWMSG
+
+    ;;;;;;;;;;;;;;;;;;;;;
+    ; Std library for C ;
+    ;;;;;;;;;;;;;;;;;;;;;
+
+    ;
+    ;
+    ;
+	.text
+	.file	"memcpy-test.c"
+	.globl	memcpy
+	.p2align	1
+	.type	memcpy,@function
+memcpy:
+	PUSHINT	38
+	CALL	$:enter$
+	PUSHINT	22
+	CALL	$:frameidx$
+	XCHG	s0, s4
+	XCHG	s1, s4
+	CALL	$:store$
+	PUSHINT	14
+	CALL	$:frameidx$
+	XCHG	s0, s2
+	XCHG	s1, s2
+	CALL	$:store$
+	PUSHINT	6
+	CALL	$:frameidx$
+	XCHG	s0, s1
+	CALL	$:store$
+	PUSHINT	-2
+	CALL	$:frameidx$
+	XCHG	s0, s1
+	CALL	$:store$
+	PUSHINT	6
+	CALL	$:frameidx$
+	CALL	$:load$
+	PUSHINT	0
+	GREATER
+	PUSHCONT {
+		PUSHINT	38
+		CALL	$:leave$
+		RET
+	}
+	PUSHCONT {
+		PUSHINT	6
+		CALL	$:frameidx$
+		CALL	$:load$
+		DEC
+		PUSHINT	6
+		CALL	$:frameidx$
+		XCHG	s0, s1
+		CALL	$:store$
+		PUSHINT	14
+		CALL	$:frameidx$
+		CALL	$:load$
+		PUSHINT	6
+		CALL	$:frameidx$
+		CALL	$:load$
+		LSHIFT	3
+		XCHG	s0, s1
+		PUSH	s1
+		ADD
+		CALL	$:load$
+		PUSHINT	22
+		CALL	$:frameidx$
+		CALL	$:load$
+		XCHG	s0, s2
+		XCHG	s1, s2
+		ADD
+		XCHG	s0, s1
+		CALL	$:store$
+		PUSHINT	22
+		CALL	$:frameidx$
+		CALL	$:load$
+		PUSHINT	14
+		CALL	$:frameidx$
+		CALL	$:load$
+		PUSHINT	6
+		CALL	$:frameidx$
+		CALL	$:load$
+		PUSHINT	-2
+		CALL	$:frameidx$
+		CALL	$:load$
+		PUSHINT	$memcpy$
+		CALL	1
+		PUSHCONT {
+			PUSHINT	38
+			CALL	$:leave$
+			RET
+		}
+		JMPX
+	}
+	IFELSE
+	PUSHINT	6
+	CALL	$:frameidx$
+	CALL	$:load$
+	DEC
+	PUSHINT	6
+	CALL	$:frameidx$
+	XCHG	s0, s1
+	CALL	$:store$
+	PUSHINT	14
+	CALL	$:frameidx$
+	CALL	$:load$
+	PUSHINT	6
+	CALL	$:frameidx$
+	CALL	$:load$
+	LSHIFT	3
+	XCHG	s0, s1
+	PUSH	s1
+	ADD
+	CALL	$:load$
+	PUSHINT	22
+	CALL	$:frameidx$
+	CALL	$:load$
+	XCHG	s0, s2
+	XCHG	s1, s2
+	ADD
+	XCHG	s0, s1
+	CALL	$:store$
+	PUSHINT	22
+	CALL	$:frameidx$
+	CALL	$:load$
+	PUSHINT	14
+	CALL	$:frameidx$
+	CALL	$:load$
+	PUSHINT	6
+	CALL	$:frameidx$
+	CALL	$:load$
+	PUSHINT	-2
+	CALL	$:frameidx$
+	CALL	$:load$
+	PUSHINT	$memcpy$
+	CALL	1
+	PUSHCONT {
+		PUSHINT	38
+		CALL	$:leave$
+		RET
+	}
+	JMPX
+.LBB0_2:
+	PUSHINT	38
+	CALL	$:leave$
+	RET
+.Lfunc_end0:
+	.size	memcpy, .Lfunc_end0-memcpy
+
+
+     .globl	memset
+     .type	memset,@function
+memset:
+     ; ( addr value size -- addr )
+     ;
+     PUSH s2              ; ( addr value size addr )
+     XCHG s0,s1           ; ( addr value addr size )
+     PUSHINT 8
+     DIVC                 ; ( addr value addr size/8 )
+     PUSHCONT {           ; ( addr value addr -- value addr' )
+         PUSH s0          ; ( addr value addr addr )
+         PUSH s2          ; ( addr value addr addr value )
+         CALL $:store$
+         ADDCONST 8       ; ( addr value addr )
+     }
+     REPEAT               ; ( addr value addr size/8 cont -- addr value addr' )
+     DROP                 ; ( addr value )
+     DROP                 ; ( addr )

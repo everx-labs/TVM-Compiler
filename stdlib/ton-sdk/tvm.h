@@ -1,0 +1,32 @@
+#ifndef TVM_TYPES_H
+#define TVM_TYPES_H
+
+#define JOIN(a,b) a##b
+#define JOIN3(a,b,c) a##b##c
+#define XJOIN(a,b) JOIN(a,b)
+#define XJOIN3(a,b,c) JOIN3(a,b,c)
+
+#define TVM_CUSTOM_EXCEPTION(id,val) enum { id = val };
+
+unsigned tonstdlib_log_8 (unsigned value);
+
+void tonstdlib_create_empty_work_slice ();
+int tonstdlib_work_slice_load_int (unsigned width);
+unsigned tonstdlib_work_slice_load_uint (unsigned width);
+void tonstdlib_work_slice_store_int (int value, unsigned width);
+void tonstdlib_work_slice_store_uint (unsigned value, unsigned width);
+void tonstdlib_send_work_slice_as_rawmsg (int flags);
+
+#define tvm_assert(condition,exc) (__builtin_tvm_throwif(!(condition),(exc)))
+
+void Serialize_Unsigned_Impl (unsigned width, unsigned int);
+void Serialize_Signed_Impl (unsigned width, signed int);
+void Serialize_Unsigned (unsigned width, unsigned int);
+void Serialize_Signed (unsigned width, signed int);
+
+unsigned int Deserialize_Unsigned_Impl (unsigned width);
+signed int Deserialize_Signed_Impl (unsigned width);
+unsigned int Deserialize_Unsigned (unsigned width);
+signed int Deserialize_Signed (unsigned width);
+
+#endif

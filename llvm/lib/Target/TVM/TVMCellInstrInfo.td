@@ -49,6 +49,16 @@ defm STU : I<(outs Builder : $obldr),
              [(set Builder : $obldr, (TVMstu I257 : $val, Builder : $bldr,
                uimm0_256 : $precision))],
              "STU\t$precision, $obldr, $val, $bldr", "STU\t$precision", 0xcb>;
+
+defm STIR : I<(outs Builder : $builder),
+              (ins Builder : $builderi, I257 : $val, uimm0_257 : $precision),
+              (outs), (ins uimm0_257 : $precision), [],
+              "STIR\t$precision", "STIR\t$precision", 0xcf0a>;
+
+defm STUR : I<(outs Builder : $obldr),
+              (ins Builder : $bldr, I257 : $val, uimm0_256 : $precision),
+              (outs), (ins uimm0_256 : $precision), [],
+              "STUR\t$precision", "STUR\t$precision", 0xcf0b>;
 }
 
 def : Pat<(int_tvm_stu I257 : $val, Builder : $bldr, uimm0_256 : $precision),
@@ -90,6 +100,14 @@ defm LDUX : I0<(outs I257 : $x, Slice : $sliceo),
                [(set I257 : $x, Slice : $sliceo,
                  (int_tvm_ldu Slice : $slicei, I257 : $precision))],
                "LDUX", 0xd701>;
+
+defm STIXR : I0<(outs Builder : $builder),
+                (ins Builder : $builderi, I257 : $val, I257 : $precision), [],
+                "LDIXR", 0xcf02>;
+
+defm STUXR : I0<(outs Builder : $builder),
+                (ins Builder : $builderi, I257 : $val, I257 : $precision), [],
+                "LDUXR", 0xcf03>;
 
 /// TODO: It should be a pipehole optimization for LDREF; SWAP; CTOS
 defm LDREFRTOS : I<(outs Slice:$cellslice, Slice:$sliceo), (ins Slice:$slicei),

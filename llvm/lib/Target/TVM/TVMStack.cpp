@@ -32,11 +32,11 @@ Stack::Stack(MachineFunction &MF, size_t Size)
 
 /// If \par MO is no longer used after \par MI.
 static bool isKilled(const MachineInstr &MI, unsigned Register,
-                     const LiveIntervals &LIS) {
+                     const LiveIntervals &LIS, SlotIndex LIIndex) {
   const LiveInterval &LI = LIS.getInterval(Register);
   // If there is no live interval starting from the current instruction
   // for the given argument, the argument is killed.
-  if (!LI.getVNInfoAt(LIS.getInstructionIndex(MI).getRegSlot()))
+  if (!LI.getVNInfoAt(LIIndex))
     return true;
   for (size_t I = 0, E = MI.getNumDefs(); I < E; ++I)
     if (MI.getOperand(I).isReg() && MI.getOperand(I).getReg() == Register)
@@ -44,12 +44,13 @@ static bool isKilled(const MachineInstr &MI, unsigned Register,
   return false;
 }
 
-MIArgs::MIArgs(MachineInstr &MI, const LiveIntervals &LIS) {
+MIArgs::MIArgs(MachineInstr &MI, const LiveIntervals &LIS, SlotIndex LIIndex) {
   auto regUses = llvm::make_filter_range(MI.uses(),
                    [](const MachineOperand &Op) { return Op.isReg(); });
   for (auto Arg : regUses) {
     auto Vreg = Arg.isUndef() ? TVMFunctionInfo::UnusedReg : Arg.getReg();
-    bool Killed = Arg.isUndef() ? true : isKilled(MI, Arg.getReg(), LIS);
+    bool Killed =
+        Arg.isUndef() ? true : isKilled(MI, Arg.getReg(), LIS, LIIndex);
     Args.emplace_back(StackVreg(Vreg), Killed);
   }
 }

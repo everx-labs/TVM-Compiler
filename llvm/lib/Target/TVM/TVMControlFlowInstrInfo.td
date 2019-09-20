@@ -180,6 +180,3 @@ def : Pat<(i257 (TVMGlobalAddressWrapper tglobaladdr : $addr)),
           (PUSH_GLOBAL_ADDRESS tglobaladdr : $addr)>;
 def : Pat<(i257 (TVMGlobalAddressWrapper texternalsym : $addr)),
           (PUSH_GLOBAL_ADDRESS texternalsym : $addr)>;
-
-defm ACCEPT : I<(outs), (ins), (outs), (ins), [(int_tvm_accept)], 
-                "ACCEPT", "ACCEPT", 0xF800>;

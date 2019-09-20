@@ -18,6 +18,7 @@
 #include <deque>
 #include <variant>
 
+#include "llvm/CodeGen/LiveIntervals.h"
 #include "llvm/CodeGen/MachineInstrBuilder.h"
 #include "llvm/Support/Debug.h"
 
@@ -40,7 +41,7 @@ struct MIArg {
 class MIArgs {
 public:
   MIArgs() = default;
-  MIArgs(MachineInstr &MI, const LiveIntervals &LIS);
+  MIArgs(MachineInstr &MI, const LiveIntervals &LIS, SlotIndex LIIndex);
   size_t size() const { return Args.size(); }
   const SmallVector<MIArg, 4> &getArgs() const { return Args; }
 private:
@@ -104,6 +105,9 @@ public:
   size_t position(size_t From, const StackVreg& Elem) const {
     return std::distance(std::begin(Data),
                          find_or_fail(drop_begin(Data, From), Elem));
+  }
+  size_t position(unsigned Reg) const {
+    return std::distance(std::begin(Data), llvm::find_or_fail(Data, Reg));
   }
   /// Return position of \par N occurrence of \par Elem from stack deep
   /// \par N - starts from 0

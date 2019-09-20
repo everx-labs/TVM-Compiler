@@ -42,6 +42,7 @@ struct StackVreg {
     return VirtReg != R.VirtReg;
   }
   void print(const Stack &S) const;
+  bool operator==(unsigned R) const { return VirtReg == R; }
 };
 
 } // namespace llvm

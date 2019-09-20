@@ -4,34 +4,34 @@ target triple = "tvm"
 
 ; Function Attrs: nounwind
 ; CHECK-LABEL: make_internal_msg_cell
-define i257 @make_internal_msg_cell(i257 %to_addr, i257 %value) local_unnamed_addr #0 {
+define cell @make_internal_msg_cell(i257 %to_addr, i257 %value) local_unnamed_addr #0 {
 entry:
 ; CHECK: NEWC
-  %0 = call i257 @llvm.tvm.newc()
+  %0 = call builder @llvm.tvm.newc()
 ; CHECK: STU
-  %1 = call i257 @llvm.tvm.stu(i257 %0, i257 0, i257 5)
+  %1 = call builder @llvm.tvm.stu(i257 0, builder %0, i257 5)
 ; CHECK: STU
-  %2 = call i257 @llvm.tvm.stu(i257 %1, i257 -1, i257 8)
+  %2 = call builder @llvm.tvm.stu(i257 -1, builder %1, i257 8)
 ; CHECK: STU
-  %3 = call i257 @llvm.tvm.stu(i257 %2, i257 %to_addr, i257 256)
+  %3 = call builder @llvm.tvm.stu(i257 %to_addr, builder %2, i257 256)
 ; CHECK: STU
-  %4 = call i257 @llvm.tvm.stu(i257 %3, i257 %value, i257 32)
+  %4 = call builder @llvm.tvm.stu(i257 %value, builder %3, i257 32)
 ; CHECK: ENDC
-  %5 = call i257 @llvm.tvm.endc(i257 %4)
-  ret i257 %5
+  %5 = call cell @llvm.tvm.endc(builder %4)
+  ret cell %5
 }
 
 ; Function Attrs: nounwind
 ; CHECK-LABEL: send_raw_message
 define void @send_raw_message(i257 %to_addr, i257 %value) local_unnamed_addr #0 {
 entry:
-  %call = call i257 @make_internal_msg_cell(i257 %to_addr, i257 %value)
+  %call = call cell @make_internal_msg_cell(i257 %to_addr, i257 %value)
 ; CHECK: SENDRAWMSG
-  call void @llvm.tvm.sendrawmsg(i257 %call, i257 0)
+  call void @llvm.tvm.sendrawmsg(cell %call, i257 0)
   ret void
 }
 
-declare void @llvm.tvm.sendrawmsg(i257, i257) #1
-declare i257 @llvm.tvm.newc() #1
-declare i257 @llvm.tvm.stu(i257, i257, i257) #1
-declare i257 @llvm.tvm.endc(i257) #1
+declare void @llvm.tvm.sendrawmsg(cell, i257) #1
+declare builder @llvm.tvm.newc() #1
+declare builder @llvm.tvm.stu(i257, builder, i257) #1
+declare cell @llvm.tvm.endc(builder) #1

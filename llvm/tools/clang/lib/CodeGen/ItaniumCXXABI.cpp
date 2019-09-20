@@ -2837,6 +2837,11 @@ static bool TypeInfoIsInStandardLibrary(const BuiltinType *Ty) {
     case BuiltinType::SatUShortFract:
     case BuiltinType::SatUFract:
     case BuiltinType::SatULongFract:
+    // TVM local begin
+    case BuiltinType::TVMSlice:
+    case BuiltinType::TVMBuilder:
+    case BuiltinType::TVMCell:
+    // TVM local end
       return false;
 
     case BuiltinType::Dependent:

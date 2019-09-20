@@ -5,29 +5,31 @@ target triple = "tvm"
 ; CHECK-LABEL: balanceof
 define i257 @balanceof(i257 %owner) nounwind {
 entry:
-   %root = call i257 @llvm.tvm.get.persistent.data();
-   %bal_raw = call {i257, i257} @llvm.tvm.dictuget(i257 0, i257 %root, i257 256)
-   %bal_ref = extractvalue {i257, i257} %bal_raw, 0
-   %bal_ref_stat = extractvalue {i257, i257} %bal_raw, 1
+   %root_cell = call cell @llvm.tvm.get.persistent.data()
+   %root = call slice @llvm.tvm.ctos(cell %root_cell)
+   %bal_raw = call {slice, i257} @llvm.tvm.dictuget(i257 0, slice %root, i257 256)
+   %bal_ref = extractvalue {slice, i257} %bal_raw, 0
+   %bal_ref_stat = extractvalue {slice, i257} %bal_raw, 1
    %cond = icmp ne i257 %bal_ref_stat, 0
    br i1 %cond, label %get_owner_dict, label %retres
 get_owner_dict:
-   %bal_dict_ext = call {i257, i257} @llvm.tvm.ldrefrtos(i257 %bal_ref) nounwind
-   %bal_dict = extractvalue {i257, i257} %bal_dict_ext, 0
-   %bal_owner_raw = call {i257, i257} @llvm.tvm.dictuget(i257 %owner, i257 %bal_dict, i257 256)
-   %bal_owner_ref = extractvalue {i257, i257} %bal_owner_raw, 0
-   %bal_owner_ref_stat = extractvalue {i257, i257} %bal_owner_raw, 1
+   %bal_dict_ext = call {slice, slice} @llvm.tvm.ldrefrtos(slice %bal_ref) nounwind
+   %bal_dict = extractvalue {slice, slice} %bal_dict_ext, 0
+   %bal_owner_raw = call {slice, i257} @llvm.tvm.dictuget(i257 %owner, slice %bal_dict, i257 256)
+   %bal_owner_ref = extractvalue {slice, i257} %bal_owner_raw, 0
+   %bal_owner_ref_stat = extractvalue {slice, i257} %bal_owner_raw, 1
    %cond1 = icmp ne i257 %bal_owner_ref_stat, 0
    br i1 %cond1, label %get_bal, label %retres
  get_bal:
-   %bal_owner_struct = call {i257, i257} @llvm.tvm.ldu(i257 %bal_owner_ref)
-   %bal_owner = extractvalue {i257, i257} %bal_owner_struct, 0
+   %bal_owner_struct = call {i257, slice} @llvm.tvm.ldu(slice %bal_owner_ref)
+   %bal_owner = extractvalue {i257, slice} %bal_owner_struct, 0
    br label %retres
 retres:
    %retval = phi i257 [0, %entry], [0, %get_owner_dict], [%bal_owner, %get_bal]
    ret i257 %retval
 }
-declare i257 @llvm.tvm.get.persistent.data() nounwind
-declare {i257, i257} @llvm.tvm.dictuget(i257 %key, i257 %dict_id, i257 %keylen) nounwind
-declare {i257, i257} @llvm.tvm.ldrefrtos(i257 %slice) nounwind
-declare {i257, i257} @llvm.tvm.ldu(i257 %slice) nounwind
+declare cell @llvm.tvm.get.persistent.data() nounwind
+declare slice @llvm.tvm.ctos(cell %cell) nounwind
+declare {slice, i257} @llvm.tvm.dictuget(i257 %key, slice %dict_id, i257 %keylen) nounwind
+declare {slice, slice} @llvm.tvm.ldrefrtos(slice %slice) nounwind
+declare {i257, slice} @llvm.tvm.ldu(slice %slice) nounwind

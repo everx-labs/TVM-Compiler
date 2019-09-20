@@ -566,6 +566,11 @@ void TypePrinting::print(Type *Ty, raw_ostream &OS) {
   case Type::MetadataTyID:  OS << "metadata"; return;
   case Type::X86_MMXTyID:   OS << "x86_mmx"; return;
   case Type::TokenTyID:     OS << "token"; return;
+  // TVM local begin
+  case Type::TVMSliceID:    OS << "slice"; return;
+  case Type::TVMBuilderID:  OS << "builder"; return;
+  case Type::TVMCellID:     OS << "cell"; return;
+  // TVM local end
   case Type::IntegerTyID:
     OS << 'i' << cast<IntegerType>(Ty)->getBitWidth();
     return;

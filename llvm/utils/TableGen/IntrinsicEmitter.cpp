@@ -222,7 +222,10 @@ enum IIT_Info {
   IIT_STRUCT8 = 40,
   IIT_F128 = 41,
   // TVM local begin
-  IIT_I257 = 42
+  IIT_I257 = 42,
+  IIT_TVMSLICE = 43,
+  IIT_TVMBUILDER = 44,
+  IIT_TVMCELL = 45,
   // TVM local end
 };
 
@@ -257,6 +260,11 @@ static void EncodeFixedValueType(MVT::SimpleValueType VT,
   case MVT::Other: return Sig.push_back(IIT_EMPTYSTRUCT);
   // MVT::isVoid is used to represent varargs here.
   case MVT::isVoid: return Sig.push_back(IIT_VARARG);
+  // TVM local begin
+  case MVT::TVMSlice: return Sig.push_back(IIT_TVMSLICE);
+  case MVT::TVMBuilder: return Sig.push_back(IIT_TVMBUILDER);
+  case MVT::TVMCell: return Sig.push_back(IIT_TVMCELL);
+  // TVM local end
   }
 }
 

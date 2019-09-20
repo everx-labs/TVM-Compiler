@@ -68,6 +68,14 @@ struct TypeCloner {
   LLVMTypeRef Clone(LLVMTypeRef Src) {
     LLVMTypeKind Kind = LLVMGetTypeKind(Src);
     switch (Kind) {
+      // TVM local begin
+      case LLVMTVMSliceKind:
+        return LLVMTVMSliceInContext(Ctx);
+      case LLVMTVMBuilderKind:
+        return LLVMTVMBuilderInContext(Ctx);
+      case LLVMTVMCellKind:
+        return LLVMTVMCellInContext(Ctx);
+      // TVM local end
       case LLVMVoidTypeKind:
         return LLVMVoidTypeInContext(Ctx);
       case LLVMHalfTypeKind:

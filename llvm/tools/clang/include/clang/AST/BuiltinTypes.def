@@ -252,6 +252,12 @@ BUILTIN_TYPE(OCLQueue, OCLQueueTy)
 // OpenCL reserve_id_t.
 BUILTIN_TYPE(OCLReserveID, OCLReserveIDTy)
 
+// TVM local begin
+BUILTIN_TYPE(TVMSlice, TVMSliceTy)
+BUILTIN_TYPE(TVMBuilder, TVMBuilderTy)
+BUILTIN_TYPE(TVMCell, TVMCellTy)
+// TVM local end
+
 // This represents the type of an expression whose type is
 // totally unknown, e.g. 'T::foo'.  It is permitted for this to
 // appear in situations where the structure of the type is

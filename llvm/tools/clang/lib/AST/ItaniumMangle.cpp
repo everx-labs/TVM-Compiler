@@ -2654,6 +2654,17 @@ void CXXNameMangler::mangleType(const BuiltinType *T) {
   case BuiltinType::OCLReserveID:
     Out << "13ocl_reserveid";
     break;
+  // TVM local begin
+  case BuiltinType::TVMSlice:
+    Out << "TVMs";
+    break;
+  case BuiltinType::TVMBuilder:
+    Out << "TVMb";
+    break;
+  case BuiltinType::TVMCell:
+    Out << "TVMc";
+    break;
+  // TVM local end
   }
 }
 

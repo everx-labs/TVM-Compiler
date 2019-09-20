@@ -167,7 +167,12 @@ enum TypeCodes {
 
   TYPE_CODE_FUNCTION = 21, // FUNCTION: [vararg, retty, paramty x N]
 
-  TYPE_CODE_TOKEN = 22 // TOKEN
+  TYPE_CODE_TOKEN = 22, // TOKEN
+  // TVM local begin
+  TYPE_CODE_TVMSLICE = 23,   // TVM Slice
+  TYPE_CODE_TVMBUILDER = 24, // TVM Builder
+  TYPE_CODE_TVMCELL = 25     // TVM Cell
+  // TVM local end
 };
 
 enum OperandBundleTagCode {

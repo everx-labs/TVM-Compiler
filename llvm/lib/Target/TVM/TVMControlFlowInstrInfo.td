@@ -22,6 +22,13 @@ let isTerminator = 1, hasCtrlDep = 1 in {
   let isReturn = 1, isBarrier = 1 in {
     defm RETURN_I257 : NRI<(outs), (ins i257imm:$val), [(TVMreturn i257:$val)],
                           "RET", 0xdb30>;
+    defm RETURN_SLICE : NRI<(outs), (ins Slice:$val), [(TVMreturn Slice:$val)],
+                           "RET", 0xdb30>;
+    defm RETURN_BUILDER : NRI<(outs), (ins Builder:$val),
+                              [(TVMreturn Builder:$val)], "RET", 0xdb30>;
+    defm RETURN_CELL : NRI<(outs), (ins Cell:$val), [(TVMreturn Cell:$val)],
+                          "RET", 0xdb30>;
+
     defm RETURN_VOID : NRI<(outs), (ins), [(TVMreturn)], "RET", 0xdb30>;
     let isCodeGenOnly = 1 in
     defm FALLTHROUGH_RETURN : SI<(ins)>;
@@ -62,6 +69,17 @@ let isCall = 1, hasCtrlDep = 1 in {
   defm CALL_1 : NRI<(outs I257:$dst), (ins variable_ops, i257imm:$callee),
                     [(set I257:$dst, (TVMcall1 i257:$callee))],
                     "CALL\t1", 0xF0>;
+  defm CALL_1_SLICE : NRI<(outs Slice:$dst),
+                          (ins variable_ops, i257imm:$callee),
+                          [(set Slice:$dst, (TVMcall1 i257:$callee))],
+                          "CALL\t1", 0xF0>;
+  defm CALL_1_BUILDER : NRI<(outs Builder:$dst),
+                            (ins variable_ops, i257imm:$callee),
+                            [(set Builder:$dst, (TVMcall1 i257:$callee))],
+                            "CALL\t1", 0xF0>;
+  defm CALL_1_CELL : NRI<(outs Cell:$dst), (ins variable_ops, i257imm:$callee),
+                         [(set Cell:$dst, (TVMcall1 i257:$callee))],
+                         "CALL\t1", 0xF0>;
 }
 
 let isMoveImm = 1, isAsCheapAsAMove = 1, isReMaterializable = 1 in {
@@ -95,7 +113,10 @@ defm PUSHC : I<(outs I257 : $root), (ins uimm8 : $regno),
                [(set I257 : $root, (int_tvm_getreg uimm8 : $regno))],
                "PUSH\tc$regno", "PUSH\tc$regno", 0xed4>;
 
-def : Pat<(TVMpushroot), (PUSHC (i257 4))>;
+defm PUSHROOT : I<(outs Cell:$root), (ins),
+               (outs), (ins),
+               [(set Cell:$root, (TVMpushroot))],
+               "PUSHROOT", "PUSHROOT", 0xed44>;
 
 defm POPC : I<(outs), (ins I257 : $root, uimm8 : $regno),
               (outs), (ins uimm8 : $regno),
@@ -103,9 +124,9 @@ defm POPC : I<(outs), (ins I257 : $root, uimm8 : $regno),
               "POP\tc$regno, $root", "POP\tc$regno", 0xed5>;
 
 // TODO: Generalize to POP ci
-defm POPROOT : I<(outs), (ins I257 : $root),
+defm POPROOT : I<(outs), (ins Cell:$root),
                  (outs), (ins),
-                 [(int_tvm_set_persistent_data I257 : $root)],
+                 [(int_tvm_set_persistent_data Cell:$root)],
                  "POPROOT\t$root", "POPROOT", 0xed54>;
 
 defm THROW : I<(outs), (ins uimm6 : $exception),

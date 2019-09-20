@@ -25,10 +25,10 @@ def SDT_TVMArgument     : SDTypeProfile<1, 1, [SDTCisVT<1, i257>]>;
 def SDT_TVMCall0        : SDTypeProfile<0, -1, [SDTCisPtrTy<0>]>;
 def SDT_TVMCall1        : SDTypeProfile<1, -1, [SDTCisPtrTy<1>]>;
 
-def SDT_TVMCtos         : SDTypeProfile<1, 1, [SDTCisVT<1, i257>]>;
+def SDT_TVMCtos         : SDTypeProfile<1, 1, [SDTCisVT<1, TVMCell>]>;
 def SDT_TVMStSlice      : SDTypeProfile<1, 2, []>;
 def SDT_TVMNewc         : SDTypeProfile<1, 0, []>;
-def SDT_TVMEndc         : SDTypeProfile<1, 1, [SDTCisVT<1, i257>]>;
+def SDT_TVMEndc         : SDTypeProfile<1, 1, [SDTCisVT<1, TVMBuilder>]>;
 def SDT_TVMPushRoot     : SDTypeProfile<1, 0, []>;
 def SDT_TVMDictGet      : SDTypeProfile<2, 3, []>;
 def SDT_TVMDictSt       : SDTypeProfile<1, 3, []>;
@@ -149,6 +149,21 @@ let hasSideEffects = 1, Uses = [ARGUMENTS], isCodeGenOnly = 1 in
 defm ARGUMENT : I<(outs I257:$res), (ins i257imm:$argno),
                   (outs), (ins i257imm:$argno),
                   [(set I257:$res, (TVMargument timm:$argno))]>;
+
+let hasSideEffects = 1, Uses = [ARGUMENTS], isCodeGenOnly = 1 in
+defm ARGUMENT_SLICE : I<(outs Slice:$res), (ins i257imm:$argno),
+                        (outs), (ins i257imm:$argno),
+                        [(set Slice:$res, (TVMargument timm:$argno))]>;
+
+let hasSideEffects = 1, Uses = [ARGUMENTS], isCodeGenOnly = 1 in
+defm ARGUMENT_BUILDER : I<(outs Builder:$res), (ins i257imm:$argno),
+                          (outs), (ins i257imm:$argno),
+                          [(set Builder:$res, (TVMargument timm:$argno))]>;
+
+let hasSideEffects = 1, Uses = [ARGUMENTS], isCodeGenOnly = 1 in
+defm ARGUMENT_CELL : I<(outs Cell:$res), (ins i257imm:$argno),
+                       (outs), (ins i257imm:$argno),
+                       [(set Cell:$res, (TVMargument timm:$argno))]>;
 
 // Auxiliary instruction for debugging purposes only: 
 // specifies number of arguments on stack for the function;

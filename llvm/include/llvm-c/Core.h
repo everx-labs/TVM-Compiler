@@ -154,7 +154,12 @@ typedef enum {
   LLVMVectorTypeKind,      /**< SIMD 'packed' format, or other vector type */
   LLVMMetadataTypeKind,    /**< Metadata */
   LLVMX86_MMXTypeKind,     /**< X86 MMX */
-  LLVMTokenTypeKind        /**< Tokens */
+  LLVMTokenTypeKind,       /**< Tokens */
+  // TVM local begin
+  LLVMTVMSliceKind,        /**< TVM Slice */
+  LLVMTVMBuilderKind,      /**< TVM Builder */
+  LLVMTVMCellKind          /**< TVM Cell */
+  // TVM local end
 } LLVMTypeKind;
 
 typedef enum {
@@ -1339,6 +1344,21 @@ LLVMTypeRef LLVMLabelTypeInContext(LLVMContextRef C);
  * Create a X86 MMX type in a context.
  */
 LLVMTypeRef LLVMX86MMXTypeInContext(LLVMContextRef C);
+
+/**
+ * Create a TVM Slice type in a context.
+ */
+LLVMTypeRef LLVMTVMSliceInContext(LLVMContextRef C);
+
+/**
+ * Create a TVM Builder type in a context.
+ */
+LLVMTypeRef LLVMTVMBuilderInContext(LLVMContextRef C);
+
+/**
+ * Create a TVM Cell type in a context.
+ */
+LLVMTypeRef LLVMTVMCellInContext(LLVMContextRef C);
 
 /**
  * Create a token type in a context.

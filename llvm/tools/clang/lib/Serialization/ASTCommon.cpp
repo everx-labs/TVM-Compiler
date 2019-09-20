@@ -27,6 +27,17 @@ serialization::TypeIdx
 serialization::TypeIdxFromBuiltin(const BuiltinType *BT) {
   unsigned ID = 0;
   switch (BT->getKind()) {
+  // TVM local begin
+  case BuiltinType::TVMSlice:
+    ID = PREDEF_TYPE_TVM_SLICE_ID;
+    break;
+  case BuiltinType::TVMBuilder:
+    ID = PREDEF_TYPE_TVM_BUILDER_ID;
+    break;
+  case BuiltinType::TVMCell:
+    ID = PREDEF_TYPE_TVM_CELL_ID;
+    break;
+  // TVM local end
   case BuiltinType::Void:
     ID = PREDEF_TYPE_VOID_ID;
     break;

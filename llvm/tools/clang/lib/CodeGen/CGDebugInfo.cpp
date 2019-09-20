@@ -586,6 +586,13 @@ llvm::DIType *CGDebugInfo::CreateType(const BuiltinType *BT) {
   llvm::dwarf::TypeKind Encoding;
   StringRef BTName;
   switch (BT->getKind()) {
+  // TVM local begin
+  // TODO support debug info for Slice/Builder/Cell
+  case BuiltinType::TVMSlice:
+  case BuiltinType::TVMBuilder:
+  case BuiltinType::TVMCell:
+    return nullptr;
+  // TVM local end
 #define BUILTIN_TYPE(Id, SingletonId)
 #define PLACEHOLDER_TYPE(Id, SingletonId) case BuiltinType::Id:
 #include "clang/AST/BuiltinTypes.def"

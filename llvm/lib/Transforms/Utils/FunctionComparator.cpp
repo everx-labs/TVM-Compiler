@@ -425,6 +425,11 @@ int FunctionComparator::cmpTypes(Type *TyL, Type *TyR) const {
   case Type::LabelTyID:
   case Type::MetadataTyID:
   case Type::TokenTyID:
+  // TVM local begin
+  case Type::TVMSliceID:
+  case Type::TVMBuilderID:
+  case Type::TVMCellID:
+  // TVM local end
     return 0;
 
   case Type::PointerTyID:

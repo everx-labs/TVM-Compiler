@@ -49,6 +49,11 @@ Type *Type::getPrimitiveType(LLVMContext &C, TypeID IDNumber) {
   case MetadataTyID  : return getMetadataTy(C);
   case X86_MMXTyID   : return getX86_MMXTy(C);
   case TokenTyID     : return getTokenTy(C);
+  // TVM local begin
+  case TVMSliceID    : return getTVMSliceTy(C);
+  case TVMBuilderID  : return getTVMBuilderTy(C);
+  case TVMCellID     : return getTVMCellTy(C);
+  // TVM local end
   default:
     return nullptr;
   }
@@ -169,6 +174,12 @@ Type *Type::getX86_FP80Ty(LLVMContext &C) { return &C.pImpl->X86_FP80Ty; }
 Type *Type::getFP128Ty(LLVMContext &C) { return &C.pImpl->FP128Ty; }
 Type *Type::getPPC_FP128Ty(LLVMContext &C) { return &C.pImpl->PPC_FP128Ty; }
 Type *Type::getX86_MMXTy(LLVMContext &C) { return &C.pImpl->X86_MMXTy; }
+
+// TVM local begin
+Type *Type::getTVMSliceTy(LLVMContext &C) { return &C.pImpl->TVMSliceTy; }
+Type *Type::getTVMBuilderTy(LLVMContext &C) { return &C.pImpl->TVMBuilderTy; }
+Type *Type::getTVMCellTy(LLVMContext &C) { return &C.pImpl->TVMCellTy; }
+// TVM local end
 
 IntegerType *Type::getInt1Ty(LLVMContext &C) { return &C.pImpl->Int1Ty; }
 IntegerType *Type::getInt8Ty(LLVMContext &C) { return &C.pImpl->Int8Ty; }

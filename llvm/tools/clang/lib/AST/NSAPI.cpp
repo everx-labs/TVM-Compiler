@@ -404,6 +404,13 @@ NSAPI::getNSNumberFactoryMethodKind(QualType T) const {
   }
 
   switch (BT->getKind()) {
+  // TVM local begin
+  case BuiltinType::TVMSlice:
+  case BuiltinType::TVMBuilder:
+  case BuiltinType::TVMCell:
+    llvm_unreachable("Unsupported builtin type for NSAPI");
+    break;
+  // TVM local end
   case BuiltinType::Char_S:
   case BuiltinType::SChar:
     return NSAPI::NSNumberWithChar;

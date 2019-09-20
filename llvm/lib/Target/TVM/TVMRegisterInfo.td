@@ -36,3 +36,12 @@ def ARGUMENTS : TVMReg<"ARGUMENTS">;
 
 def DUMMY  : TVMReg<"DUMMY">;
 def I257 : TVMRegClass<[i257], 257, (add DUMMY, SP)>;
+
+def DUMMY_SLICE : TVMReg<"DUMMY_SLICE">;
+def Slice : TVMRegClass<[TVMSlice], 257, (add DUMMY_SLICE)>;
+
+def DUMMY_BUILDER : TVMReg<"DUMMY_BUILDER">;
+def Builder : TVMRegClass<[TVMBuilder], 257, (add DUMMY_BUILDER)>;
+
+def DUMMY_CELL : TVMReg<"DUMMY_CELL">;
+def Cell : TVMRegClass<[TVMCell], 257, (add DUMMY_CELL)>;

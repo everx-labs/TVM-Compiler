@@ -851,6 +851,11 @@ void ModuleBitcodeWriter::writeTypeTable() {
     case Type::MetadataTyID:  Code = bitc::TYPE_CODE_METADATA;  break;
     case Type::X86_MMXTyID:   Code = bitc::TYPE_CODE_X86_MMX;   break;
     case Type::TokenTyID:     Code = bitc::TYPE_CODE_TOKEN;     break;
+    // TVM local begin
+    case Type::TVMSliceID:    Code = bitc::TYPE_CODE_TVMSLICE;  break;
+    case Type::TVMBuilderID:  Code = bitc::TYPE_CODE_TVMBUILDER;break;
+    case Type::TVMCellID:     Code = bitc::TYPE_CODE_TVMCELL;   break;
+    // TVM local end
     case Type::IntegerTyID:
       // INTEGER: [width]
       Code = bitc::TYPE_CODE_INTEGER;

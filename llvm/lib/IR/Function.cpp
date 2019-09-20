@@ -677,7 +677,10 @@ enum IIT_Info {
   IIT_STRUCT8 = 40,
   IIT_F128 = 41,
   // TVM local begin
-  IIT_I257 = 42
+  IIT_I257 = 42,
+  IIT_TVMSLICE = 43,
+  IIT_TVMBUILDER = 44,
+  IIT_TVMCELL = 45
   // TVM local end
 };
 
@@ -737,6 +740,15 @@ static void DecodeIITType(unsigned &NextElt, ArrayRef<unsigned char> Infos,
   // TVM local begin
   case IIT_I257:
     OutputTable.push_back(IITDescriptor::get(IITDescriptor::Integer, 257));
+    return;
+  case IIT_TVMSLICE:
+    OutputTable.push_back(IITDescriptor::get(IITDescriptor::TVMSlice, 0));
+    return;
+  case IIT_TVMBUILDER:
+    OutputTable.push_back(IITDescriptor::get(IITDescriptor::TVMBuilder, 0));
+    return;
+  case IIT_TVMCELL:
+    OutputTable.push_back(IITDescriptor::get(IITDescriptor::TVMCell, 0));
     return;
   // TVM local end
   case IIT_V1:
@@ -906,7 +918,11 @@ static Type *DecodeFixedType(ArrayRef<Intrinsic::IITDescriptor> &Infos,
   case IITDescriptor::Float: return Type::getFloatTy(Context);
   case IITDescriptor::Double: return Type::getDoubleTy(Context);
   case IITDescriptor::Quad: return Type::getFP128Ty(Context);
-
+  // TVM local begin
+  case IITDescriptor::TVMSlice: return Type::getTVMSliceTy(Context);
+  case IITDescriptor::TVMBuilder: return Type::getTVMBuilderTy(Context);
+  case IITDescriptor::TVMCell: return Type::getTVMCellTy(Context);
+  // TVM local end
   case IITDescriptor::Integer:
     return IntegerType::get(Context, D.Integer_Width);
   case IITDescriptor::Vector:
@@ -1050,6 +1066,11 @@ bool Intrinsic::matchIntrinsicType(Type *Ty, ArrayRef<Intrinsic::IITDescriptor> 
     case IITDescriptor::Double: return !Ty->isDoubleTy();
     case IITDescriptor::Quad: return !Ty->isFP128Ty();
     case IITDescriptor::Integer: return !Ty->isIntegerTy(D.Integer_Width);
+    // TVM local begin
+    case IITDescriptor::TVMSlice: return !Ty->isTVMSliceTy();
+    case IITDescriptor::TVMBuilder: return !Ty->isTVMBuilderTy();
+    case IITDescriptor::TVMCell: return !Ty->isTVMCellTy();
+    // TVM local end
     case IITDescriptor::Vector: {
       VectorType *VT = dyn_cast<VectorType>(Ty);
       return !VT || VT->getNumElements() != D.Vector_Width ||

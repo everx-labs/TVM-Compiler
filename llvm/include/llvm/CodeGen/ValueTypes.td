@@ -149,6 +149,9 @@ def FlagVT : ValueType<0  , 112>;   // Pre-RA sched glue
 def isVoid : ValueType<0  , 113>;   // Produces no value
 def untyped: ValueType<8  , 114>;   // Produces an untyped value
 def ExceptRef: ValueType<0, 115>;   // WebAssembly's except_ref type
+def TVMSlice : ValueType<0, 116>;   // TVM's slice type
+def TVMBuilder:ValueType<0, 117>;   // TVM's builder type
+def TVMCell :  ValueType<0, 118>;   // TVM's cell type
 // TVM local end
 
 def token  : ValueType<0  , 248>;   // TokenTy

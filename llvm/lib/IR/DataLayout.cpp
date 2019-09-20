@@ -673,6 +673,13 @@ unsigned DataLayout::getAlignment(Type *Ty, bool abi_or_pref) const {
 
   assert(Ty->isSized() && "Cannot getTypeInfo() on a type that is unsized!");
   switch (Ty->getTypeID()) {
+  // TVM local begin
+  case Type::TVMSliceID:
+  case Type::TVMBuilderID:
+  case Type::TVMCellID:
+    return 1;
+  // TVM local end
+
   // Early escape for the non-numeric types.
   case Type::LabelTyID:
     return (abi_or_pref

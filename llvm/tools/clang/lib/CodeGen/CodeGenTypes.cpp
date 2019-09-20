@@ -409,6 +409,17 @@ llvm::Type *CodeGenTypes::ConvertType(QualType T) {
 
   case Type::Builtin: {
     switch (cast<BuiltinType>(Ty)->getKind()) {
+    // TVM local begin
+    case BuiltinType::TVMSlice:
+      ResultType = llvm::Type::getTVMSliceTy(getLLVMContext());
+      break;
+    case BuiltinType::TVMBuilder:
+      ResultType = llvm::Type::getTVMBuilderTy(getLLVMContext());
+      break;
+    case BuiltinType::TVMCell:
+      ResultType = llvm::Type::getTVMCellTy(getLLVMContext());
+      break;
+    // TVM local end
     case BuiltinType::Void:
     case BuiltinType::ObjCId:
     case BuiltinType::ObjCClass:

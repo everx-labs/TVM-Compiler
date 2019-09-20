@@ -197,6 +197,11 @@ std::string EVT::getEVTString() const {
   case MVT::Metadata:return "Metadata";
   case MVT::Untyped: return "Untyped";
   case MVT::ExceptRef: return "ExceptRef";
+  // TVM local begin
+  case MVT::TVMSlice: return "TVMSlice";
+  case MVT::TVMBuilder: return "TVMBuilder";
+  case MVT::TVMCell: return "TVMCell";
+  // TVM local end
   }
 }
 
@@ -280,6 +285,11 @@ Type *EVT::getTypeForEVT(LLVMContext &Context) const {
   case MVT::v4f64:   return VectorType::get(Type::getDoubleTy(Context), 4);
   case MVT::v8f64:   return VectorType::get(Type::getDoubleTy(Context), 8);
   case MVT::Metadata: return Type::getMetadataTy(Context);
+  // TVM local begin
+  case MVT::TVMSlice:    return Type::getTVMSliceTy(Context);
+  case MVT::TVMBuilder:  return Type::getTVMBuilderTy(Context);
+  case MVT::TVMCell:     return Type::getTVMCellTy(Context);
+  // TVM local end
  }
 }
 
@@ -293,6 +303,11 @@ MVT MVT::getVT(Type *Ty, bool HandleUnknown){
     llvm_unreachable("Unknown type!");
   case Type::VoidTyID:
     return MVT::isVoid;
+  // TVM local begin
+  case Type::TVMSliceID: return MVT(MVT::TVMSlice);
+  case Type::TVMBuilderID: return MVT(MVT::TVMBuilder);
+  case Type::TVMCellID: return MVT(MVT::TVMCell);
+  // TVM local end
   case Type::IntegerTyID:
     return getIntegerVT(cast<IntegerType>(Ty)->getBitWidth());
   case Type::HalfTyID:      return MVT(MVT::f16);

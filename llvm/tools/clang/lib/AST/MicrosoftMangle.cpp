@@ -1850,6 +1850,17 @@ void MicrosoftCXXNameMangler::mangleType(const BuiltinType *T, Qualifiers,
   //                 ::= _W # wchar_t
   //                 ::= _Z # __float80 (Digital Mars)
   switch (T->getKind()) {
+  // TVM local begin
+  case BuiltinType::TVMSlice:
+    Out << "TVMs";
+    break;
+  case BuiltinType::TVMBuilder:
+    Out << "TVMb";
+    break;
+  case BuiltinType::TVMCell:
+    Out << "TVMc";
+    break;
+  // TVM local end
   case BuiltinType::Void:
     Out << 'X';
     break;

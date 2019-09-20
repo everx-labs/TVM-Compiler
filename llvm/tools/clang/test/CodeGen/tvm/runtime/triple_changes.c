@@ -29,7 +29,7 @@ int triple_xpx(int a, int b, int c, int d) {
 // CHECK: XCPUXC
   int rv = g(0, 1);
   rv += g(a, b) * d;
-  return rv - b;
+  return rv / b;
 }
 
 __attribute__((noinline))
@@ -38,7 +38,7 @@ int triple_xpp(int a, int b, int c, int d) {
 // CHECK: XCPU2
   int rv = g(0, 1);
   rv += g(a, b) * d;
-  return rv + b + g(1, 2);
+  return rv / b / g(1, 2);
 }
 
 __attribute__((noinline))
@@ -57,7 +57,7 @@ int triple_pxp(int a, int b, int c, int d) {
 // CHECK: PUXCPU
   int rv = g(0, 1);
   rv += g(a, b) * d;
-  return rv + a + g(1, 2);
+  return rv / a / g(1, 2);
 }
 
 __attribute__((noinline))
@@ -75,7 +75,7 @@ int triple_ppp(int a, int b, int c, int d) {
 // CHECK: PUSH3
   int rv = g(0, 1);
   rv += g(a, b) * d;
-  return (rv + a + g(1, 2)) * b;
+  return (rv / a / g(1, 2)) * b;
 }
 
 // CHECK-RUN-NOT: custom error
@@ -87,23 +87,23 @@ int main() {
   __builtin_tvm_throwif(ret != 244, 13);
   
   ret = triple_xpx(10, 20, 4, 9);
-  __builtin_tvm_throwif(ret != 251, 13);
+  __builtin_tvm_throwif(ret != 13, 13);
 
   ret = triple_xpp(10, 20, 4, 10);
-  __builtin_tvm_throwif(ret != 324, 13);
+  __builtin_tvm_throwif(ret != 5, 13);
   
   int val = 22;
   ret = triple_pxx(10, 20, 4, 11, &val);
   __builtin_tvm_throwif(ret != 7251, 13);
 
   ret = triple_pxp(10, 20, 4, 12);
-  __builtin_tvm_throwif(ret != 374, 13);
+  __builtin_tvm_throwif(ret != 12, 13);
 
   ret = triple_ppx(10, 20, 4, 13);
   __builtin_tvm_throwif(ret != 8020, 13);
 
   ret = triple_ppp(10, 20, 4, 14);
-  __builtin_tvm_throwif(ret != 8680, 13);
+  __builtin_tvm_throwif(ret != 280, 13);
   
   return ret;
 }

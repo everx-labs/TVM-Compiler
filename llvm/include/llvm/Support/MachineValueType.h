@@ -195,9 +195,12 @@ namespace llvm {
                                // will be determined by the opcode.
 
       ExceptRef      = 115,    // WebAssembly's except_ref type
+      TVMSlice       = 116,    // TVM's slice type
+      TVMBuilder     = 117,    // TVM's builder type
+      TVMCell        = 118,    // TVM's cell type
 
       FIRST_VALUETYPE = 1,     // This is always the beginning of the list.
-      LAST_VALUETYPE =  116,   // This always remains at the end of the list.
+      LAST_VALUETYPE =  119,   // This always remains at the end of the list.
       // TVM local end
 
       // This is the current maximum for LAST_VALUETYPE.
@@ -731,6 +734,9 @@ namespace llvm {
       // TVM local begin
       case i256:    return 256;
       case i257:    return 257;
+      case TVMSlice: return 257;
+      case TVMBuilder: return 257;
+      case TVMCell: return 257;
       // TVM local end
       case v512i1:
       case v64i8:

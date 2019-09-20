@@ -1042,6 +1042,10 @@ public:
   CanQualType OCLQueueTy, OCLReserveIDTy;
   CanQualType OMPArraySectionTy;
 
+  // TVM local begin
+  CanQualType TVMSliceTy, TVMBuilderTy, TVMCellTy;
+  // TVM local end
+
   // Types for deductions in C++0x [stmt.ranged]'s desugaring. Built on demand.
   mutable QualType AutoDeductTy;     // Deduction against 'auto'.
   mutable QualType AutoRRefDeductTy; // Deduction against 'auto &&'.

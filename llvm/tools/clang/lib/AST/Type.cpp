@@ -2657,6 +2657,14 @@ const char *Type::getTypeClassName() const {
 
 StringRef BuiltinType::getName(const PrintingPolicy &Policy) const {
   switch (getKind()) {
+  // TVM local begin
+  case TVMSlice:
+    return "__tvm_slice";
+  case TVMBuilder:
+    return "__tvm_builder";
+  case TVMCell:
+    return "__tvm_cell";
+  // TVM local end
   case Void:
     return "void";
   case Bool:
@@ -3779,6 +3787,13 @@ bool Type::canHaveNullability(bool ResultIfUnknown) const {
 #define BUILTIN_TYPE(Id, SingletonId)
 #include "clang/AST/BuiltinTypes.def"
       return false;
+
+    // TVM local begin
+    case BuiltinType::TVMSlice:
+    case BuiltinType::TVMBuilder:
+    case BuiltinType::TVMCell:
+        return false;
+    // TVM local end
 
     // Dependent types that could instantiate to a pointer type.
     case BuiltinType::Dependent:

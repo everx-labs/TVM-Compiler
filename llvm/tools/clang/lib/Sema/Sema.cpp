@@ -322,6 +322,12 @@ void Sema::Initialize() {
 #include "clang/Basic/OpenCLImageTypes.def"
     };
 
+  // TVM local begin
+  addImplicitTypedef("__tvm_slice", Context.TVMSliceTy);
+  addImplicitTypedef("__tvm_builder", Context.TVMBuilderTy);
+  addImplicitTypedef("__tvm_cell", Context.TVMCellTy);
+  // TVM local end
+
   if (Context.getTargetInfo().hasBuiltinMSVaList()) {
     DeclarationName MSVaList = &Context.Idents.get("__builtin_ms_va_list");
     if (IdResolver.begin(MSVaList) == IdResolver.end())

@@ -47,12 +47,11 @@ process_transaction:
 exit_fail:
    ret i257 0
 }
-declare i257 @llvm.tvm.newdict() nounwind
-declare void @llvm.tvm.set.persistent.data(i257 %root) nounwind
-declare i257 @llvm.tvm.get.persistent.data() nounwind
-declare i257 @llvm.tvm.dictuset(i257 %value, i257 %ind, i257 %dict, i257 %ind_bit) nounwind
-declare {i257, i257} @llvm.tvm.dictuget(i257 %key, i257 %dict_id, i257 %keylen) nounwind
-declare {i257, i257} @llvm.tvm.ldrefrtos(i257 %slice) nounwind
-declare i257 @llvm.tvm.inttoslice(i257 %val) nounwind
-declare i257 @llvm.tvm.cellrefdict(i257 %dict) nounwind
-declare {i257, i257} @llvm.tvm.ldu(i257 %slice) nounwind
+declare slice @llvm.tvm.newdict() nounwind
+declare void @llvm.tvm.set.persistent.data(cell %root) nounwind
+declare cell @llvm.tvm.get.persistent.data() nounwind
+declare slice @llvm.tvm.dictuset(i257 %value, i257 %ind, slice %dict, i257 %ind_bit) nounwind
+declare {slice, i257} @llvm.tvm.dictuget(i257 %key, slice %dict_id, i257 %keylen) nounwind
+declare {slice, slice} @llvm.tvm.ldrefrtos(slice %slice) nounwind
+declare slice @llvm.tvm.inttoslice(i257 %val) nounwind
+declare {i257, slice} @llvm.tvm.ldu(slice %slice) nounwind

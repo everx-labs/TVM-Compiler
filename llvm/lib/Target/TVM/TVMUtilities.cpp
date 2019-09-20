@@ -20,7 +20,10 @@
 using namespace llvm;
 
 bool TVM::isArgument(const MachineInstr &MI) {
-  return MI.getOpcode() == TVM::ARGUMENT;
+  return MI.getOpcode() == TVM::ARGUMENT ||
+      MI.getOpcode() == TVM::ARGUMENT_SLICE ||
+      MI.getOpcode() == TVM::ARGUMENT_BUILDER ||
+      MI.getOpcode() == TVM::ARGUMENT_CELL;
 }
 
 bool TVM::isArgumentNum(const MachineInstr &MI) {

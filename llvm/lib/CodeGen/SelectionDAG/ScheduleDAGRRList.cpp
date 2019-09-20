@@ -97,7 +97,7 @@ static cl::opt<bool> DisableSchedCycles(
 // Temporary sched=list-ilp flags until the heuristics are robust.
 // Some options are also available under sched=list-hybrid.
 static cl::opt<bool> DisableSchedRegPressure(
-  "disable-sched-reg-pressure", cl::Hidden, cl::init(false),
+  "disable-sched-reg-pressure", cl::Hidden, cl::init(true),
   cl::desc("Disable regpressure priority in sched=list-ilp"));
 static cl::opt<bool> DisableSchedLiveUses(
   "disable-sched-live-uses", cl::Hidden, cl::init(true),

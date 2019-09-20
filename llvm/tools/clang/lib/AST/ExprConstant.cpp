@@ -7455,6 +7455,13 @@ EvaluateBuiltinClassifyType(QualType T, const LangOptions &LangOpts) {
     case BuiltinType::OCLReserveID:
       return GCCTypeClass::None;
 
+    // TVM local begin
+    case BuiltinType::TVMSlice:
+    case BuiltinType::TVMBuilder:
+    case BuiltinType::TVMCell:
+      return GCCTypeClass::None;
+    // TVM local end
+
     case BuiltinType::Dependent:
       llvm_unreachable("unexpected dependent type");
     };

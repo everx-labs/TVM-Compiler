@@ -100,7 +100,10 @@ namespace Intrinsic {
       Void, VarArg, MMX, Token, Metadata, Half, Float, Double, Quad,
       Integer, Vector, Pointer, Struct,
       Argument, ExtendArgument, TruncArgument, HalfVecArgument,
-      SameVecWidthArgument, PtrToArgument, PtrToElt, VecOfAnyPtrsToElt
+      SameVecWidthArgument, PtrToArgument, PtrToElt, VecOfAnyPtrsToElt,
+      // TVM local begin
+      TVMSlice, TVMBuilder, TVMCell
+      // TVM local end
     } Kind;
 
     union {

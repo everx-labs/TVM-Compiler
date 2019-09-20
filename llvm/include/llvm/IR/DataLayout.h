@@ -572,6 +572,12 @@ private:
 inline uint64_t DataLayout::getTypeSizeInBits(Type *Ty) const {
   assert(Ty->isSized() && "Cannot getTypeInfo() on a type that is unsized!");
   switch (Ty->getTypeID()) {
+  // TVM local begin
+  case Type::TVMSliceID:
+  case Type::TVMBuilderID:
+  case Type::TVMCellID:
+    return 257;
+  // TVM local end
   case Type::LabelTyID:
     return getPointerSizeInBits(0);
   case Type::PointerTyID:

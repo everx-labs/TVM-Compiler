@@ -809,6 +809,12 @@ lltok::Kind LLLexer::LexIdentifier() {
   TYPEKEYWORD("x86_mmx",   Type::getX86_MMXTy(Context));
   TYPEKEYWORD("token",     Type::getTokenTy(Context));
 
+  // TVM local begin
+  TYPEKEYWORD("slice",   Type::getTVMSliceTy(Context));
+  TYPEKEYWORD("builder", Type::getTVMBuilderTy(Context));
+  TYPEKEYWORD("cell",    Type::getTVMCellTy(Context));
+  // TVM local end
+
 #undef TYPEKEYWORD
 
   // Keywords for instructions.

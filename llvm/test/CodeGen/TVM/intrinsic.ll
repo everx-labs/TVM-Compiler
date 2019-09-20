@@ -3,34 +3,34 @@ target datalayout = "E-S257-i1:257:257-i8:257:257-i16:257:257-i32:257:257-i64:25
 target triple = "tvm"
 
 ; CHECK-LABEL: newdict
-define i257 @newdict() nounwind {
+define slice @newdict() nounwind {
 ; CHECK: NEWDICT
-  %1 = call i257 @llvm.tvm.newdict()
-  ret i257 %1
+  %1 = call slice @llvm.tvm.newdict()
+  ret slice %1
 }
 
 ; CHECK-LABEL: newc
-define i257 @newc() nounwind {
+define builder @newc() nounwind {
 ; CHECK: NEWC
-  %1 = call i257 @llvm.tvm.newc()
-  ret i257 %1
+  %1 = call builder @llvm.tvm.newc()
+  ret builder %1
 }
 
 ; CHECK-LABEL: persistent_root
-define i257 @persistent_root() nounwind {
-; CHECK: PUSH c4
+define slice @persistent_root() nounwind {
+; CHECK: PUSHROOT
 ; CHECK-NEXT: CTOS
-  %1 = call i257 @llvm.tvm.get.persistent.data()
-  ret i257 %1
+  %1 = call cell @llvm.tvm.get.persistent.data()
+  %2 = call slice @llvm.tvm.ctos(cell %1)
+  ret slice %2
 }
 
 ; CHECK-LABEL: set_persistent_root
 define void @set_persistent_root() nounwind {
-; CHECK: PUSH c4
-; CHECK-NEXT: CTOS
+; CHECK: PUSHROOT
 ; CHECK-NEXT: POPROOT
-  %1 = call i257 @llvm.tvm.get.persistent.data()
-  call void @llvm.tvm.set.persistent.data(i257 %1)
+  %1 = call cell @llvm.tvm.get.persistent.data()
+  call void @llvm.tvm.set.persistent.data(cell %1)
   ret void
 }
 
@@ -51,52 +51,52 @@ define void @setreg() nounwind {
 }
 
 ; CHECK-LABEL: itos
-define i257 @itos(i257 %arg) nounwind {
+define slice @itos(i257 %arg) nounwind {
 ; CHECK: NEWC
 ; CHECK-NEXT: STU 256
 ; CHECK-NEXT: ENDC
 ; CHECK-NEXT: CTOS
-  %1 = call i257 @llvm.tvm.inttoslice(i257 %arg)
-  ret i257 %1
+  %1 = call slice @llvm.tvm.inttoslice(i257 %arg)
+  ret slice %1
 }
 
 ; CHECK-LABEL: stoc
-define i257 @stoc(i257 %cell) nounwind {
+define cell @stoc(slice %slice) nounwind {
 ; CHECK: NEWC
 ; CHECK-NEXT: STSLICE
 ; CHECK-NEXT: ENDC
-  %1 = call i257 @llvm.tvm.stoc(i257 %cell)
-  ret i257 %1
+  %1 = call cell @llvm.tvm.stoc(slice %slice)
+  ret cell %1
 }
 
 ; CHECK-LABEL: stslice
-define i257 @stslice(i257 %slice, i257 %builder) nounwind {
+define builder @stslice(slice %slice, builder %builder) nounwind {
 ; CHECK: STSLICE
-  %1 = call i257 @llvm.tvm.stslice(i257 %slice, i257 %builder)
-  ret i257 %1
+  %1 = call builder @llvm.tvm.stslice(slice %slice, builder %builder)
+  ret builder %1
 }
 
 ; CHECK-LABEL: stref
-define i257 @stref(i257 %cell, i257 %builder) nounwind {
+define builder @stref(cell %cell, builder %builder) nounwind {
 ; CHECK: STREF
-  %1 = call i257 @llvm.tvm.stref(i257 %cell, i257 %builder)
-  ret i257 %1
+  %1 = call builder @llvm.tvm.stref(cell %cell, builder %builder)
+  ret builder %1
 }
 
 ; CHECK-LABEL: ldref
-define i257 @ldref(i257 %cell) nounwind {
+define cell @ldref(slice %slice) nounwind {
 ; CHECK: LDREF
-  %1 = call {i257, i257} @llvm.tvm.ldref(i257 %cell)
-  %2 = extractvalue {i257, i257} %1, 0
-  ret i257 %2
+  %1 = call {cell, slice} @llvm.tvm.ldref(slice %slice)
+  %2 = extractvalue {cell, slice} %1, 0
+  ret cell %2
 }
 
 ; CHECK-LABEL: ldslicex
-define i257 @ldslicex(i257 %slice, i257 %size) nounwind {
+define slice @ldslicex(slice %slice, i257 %size) nounwind {
 ; CHECK: LDSLICEX
-  %1 = call {i257, i257} @llvm.tvm.ldslicex(i257 %slice, i257 %size)
-  %2 = extractvalue {i257, i257} %1, 0
-  ret i257 %2
+  %1 = call {slice, slice} @llvm.tvm.ldslicex(slice %slice, i257 %size)
+  %2 = extractvalue {slice, slice} %1, 0
+  ret slice %2
 }
 
 ; CHECK-LABEL: throws
@@ -181,18 +181,19 @@ define void @dumpstktop() {
   ret void
 }
 
-declare i257 @llvm.tvm.newdict() nounwind
-declare i257 @llvm.tvm.newc() nounwind
-declare i257 @llvm.tvm.get.persistent.data() nounwind
+declare slice @llvm.tvm.newdict() nounwind
+declare builder @llvm.tvm.newc() nounwind
+declare cell @llvm.tvm.get.persistent.data() nounwind
 declare i257 @llvm.tvm.getreg(i257 %regno) nounwind
 declare void @llvm.tvm.setreg(i257 %regno, i257 %value) nounwind
-declare void @llvm.tvm.set.persistent.data(i257 %root) nounwind
-declare i257 @llvm.tvm.inttoslice(i257 %val) nounwind
-declare i257 @llvm.tvm.stslice(i257 %slice, i257 %builder) nounwind
-declare i257 @llvm.tvm.stoc(i257 %slice) nounwind
-declare {i257, i257} @llvm.tvm.ldslicex(i257 %slice, i257 %size) nounwind
-declare {i257, i257} @llvm.tvm.ldref(i257 %cell) nounwind
-declare i257 @llvm.tvm.stref(i257 %cell, i257 %builder) nounwind
+declare void @llvm.tvm.set.persistent.data(cell %root) nounwind
+declare slice @llvm.tvm.ctos(cell %cell) nounwind
+declare slice @llvm.tvm.inttoslice(i257 %val) nounwind
+declare builder @llvm.tvm.stslice(slice %slice, builder %builder) nounwind
+declare cell @llvm.tvm.stoc(slice %slice) nounwind
+declare {slice, slice} @llvm.tvm.ldslicex(slice %slice, i257 %size) nounwind
+declare {cell, slice} @llvm.tvm.ldref(slice %slice) nounwind
+declare builder @llvm.tvm.stref(cell %cell, builder %builder) nounwind
 declare void @llvm.tvm.throwif(i257 %cond, i257 %exception)
 declare void @llvm.tvm.throw(i257 %exception)
 declare void @llvm.tvm.nop()

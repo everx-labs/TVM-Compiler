@@ -1243,6 +1243,12 @@ void ASTContext::InitBuiltinTypes(const TargetInfo &Target,
     InitBuiltinType(OCLReserveIDTy, BuiltinType::OCLReserveID);
   }
 
+  // TVM local begin
+  InitBuiltinType(TVMSliceTy, BuiltinType::TVMSlice);
+  InitBuiltinType(TVMBuilderTy, BuiltinType::TVMBuilder);
+  InitBuiltinType(TVMCellTy, BuiltinType::TVMCell);
+  // TVM local end
+
   // Builtin type for __objc_yes and __objc_no
   ObjCBuiltinBoolTy = (Target.useSignedCharForObjCBool() ?
                        SignedCharTy : BoolTy);
@@ -1760,6 +1766,14 @@ TypeInfo ASTContext::getTypeInfoImpl(const Type *T) const {
   case Type::Builtin:
     switch (cast<BuiltinType>(T)->getKind()) {
     default: llvm_unreachable("Unknown builtin type!");
+    // TVM local begin
+    case BuiltinType::TVMSlice:
+    case BuiltinType::TVMBuilder:
+    case BuiltinType::TVMCell:
+      Width = Target->getIntWidth();
+      Align = Target->getIntAlign();
+      break;
+    // TVM local end
     case BuiltinType::Void:
       // GCC extension: alignof(void) = 8 bits.
       Width = 0;
@@ -6449,6 +6463,13 @@ static char getObjCEncodingForPrimitiveKind(const ASTContext *C,
     case BuiltinType::LongDouble: return 'D';
     case BuiltinType::NullPtr:    return '*'; // like char*
 
+    // TVM local begin
+    case BuiltinType::TVMSlice:
+    case BuiltinType::TVMBuilder:
+    case BuiltinType::TVMCell:
+      llvm_unreachable("invalid builtin type for objc @encode");
+    // TVM local end
+
     case BuiltinType::Float16:
     case BuiltinType::Float128:
     case BuiltinType::Half:
@@ -9158,6 +9179,15 @@ static QualType DecodeTypeFromStr(const char *&Str, const ASTContext &Context,
                                   ASTContext::GetBuiltinTypeError &Error,
                                   bool &RequiresICE,
                                   bool AllowTypeModifiers) {
+  // TVM local begin
+  if (Str[0] == 'T')
+    switch (Str[1]) {
+    case 's': Str += 2; return Context.TVMSliceTy;
+    case 'b': Str += 2; return Context.TVMBuilderTy;
+    case 'c': Str += 2; return Context.TVMCellTy;
+    }
+  // TVM local end
+
   // Modifiers.
   int HowLong = 0;
   bool Signed = false, Unsigned = false;

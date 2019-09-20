@@ -1532,6 +1532,13 @@ bool CursorVisitor::VisitBuiltinTypeLoc(BuiltinTypeLoc TL) {
 #include "clang/AST/BuiltinTypes.def"
     break;
 
+  // TVM local begin
+  case BuiltinType::TVMSlice:
+  case BuiltinType::TVMBuilder:
+  case BuiltinType::TVMCell:
+    break;
+  // TVM local end
+
   case BuiltinType::ObjCId:
     VisitType = Context.getObjCIdType();
     break;

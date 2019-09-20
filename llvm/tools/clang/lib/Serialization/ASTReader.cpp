@@ -7009,6 +7009,15 @@ QualType ASTReader::GetType(TypeID ID) {
     case PREDEF_TYPE_OMP_ARRAY_SECTION:
       T = Context.OMPArraySectionTy;
       break;
+    case PREDEF_TYPE_TVM_SLICE_ID:
+      T = Context.TVMSliceTy;
+      break;
+    case PREDEF_TYPE_TVM_BUILDER_ID:
+      T = Context.TVMBuilderTy;
+      break;
+    case PREDEF_TYPE_TVM_CELL_ID:
+      T = Context.TVMCellTy;
+      break;
     }
 
     assert(!T.isNull() && "Unknown predefined type");

@@ -14,101 +14,100 @@
 
 /// TODO: If to remove the following line Pat doesn't work. Investigate why.
 let hasSideEffects = 1 in
-defm NEWC : I<(outs I257 : $bldr), (ins), (outs), (ins),
-              [(set I257 : $bldr, (TVMnewc))],
+defm NEWC : I<(outs Builder:$bldr), (ins), (outs), (ins),
+              [(set Builder:$bldr, (TVMnewc))],
               "NEWC\t$bldr", "NEWC", 0xc8>;
 def : Pat<(int_tvm_newc), (NEWC)>;
 
 let hasSideEffects = 1 in
-defm ENDC : I<(outs I257 : $cell), (ins I257 : $bldr), (outs), (ins),
-              [(set I257 : $cell, (TVMendc I257 : $bldr))],
+defm ENDC : I<(outs Cell:$cell), (ins Builder:$bldr), (outs), (ins),
+              [(set Cell:$cell, (TVMendc Builder:$bldr))],
               "ENDC\t$cell, $bldr", "ENDC", 0xc9>;
-def : Pat<(int_tvm_endc I257 : $bldr), (ENDC I257 : $bldr)>;
+def : Pat<(int_tvm_endc Builder:$bldr), (ENDC Builder:$bldr)>;
 
 let hasSideEffects = 1 in
-defm CTOS : I<(outs I257 : $slice), (ins I257 : $cell), (outs), (ins),
-              [(set I257 : $slice, (TVMctos I257 : $cell))],
+defm CTOS : I<(outs Slice:$slice), (ins Cell:$cell), (outs), (ins),
+              [(set Slice:$slice, (TVMctos Cell:$cell))],
               "CTOS\t$slice, $cell", "CTOS", 0xd0>;
-def : Pat<(int_tvm_ctos I257 : $cell), (CTOS I257 : $cell)>;
+def : Pat<(int_tvm_ctos Cell:$cell), (CTOS Cell:$cell)>;
 
-/// TODO: Support other integer types.
-defm STI : I<(outs I257 : $obldr),
-             (ins I257 : $val, I257 : $bldr, uimm1_256 : $precision),
-             (outs), (ins uimm8 : $precision),
-             [(set I257 : $obldr, (TVMsti I257 : $val, I257 : $bldr, uimm1_256 : $precision))],
+defm STI : I<(outs Builder:$obldr),
+             (ins I257:$val, Builder:$bldr, uimm1_256:$precision),
+             (outs), (ins uimm8:$precision),
+             [(set Builder:$obldr, (TVMsti I257:$val, Builder:$bldr, uimm1_256:$precision))],
              "STI\t $precision, $obldr, $val, $bldr", "STI\t$precision", 0xcaff>;
 
 let hasSideEffects = 1 in
-defm STU : I<(outs I257 : $obldr),
-             (ins I257 : $val, I257 : $bldr, uimm1_256 : $precision),
-             (outs), (ins uimm8 : $precision),
-             [(set I257 : $obldr, (TVMstu I257 : $val, I257 : $bldr, uimm1_256 : $precision))],
+defm STU : I<(outs Builder:$obldr),
+             (ins I257:$val, Builder:$bldr, uimm1_256:$precision),
+             (outs), (ins uimm8:$precision),
+             [(set Builder:$obldr, (TVMstu I257:$val, Builder:$bldr, uimm1_256:$precision))],
              "STU\t $precision, $obldr, $val, $bldr", "STU\t$precision", 0xcbff>;
-def : Pat<(int_tvm_stu I257 : $val, I257 : $bldr, uimm1_256 : $precision),
-          (STU I257 : $val, I257 : $bldr, uimm1_256 : $precision)>;
+def : Pat<(int_tvm_stu I257:$val, Builder:$bldr, uimm1_256:$precision),
+          (STU I257:$val, Builder:$bldr, uimm1_256:$precision)>;
 
-defm STREF : I<(outs I257 : $obldr), (ins I257 : $icell, I257 : $ibldr),
+defm STREF : I<(outs Builder:$obldr), (ins Cell:$icell, Builder:$ibldr),
                (outs), (ins),
-               [(set I257 : $obldr, (int_tvm_stref I257 : $icell, I257 : $ibldr))],
+               [(set Builder:$obldr, (int_tvm_stref Cell:$icell, Builder:$ibldr))],
                "STREF\t$obldr, $icell, $ibldr", "STREF", 0xcc>;
 
-defm LDU : I<(outs I257 : $x, I257  : $sliceo),
-             (ins I257 : $slicei, uimm8 : $precision),
-             (outs), (ins uimm8 : $precision),
-             [(set I257 : $x, I257 : $sliceo, (TVMldu I257 : $slicei, uimm1_256 : $precision))],
+defm LDU : I<(outs I257:$x, Slice:$sliceo),
+             (ins Slice:$slicei, uimm8:$precision),
+             (outs), (ins uimm8:$precision),
+             [(set I257:$x, Slice:$sliceo, (TVMldu Slice:$slicei, uimm1_256:$precision))],
              "LDU\t $precision, $slicei, $x, $sliceo",
              "LDU\t $precision", 0xd3ff>;
 
-defm LDIX : I<(outs I257 : $x, I257 : $sliceo),
-              (ins I257 : $slicei, I257 : $precision),
+defm LDIX : I<(outs I257:$x, Slice:$sliceo),
+              (ins Slice:$slicei, I257:$precision),
               (outs), (ins),
-              [(set I257 : $x, I257 : $sliceo, (TVMldix I257 : $slicei, I257 : $precision))],
+              [(set I257:$x, Slice:$sliceo, (TVMldix Slice:$slicei, I257:$precision))],
               "LDIX\t $precision, $slicei, $x, $sliceo",
               "LDIX", 0xd700>;
 
-defm LDUX : I<(outs I257 : $x, I257  : $sliceo),
-              (ins I257 : $slicei, I257 : $precision),
+defm LDUX : I<(outs I257:$x, Slice:$sliceo),
+              (ins Slice:$slicei, I257:$precision),
               (outs), (ins),
-              [(set I257 : $x, I257 : $sliceo, (TVMldux I257 : $slicei, I257 : $precision))],
+              [(set I257:$x, Slice:$sliceo, (TVMldux Slice:$slicei, I257:$precision))],
               "LDUX\t$precision, $slicei, $x, $sliceo",
               "LDUX", 0xd701>;
 
 /// TODO: It should be a pipehole optimization for LDREF; SWAP; CTOS
-defm LDREFRTOS : I<(outs I257 : $cellslice, I257 : $sliceo), (ins I257 : $slicei),
+defm LDREFRTOS : I<(outs Slice:$cellslice, Slice:$sliceo), (ins Slice:$slicei),
                    (outs), (ins),
-                   [(set I257 : $cellslice, I257 : $sliceo, (int_tvm_ldrefrtos I257 : $slicei))],
+                   [(set Slice:$cellslice, Slice:$sliceo, (int_tvm_ldrefrtos Slice:$slicei))],
                    "LDREFRTOS\t $cellslice, $sliceo, $slicei", "LDREFRTOS", 0xd5>;
 
 let hasSideEffects = 1 in
-defm LDREF : I<(outs I257 : $ocell, I257 : $oslice), (ins I257 : $icell),
+defm LDREF : I<(outs Cell:$ocell, Slice:$oslice), (ins Slice:$islice),
                (outs), (ins),
-               [(set I257 : $ocell, I257 : $oslice, (TVMldref I257 : $icell))],
-               "LDREF\t$ocell, $oslice, $icell", "LDREF", 0xd4>;
-def : Pat<(int_tvm_ldref I257 : $icell), (LDREF I257 : $icell)>;
+               [(set Cell:$ocell, Slice:$oslice, (TVMldref Slice:$islice))],
+               "LDREF\t$ocell, $oslice, $islice", "LDREF", 0xd4>;
+def : Pat<(int_tvm_ldref Slice:$islice), (LDREF Slice:$islice)>;
 
 let hasSideEffects = 1 in
-defm LDSLICEX : I<(outs I257 : $result, I257 : $remainder), (ins I257 : $slice, I257 : $size),
+defm LDSLICEX : I<(outs Slice:$result, Slice:$remainder), (ins Slice:$slice, I257:$size),
                   (outs), (ins),
-                  [(set I257 : $result, I257 : $remainder,
-                      (TVMldslicex I257 : $slice, I257 : $size))],
+                  [(set Slice:$result, Slice:$remainder,
+                      (TVMldslicex Slice:$slice, I257:$size))],
                   "LDSLICEX\t$result, $remainder, $slice, $size", "LDSLICEX", 0xd718>;
-def : Pat<(int_tvm_ldslicex I257 : $slice, I257 : $size),
-          (LDSLICEX I257 : $slice, I257 : $size)>;
+def : Pat<(int_tvm_ldslicex Slice:$slice, I257:$size),
+          (LDSLICEX Slice:$slice, I257:$size)>;
 
 /// TODO: If to remove the following line Pat doesn't work. Investigate why.
 let hasSideEffects = 1 in
-defm STSLICE : I<(outs I257 : $sliceo), (ins I257 : $slicei, I257 : $bldr),
+defm STSLICE : I<(outs Builder:$out_bldr), (ins Slice:$slicei, Builder:$bldr),
                  (outs), (ins),
-                 [(set I257 : $sliceo, (TVMstslice I257 : $slicei, I257 : $bldr))],
-                 "STSLICE\t$slicei, $sliceo, $bldr", "STSLICE", 0xce>;
+                 [(set Builder:$out_bldr, (TVMstslice Slice:$slicei, Builder:$bldr))],
+                 "STSLICE\t$out_bldr, $slicei, $bldr", "STSLICE", 0xce>;
 
-def : Pat<(int_tvm_stslice I257 : $slicei, I257 : $bldr),
-          (STSLICE I257 : $slicei, I257 : $bldr)>;
+def : Pat<(int_tvm_stslice Slice:$slicei, Builder:$bldr),
+          (STSLICE Slice:$slicei, Builder:$bldr)>;
 
 let hasSideEffects = 1 in
-defm SENDRAWMSG : I<(outs), (ins I257 : $slice, I257 : $flags),
+defm SENDRAWMSG : I<(outs), (ins Cell:$cell, I257:$flags),
                     (outs), (ins),
-                    [(TVMsendrawmsg I257 : $slice, I257 : $flags)],
-                    "SENDRAWMSG\t$slice, $flags", "SENDRAWMSG", 0xfb00>;
-def : Pat<(int_tvm_sendrawmsg I257 : $slice, I257 : $flags),
-          (SENDRAWMSG I257 : $slice, I257 : $flags)>;
+                    [(TVMsendrawmsg Cell:$cell, I257:$flags)],
+                    "SENDRAWMSG\t$cell, $flags", "SENDRAWMSG", 0xfb00>;
+def : Pat<(int_tvm_sendrawmsg Cell:$cell, I257:$flags),
+          (SENDRAWMSG Cell:$cell, I257:$flags)>;

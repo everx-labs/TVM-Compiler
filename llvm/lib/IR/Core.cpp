@@ -494,6 +494,14 @@ LLVMTypeKind LLVMGetTypeKind(LLVMTypeRef Ty) {
     return LLVMX86_MMXTypeKind;
   case Type::TokenTyID:
     return LLVMTokenTypeKind;
+  // TVM local begin
+  case Type::TVMSliceID:
+    return LLVMTVMSliceKind;
+  case Type::TVMBuilderID:
+    return LLVMTVMBuilderKind;
+  case Type::TVMCellID:
+    return LLVMTVMCellKind;
+  // TVM local end
   }
   llvm_unreachable("Unhandled TypeID.");
 }
@@ -598,6 +606,17 @@ LLVMTypeRef LLVMPPCFP128TypeInContext(LLVMContextRef C) {
 LLVMTypeRef LLVMX86MMXTypeInContext(LLVMContextRef C) {
   return (LLVMTypeRef) Type::getX86_MMXTy(*unwrap(C));
 }
+// TVM local begin
+LLVMTypeRef LLVMTVMSliceInContext(LLVMContextRef C) {
+  return (LLVMTypeRef) Type::getTVMSliceTy(*unwrap(C));
+}
+LLVMTypeRef LLVMTVMBuilderInContext(LLVMContextRef C) {
+  return (LLVMTypeRef) Type::getTVMBuilderTy(*unwrap(C));
+}
+LLVMTypeRef LLVMTVMCellInContext(LLVMContextRef C) {
+  return (LLVMTypeRef) Type::getTVMCellTy(*unwrap(C));
+}
+// TVM local end
 
 LLVMTypeRef LLVMHalfType(void) {
   return LLVMHalfTypeInContext(LLVMGetGlobalContext());

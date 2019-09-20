@@ -101,6 +101,9 @@ void TVMAsmPrinter::EmitInstruction(const MachineInstr *MI) {
     }
   switch (MI->getOpcode()) {
   case TVM::ARGUMENT:
+  case TVM::ARGUMENT_SLICE:
+  case TVM::ARGUMENT_BUILDER:
+  case TVM::ARGUMENT_CELL:
     llvm_unreachable("CG only instruction mustn't reach ASM printer");
     break;
   case TVM::REG_TO_REG_COPY_S:

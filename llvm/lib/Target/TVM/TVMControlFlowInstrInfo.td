@@ -38,6 +38,15 @@ let isTerminator = 1, hasCtrlDep = 1 in {
                    (outs), (ins),
                    [(TVMifelse I257:$cond, I257:$branch1, I257:$branch2)],
                     "IFELSE\t$branch1, $branch2, $cond", "IFELSE", 0xe2>;
+
+    defm IF : I<(outs), (ins I257:$cond, I257:$dst),
+                (outs), (ins),
+                [(TVMif I257:$cond, I257:$dst)],
+                "IF\t$dst, $cond", "IF", 0xde>;
+    defm IFNOT : I<(outs), (ins I257:$cond, I257:$dst),
+                   (outs), (ins),
+                   [(TVMif (not I257:$cond), I257:$dst)],
+                   "IFNOT\t$dst, $cond", "IFNOT", 0xdf>;
     } // isBarrier = 1
 
     let isBarrier = 1 in {

@@ -92,6 +92,7 @@ def TVMsendrawmsg : SDNode<"TVMISD::SENDRAWMSG", SDT_TVMSendRawMsg, [SDNPHasChai
 def TVMifelse   : SDNode<"TVMISD::IFELSE", SDT_TVMIfElse, [SDNPHasChain]>;
 def TVMjumpx    : SDNode<"TVMISD::JUMPX", SDT_TVMJumpX, [SDNPHasChain]>;
 def TVMifjmp    : SDNode<"TVMISD::IFJMP", SDT_TVMIfJmp, [SDNPHasChain]>;
+def TVMif       : SDNode<"TVMISD::IF", SDT_TVMIfJmp, [SDNPHasChain]>;
 def BBWrapper   : SDNode<"TVMISD::BBWrapper", SDT_TVMBBWrapper>;
 
 def TVMmul       : SDNode<"TVMISD::MUL", SDT_TVMMul, []>;

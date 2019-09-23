@@ -16,6 +16,7 @@
 #define LLVM_LIB_TARGET_TVM_TVMMACHINEFUNCTIONINFO_H
 
 #include "MCTargetDesc/TVMMCTargetDesc.h"
+#include "llvm/CodeGen/MachineInstrBuilder.h"
 #include "llvm/CodeGen/MachineRegisterInfo.h"
 
 namespace llvm {
@@ -35,6 +36,10 @@ class TVMFunctionInfo final : public MachineFunctionInfo {
   /// A mapping from MachineInstr to stack model commentaries
   ///  (for stack model after this instruction)
   std::map<const MachineInstr *, std::vector<std::string>> StackModelComments;
+
+  /// A mapping from MachineInstr after stack model to list of operand registers
+  /// which have been used in the instruction before stack model
+  std::map<const MachineInstr *, std::vector<unsigned>> StackModelSourceRegs;
 
   /// A mapping from MachineBasicBlock to starting stack model comment
   ///  (incoming stack model for this block)
@@ -124,8 +129,51 @@ public:
   }
   StringRef getStackModelBBComment(const MachineBasicBlock *MBB) const {
     auto it = StackModelBBComments.find(MBB);
-    return (it != StackModelBBComments.end()) ?
-          StringRef(it->second) : StringRef("");
+    return (it != StackModelBBComments.end()) ? StringRef(it->second)
+                                              : StringRef("");
+  }
+
+  // Add mapping of instructions before stack model
+  void setStackModelSourceRegs(const MachineInstr *Target,
+                               std::vector<unsigned> &&regs) {
+    StackModelSourceRegs[Target] = std::move(regs);
+  }
+  void setStackModelSourceRegs(const MachineInstr *Target,
+                               const std::vector<unsigned> &regs) {
+    StackModelSourceRegs[Target] = regs;
+  }
+  const std::vector<unsigned> *
+  getStackModelSourceRegs(const MachineInstr *Target) {
+    auto It = StackModelSourceRegs.find(Target);
+    if (It == StackModelSourceRegs.end())
+      return nullptr;
+    return &It->second;
+  }
+
+  // Clone machine instruction intermediate data
+  void cloneMachineInstrIntermediateData(const MachineInstr *Source,
+                                         const MachineInstr *Destination) {
+    StackModelComments[Destination].clear();
+    for (const auto &Comment : getStackModelComments(Source)) {
+      addStackModelComment(Destination, Comment);
+    }
+
+    if (const auto *Regs = getStackModelSourceRegs(Source)) {
+      setStackModelSourceRegs(Destination, *Regs);
+    }
+  }
+
+  // Clear MachineInstr intermediate data
+  const MachineInstrBuilder &
+  clearIntermediateData(const MachineInstrBuilder &Builder) {
+    clearIntermediateData(Builder.getInstr());
+    return Builder;
+  }
+
+  const MachineInstr *clearIntermediateData(const MachineInstr *MI) {
+    StackModelComments[MI].clear();
+    StackModelSourceRegs.erase(MI);
+    return MI;
   }
 
   // For a given stackified WAReg, return the id number to print with push/pop.

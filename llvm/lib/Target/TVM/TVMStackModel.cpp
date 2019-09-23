@@ -685,6 +685,15 @@ void TVMStackModel::rewriteToSForm(MachineInstr &MI, std::string &PreTermStackSt
       }
     }
 
+    std::vector<unsigned> SourceRegs;
+    for (unsigned I = 0; I < MI.getNumOperands(); I++) {
+      const auto &Op = MI.getOperand(I);
+      if (Op.isReg()) {
+        SourceRegs.push_back(Op.getReg());
+      }
+    }
+    MFI->setStackModelSourceRegs(MIB.getInstr(), SourceRegs);
+
     TheStack.filterByDeadDefs(MI);
 
     if (NumDefs)

@@ -82,6 +82,10 @@ defm SDCNTTRAIL1 : I<(outs I257:$cnttrail1), (ins Slice:$sl), (outs), (ins),
                      "SDCNTTRAIL1\t$cnttrail1, $sl", "SDCNTTRAIL1", 0xc713>;
 
 // A.3.1. Null primitives
+defm PUSHNULL : I0<(outs I257:$result), (ins),
+                   [],
+                   "NULL", 0x6D>;
+
 defm ISNULL : I0<(outs I257:$result), (ins I257:$val),
                  [(set I257:$result, (int_tvm_isnull I257:$val))],
                  "ISNULL", 0x6E>;

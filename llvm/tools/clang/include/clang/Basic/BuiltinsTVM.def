@@ -46,5 +46,6 @@ BUILTIN(__builtin_tvm_print_value, "vWi", "nc")
 BUILTIN(__builtin_tvm_logstr, "vc*", "nc")
 BUILTIN(__builtin_tvm_printstr, "vc*", "nc")
 BUILTIN(__builtin_tvm_logflush, "v", "nc")
+BUILTIN(__builtin_tvm_accept, "v", "nc")
 
 #undef BUILTIN

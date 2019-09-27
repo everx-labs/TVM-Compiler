@@ -160,4 +160,7 @@ let TargetPrefix = "tvm" in {
   def int_tvm_logflush :
     GCCBuiltin<"__builtin_tvm_logflush">,
                Intrinsic<[], []>;
+  def int_tvm_accept :
+    GCCBuiltin<"__builtin_tvm_accept">,
+               Intrinsic<[], []>;
 }

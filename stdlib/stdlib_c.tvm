@@ -27,7 +27,6 @@
     ; s0 - func_id
     ; s1.. - other data
     SETCP0
-    ACCEPT
     PUSHREFSLICE        ; dictionary of methods in first reference
     PLDDICT
     OVER

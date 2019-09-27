@@ -7,6 +7,7 @@
 #define XJOIN3(a,b,c) JOIN3(a,b,c)
 
 #define TVM_CUSTOM_EXCEPTION(id,val) enum { id = val };
+#define ACCEPT() __builtin_tvm_accept()
 
 unsigned tonstdlib_log_8 (unsigned value);
 

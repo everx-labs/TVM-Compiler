@@ -451,141 +451,25 @@ tonstdlib_send_work_slice_as_rawmsg:
 	.globl	memcpy
 	.p2align	1
 	.type	memcpy,@function
-memcpy:
-	PUSHINT	38
-	CALL	$:enter$
-	PUSHINT	22
-	CALL	$:frameidx$
-	XCHG	s0, s4
-	XCHG	s1, s4
-	CALL	$:store$
-	PUSHINT	14
-	CALL	$:frameidx$
-	XCHG	s0, s2
-	XCHG	s1, s2
-	CALL	$:store$
-	PUSHINT	6
-	CALL	$:frameidx$
-	XCHG	s0, s1
-	CALL	$:store$
-	PUSHINT	-2
-	CALL	$:frameidx$
-	XCHG	s0, s1
-	CALL	$:store$
-	PUSHINT	6
-	CALL	$:frameidx$
-	CALL	$:load$
-	PUSHINT	0
-	GREATER
-	PUSHCONT {
-		PUSHINT	38
-		CALL	$:leave$
-		RET
-	}
-	PUSHCONT {
-		PUSHINT	6
-		CALL	$:frameidx$
-		CALL	$:load$
-		DEC
-		PUSHINT	6
-		CALL	$:frameidx$
-		XCHG	s0, s1
-		CALL	$:store$
-		PUSHINT	14
-		CALL	$:frameidx$
-		CALL	$:load$
-		PUSHINT	6
-		CALL	$:frameidx$
-		CALL	$:load$
-		LSHIFT	3
-		XCHG	s0, s1
-		PUSH	s1
-		ADD
-		CALL	$:load$
-		PUSHINT	22
-		CALL	$:frameidx$
-		CALL	$:load$
-		XCHG	s0, s2
-		XCHG	s1, s2
-		ADD
-		XCHG	s0, s1
-		CALL	$:store$
-		PUSHINT	22
-		CALL	$:frameidx$
-		CALL	$:load$
-		PUSHINT	14
-		CALL	$:frameidx$
-		CALL	$:load$
-		PUSHINT	6
-		CALL	$:frameidx$
-		CALL	$:load$
-		PUSHINT	-2
-		CALL	$:frameidx$
-		CALL	$:load$
-		PUSHINT	$memcpy$
-		CALL	1
-		PUSHCONT {
-			PUSHINT	38
-			CALL	$:leave$
-			RET
-		}
-		JMPX
-	}
-	IFELSE
-	PUSHINT	6
-	CALL	$:frameidx$
-	CALL	$:load$
-	DEC
-	PUSHINT	6
-	CALL	$:frameidx$
-	XCHG	s0, s1
-	CALL	$:store$
-	PUSHINT	14
-	CALL	$:frameidx$
-	CALL	$:load$
-	PUSHINT	6
-	CALL	$:frameidx$
-	CALL	$:load$
-	LSHIFT	3
-	XCHG	s0, s1
-	PUSH	s1
-	ADD
-	CALL	$:load$
-	PUSHINT	22
-	CALL	$:frameidx$
-	CALL	$:load$
-	XCHG	s0, s2
-	XCHG	s1, s2
-	ADD
-	XCHG	s0, s1
-	CALL	$:store$
-	PUSHINT	22
-	CALL	$:frameidx$
-	CALL	$:load$
-	PUSHINT	14
-	CALL	$:frameidx$
-	CALL	$:load$
-	PUSHINT	6
-	CALL	$:frameidx$
-	CALL	$:load$
-	PUSHINT	-2
-	CALL	$:frameidx$
-	CALL	$:load$
-	PUSHINT	$memcpy$
-	CALL	1
-	PUSHCONT {
-		PUSHINT	38
-		CALL	$:leave$
-		RET
-	}
-	JMPX
-.LBB0_2:
-	PUSHINT	38
-	CALL	$:leave$
-	RET
+memcpy:                  ; { dst | src | size | - }
+    PUSH s2              ; { dst | src | size | dst | - }
+    ROLLREV 2            ; { dst | dst | src | size | - }
+    PUSHCONT {         ; { dst | dst' | src' | - }
+        DUP2             ; { dst | dst' | src' | dst' | src' | - }
+        CALL $:load$     ; { dst | dst' | src' | dst' | value | - }
+        CALL $:store$    ; { dst | dst' | src' | - }
+        
+        INC              ; { dst | dst' | src'++ | - }
+        SWAP             ; { dst | src' | dst' | - }
+        INC              ; { dst | src' | dst'++ | - }
+        SWAP             ; { dst | dst' | src' | - }
+    }                  ; { dst | dst | src | size | cont | - }
+    REPEAT               ; { dst | dst | src | size | cont | - } => { dst | dst | src | - }
+    DROP2                ; { dst }
+    RET
+
 .Lfunc_end0:
 	.size	memcpy, .Lfunc_end0-memcpy
-
 
      .globl	memset
      .type	memset,@function
@@ -594,14 +478,13 @@ memset:
      ;
      PUSH s2              ; ( addr value size addr )
      XCHG s0,s1           ; ( addr value addr size )
-     PUSHINT 8
-     DIVC                 ; ( addr value addr size/8 )
      PUSHCONT {           ; ( addr value addr -- value addr' )
-         PUSH s0          ; ( addr value addr addr )
-         PUSH s2          ; ( addr value addr addr value )
+         PUSH s0          ; ( addr value addr' addr' )
+         PUSH s2          ; ( addr value addr' addr' value )
          CALL $:store$
-         ADDCONST 8       ; ( addr value addr )
+         INC              ; ( addr value (addr' = addr' + 1) )
      }
-     REPEAT               ; ( addr value addr size/8 cont -- addr value addr' )
-     DROP                 ; ( addr value )
-     DROP                 ; ( addr )
+     REPEAT               ; ( addr value addr size cont -- addr value addr' )
+     DROP2                ; ( addr )
+     RET
+

@@ -1,5 +1,5 @@
-// RUN: %clang -O3 -S -c -target tvm %s -o - | tvm-testrun --no-trace --entry test --stdlibc-path %S/../../../../../../../samples/sdk-prototype/stdlib_c.tvm | FileCheck %s
-// XFAIL: *
+// RUN: %clang -O3 -S -c -target tvm %s -o - | tvm-testrun --no-trace --entry test --stdlibc-path %S/../../../../../../../stdlib/stdlib_c.tvm | FileCheck %s
+
 #include "../../../../../../../samples/sdk-prototype/transfer-80000001.c"
 #include "../../../../../../../samples/sdk-prototype/ton-sdk/messages.c"
 #include "../../../../../../../samples/sdk-prototype/ton-sdk/smart-contract-info.c"
@@ -23,7 +23,7 @@ void test()
 //CHECK-NEXT: created_lt  : 0
 //CHECK-NEXT: created_at  : 0
 //CHECK-NEXT: init  : None
-//CHECK-NEXT: body  : Some(SliceData { cell: CellData { references: [], data: [8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 32, 0, 0, 0, 74, 170, 168, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 128], cell_type: Ordinary, level_mask: LevelMask(0), store_hashes: false, hashes: Some([UInt256([93, 226, 55, 232, 5, 84, 246, 27, 233, 180, 33, 151, 74, 70, 136, 132, 118, 213, 143, 212, 127, 192, 143, 94, 68, 1, 63, 116, 88, 131, 79, 56])]), depths: Some([0]) }, data_window: 665..680, references_window: 0..0 })
+//CHECK-NEXT: body  : bits: 15   refs: 0   data: 0001_
 //CHECK-NEXT: body_hex: 0000
 //CHECK-EMPTY:
 //CHECK-NEXT: TEST COMPLETED

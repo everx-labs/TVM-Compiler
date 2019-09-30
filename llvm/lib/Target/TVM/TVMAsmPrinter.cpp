@@ -104,9 +104,18 @@ void TVMAsmPrinter::EmitInstruction(const MachineInstr *MI) {
   case TVM::ARGUMENT_SLICE:
   case TVM::ARGUMENT_BUILDER:
   case TVM::ARGUMENT_CELL:
+  case TVM::ARGUMENT_TUPLE:
     llvm_unreachable("CG only instruction mustn't reach ASM printer");
     break;
   case TVM::REG_TO_REG_COPY_S:
+  case TVM::TO_TUPLE_COPY_S:
+  case TVM::TO_SLICE_COPY_S:
+  case TVM::TO_BUILDER_COPY_S:
+  case TVM::TO_CELL_COPY_S:
+  case TVM::FROM_TUPLE_COPY_S:
+  case TVM::FROM_SLICE_COPY_S:
+  case TVM::FROM_BUILDER_COPY_S:
+  case TVM::FROM_CELL_COPY_S:
     break;
   case TVM::FALLTHROUGH_RETURN:
     if (isVerbose()) {

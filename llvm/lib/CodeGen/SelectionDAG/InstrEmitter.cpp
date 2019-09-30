@@ -214,13 +214,20 @@ void InstrEmitter::CreateVirtualRegisters(SDNode *Node,
          "IMPLICIT_DEF should have been handled as a special case elsewhere!");
 
   unsigned NumResults = CountResults(Node);
-  for (unsigned i = 0; i < II.getNumDefs(); ++i) {
+  // TVM local begin
+  // Support for variable return values
+  unsigned NumDefs = II.isVariadic() ? NumResults - II.getNumImplicitDefs()
+                                     : II.getNumDefs();
+  // TVM local end
+  for (unsigned i = 0; i < NumDefs; ++i) {
     // If the specific node value is only used by a CopyToReg and the dest reg
     // is a vreg in the same register class, use the CopyToReg'd destination
     // register instead of creating a new vreg.
     unsigned VRBase = 0;
-    const TargetRegisterClass *RC =
-      TRI->getAllocatableClass(TII->getRegClass(II, i, TRI, *MF));
+    // TVM local begin
+    const TargetRegisterClass *RC = i < II.getNumDefs() ?
+      TRI->getAllocatableClass(TII->getRegClass(II, i, TRI, *MF)) : nullptr;
+    // TVM local end
     // Always let the value type influence the used register class. The
     // constraints on the instruction may be too lax to represent the value
     // type correctly. For example, a 64-bit float (X86::FR64) can't live in
@@ -234,7 +241,9 @@ void InstrEmitter::CreateVirtualRegisters(SDNode *Node,
         RC = VTRC;
     }
 
-    if (II.OpInfo[i].isOptionalDef()) {
+    // TVM local begin
+    if (i < II.getNumDefs() && II.OpInfo[i].isOptionalDef()) {
+    // TVM local end
       // Optional def must be a physical register.
       VRBase = cast<RegisterSDNode>(Node->getOperand(i-NumResults))->getReg();
       assert(TargetRegisterInfo::isPhysicalRegister(VRBase));

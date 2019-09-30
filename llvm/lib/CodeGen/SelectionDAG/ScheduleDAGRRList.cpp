@@ -2189,6 +2189,10 @@ void RegReductionPQBase::scheduledNode(SUnit *SU) {
          RegDefPos.IsValid(); RegDefPos.Advance(), --SkipRegDefs) {
       if (SkipRegDefs)
         continue;
+      // TVM local begin
+      if (RegDefPos.GetValue() == MVT::Other)
+        continue;
+      // TVM local end
 
       unsigned RCId, Cost;
       GetCostForDef(RegDefPos, TLI, TII, TRI, RCId, Cost, MF);
@@ -2205,6 +2209,10 @@ void RegReductionPQBase::scheduledNode(SUnit *SU) {
        RegDefPos.IsValid(); RegDefPos.Advance(), --SkipRegDefs) {
     if (SkipRegDefs > 0)
       continue;
+    // TVM local begin
+    if (RegDefPos.GetValue() == MVT::Other)
+      continue;
+    // TVM local end
     unsigned RCId, Cost;
     GetCostForDef(RegDefPos, TLI, TII, TRI, RCId, Cost, MF);
     if (RegPressure[RCId] < Cost) {

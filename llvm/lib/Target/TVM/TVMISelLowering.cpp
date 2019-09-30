@@ -69,6 +69,7 @@ TVMTargetLowering::TVMTargetLowering(const TargetMachine &TM,
   addRegisterClass(MVT::TVMSlice, &TVM::SliceRegClass);
   addRegisterClass(MVT::TVMBuilder, &TVM::BuilderRegClass);
   addRegisterClass(MVT::TVMCell, &TVM::CellRegClass);
+  addRegisterClass(MVT::TVMTuple, &TVM::TupleRegClass);
 
   // Compute derived properties from the register classes
   computeRegisterProperties(STI.getRegisterInfo());
@@ -100,6 +101,7 @@ TVMTargetLowering::TVMTargetLowering(const TargetMachine &TM,
   // Custom lowering for intrinsics that unrolls into more than one
   // MIR instructions.
   setOperationAction(ISD::INTRINSIC_W_CHAIN, MVT::Other, Custom);
+  setOperationAction(ISD::INTRINSIC_WO_CHAIN, MVT::Other, Custom);
   setOperationAction(ISD::ABS, MVT::i257, Legal);
   setOperationAction(ISD::SMAX, MVT::i257, Legal);
   setOperationAction(ISD::SMIN, MVT::i257, Legal);
@@ -171,15 +173,17 @@ SDValue TVMTargetLowering::LowerCall(CallLoweringInfo &CLI,
   CLI.IsTailCall = false;
 
   SmallVectorImpl<ISD::InputArg> &Ins = CLI.Ins;
-  if (Ins.size() > 1)
-    fail(DL, DAG, "TVM doesn't support more than 1 returned value yet");
 
   SmallVectorImpl<ISD::OutputArg> &Outs = CLI.Outs;
   SmallVectorImpl<SDValue> &OutVals = CLI.OutVals;
   for (unsigned i = 0; i < Outs.size(); ++i) {
     const ISD::OutputArg &Out = Outs[i];
-    assert(Out.VT.SimpleTy == MVT::SimpleValueType::i257 &&
-           "only i257 is supported");
+    assert((Out.VT.SimpleTy == MVT::SimpleValueType::i257 ||
+            Out.VT.SimpleTy == MVT::SimpleValueType::TVMSlice ||
+            Out.VT.SimpleTy == MVT::SimpleValueType::TVMBuilder ||
+            Out.VT.SimpleTy == MVT::SimpleValueType::TVMCell ||
+            Out.VT.SimpleTy == MVT::SimpleValueType::TVMTuple) &&
+           "Unsupported type in call");
   }
 
   // Compute the operands for the CALLn node.
@@ -195,31 +199,38 @@ SDValue TVMTargetLowering::LowerCall(CallLoweringInfo &CLI,
     assert((In.VT.SimpleTy == MVT::SimpleValueType::i257 ||
             In.VT.SimpleTy == MVT::SimpleValueType::TVMSlice ||
             In.VT.SimpleTy == MVT::SimpleValueType::TVMBuilder ||
-            In.VT.SimpleTy == MVT::SimpleValueType::TVMCell) &&
+            In.VT.SimpleTy == MVT::SimpleValueType::TVMCell ||
+            In.VT.SimpleTy == MVT::SimpleValueType::TVMTuple) &&
            "Unsupported type in call");
     InTys.push_back(In.VT);
   }
   InTys.push_back(MVT::Other);
 
   SDVTList InTyList = DAG.getVTList(InTys);
-  SDValue Res = DAG.getNode(Ins.empty() ? TVMISD::CALL0 : TVMISD::CALL1, DL,
-                            InTyList, Ops);
-  // TODO: investigate chaining logic (copied from WebAssembly)
+  unsigned CallCmd;
+  switch (Ins.size()) {
+  case 0:  CallCmd = TVMISD::CALL0; break;
+  case 1:  CallCmd = TVMISD::CALL1; break;
+  default: CallCmd = TVMISD::CALLN; break;
+  }
+  if (CallCmd == TVMISD::CALLN)
+    Ops.push_back(DAG.getTargetConstant(Ins.size(), DL, MVT::i257));
+  SDValue Res = DAG.getNode(CallCmd, DL, InTyList, Ops);
   if (Ins.empty()) {
     Chain = Res;
   } else {
-    InVals.push_back(Res);
-    Chain = Res.getValue(1);
+    for (unsigned i = 0; i < Ins.size(); ++i)
+      InVals.push_back(Res.getValue(i));
+    Chain = Res.getValue(Ins.size());
   }
   return Chain;
 }
 
 bool TVMTargetLowering::CanLowerReturn(
     CallingConv::ID /*CallConv*/, MachineFunction & /*MF*/, bool /*IsVarArg*/,
-    const SmallVectorImpl<ISD::OutputArg> &Outs,
+    const SmallVectorImpl<ISD::OutputArg> &/*Outs*/,
     LLVMContext & /*Context*/) const {
-  // TVM can't currently handle returning tuples.
-  return Outs.size() <= 1;
+  return true;
 }
 
 SDValue
@@ -228,7 +239,6 @@ TVMTargetLowering::LowerReturn(SDValue Chain, CallingConv::ID CallConv,
                                const SmallVectorImpl<ISD::OutputArg> &Outs,
                                const SmallVectorImpl<SDValue> &OutVals,
                                const SDLoc &DL, SelectionDAG &DAG) const {
-  assert(Outs.size() <= 1 && "TVM can only return up to one value");
   if (!CallingConvSupported(CallConv))
     fail(DL, DAG, "TVM doesn't support non-C calling conventions");
 
@@ -354,18 +364,18 @@ SDValue TVMTargetLowering::RestoreC0(SDValue Chain, const SDLoc &DL,
   return SetC0;
 }
 
-EVT TVMTargetLowering::getOptimalMemOpType(uint64_t Size, unsigned DstAlign,
-                                           unsigned SrcAlign, bool IsMemset,
-                                           bool ZeroMemset,
-                                           bool MemcpyStrSrc,
-                                           MachineFunction &MF) const {
+EVT TVMTargetLowering::getOptimalMemOpType(uint64_t /*Sz*/, unsigned /*DstAl*/,
+                                           unsigned /*SrcAl*/, bool /*Memset*/,
+                                           bool /*ZeroMemset*/,
+                                           bool /*MemcpyStrSrc*/,
+                                           MachineFunction &/*MF*/) const {
   return MVT::i257;
 }
 
-bool TVMTargetLowering::allowsMisalignedMemoryAccesses(EVT VT,
-                                                       unsigned AddrSpace,
-                                                       unsigned Align,
-                                                       bool *Fast) const {
+bool TVMTargetLowering::allowsMisalignedMemoryAccesses(EVT /*VT*/,
+                                                       unsigned /*AddrSpace*/,
+                                                       unsigned /*Align*/,
+                                                       bool */*Fast*/) const {
   return true;
 }
 
@@ -394,6 +404,8 @@ SDValue TVMTargetLowering::LowerOperation(SDValue Op, SelectionDAG &DAG) const {
     return LowerCopyToReg(Op, DAG);
   case ISD::INTRINSIC_W_CHAIN:
     return LowerINTRINSIC_W_CHAIN(Op, DAG);
+  case ISD::INTRINSIC_WO_CHAIN:
+    return LowerINTRINSIC_WO_CHAIN(Op, DAG);
   default:
     llvm_unreachable("unimplemented operand");
   }
@@ -711,6 +723,27 @@ SDValue TVMTargetLowering::LowerINTRINSIC_W_CHAIN(SDValue Op,
                     DAG.getVTList(MVT::TVMCell, MVT::TVMSlice),
                     Op->getOperand(2));
     return DAG.getMergeValues({Result.getValue(1), Chain}, DL);
+  }
+
+  }
+  return SDValue();
+}
+
+SDValue TVMTargetLowering::LowerINTRINSIC_WO_CHAIN(SDValue Op,
+                                                   SelectionDAG &DAG) const {
+  unsigned IntNo = cast<ConstantSDNode>(Op.getOperand(0))->getZExtValue();
+  SDLoc DL(Op);
+  switch (IntNo) {
+  default:
+    break;
+  case Intrinsic::tvm_tuple: {
+    // arguments: vararg
+    SmallVector<SDValue, 16> Ops(std::next(Op->op_begin()), Op->op_end());
+    unsigned Size = Ops.size();
+    bool SmallTuple = Size <= TVMTargetMachine::SmallTupleLimit;
+    Ops.push_back(DAG.getConstant(Size, DL, MVT::i257, SmallTuple));
+    unsigned Cmd = SmallTuple ? TVMISD::TUPLE : TVMISD::TUPLEVAR;
+    return DAG.getNode(Cmd, DL, MVT::TVMTuple, Ops);
   }
   }
   return SDValue();

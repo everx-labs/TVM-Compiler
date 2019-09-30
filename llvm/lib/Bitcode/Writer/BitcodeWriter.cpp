@@ -855,6 +855,7 @@ void ModuleBitcodeWriter::writeTypeTable() {
     case Type::TVMSliceID:    Code = bitc::TYPE_CODE_TVMSLICE;  break;
     case Type::TVMBuilderID:  Code = bitc::TYPE_CODE_TVMBUILDER;break;
     case Type::TVMCellID:     Code = bitc::TYPE_CODE_TVMCELL;   break;
+    case Type::TVMTupleID:    Code = bitc::TYPE_CODE_TVMTUPLE;  break;
     // TVM local end
     case Type::IntegerTyID:
       // INTEGER: [width]

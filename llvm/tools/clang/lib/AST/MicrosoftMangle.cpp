@@ -1860,6 +1860,9 @@ void MicrosoftCXXNameMangler::mangleType(const BuiltinType *T, Qualifiers,
   case BuiltinType::TVMCell:
     Out << "TVMc";
     break;
+  case BuiltinType::TVMTuple:
+    Out << "TVMt";
+    break;
   // TVM local end
   case BuiltinType::Void:
     Out << 'X';

@@ -256,6 +256,7 @@ BUILTIN_TYPE(OCLReserveID, OCLReserveIDTy)
 BUILTIN_TYPE(TVMSlice, TVMSliceTy)
 BUILTIN_TYPE(TVMBuilder, TVMBuilderTy)
 BUILTIN_TYPE(TVMCell, TVMCellTy)
+BUILTIN_TYPE(TVMTuple, TVMTupleTy)
 // TVM local end
 
 // This represents the type of an expression whose type is

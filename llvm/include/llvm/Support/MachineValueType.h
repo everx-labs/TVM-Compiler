@@ -198,9 +198,10 @@ namespace llvm {
       TVMSlice       = 116,    // TVM's slice type
       TVMBuilder     = 117,    // TVM's builder type
       TVMCell        = 118,    // TVM's cell type
+      TVMTuple       = 119,    // TVM's tuple type
 
       FIRST_VALUETYPE = 1,     // This is always the beginning of the list.
-      LAST_VALUETYPE =  119,   // This always remains at the end of the list.
+      LAST_VALUETYPE =  120,   // This always remains at the end of the list.
       // TVM local end
 
       // This is the current maximum for LAST_VALUETYPE.
@@ -737,6 +738,7 @@ namespace llvm {
       case TVMSlice: return 257;
       case TVMBuilder: return 257;
       case TVMCell: return 257;
+      case TVMTuple: return 257;
       // TVM local end
       case v512i1:
       case v64i8:

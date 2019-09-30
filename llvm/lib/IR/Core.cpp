@@ -501,6 +501,8 @@ LLVMTypeKind LLVMGetTypeKind(LLVMTypeRef Ty) {
     return LLVMTVMBuilderKind;
   case Type::TVMCellID:
     return LLVMTVMCellKind;
+  case Type::TVMTupleID:
+    return LLVMTVMTupleKind;
   // TVM local end
   }
   llvm_unreachable("Unhandled TypeID.");
@@ -615,6 +617,9 @@ LLVMTypeRef LLVMTVMBuilderInContext(LLVMContextRef C) {
 }
 LLVMTypeRef LLVMTVMCellInContext(LLVMContextRef C) {
   return (LLVMTypeRef) Type::getTVMCellTy(*unwrap(C));
+}
+LLVMTypeRef LLVMTVMTupleInContext(LLVMContextRef C) {
+  return (LLVMTypeRef) Type::getTVMTupleTy(*unwrap(C));
 }
 // TVM local end
 

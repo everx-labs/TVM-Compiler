@@ -79,6 +79,7 @@ public:
     TVMSliceID,      ///< 17: TVM Slice
     TVMBuilderID,    ///< 18: TVM Builder
     TVMCellID,       ///< 19: TVM Cell
+    TVMTupleID,      ///< 20: TVM Tuple
     // TVM local end
   };
 
@@ -206,10 +207,13 @@ public:
   bool isTVMBuilderTy() const { return getTypeID() == TVMBuilderID; }
   /// Return true if this is 'TVM Cell'.
   bool isTVMCellTy() const { return getTypeID() == TVMCellID; }
+  /// Return true if this is 'TVM Tuple'.
+  bool isTVMTupleTy() const { return getTypeID() == TVMTupleID; }
 
   /// Return true if this is TVM Slice/Builder/Cell.
   bool isTVMBuiltinTy() const {
-    return isTVMSliceTy() || isTVMBuilderTy() || isTVMCellTy();
+    return isTVMSliceTy() || isTVMBuilderTy() || isTVMCellTy() ||
+        isTVMTupleTy();
   }
   // TVM local end
 
@@ -291,7 +295,8 @@ public:
     // TVM local begin
     if (getTypeID() == TVMSliceID ||
         getTypeID() == TVMBuilderID ||
-        getTypeID() == TVMCellID)
+        getTypeID() == TVMCellID ||
+        getTypeID() == TVMTupleID)
       return true;
     // TVM local end
     // If it is not something that can have a size (e.g. a function or label),
@@ -433,6 +438,7 @@ public:
   static Type *getTVMSliceTy(LLVMContext &C);
   static Type *getTVMBuilderTy(LLVMContext &C);
   static Type *getTVMCellTy(LLVMContext &C);
+  static Type *getTVMTupleTy(LLVMContext &C);
   // TVM local end
   static IntegerType *getIntNTy(LLVMContext &C, unsigned N);
   static IntegerType *getInt1Ty(LLVMContext &C);

@@ -1536,6 +1536,7 @@ bool CursorVisitor::VisitBuiltinTypeLoc(BuiltinTypeLoc TL) {
   case BuiltinType::TVMSlice:
   case BuiltinType::TVMBuilder:
   case BuiltinType::TVMCell:
+  case BuiltinType::TVMTuple:
     break;
   // TVM local end
 

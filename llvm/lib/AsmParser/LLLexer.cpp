@@ -813,6 +813,7 @@ lltok::Kind LLLexer::LexIdentifier() {
   TYPEKEYWORD("slice",   Type::getTVMSliceTy(Context));
   TYPEKEYWORD("builder", Type::getTVMBuilderTy(Context));
   TYPEKEYWORD("cell",    Type::getTVMCellTy(Context));
+  TYPEKEYWORD("tuple",   Type::getTVMTupleTy(Context));
   // TVM local end
 
 #undef TYPEKEYWORD

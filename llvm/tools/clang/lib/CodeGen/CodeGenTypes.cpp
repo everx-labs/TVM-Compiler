@@ -53,7 +53,10 @@ void CodeGenTypes::addRecordTypeName(const RecordDecl *RD,
                                      StringRef suffix) {
   SmallString<256> TypeName;
   llvm::raw_svector_ostream OS(TypeName);
-  OS << RD->getKindName() << '.';
+  // TVM local begin
+  // if (!RD->getName().empty())
+    OS << RD->getKindName() << '.';
+  // TVM local end
 
   // Name the codegen type after the typedef name
   // if there is no tag type name available
@@ -419,6 +422,9 @@ llvm::Type *CodeGenTypes::ConvertType(QualType T) {
     case BuiltinType::TVMCell:
       ResultType = llvm::Type::getTVMCellTy(getLLVMContext());
       break;
+    case BuiltinType::TVMTuple:
+      ResultType = llvm::Type::getTVMTupleTy(getLLVMContext());
+      break;
     // TVM local end
     case BuiltinType::Void:
     case BuiltinType::ObjCId:
@@ -761,6 +767,12 @@ llvm::StructType *CodeGenTypes::ConvertRecordDeclType(const RecordDecl *RD) {
     while (!DeferredRecords.empty())
       ConvertRecordDeclType(DeferredRecords.pop_back_val());
 
+  // TVM local begin
+  // Converting into literal llvm struct
+  if (RD->isLiteral())
+    Entry = Ty = llvm::StructType::get(Ty->getContext(), Ty->elements(),
+                                       Ty->isPacked());
+  // TVM local end
   return Ty;
 }
 

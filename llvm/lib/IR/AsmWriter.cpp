@@ -570,6 +570,7 @@ void TypePrinting::print(Type *Ty, raw_ostream &OS) {
   case Type::TVMSliceID:    OS << "slice"; return;
   case Type::TVMBuilderID:  OS << "builder"; return;
   case Type::TVMCellID:     OS << "cell"; return;
+  case Type::TVMTupleID:    OS << "tuple"; return;
   // TVM local end
   case Type::IntegerTyID:
     OS << 'i' << cast<IntegerType>(Ty)->getBitWidth();

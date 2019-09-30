@@ -37,6 +37,9 @@ serialization::TypeIdxFromBuiltin(const BuiltinType *BT) {
   case BuiltinType::TVMCell:
     ID = PREDEF_TYPE_TVM_CELL_ID;
     break;
+  case BuiltinType::TVMTuple:
+    ID = PREDEF_TYPE_TVM_TUPLE_ID;
+    break;
   // TVM local end
   case BuiltinType::Void:
     ID = PREDEF_TYPE_VOID_ID;

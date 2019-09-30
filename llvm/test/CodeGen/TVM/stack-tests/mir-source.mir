@@ -10,7 +10,7 @@ body: |
     liveins: $arguments
 
     ; CHECK-LABEL: repeated_writes
-    ; CHECK: RETURN_VOID
+    ; CHECK: RETURN_N
 
-    RETURN_VOID
+    RETURN_N
 ...

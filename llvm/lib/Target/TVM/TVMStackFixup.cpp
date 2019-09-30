@@ -279,6 +279,17 @@ StackFixup StackFixup::DiffForReturn(const Stack &from,
   return rv;
 }
 
+StackFixup StackFixup::DiffForReturnMulti(const Stack &Src,
+                                          ArrayRef<unsigned> RetRegs) {
+  Stack Dst(Src);
+  unsigned Sz = RetRegs.size();
+  Dst.Data.resize(Sz, StackVreg(TVMFunctionInfo::UnusedReg));
+  for (unsigned i = 0; i < Sz; ++i)
+    Dst.Data[i] = StackVreg(RetRegs[Sz - i - 1]);
+  // TODO: maybe implement more optimal way to prepare return regs
+  return Diff(Dst, Src);
+}
+
 StackFixup StackFixup::DiffForArgs(const Stack &From, const MIArgs &Args,
                                    bool IsCommutative) {
   StackFixup rv;

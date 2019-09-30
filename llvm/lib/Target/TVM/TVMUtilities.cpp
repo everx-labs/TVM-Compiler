@@ -23,7 +23,8 @@ bool TVM::isArgument(const MachineInstr &MI) {
   return MI.getOpcode() == TVM::ARGUMENT ||
       MI.getOpcode() == TVM::ARGUMENT_SLICE ||
       MI.getOpcode() == TVM::ARGUMENT_BUILDER ||
-      MI.getOpcode() == TVM::ARGUMENT_CELL;
+      MI.getOpcode() == TVM::ARGUMENT_CELL ||
+      MI.getOpcode() == TVM::ARGUMENT_TUPLE;
 }
 
 bool TVM::isArgumentNum(const MachineInstr &MI) {

@@ -2664,6 +2664,8 @@ StringRef BuiltinType::getName(const PrintingPolicy &Policy) const {
     return "__tvm_builder";
   case TVMCell:
     return "__tvm_cell";
+  case TVMTuple:
+    return "__tvm_tuple";
   // TVM local end
   case Void:
     return "void";
@@ -3792,6 +3794,7 @@ bool Type::canHaveNullability(bool ResultIfUnknown) const {
     case BuiltinType::TVMSlice:
     case BuiltinType::TVMBuilder:
     case BuiltinType::TVMCell:
+    case BuiltinType::TVMTuple:
         return false;
     // TVM local end
 

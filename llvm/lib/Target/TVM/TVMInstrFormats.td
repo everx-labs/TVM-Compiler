@@ -56,11 +56,21 @@ class ImmAsmOperand<int Low, int High> : AsmOperandClass {
 }
 
 def SImm8    : ImmAsmOperand<-128,127> { let Name = "SImm8"; }
+def UImm11   : ImmAsmOperand<0,2047> { let Name = "UImm11"; }
 def UImm8    : ImmAsmOperand<0,255> { let Name = "UImm8"; }
 def UImm6    : ImmAsmOperand<0,63> { let Name = "UImm6"; }
+def UImm4    : ImmAsmOperand<0,15> { let Name = "UImm4"; }
+def UImm2    : ImmAsmOperand<0,3> { let Name = "UImm2"; }
 def UImm1_256: ImmAsmOperand<1,256> { let Name = "UImm1_256"; }
 def UImm0_257: ImmAsmOperand<0,257> { let Name = "UImm0_257"; }
 def UImm0_256: ImmAsmOperand<0,257> { let Name = "UImm0_256"; }
+
+// A list of registers separated by comma. Used by Tuple and call operations.
+def RegListAsmOperand : AsmOperandClass { let Name = "RegList"; }
+def reglist : Operand<i257> {
+  let ParserMatchClass = RegListAsmOperand;
+  let PrintMethod = "printRegisterList";
+}
 
 def UImm257 : Operand<i257>, IntImmLeaf<i257, [{ (void)Imm; return true; }]> {
   let PrintMethod = "printUimm257";
@@ -75,23 +85,19 @@ def simm8 : Operand<i257>, IntImmLeaf<i257, [{
   let ParserMatchClass = SImm8;
 }
 
-def uimm6 : Operand<i257>, IntImmLeaf<i257, [{
+class uimmN<int Bits> : Operand<i257>, IntImmLeaf<i257, [{
   if (Imm.getMinSignedBits() > 64)
     return false;
   int Val = Imm.getSExtValue();
-  return Val >=0 && Val <= 63;
+  return Val >=0 && ((unsigned long)Val) <= ((1ul << }]#Bits#[{) - 1);
 }]> {
-  let ParserMatchClass = UImm6;
+  let ParserMatchClass = !cast<AsmOperandClass>("UImm"#Bits);
 }
-
-def uimm8 : Operand<i257>, IntImmLeaf<i257, [{
-  if (Imm.getMinSignedBits() > 64)
-    return false;
-  int Val = Imm.getSExtValue();
-  return Val >=0 && Val <= 255;
-}]> {
-  let ParserMatchClass = UImm8;
-}
+def uimm2 : uimmN<2>;
+def uimm4 : uimmN<4>;
+def uimm6 : uimmN<6>;
+def uimm8 : uimmN<8>;
+def uimm11 : uimmN<11>;
 
 def uimm1_256 : Operand<i257>, IntImmLeaf<i257, [{
   if (Imm.getMinSignedBits() > 64)

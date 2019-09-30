@@ -2,35 +2,6 @@
 target datalayout = "E-S257-i1:257:257-i8:257:257-i16:257:257-i32:257:257-i64:257:257-i257:257:257-p:257:257-a:257:257"
 target triple = "tvm"
 
-; =================================== A.3 =====================================
-; CHECK-LABEL: first
-define i257 @first(i257 %tuple) {
-; CHECK: FIRST
-  %elem = call i257 @llvm.tvm.first(i257 %tuple)
-  ret i257 %elem
-}
-
-; CHECK-LABEL: second
-define i257 @second(i257 %tuple) {
-; CHECK: SECOND
-  %elem = call i257 @llvm.tvm.second(i257 %tuple)
-  ret i257 %elem
-}
-
-; CHECK-LABEL: setfirst
-define i257 @setfirst(i257 %tuple, i257 %value) {
-; CHECK: SETFIRST
-  %newtuple = call i257 @llvm.tvm.setfirst(i257 %tuple, i257 %value)
-  ret i257 %newtuple
-}
-
-; CHECK-LABEL: setsecond
-define i257 @setsecond(i257 %tuple, i257 %value) {
-; CHECK: SETSECOND
-  %newtuple = call i257 @llvm.tvm.setsecond(i257 %tuple, i257 %value)
-  ret i257 %newtuple
-}
-
 ; =================================== A.4 =====================================
 ; CHECK-LABEL: pushref
 define cell @pushref() nounwind {

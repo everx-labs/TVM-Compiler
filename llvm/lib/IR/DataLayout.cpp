@@ -677,6 +677,7 @@ unsigned DataLayout::getAlignment(Type *Ty, bool abi_or_pref) const {
   case Type::TVMSliceID:
   case Type::TVMBuilderID:
   case Type::TVMCellID:
+  case Type::TVMTupleID:
     return 1;
   // TVM local end
 

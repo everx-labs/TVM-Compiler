@@ -152,6 +152,7 @@ def ExceptRef: ValueType<0, 115>;   // WebAssembly's except_ref type
 def TVMSlice : ValueType<0, 116>;   // TVM's slice type
 def TVMBuilder:ValueType<0, 117>;   // TVM's builder type
 def TVMCell :  ValueType<0, 118>;   // TVM's cell type
+def TVMTuple : ValueType<0, 119>;   // TVM's tuple type
 // TVM local end
 
 def token  : ValueType<0  , 248>;   // TokenTy

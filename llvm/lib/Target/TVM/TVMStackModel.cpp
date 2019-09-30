@@ -547,11 +547,17 @@ StackFixup TVMStackModel::prepareStackFor(MachineInstr &MI,
   // FIXME: wrong assumption. There is no function scope in TVM so RET
   // terminates the current continuation - not necessary a function.
   if (MI.isReturn()) {
-    assert(NumOperands <= 2 && "Multiple returns are not implemented yet");
     if (NumOperands == 0)
       return StackFixup::DiffForReturn(TheStack);
-    else
+    else if (NumOperands == 1)
       return StackFixup::DiffForReturn(TheStack, MI.getOperand(0).getReg());
+    else {
+      SmallVector<unsigned, 16> RetRegs;
+      RetRegs.reserve(NumOperands);
+      for (const auto &Op : MI.operands())
+        RetRegs.push_back(Op.getReg());
+      return StackFixup::DiffForReturnMulti(TheStack, RetRegs);
+    }
   }
 
   if (MI.isTerminator() && MBB->succ_size()) {
@@ -601,8 +607,8 @@ void TVMStackModel::modelInstructionExecution(MachineInstr &MI,
   }
 #endif
   StackBefore.consumeArguments(NumToConsume);
-  for (size_t ROpNo = 0; ROpNo < NumDefs; ++ROpNo) {
-    const auto &Operand = MI.getOperand(NumDefs - ROpNo - 1);
+  for (size_t OpNo = 0; OpNo < NumDefs; ++OpNo) {
+    const auto &Operand = MI.getOperand(OpNo);
     assert(Operand.isReg() && "Def must be a register");
     StackBefore.addDef(Operand.getReg(), findDebugValue(MI, Operand.getReg()));
   }

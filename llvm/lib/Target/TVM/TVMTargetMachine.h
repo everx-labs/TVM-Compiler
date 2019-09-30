@@ -22,6 +22,8 @@ namespace llvm {
 
 class TVMTargetMachine : public LLVMTargetMachine {
 public:
+  static inline constexpr size_t SmallTupleLimit = 15;
+
   TVMTargetMachine(const Target &T, const Triple &TT, StringRef CPU,
                    StringRef FS, const TargetOptions &Options,
                    Optional<Reloc::Model> RM, Optional<CodeModel::Model> CM,

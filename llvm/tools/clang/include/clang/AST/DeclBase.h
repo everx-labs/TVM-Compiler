@@ -288,6 +288,11 @@ private:
   /// the implementation rather than explicitly written by the user.
   unsigned Implicit : 1;
 
+  // TVM local begin
+  /// Literal - literal llvm structure should be generated.
+  unsigned Literal : 1;
+  // TVM local end
+
   /// Whether this declaration was "used", meaning that a definition is
   /// required.
   unsigned Used : 1;
@@ -364,10 +369,11 @@ private:
   }
 
 protected:
+  // TVM local begin
   Decl(Kind DK, DeclContext *DC, SourceLocation L)
       : NextInContextAndBits(nullptr, getModuleOwnershipKindForChildOf(DC)),
         DeclCtx(DC), Loc(L), DeclKind(DK), InvalidDecl(false), HasAttrs(false),
-        Implicit(false), Used(false), Referenced(false),
+        Implicit(false), Literal(false), Used(false), Referenced(false),
         TopLevelDeclInObjCContainer(false), Access(AS_none), FromASTFile(0),
         IdentifierNamespace(getIdentifierNamespaceForKind(DK)),
         CacheValidAndLinkage(0) {
@@ -376,12 +382,13 @@ protected:
 
   Decl(Kind DK, EmptyShell Empty)
       : DeclKind(DK), InvalidDecl(false), HasAttrs(false), Implicit(false),
-        Used(false), Referenced(false), TopLevelDeclInObjCContainer(false),
-        Access(AS_none), FromASTFile(0),
+        Literal(false), Used(false), Referenced(false),
+        TopLevelDeclInObjCContainer(false), Access(AS_none), FromASTFile(0),
         IdentifierNamespace(getIdentifierNamespaceForKind(DK)),
         CacheValidAndLinkage(0) {
     if (StatisticsEnabled) add(DK);
   }
+  // TVM local end
 
   virtual ~Decl();
 
@@ -553,6 +560,12 @@ public:
   /// was written explicitly in the source code.
   bool isImplicit() const { return Implicit; }
   void setImplicit(bool I = true) { Implicit = I; }
+
+  // TVM local begin
+  /// isLiteral - Indicates that literal llvm structure should be generated.
+  bool isLiteral() const { return Literal; }
+  void setLiteral(bool I = true) { Literal = I; }
+  // TVM local end
 
   /// Whether *any* (re-)declaration of the entity was used, meaning that
   /// a definition is required.

@@ -53,6 +53,7 @@ Type *Type::getPrimitiveType(LLVMContext &C, TypeID IDNumber) {
   case TVMSliceID    : return getTVMSliceTy(C);
   case TVMBuilderID  : return getTVMBuilderTy(C);
   case TVMCellID     : return getTVMCellTy(C);
+  case TVMTupleID    : return getTVMTupleTy(C);
   // TVM local end
   default:
     return nullptr;
@@ -179,6 +180,7 @@ Type *Type::getX86_MMXTy(LLVMContext &C) { return &C.pImpl->X86_MMXTy; }
 Type *Type::getTVMSliceTy(LLVMContext &C) { return &C.pImpl->TVMSliceTy; }
 Type *Type::getTVMBuilderTy(LLVMContext &C) { return &C.pImpl->TVMBuilderTy; }
 Type *Type::getTVMCellTy(LLVMContext &C) { return &C.pImpl->TVMCellTy; }
+Type *Type::getTVMTupleTy(LLVMContext &C) { return &C.pImpl->TVMTupleTy; }
 // TVM local end
 
 IntegerType *Type::getInt1Ty(LLVMContext &C) { return &C.pImpl->Int1Ty; }

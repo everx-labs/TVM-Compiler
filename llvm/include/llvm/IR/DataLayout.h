@@ -576,6 +576,7 @@ inline uint64_t DataLayout::getTypeSizeInBits(Type *Ty) const {
   case Type::TVMSliceID:
   case Type::TVMBuilderID:
   case Type::TVMCellID:
+  case Type::TVMTupleID:
     return 257;
   // TVM local end
   case Type::LabelTyID:

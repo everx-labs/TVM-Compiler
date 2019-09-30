@@ -160,6 +160,7 @@ public:
 
   StackFixup operator-(const Stack &v) const;
 private:
+  friend class StackFixup;
   const TargetRegisterInfo *TRI;
   const MachineRegisterInfo *MRI;
   StackDeq Data;

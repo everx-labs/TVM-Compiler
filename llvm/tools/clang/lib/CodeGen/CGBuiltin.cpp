@@ -3701,12 +3701,16 @@ RValue CodeGenFunction::EmitBuiltinExpr(const FunctionDecl *FD,
 
       // If the intrinsic arg type is different from the builtin arg type
       // we need to do a bit cast.
-      llvm::Type *PTy = FTy->getParamType(i);
-      if (PTy != ArgValue->getType()) {
-        assert(PTy->canLosslesslyBitCastTo(FTy->getParamType(i)) &&
-               "Must be able to losslessly bit cast to param");
-        ArgValue = Builder.CreateBitCast(ArgValue, PTy);
+      // TVM local begin
+      if (i < FTy->getNumParams()) {
+        llvm::Type *PTy = FTy->getParamType(i);
+        if (PTy != ArgValue->getType()) {
+          assert(PTy->canLosslesslyBitCastTo(FTy->getParamType(i)) &&
+                 "Must be able to losslessly bit cast to param");
+          ArgValue = Builder.CreateBitCast(ArgValue, PTy);
+        }
       }
+      // TVM local end
 
       Args.push_back(ArgValue);
     }
@@ -3723,6 +3727,12 @@ RValue CodeGenFunction::EmitBuiltinExpr(const FunctionDecl *FD,
              "Must be able to losslessly bit cast result type");
       V = Builder.CreateBitCast(V, RetTy);
     }
+    // TVM local begin
+    if (!ReturnValue.isNull()) {
+      auto RetPtr = ReturnValue.getValue();
+      Builder.CreateStore(V, RetPtr);
+    }
+    // TVM local end
 
     return RValue::get(V);
   }

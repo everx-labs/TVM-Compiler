@@ -103,7 +103,12 @@ CGIOperandList::CGIOperandList(Record *R) : TheDef(R) {
         hasOptionalDef = true;
     } else if (Rec->getName() == "variable_ops") {
       isVariadic = true;
-      continue;
+      // TVM local begin
+      // For variadic_ops in def we need to have operand in operand list
+      if (i >= NumDefs)
+        continue;
+      ArgName = "variable_ops";
+      // TVM local end
     } else if (Rec->isSubClassOf("RegisterClass")) {
       OperandType = "OPERAND_REGISTER";
     } else if (!Rec->isSubClassOf("PointerLikeRegClass") &&

@@ -2841,6 +2841,7 @@ static bool TypeInfoIsInStandardLibrary(const BuiltinType *Ty) {
     case BuiltinType::TVMSlice:
     case BuiltinType::TVMBuilder:
     case BuiltinType::TVMCell:
+    case BuiltinType::TVMTuple:
     // TVM local end
       return false;
 

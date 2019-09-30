@@ -7018,6 +7018,9 @@ QualType ASTReader::GetType(TypeID ID) {
     case PREDEF_TYPE_TVM_CELL_ID:
       T = Context.TVMCellTy;
       break;
+    case PREDEF_TYPE_TVM_TUPLE_ID:
+      T = Context.TVMTupleTy;
+      break;
     }
 
     assert(!T.isNull() && "Unknown predefined type");

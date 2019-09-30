@@ -2331,6 +2331,56 @@ void CastOperation::CheckCXXCStyleCast(bool FunctionalStyle,
       return;
     }
 
+  // TVM local begin
+  if (Self.Context.getTargetInfo().getTriple().getArch() == llvm::Triple::tvm) {
+    auto doBuiltinCast = [&](const char *IntrName){
+      IdentifierInfo *II = Self.PP.getIdentifierInfo(IntrName);
+      NamedDecl *D = Self.LazilyCreateBuiltin(II, II->getBuiltinID(),
+                                              Self.TUScope, false,
+                                              SourceLocation());
+      FunctionDecl *FDecl = dyn_cast<FunctionDecl>(D);
+      assert(FDecl && FDecl->getBuiltinID() && "Wrong builtin decl");
+      auto Fn = DeclRefExpr::Create(
+        Self.Context, FDecl->getQualifierLoc(), SourceLocation(), FDecl, false,
+        SourceLocation(), FDecl->getType(), VK_RValue, FDecl);
+      SrcExpr = Self.BuildResolvedCallExpr(Fn, D, SourceLocation(),
+                                           SrcExpr.get(), SourceLocation());
+      Kind = CK_IntegralCast;
+    };
+    auto SrcType = SrcExpr.get()->getType();
+    if (SrcType->isIntegerType()) {
+      if (DestType->isTVMTupleT()) {
+        doBuiltinCast("__builtin_tvm_cast_to_tuple");
+        return;
+      } else if (DestType->isTVMSliceT()) {
+        doBuiltinCast("__builtin_tvm_cast_to_slice");
+        return;
+      } else if (DestType->isTVMBuilderT()) {
+        doBuiltinCast("__builtin_tvm_cast_to_builder");
+        return;
+      } else if (DestType->isTVMCellT()) {
+        doBuiltinCast("__builtin_tvm_cast_to_cell");
+        return;
+      }
+    }
+    if (DestType->isIntegerType()) {
+      if (SrcType->isTVMTupleT()) {
+        doBuiltinCast("__builtin_tvm_cast_from_tuple");
+        return;
+      } else if (SrcType->isTVMSliceT()) {
+        doBuiltinCast("__builtin_tvm_cast_from_slice");
+        return;
+      } else if (SrcType->isTVMBuilderT()) {
+        doBuiltinCast("__builtin_tvm_cast_from_builder");
+        return;
+      } else if (SrcType->isTVMCellT()) {
+        doBuiltinCast("__builtin_tvm_cast_from_cell");
+        return;
+      }
+    }
+  }
+  // TVM local end
+
   // C++ [expr.cast]p5: The conversions performed by
   //   - a const_cast,
   //   - a static_cast,

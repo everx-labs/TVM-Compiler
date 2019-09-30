@@ -182,6 +182,7 @@ def llvm_i257_ty       : LLVMType<i257>;
 def llvm_TVMSlice_ty   : LLVMType<TVMSlice>;
 def llvm_TVMBuilder_ty : LLVMType<TVMBuilder>;
 def llvm_TVMCell_ty    : LLVMType<TVMCell>;
+def llvm_TVMTuple_ty   : LLVMType<TVMTuple>;
 // TVM local end
 def llvm_half_ty       : LLVMType<f16>;
 def llvm_float_ty      : LLVMType<f32>;

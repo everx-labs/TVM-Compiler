@@ -1247,6 +1247,17 @@ void ASTContext::InitBuiltinTypes(const TargetInfo &Target,
   InitBuiltinType(TVMSliceTy, BuiltinType::TVMSlice);
   InitBuiltinType(TVMBuilderTy, BuiltinType::TVMBuilder);
   InitBuiltinType(TVMCellTy, BuiltinType::TVMCell);
+  InitBuiltinType(TVMTupleTy, BuiltinType::TVMTuple);
+
+  if (Target.getTriple().getArch() == llvm::Triple::tvm) {
+    for (unsigned i = 0; i < TVM_max_tuple_size; ++i) {
+      unsigned Size = i + 1;
+      char TupleName[32];
+      sprintf(TupleName, "__tvm_tuple%d", Size);
+      TVMTuples[i] = getSplatStructType(IntTy, Size, TupleName, "v");
+    }
+    TVMTuplePop = prepareTVMTuplePopStructType("__tvm_tpop");
+  }
   // TVM local end
 
   // Builtin type for __objc_yes and __objc_no
@@ -1770,6 +1781,7 @@ TypeInfo ASTContext::getTypeInfoImpl(const Type *T) const {
     case BuiltinType::TVMSlice:
     case BuiltinType::TVMBuilder:
     case BuiltinType::TVMCell:
+    case BuiltinType::TVMTuple:
       Width = Target->getIntWidth();
       Align = Target->getIntAlign();
       break;
@@ -3445,6 +3457,80 @@ ASTContext::getExtVectorType(QualType vecType, unsigned NumElts) const {
   Types.push_back(New);
   return QualType(New, 0);
 }
+
+// TVM local begin
+/// Return the unique reference to a structure type
+/// of the specified element type (equal type fields) and size.
+///
+/// \pre \p ElemType must be a built-in type.
+QualType ASTContext::getSplatStructType(QualType ElemType, unsigned NumFields,
+                                        StringRef StructName,
+                                        StringRef FieldName) const {
+  auto *RecDecl = buildImplicitRecord(StructName.str() + "_Tag");
+  RecDecl->setLiteral();
+  RecDecl->startDefinition();
+
+  // Create fields
+  for (unsigned i = 0; i < NumFields; ++i) {
+    char Buf[16];
+    sprintf(Buf, "%d", i);
+    std::string fName(FieldName);
+    fName = fName + Buf;
+    FieldDecl *Field = FieldDecl::Create(*this, RecDecl,
+                                         SourceLocation(),
+                                         SourceLocation(),
+                                         &Idents.get(fName),
+                                         ElemType, /*TInfo=*/nullptr,
+                                         /*BitWidth=*/nullptr,
+                                         /*Mutable=*/false,
+                                         ICIS_NoInit);
+    Field->setAccess(AS_public);
+    RecDecl->addDecl(Field);
+  }
+  RecDecl->completeDefinition();
+  TUDecl->addDecl(RecDecl);
+  auto tagType = getTagDeclType(RecDecl);
+  auto TypedefDec = buildImplicitTypedef(tagType, StructName);
+  TUDecl->addDecl(TypedefDec);
+  return getTypeDeclType(TypedefDec);
+}
+
+/// Creating { tuple, i257 } literal struct for tvm tpop result
+QualType ASTContext::prepareTVMTuplePopStructType(StringRef StructName) const {
+  auto *RecDecl = buildImplicitRecord(StructName.str() + "_Tag");
+  RecDecl->setLiteral();
+  RecDecl->startDefinition();
+
+  FieldDecl *Field0 = FieldDecl::Create(*this, RecDecl,
+                                        SourceLocation(),
+                                        SourceLocation(),
+                                        &Idents.get("tuple"),
+                                        TVMTupleTy, /*TInfo=*/nullptr,
+                                        /*BitWidth=*/nullptr,
+                                        /*Mutable=*/false,
+                                        ICIS_NoInit);
+  Field0->setAccess(AS_public);
+  RecDecl->addDecl(Field0);
+
+  FieldDecl *Field1 = FieldDecl::Create(*this, RecDecl,
+                                        SourceLocation(),
+                                        SourceLocation(),
+                                        &Idents.get("value"),
+                                        IntTy, /*TInfo=*/nullptr,
+                                        /*BitWidth=*/nullptr,
+                                        /*Mutable=*/false,
+                                        ICIS_NoInit);
+  Field1->setAccess(AS_public);
+  RecDecl->addDecl(Field1);
+
+  RecDecl->completeDefinition();
+  TUDecl->addDecl(RecDecl);
+  auto tagType = getTagDeclType(RecDecl);
+  auto TypedefDec = buildImplicitTypedef(tagType, StructName);
+  TUDecl->addDecl(TypedefDec);
+  return getTypeDeclType(TypedefDec);
+}
+// TVM local end
 
 QualType
 ASTContext::getDependentSizedExtVectorType(QualType vecType,
@@ -6467,6 +6553,7 @@ static char getObjCEncodingForPrimitiveKind(const ASTContext *C,
     case BuiltinType::TVMSlice:
     case BuiltinType::TVMBuilder:
     case BuiltinType::TVMCell:
+    case BuiltinType::TVMTuple:
       llvm_unreachable("invalid builtin type for objc @encode");
     // TVM local end
 
@@ -9180,12 +9267,25 @@ static QualType DecodeTypeFromStr(const char *&Str, const ASTContext &Context,
                                   bool &RequiresICE,
                                   bool AllowTypeModifiers) {
   // TVM local begin
-  if (Str[0] == 'T')
+  if (Str[0] == 'T') {
     switch (Str[1]) {
     case 's': Str += 2; return Context.TVMSliceTy;
     case 'b': Str += 2; return Context.TVMBuilderTy;
     case 'c': Str += 2; return Context.TVMCellTy;
+    case 't': Str += 2; return Context.TVMTupleTy;
+    case 'p': Str += 2; return Context.getTVMTuplePop();
     }
+    if (isdigit(Str[1])) {
+      char *End;
+      unsigned Num = strtoul(Str + 1, &End, 10);
+      assert(End != Str && "Missing tuple size");
+      Str = End;
+
+      assert(Num <= ASTContext::TVM_max_tuple_size &&
+             "Too big tuple struct size");
+      return Context.getTVMTuple(Num);
+    }
+  }
   // TVM local end
 
   // Modifiers.

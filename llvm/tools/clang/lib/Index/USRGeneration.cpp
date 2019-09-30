@@ -651,6 +651,8 @@ void USRGenerator::VisitType(QualType T) {
           Out << "TVMb"; return;
         case BuiltinType::TVMCell:
           Out << "TVMc"; return;
+        case BuiltinType::TVMTuple:
+          Out << "TVMt"; return;
       // TVM local end
         case BuiltinType::Void:
           c = 'v'; break;

@@ -408,6 +408,7 @@ NSAPI::getNSNumberFactoryMethodKind(QualType T) const {
   case BuiltinType::TVMSlice:
   case BuiltinType::TVMBuilder:
   case BuiltinType::TVMCell:
+  case BuiltinType::TVMTuple:
     llvm_unreachable("Unsupported builtin type for NSAPI");
     break;
   // TVM local end

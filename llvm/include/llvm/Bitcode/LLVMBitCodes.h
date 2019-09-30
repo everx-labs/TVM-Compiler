@@ -171,7 +171,8 @@ enum TypeCodes {
   // TVM local begin
   TYPE_CODE_TVMSLICE = 23,   // TVM Slice
   TYPE_CODE_TVMBUILDER = 24, // TVM Builder
-  TYPE_CODE_TVMCELL = 25     // TVM Cell
+  TYPE_CODE_TVMCELL = 25,    // TVM Cell
+  TYPE_CODE_TVMTUPLE = 26    // TVM Tuple
   // TVM local end
 };
 

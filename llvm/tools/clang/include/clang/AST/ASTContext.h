@@ -335,6 +335,11 @@ class ASTContext : public RefCountedBase<ASTContext> {
 
   QualType ObjCNSStringType;
 
+  // TVM local begin
+  QualType TVMTuples[256];
+  QualType TVMTuplePop;
+  // TVM local end
+
   /// The typedef declaration for the Objective-C "instancetype" type.
   TypedefDecl *ObjCInstanceTypeDecl = nullptr;
 
@@ -542,6 +547,10 @@ private:
   clang::PrintingPolicy PrintingPolicy;
 
 public:
+  // TVM local begin
+  static constexpr unsigned TVM_max_tuple_size = 255;
+  // TVM local end
+
   IdentifierTable &Idents;
   SelectorTable &Selectors;
   Builtin::Context &BuiltinInfo;
@@ -1043,7 +1052,7 @@ public:
   CanQualType OMPArraySectionTy;
 
   // TVM local begin
-  CanQualType TVMSliceTy, TVMBuilderTy, TVMCellTy;
+  CanQualType TVMSliceTy, TVMBuilderTy, TVMCellTy, TVMTupleTy;
   // TVM local end
 
   // Types for deductions in C++0x [stmt.ranged]'s desugaring. Built on demand.
@@ -1344,6 +1353,18 @@ public:
   /// \pre \p VectorType must be a built-in type.
   QualType getExtVectorType(QualType VectorType, unsigned NumElts) const;
 
+  // TVM local begin
+  /// Return the unique reference to a structure type
+  /// of the specified element type (equal type fields) and size.
+  ///
+  /// \pre \p ElemType must be a built-in type.
+  QualType getSplatStructType(QualType ElemType, unsigned NumFields,
+                              StringRef StructName, StringRef FieldName) const;
+
+  /// Creating { tuple, i257 } literal struct for tvm tpop result
+  QualType prepareTVMTuplePopStructType(StringRef StructName) const;
+  // TVM local end
+
   /// \pre Return a non-unique reference to the type for a dependently-sized
   /// vector of the specified element type.
   ///
@@ -1619,6 +1640,17 @@ public:
   void setObjCNSStringType(QualType T) {
     ObjCNSStringType = T;
   }
+
+  // TVM local begin
+  QualType getTVMTuple(unsigned Size) const {
+    assert(Size > 0 && Size < 256 && "Wrong size for TVMTuple");
+    return TVMTuples[Size - 1];
+  }
+
+  QualType getTVMTuplePop() const {
+    return TVMTuplePop;
+  }
+  // TVM local end
 
   /// Retrieve the type that \c id has been defined to, which may be
   /// different from the built-in \c id if \c id has been typedef'd.

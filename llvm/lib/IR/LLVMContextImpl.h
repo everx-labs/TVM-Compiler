@@ -1293,7 +1293,7 @@ public:
   Type VoidTy, LabelTy, HalfTy, FloatTy, DoubleTy, MetadataTy, TokenTy;
   Type X86_FP80Ty, FP128Ty, PPC_FP128Ty, X86_MMXTy;
   // TVM local begin
-  Type TVMSliceTy, TVMBuilderTy, TVMCellTy;
+  Type TVMSliceTy, TVMBuilderTy, TVMCellTy, TVMTupleTy;
   IntegerType Int1Ty, Int8Ty, Int16Ty, Int32Ty, Int64Ty, Int128Ty, Int257Ty;
   // TVM local end
 

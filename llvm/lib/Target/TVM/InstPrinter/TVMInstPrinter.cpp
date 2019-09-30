@@ -34,10 +34,22 @@ void TVMInstPrinter::printInst(const MCInst *MI, raw_ostream &O,
                                StringRef Annot, const MCSubtargetInfo &STI) {
   // TODO: A hack, we have the same logic in AsmPrinter, but it's not triggered
   // for instructions in TVM::PUSHCONT_MBB. Need to find a better solution.
-  if (MI->getOpcode() == TVM::REG_TO_REG_COPY_S ||
-      MI->getOpcode() == TVM::PUSH_GLOBAL_ADDRESS_S ||
-      MI->getOpcode() == TVM::FALLTHROUGH_RETURN)
+  switch (MI->getOpcode()) {
+  case TVM::TO_TUPLE_COPY_S:
+  case TVM::TO_SLICE_COPY_S:
+  case TVM::TO_BUILDER_COPY_S:
+  case TVM::TO_CELL_COPY_S:
+  case TVM::FROM_TUPLE_COPY_S:
+  case TVM::FROM_SLICE_COPY_S:
+  case TVM::FROM_BUILDER_COPY_S:
+  case TVM::FROM_CELL_COPY_S:
+  case TVM::REG_TO_REG_COPY_S:
+  case TVM::PUSH_GLOBAL_ADDRESS_S:
+  case TVM::FALLTHROUGH_RETURN:
     return;
+  default:
+    break;
+  }
 
   {
     std::string Str;
@@ -87,4 +99,15 @@ void TVMInstPrinter::printUimm257(const MCInst *MI, unsigned OpNo,
   const MCOperand &Op = MI->getOperand(OpNo);
   assert(Op.isImm() && "Wrong operand type in printUimm257");
   O << static_cast<uint64_t>(Op.getImm());
+}
+
+void TVMInstPrinter::printRegisterList(const MCInst *MI, unsigned OpNum,
+                                       raw_ostream &O) {
+  O << "{";
+  for (unsigned i = OpNum, e = MI->getNumOperands(); i != e; ++i) {
+    if (i != OpNum)
+      O << ", ";
+    printRegName(O, MI->getOperand(i).getReg());
+  }
+  O << "}";
 }

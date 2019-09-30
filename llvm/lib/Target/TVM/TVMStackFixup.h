@@ -44,6 +44,12 @@ public:
   /// \par Preserved - Vreg for return value.
   static StackFixup DiffForReturn(const Stack &Src,
       std::optional<unsigned> Preserved = std::optional<unsigned>());
+  /// Prepare diff for return with many values
+  ///  (clean this function's stack, keep only return values).
+  /// \par Src - current stack.
+  /// \par RetRegs - Vregs for return values.
+  static StackFixup DiffForReturnMulti(const Stack &Src,
+                                       ArrayRef<unsigned> RetRegs);
   /// Prepare diff for machine instruction arguments:
   ///  * Arguments must exist at their positions at stack top.
   ///  * Non-killed arguments must have their duplicates in stack deep

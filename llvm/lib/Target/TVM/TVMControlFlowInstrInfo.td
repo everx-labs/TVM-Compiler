@@ -20,16 +20,8 @@
 
 let isTerminator = 1, hasCtrlDep = 1 in {
   let isReturn = 1, isBarrier = 1 in {
-    defm RETURN_I257 : NRI<(outs), (ins i257imm:$val), [(TVMreturn i257:$val)],
-                          "RET", 0xdb30>;
-    defm RETURN_SLICE : NRI<(outs), (ins Slice:$val), [(TVMreturn Slice:$val)],
-                           "RET", 0xdb30>;
-    defm RETURN_BUILDER : NRI<(outs), (ins Builder:$val),
-                              [(TVMreturn Builder:$val)], "RET", 0xdb30>;
-    defm RETURN_CELL : NRI<(outs), (ins Cell:$val), [(TVMreturn Cell:$val)],
-                          "RET", 0xdb30>;
-
-    defm RETURN_VOID : NRI<(outs), (ins), [(TVMreturn)], "RET", 0xdb30>;
+    defm RETURN_N : NRI<(outs), (ins variable_ops), [(TVMreturn)],
+                        "RET", 0xdb30>;
     let isCodeGenOnly = 1 in
     defm FALLTHROUGH_RETURN : SI<(ins)>;
   } // isReturn = 1, isBarrier = 1
@@ -66,20 +58,21 @@ let isTerminator = 1, hasCtrlDep = 1 in {
 let isCall = 1, hasCtrlDep = 1 in {
   defm CALL_VOID : NRI<(outs), (ins variable_ops, i257imm:$callee),
                        [(TVMcall0 i257:$callee)], "CALL\t1", 0xF0>;
-  defm CALL_1 : NRI<(outs I257:$dst), (ins variable_ops, i257imm:$callee),
-                    [(set I257:$dst, (TVMcall1 i257:$callee))],
-                    "CALL\t1", 0xF0>;
-  defm CALL_1_SLICE : NRI<(outs Slice:$dst),
-                          (ins variable_ops, i257imm:$callee),
-                          [(set Slice:$dst, (TVMcall1 i257:$callee))],
-                          "CALL\t1", 0xF0>;
-  defm CALL_1_BUILDER : NRI<(outs Builder:$dst),
-                            (ins variable_ops, i257imm:$callee),
-                            [(set Builder:$dst, (TVMcall1 i257:$callee))],
-                            "CALL\t1", 0xF0>;
-  defm CALL_1_CELL : NRI<(outs Cell:$dst), (ins variable_ops, i257imm:$callee),
-                         [(set Cell:$dst, (TVMcall1 i257:$callee))],
-                         "CALL\t1", 0xF0>;
+
+  multiclass CALL_1<TVMRegClass OutReg> :
+    NRI<(outs OutReg:$dst), (ins variable_ops), [(set OutReg:$dst, (TVMcall1))],
+    "CALL\t1", 0xF0>;
+  defm CALL_1_INT : CALL_1<I257>;
+  defm CALL_1_SLICE : CALL_1<Slice>;
+  defm CALL_1_BUILDER : CALL_1<Builder>;
+  defm CALL_1_CELL : CALL_1<Cell>;
+  defm CALL_1_TUPLE : CALL_1<Tuple>;
+
+  defm CALL_N : I<(outs reglist:$regs, variable_ops),
+                  (ins variable_ops, i257imm:$callee),
+                  (outs), (ins),
+                  [],
+                  "CALL\t1, $callee", "CALL", 0xF0>;
 }
 
 let isMoveImm = 1, isAsCheapAsAMove = 1, isReMaterializable = 1 in {
@@ -129,19 +122,19 @@ defm POPROOT : I<(outs), (ins Cell:$root),
                  [(int_tvm_set_persistent_data Cell:$root)],
                  "POPROOT\t$root", "POPROOT", 0xed54>;
 
-defm THROW : I<(outs), (ins uimm6 : $exception),
-               (outs), (ins uimm6 : $exception),
-               [(int_tvm_throw uimm6 : $exception)],
+defm THROW : I<(outs), (ins uimm11:$exception),
+               (outs), (ins uimm11:$exception),
+               [(int_tvm_throw uimm11:$exception)],
                "THROW\t$exception", "THROW\t$exception", 0xf22>;
 
-defm THROWIF : I<(outs), (ins I257 : $cond, uimm6 : $exception),
-                 (outs), (ins uimm6 : $exception),
-                 [(int_tvm_throwif I257 : $cond, uimm6 : $exception)],
+defm THROWIF : I<(outs), (ins I257:$cond, uimm11:$exception),
+                 (outs), (ins uimm11:$exception),
+                 [(int_tvm_throwif I257:$cond, uimm11:$exception)],
                  "THROWIF\t$exception, $cond", "THROWIF\t$exception", 0xf26>;
 
-defm THROWIFNOT : I<(outs), (ins I257 : $cond, uimm6 : $exception),
-                    (outs), (ins uimm6 : $exception),
-                    [(int_tvm_throwif (not I257 : $cond), uimm6 : $exception)],
+defm THROWIFNOT : I<(outs), (ins I257:$cond, uimm11:$exception),
+                    (outs), (ins uimm11:$exception),
+                    [(int_tvm_throwif (not I257:$cond), uimm11:$exception)],
                     "THROWIFNOT\t$exception, $cond",
                     "THROWIFNOT\t$exception", 0xf2a>;
 

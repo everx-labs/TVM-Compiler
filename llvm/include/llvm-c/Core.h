@@ -158,7 +158,8 @@ typedef enum {
   // TVM local begin
   LLVMTVMSliceKind,        /**< TVM Slice */
   LLVMTVMBuilderKind,      /**< TVM Builder */
-  LLVMTVMCellKind          /**< TVM Cell */
+  LLVMTVMCellKind,         /**< TVM Cell */
+  LLVMTVMTupleKind,        /**< TVM Tuple */
   // TVM local end
 } LLVMTypeKind;
 
@@ -1359,6 +1360,11 @@ LLVMTypeRef LLVMTVMBuilderInContext(LLVMContextRef C);
  * Create a TVM Cell type in a context.
  */
 LLVMTypeRef LLVMTVMCellInContext(LLVMContextRef C);
+
+/**
+ * Create a TVM Tuple type in a context.
+ */
+LLVMTypeRef LLVMTVMTupleInContext(LLVMContextRef C);
 
 /**
  * Create a token type in a context.

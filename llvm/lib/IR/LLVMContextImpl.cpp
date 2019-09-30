@@ -38,6 +38,7 @@ LLVMContextImpl::LLVMContextImpl(LLVMContext &C)
     TVMSliceTy(C, Type::TVMSliceID),
     TVMBuilderTy(C, Type::TVMBuilderID),
     TVMCellTy(C, Type::TVMCellID),
+    TVMTupleTy(C, Type::TVMTupleID),
 // TVM local end
     Int1Ty(C, 1),
     Int8Ty(C, 8),

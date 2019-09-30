@@ -29,7 +29,7 @@ __attribute__((noinline))
 int push_kill(int a, int b) {
 // CHECK-LABEL: push_kill
 // CHECK: PUXC
-  int rv = b - a;
+  int rv = b / a;
   return b * rv;
 }
 
@@ -48,7 +48,7 @@ int main() {
     __builtin_tvm_throw(13);
 
   ret = push_kill(10, 20);
-  if (ret != 200)
+  if (ret != 40)
     __builtin_tvm_throw(13);
   return ret;
 }

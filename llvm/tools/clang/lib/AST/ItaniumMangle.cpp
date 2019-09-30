@@ -2664,6 +2664,9 @@ void CXXNameMangler::mangleType(const BuiltinType *T) {
   case BuiltinType::TVMCell:
     Out << "TVMc";
     break;
+  case BuiltinType::TVMTuple:
+    Out << "TVMt";
+    break;
   // TVM local end
   }
 }

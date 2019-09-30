@@ -12,21 +12,6 @@
 //===----------------------------------------------------------------------===//
 
 let TargetPrefix = "tvm" in {
-
-  // A.3 Tuple, list and null primitives
-  def int_tvm_first :
-    GCCBuiltin<"__builtin_tvm_first">,
-    Intrinsic<[llvm_i257_ty], [llvm_i257_ty], [IntrNoMem, Throws]>;
-  def int_tvm_second :
-    GCCBuiltin<"__builtin_tvm_second">,
-    Intrinsic<[llvm_i257_ty], [llvm_i257_ty], [IntrNoMem, Throws]>;
-  def int_tvm_setfirst :
-    GCCBuiltin<"__builtin_tvm_setfirst">,
-    Intrinsic<[llvm_i257_ty], [llvm_i257_ty, llvm_i257_ty], [IntrNoMem, Throws]>;
-  def int_tvm_setsecond :
-    GCCBuiltin<"__builtin_tvm_setsecond">,
-    Intrinsic<[llvm_i257_ty], [llvm_i257_ty, llvm_i257_ty], [IntrNoMem, Throws]>;
-
   // A.4 Constant and literal primitives
   def int_tvm_pushref :
     GCCBuiltin<"__builtin_tvm_pushref">,
@@ -122,6 +107,7 @@ let TargetPrefix = "tvm" in {
     GCCBuiltin<"__builtin_tvm_div">,
     Intrinsic<[llvm_i257_ty], [llvm_i257_ty, llvm_i257_ty],
               [IntrNoMem]>;
+  
   def int_tvm_mod :
     GCCBuiltin<"__builtin_tvm_mod">,
     Intrinsic<[llvm_i257_ty], [llvm_i257_ty, llvm_i257_ty],
@@ -241,4 +227,101 @@ let TargetPrefix = "tvm" in {
   def int_tvm_logflush :
     GCCBuiltin<"__builtin_tvm_logflush">,
     Intrinsic<[], []>;
+
+  // A.3 Tuple, list and null primitives
+  def int_tvm_index :
+    GCCBuiltin<"__builtin_tvm_index">,
+    Intrinsic<[llvm_i257_ty], [llvm_TVMTuple_ty, llvm_i257_ty], [IntrNoMem]>;
+  def int_tvm_indexq :
+    GCCBuiltin<"__builtin_tvm_indexq">,
+    Intrinsic<[llvm_i257_ty], [llvm_TVMTuple_ty, llvm_i257_ty], [IntrNoMem]>;
+  def int_tvm_setindex :
+    GCCBuiltin<"__builtin_tvm_setindex">,
+    Intrinsic<[llvm_TVMTuple_ty],
+              [llvm_TVMTuple_ty, llvm_i257_ty, llvm_i257_ty], [IntrNoMem]>;
+  def int_tvm_setindexq :
+    GCCBuiltin<"__builtin_tvm_setindexq">,
+    Intrinsic<[llvm_TVMTuple_ty],
+              [llvm_TVMTuple_ty, llvm_i257_ty, llvm_i257_ty], [IntrNoMem]>;
+  def int_tvm_chktuple :
+    GCCBuiltin<"__builtin_tvm_chktuple">,
+    Intrinsic<[], [llvm_TVMTuple_ty], []>;
+  def int_tvm_tlen:
+    GCCBuiltin<"__builtin_tvm_tlen">,
+    Intrinsic<[llvm_i257_ty], [llvm_TVMTuple_ty], [IntrNoMem]>;
+  def int_tvm_qtlen:
+    GCCBuiltin<"__builtin_tvm_qtlen">,
+    Intrinsic<[llvm_i257_ty], [llvm_TVMTuple_ty], [IntrNoMem]>;
+  def int_tvm_istuple:
+    GCCBuiltin<"__builtin_tvm_istuple">,
+    Intrinsic<[llvm_i257_ty], [llvm_TVMTuple_ty], [IntrNoMem]>;
+  def int_tvm_last:
+    GCCBuiltin<"__builtin_tvm_last">,
+    Intrinsic<[llvm_i257_ty], [llvm_TVMTuple_ty], [IntrNoMem]>;
+  def int_tvm_tpush:
+    GCCBuiltin<"__builtin_tvm_tpush">,
+    Intrinsic<[llvm_TVMTuple_ty], [llvm_TVMTuple_ty, llvm_i257_ty], [IntrNoMem]>;
+  def int_tvm_tpop:
+    GCCBuiltin<"__builtin_tvm_tpop">,
+    Intrinsic<[llvm_TVMTuple_ty, llvm_i257_ty], [llvm_TVMTuple_ty], [IntrNoMem]>;
+
+  def int_tvm_index2 :
+    GCCBuiltin<"__builtin_tvm_index2">,
+    Intrinsic<[llvm_i257_ty], [llvm_TVMTuple_ty, llvm_i257_ty, llvm_i257_ty],
+              [IntrNoMem]>;
+  def int_tvm_index3 :
+    GCCBuiltin<"__builtin_tvm_index3">,
+    Intrinsic<[llvm_i257_ty],
+              [llvm_TVMTuple_ty, llvm_i257_ty, llvm_i257_ty, llvm_i257_ty],
+              [IntrNoMem]>;
+  def int_tvm_cadr :
+    GCCBuiltin<"__builtin_tvm_cadr">,
+    Intrinsic<[llvm_i257_ty], [llvm_TVMTuple_ty], [IntrNoMem]>;
+  def int_tvm_cddr :
+    GCCBuiltin<"__builtin_tvm_cddr">,
+    Intrinsic<[llvm_i257_ty], [llvm_TVMTuple_ty], [IntrNoMem]>;
+  def int_tvm_caddr :
+    GCCBuiltin<"__builtin_tvm_caddr">,
+    Intrinsic<[llvm_i257_ty], [llvm_TVMTuple_ty], [IntrNoMem]>;
+  def int_tvm_cdddr :
+    GCCBuiltin<"__builtin_tvm_cdddr">,
+    Intrinsic<[llvm_i257_ty], [llvm_TVMTuple_ty], [IntrNoMem]>;
+
+  // Cast intrinsics
+  // We need them for receiving slice/builder/cell/tuple from tuple element
+  def int_tvm_cast_to_tuple :
+    GCCBuiltin<"__builtin_tvm_cast_to_tuple">,
+    Intrinsic<[llvm_TVMTuple_ty], [llvm_i257_ty], [IntrNoMem]>;
+  def int_tvm_cast_to_slice :
+    GCCBuiltin<"__builtin_tvm_cast_to_slice">,
+    Intrinsic<[llvm_TVMSlice_ty], [llvm_i257_ty], [IntrNoMem]>;
+  def int_tvm_cast_to_builder :
+    GCCBuiltin<"__builtin_tvm_cast_to_builder">,
+    Intrinsic<[llvm_TVMBuilder_ty], [llvm_i257_ty], [IntrNoMem]>;
+  def int_tvm_cast_to_cell :
+    GCCBuiltin<"__builtin_tvm_cast_to_cell">,
+    Intrinsic<[llvm_TVMCell_ty], [llvm_i257_ty], [IntrNoMem]>;
+  def int_tvm_cast_from_tuple :
+    GCCBuiltin<"__builtin_tvm_cast_from_tuple">,
+    Intrinsic<[llvm_i257_ty], [llvm_TVMTuple_ty], [IntrNoMem]>;
+  def int_tvm_cast_from_slice :
+    GCCBuiltin<"__builtin_tvm_cast_from_slice">,
+    Intrinsic<[llvm_i257_ty], [llvm_TVMSlice_ty], [IntrNoMem]>;
+  def int_tvm_cast_from_builder :
+    GCCBuiltin<"__builtin_tvm_cast_from_builder">,
+    Intrinsic<[llvm_i257_ty], [llvm_TVMBuilder_ty], [IntrNoMem]>;
+  def int_tvm_cast_from_cell :
+    GCCBuiltin<"__builtin_tvm_cast_from_cell">,
+    Intrinsic<[llvm_i257_ty], [llvm_TVMCell_ty], [IntrNoMem]>;
+
+  def int_tvm_tuple : GCCBuiltin<"__builtin_tvm_tuple">,
+    Intrinsic<[llvm_TVMTuple_ty], [llvm_vararg_ty], [IntrNoMem]>;
+
+  foreach i = 1-255 in
+  def int_tvm_untuple#i : GCCBuiltin<"__builtin_tvm_untuple"#i>,
+    Intrinsic<!listsplat(llvm_i257_ty, i), [llvm_TVMTuple_ty], [IntrNoMem]>;
+
+  foreach i = 1-255 in
+  def int_tvm_unpackfirst#i : GCCBuiltin<"__builtin_tvm_unpackfirst"#i>,
+    Intrinsic<!listsplat(llvm_i257_ty, i), [llvm_TVMTuple_ty], [IntrNoMem]>;
 }

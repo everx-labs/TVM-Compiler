@@ -45,3 +45,6 @@ def Builder : TVMRegClass<[TVMBuilder], 257, (add DUMMY_BUILDER)>;
 
 def DUMMY_CELL : TVMReg<"DUMMY_CELL">;
 def Cell : TVMRegClass<[TVMCell], 257, (add DUMMY_CELL)>;
+
+def DUMMY_TUPLE : TVMReg<"DUMMY_TUPLE">;
+def Tuple : TVMRegClass<[TVMTuple], 257, (add DUMMY_TUPLE)>;

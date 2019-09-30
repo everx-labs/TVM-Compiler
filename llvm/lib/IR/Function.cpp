@@ -677,10 +677,12 @@ enum IIT_Info {
   IIT_STRUCT8 = 40,
   IIT_F128 = 41,
   // TVM local begin
-  IIT_I257 = 42,
-  IIT_TVMSLICE = 43,
-  IIT_TVMBUILDER = 44,
-  IIT_TVMCELL = 45
+  IIT_STRUCT8_AND_MORE = 42,
+  IIT_I257 = 43,
+  IIT_TVMSLICE = 44,
+  IIT_TVMBUILDER = 45,
+  IIT_TVMCELL = 46,
+  IIT_TVMTUPLE = 47
   // TVM local end
 };
 
@@ -689,7 +691,15 @@ static void DecodeIITType(unsigned &NextElt, ArrayRef<unsigned char> Infos,
   using namespace Intrinsic;
 
   IIT_Info Info = IIT_Info(Infos[NextElt++]);
-  unsigned StructElts = 2;
+
+  // TVM local begin
+  auto decodeStruct = [&](unsigned StructElts) {
+    OutputTable.push_back(IITDescriptor::get(IITDescriptor::Struct,
+                                             StructElts));
+    for (unsigned i = 0; i != StructElts; ++i)
+      DecodeIITType(NextElt, Infos, OutputTable);
+  };
+  // TVM local end
 
   switch (Info) {
   case IIT_Done:
@@ -749,6 +759,9 @@ static void DecodeIITType(unsigned &NextElt, ArrayRef<unsigned char> Infos,
     return;
   case IIT_TVMCELL:
     OutputTable.push_back(IITDescriptor::get(IITDescriptor::TVMCell, 0));
+    return;
+  case IIT_TVMTUPLE:
+    OutputTable.push_back(IITDescriptor::get(IITDescriptor::TVMTuple, 0));
     return;
   // TVM local end
   case IIT_V1:
@@ -847,19 +860,30 @@ static void DecodeIITType(unsigned &NextElt, ArrayRef<unsigned char> Infos,
   case IIT_EMPTYSTRUCT:
     OutputTable.push_back(IITDescriptor::get(IITDescriptor::Struct, 0));
     return;
-  case IIT_STRUCT8: ++StructElts; LLVM_FALLTHROUGH;
-  case IIT_STRUCT7: ++StructElts; LLVM_FALLTHROUGH;
-  case IIT_STRUCT6: ++StructElts; LLVM_FALLTHROUGH;
-  case IIT_STRUCT5: ++StructElts; LLVM_FALLTHROUGH;
-  case IIT_STRUCT4: ++StructElts; LLVM_FALLTHROUGH;
-  case IIT_STRUCT3: ++StructElts; LLVM_FALLTHROUGH;
-  case IIT_STRUCT2: {
-    OutputTable.push_back(IITDescriptor::get(IITDescriptor::Struct,StructElts));
-
-    for (unsigned i = 0; i != StructElts; ++i)
-      DecodeIITType(NextElt, Infos, OutputTable);
-    return;
+  case IIT_STRUCT8_AND_MORE: {
+    unsigned StructElts = 8;
+    while (Infos[NextElt] == IIT_STRUCT8_AND_MORE) {
+      StructElts += 8;
+      ++NextElt;
+    }
+    switch (Infos[NextElt]) {
+    case IIT_STRUCT8: ++NextElt; decodeStruct(StructElts + 8); return;
+    case IIT_STRUCT7: ++NextElt; decodeStruct(StructElts + 7); return;
+    case IIT_STRUCT6: ++NextElt; decodeStruct(StructElts + 6); return;
+    case IIT_STRUCT5: ++NextElt; decodeStruct(StructElts + 5); return;
+    case IIT_STRUCT4: ++NextElt; decodeStruct(StructElts + 4); return;
+    case IIT_STRUCT3: ++NextElt; decodeStruct(StructElts + 3); return;
+    case IIT_STRUCT2: ++NextElt; decodeStruct(StructElts + 2); return;
+    default: decodeStruct(StructElts + 1); return;
+    }
   }
+  case IIT_STRUCT8: decodeStruct(8); return;
+  case IIT_STRUCT7: decodeStruct(7); return;
+  case IIT_STRUCT6: decodeStruct(6); return;
+  case IIT_STRUCT5: decodeStruct(5); return;
+  case IIT_STRUCT4: decodeStruct(4); return;
+  case IIT_STRUCT3: decodeStruct(3); return;
+  case IIT_STRUCT2: decodeStruct(2); return;
   }
   llvm_unreachable("unhandled");
 }
@@ -922,6 +946,7 @@ static Type *DecodeFixedType(ArrayRef<Intrinsic::IITDescriptor> &Infos,
   case IITDescriptor::TVMSlice: return Type::getTVMSliceTy(Context);
   case IITDescriptor::TVMBuilder: return Type::getTVMBuilderTy(Context);
   case IITDescriptor::TVMCell: return Type::getTVMCellTy(Context);
+  case IITDescriptor::TVMTuple: return Type::getTVMTupleTy(Context);
   // TVM local end
   case IITDescriptor::Integer:
     return IntegerType::get(Context, D.Integer_Width);
@@ -1070,6 +1095,7 @@ bool Intrinsic::matchIntrinsicType(Type *Ty, ArrayRef<Intrinsic::IITDescriptor> 
     case IITDescriptor::TVMSlice: return !Ty->isTVMSliceTy();
     case IITDescriptor::TVMBuilder: return !Ty->isTVMBuilderTy();
     case IITDescriptor::TVMCell: return !Ty->isTVMCellTy();
+    case IITDescriptor::TVMTuple: return !Ty->isTVMTupleTy();
     // TVM local end
     case IITDescriptor::Vector: {
       VectorType *VT = dyn_cast<VectorType>(Ty);

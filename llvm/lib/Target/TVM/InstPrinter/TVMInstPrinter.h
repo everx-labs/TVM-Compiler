@@ -30,8 +30,10 @@ public:
   void printInstruction(const MCInst *MI, raw_ostream &O);
   void printOperand(const MCInst *MI, unsigned OpNo, raw_ostream &O);
   void printUimm257(const MCInst *MI, unsigned OpNo, raw_ostream &O);
-  static const char *getRegisterName(unsigned RegNo);
 
+  void printRegisterList(const MCInst *MI, unsigned OpNum, raw_ostream &O);
+
+  static const char *getRegisterName(unsigned RegNo);
 protected:
   int depth = 0;
 };

@@ -222,10 +222,12 @@ enum IIT_Info {
   IIT_STRUCT8 = 40,
   IIT_F128 = 41,
   // TVM local begin
-  IIT_I257 = 42,
-  IIT_TVMSLICE = 43,
-  IIT_TVMBUILDER = 44,
-  IIT_TVMCELL = 45,
+  IIT_STRUCT8_AND_MORE = 42,
+  IIT_I257 = 43,
+  IIT_TVMSLICE = 44,
+  IIT_TVMBUILDER = 45,
+  IIT_TVMCELL = 46,
+  IIT_TVMTUPLE = 47,
   // TVM local end
 };
 
@@ -264,6 +266,7 @@ static void EncodeFixedValueType(MVT::SimpleValueType VT,
   case MVT::TVMSlice: return Sig.push_back(IIT_TVMSLICE);
   case MVT::TVMBuilder: return Sig.push_back(IIT_TVMBUILDER);
   case MVT::TVMCell: return Sig.push_back(IIT_TVMCELL);
+  case MVT::TVMTuple: return Sig.push_back(IIT_TVMTUPLE);
   // TVM local end
   }
 }
@@ -384,16 +387,22 @@ static void ComputeFixedEncoding(const CodeGenIntrinsic &Int,
            Int.IS.RetVTs[0] == MVT::isVoid)
     TypeSig.push_back(IIT_Done);
   else {
-    switch (Int.IS.RetVTs.size()) {
-      case 1: break;
-      case 2: TypeSig.push_back(IIT_STRUCT2); break;
-      case 3: TypeSig.push_back(IIT_STRUCT3); break;
-      case 4: TypeSig.push_back(IIT_STRUCT4); break;
-      case 5: TypeSig.push_back(IIT_STRUCT5); break;
-      case 6: TypeSig.push_back(IIT_STRUCT6); break;
-      case 7: TypeSig.push_back(IIT_STRUCT7); break;
-      case 8: TypeSig.push_back(IIT_STRUCT8); break;
-      default: llvm_unreachable("Unhandled case in struct");
+    unsigned RetSize = Int.IS.RetVTs.size();
+    while (RetSize) {
+      switch (RetSize) {
+      case 1: RetSize = 0; break;
+      case 2: RetSize = 0; TypeSig.push_back(IIT_STRUCT2); break;
+      case 3: RetSize = 0; TypeSig.push_back(IIT_STRUCT3); break;
+      case 4: RetSize = 0; TypeSig.push_back(IIT_STRUCT4); break;
+      case 5: RetSize = 0; TypeSig.push_back(IIT_STRUCT5); break;
+      case 6: RetSize = 0; TypeSig.push_back(IIT_STRUCT6); break;
+      case 7: RetSize = 0; TypeSig.push_back(IIT_STRUCT7); break;
+      case 8: RetSize = 0; TypeSig.push_back(IIT_STRUCT8); break;
+      default:
+        TypeSig.push_back(IIT_STRUCT8_AND_MORE);
+        RetSize -= 8;
+        break;
+      }
     }
 
     for (unsigned i = 0, e = Int.IS.RetVTs.size(); i != e; ++i)

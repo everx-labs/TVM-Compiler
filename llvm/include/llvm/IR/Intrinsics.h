@@ -102,7 +102,7 @@ namespace Intrinsic {
       Argument, ExtendArgument, TruncArgument, HalfVecArgument,
       SameVecWidthArgument, PtrToArgument, PtrToElt, VecOfAnyPtrsToElt,
       // TVM local begin
-      TVMSlice, TVMBuilder, TVMCell
+      TVMSlice, TVMBuilder, TVMCell, TVMTuple
       // TVM local end
     } Kind;
 

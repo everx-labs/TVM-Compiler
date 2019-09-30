@@ -75,6 +75,8 @@ struct TypeCloner {
         return LLVMTVMBuilderInContext(Ctx);
       case LLVMTVMCellKind:
         return LLVMTVMCellInContext(Ctx);
+      case LLVMTVMTupleKind:
+        return LLVMTVMTupleInContext(Ctx);
       // TVM local end
       case LLVMVoidTypeKind:
         return LLVMVoidTypeInContext(Ctx);

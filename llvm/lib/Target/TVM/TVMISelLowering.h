@@ -66,6 +66,8 @@ public:
   /// MIR instructions.
   SDValue LowerINTRINSIC_W_CHAIN(SDValue Op, SelectionDAG &DAG) const;
 
+  SDValue LowerINTRINSIC_WO_CHAIN(SDValue Op, SelectionDAG &DAG) const;
+
   /// getTargetNodeName - This method returns the name of a target specific
   /// DAG node.
   const char *getTargetNodeName(unsigned Opcode) const override;

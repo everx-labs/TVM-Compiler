@@ -1018,6 +1018,8 @@ namespace serialization {
       PREDEF_TYPE_TVM_BUILDER_ID = 71,
       /// TVM Cell type
       PREDEF_TYPE_TVM_CELL_ID = 72,
+      /// TVM Tuple type
+      PREDEF_TYPE_TVM_TUPLE_ID = 73,
       // TVM local end
 
       /// OpenCL image types with auto numeration

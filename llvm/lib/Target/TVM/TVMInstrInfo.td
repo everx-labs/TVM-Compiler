@@ -23,7 +23,7 @@ def SDT_TVMCallSeqEnd   : SDCallSeqEnd<[SDTCisVT<0, i257>, SDTCisVT<1, i257>]>;
 def SDT_TVMReturn       : SDTypeProfile<0, -1, []>;
 def SDT_TVMArgument     : SDTypeProfile<1, 1, [SDTCisVT<1, i257>]>;
 def SDT_TVMCall0        : SDTypeProfile<0, -1, [SDTCisPtrTy<0>]>;
-def SDT_TVMCall1        : SDTypeProfile<1, -1, [SDTCisPtrTy<1>]>;
+def SDT_TVMCall1        : SDTypeProfile<1, -1, []>;
 
 def SDT_TVMCtos         : SDTypeProfile<1, 1, [SDTCisVT<1, TVMCell>]>;
 def SDT_TVMStSlice      : SDTypeProfile<1, 2, []>;
@@ -71,7 +71,7 @@ def TVMcallseq_end :
                  SDNode<"ISD::CALLSEQ_END",   SDT_TVMCallSeqEnd,
                         [SDNPHasChain, SDNPOptInGlue, SDNPOutGlue]>;
 def TVMreturn : SDNode<"TVMISD::RETURN",
-                       SDT_TVMReturn, [SDNPHasChain]>;
+                       SDT_TVMReturn, [SDNPHasChain, SDNPVariadic]>;
 def TVMargument : SDNode<"TVMISD::ARGUMENT", SDT_TVMArgument>;
 def TVMcall0 : SDNode<"TVMISD::CALL0", SDT_TVMCall0,
                       [SDNPHasChain, SDNPVariadic]>;
@@ -98,6 +98,11 @@ def TVMmul       : SDNode<"TVMISD::MUL", SDT_TVMMul, []>;
 def TVMand       : SDNode<"TVMISD::AND", SDT_TVMAnd, []>;
 def TVMrshift    : SDNode<"TVMISD::RSHIFT", SDT_TVMRShift, []>;
 def TVMconst_u257 : SDNode<"TVMISD::CONST_U257", SDT_TVMConstU257, []>;
+
+def TVMtuple
+    : SDNode<"TVMISD::TUPLE", SDTypeProfile<0, -1, []>, [SDNPVariadic]>;
+def TVMtuplevar
+    : SDNode<"TVMISD::TUPLEVAR", SDTypeProfile<0, -1, []>, [SDNPVariadic]>;
 
 def TVMGlobalAddressWrapper
     : SDNode<"TVMISD::GLOBAL_ADDRESS_WRAPPER", SDT_TVMGlobalAddressWrapper>;
@@ -161,6 +166,11 @@ let hasSideEffects = 1, Uses = [ARGUMENTS], isCodeGenOnly = 1 in
 defm ARGUMENT_CELL : I<(outs Cell:$res), (ins i257imm:$argno),
                        (outs), (ins i257imm:$argno),
                        [(set Cell:$res, (TVMargument timm:$argno))]>;
+
+let hasSideEffects = 1, Uses = [ARGUMENTS], isCodeGenOnly = 1 in
+defm ARGUMENT_TUPLE : I<(outs Tuple:$res), (ins i257imm:$argno),
+                        (outs), (ins i257imm:$argno),
+                        [(set Tuple:$res, (TVMargument timm:$argno))]>;
 
 // Auxiliary instruction for debugging purposes only: 
 // specifies number of arguments on stack for the function;
@@ -246,8 +256,26 @@ defm DUP  : SI<(ins), "DUP", 0x20>;
 defm ZERO : SI<(ins), "ZERO", 0x70>;
 }
 
-let isCodeGenOnly = 1 in
+let isCodeGenOnly = 1 in {
 defm REG_TO_REG_COPY : I<(outs I257:$dst), (ins I257:$src), (outs), (ins), []>;
+defm TO_TUPLE_COPY   : I<(outs Tuple:$dst), (ins I257:$src), (outs), (ins),
+  [(set Tuple:$dst, (int_tvm_cast_to_tuple I257:$src))]>;
+defm TO_SLICE_COPY   : I<(outs Slice:$dst), (ins I257:$src), (outs), (ins),
+  [(set Slice:$dst, (int_tvm_cast_to_slice I257:$src))]>;
+defm TO_BUILDER_COPY : I<(outs Builder:$dst), (ins I257:$src), (outs), (ins),
+  [(set Builder:$dst, (int_tvm_cast_to_builder I257:$src))]>;
+defm TO_CELL_COPY    : I<(outs Cell:$dst), (ins I257:$src), (outs), (ins),
+  [(set Cell:$dst, (int_tvm_cast_to_cell I257:$src))]>;
+
+defm FROM_TUPLE_COPY   : I<(outs I257:$dst), (ins Tuple:$src), (outs), (ins),
+  [(set I257:$dst, (int_tvm_cast_from_tuple Tuple:$src))]>;
+defm FROM_SLICE_COPY   : I<(outs I257:$dst), (ins Slice:$src), (outs), (ins),
+  [(set I257:$dst, (int_tvm_cast_from_slice Slice:$src))]>;
+defm FROM_BUILDER_COPY : I<(outs I257:$dst), (ins Builder:$src), (outs), (ins),
+  [(set I257:$dst, (int_tvm_cast_from_builder Builder:$src))]>;
+defm FROM_CELL_COPY    : I<(outs I257:$dst), (ins Cell:$src), (outs), (ins),
+  [(set I257:$dst, (int_tvm_cast_from_cell Cell:$src))]>;
+}
 
 //===----------------------------------------------------------------------===//
 // Arithmetic instructions

@@ -1911,6 +1911,13 @@ public:
   bool isQueueT() const;                        // OpenCL queue_t
   bool isReserveIDT() const;                    // OpenCL reserve_id_t
 
+  // TVM local begin
+  bool isTVMTupleT() const;                     // TVM Tuple
+  bool isTVMSliceT() const;                     // TVM Slice
+  bool isTVMBuilderT() const;                   // TVM Builder
+  bool isTVMCellT() const;                      // TVM Cell
+  // TVM local end
+
   bool isPipeType() const;                      // OpenCL pipe type
   bool isOpenCLSpecificType() const;            // Any OpenCL specific type
 
@@ -6283,6 +6290,21 @@ inline bool Type::isQueueT() const {
 inline bool Type::isReserveIDT() const {
   return isSpecificBuiltinType(BuiltinType::OCLReserveID);
 }
+
+// TVM local begin
+inline bool Type::isTVMTupleT() const {
+  return isSpecificBuiltinType(BuiltinType::TVMTuple);
+}
+inline bool Type::isTVMSliceT() const {
+  return isSpecificBuiltinType(BuiltinType::TVMSlice);
+}
+inline bool Type::isTVMBuilderT() const {
+  return isSpecificBuiltinType(BuiltinType::TVMBuilder);
+}
+inline bool Type::isTVMCellT() const {
+  return isSpecificBuiltinType(BuiltinType::TVMCell);
+}
+// TVM local end
 
 inline bool Type::isImageType() const {
 #define IMAGE_TYPE(ImgType, Id, SingletonId, Access, Suffix) is##Id##Type() ||

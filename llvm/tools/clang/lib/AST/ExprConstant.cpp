@@ -7459,6 +7459,7 @@ EvaluateBuiltinClassifyType(QualType T, const LangOptions &LangOpts) {
     case BuiltinType::TVMSlice:
     case BuiltinType::TVMBuilder:
     case BuiltinType::TVMCell:
+    case BuiltinType::TVMTuple:
       return GCCTypeClass::None;
     // TVM local end
 

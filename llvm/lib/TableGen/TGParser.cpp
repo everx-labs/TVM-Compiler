@@ -1036,6 +1036,9 @@ Init *TGParser::ParseOperation(Record *CurRec, RecTy *ItemType) {
   case tgtok::XGe:
   case tgtok::XGt:
   case tgtok::XListConcat:
+  // TVM local begin
+  case tgtok::XListSplat:
+  // TVM local end
   case tgtok::XStrConcat: {  // Value ::= !binop '(' Value ',' Value ')'
     tgtok::TokKind OpTok = Lex.getCode();
     SMLoc OpLoc = Lex.getLoc();
@@ -1058,6 +1061,9 @@ Init *TGParser::ParseOperation(Record *CurRec, RecTy *ItemType) {
     case tgtok::XGe:     Code = BinOpInit::GE; break;
     case tgtok::XGt:     Code = BinOpInit::GT; break;
     case tgtok::XListConcat: Code = BinOpInit::LISTCONCAT; break;
+    // TVM local begin
+    case tgtok::XListSplat: Code = BinOpInit::LISTSPLAT; break;
+    // TVM local end
     case tgtok::XStrConcat: Code = BinOpInit::STRCONCAT; break;
     }
 
@@ -1095,6 +1101,11 @@ Init *TGParser::ParseOperation(Record *CurRec, RecTy *ItemType) {
       // We don't know the list type until we parse the first argument
       ArgType = ItemType;
       break;
+    // TVM local begin
+    case tgtok::XListSplat:
+      // Can't do any typechecking until we parse the first argument.
+      break;
+    // TVM local end
     case tgtok::XStrConcat:
       Type = StringRecTy::get();
       ArgType = StringRecTy::get();
@@ -1134,6 +1145,35 @@ Init *TGParser::ParseOperation(Record *CurRec, RecTy *ItemType) {
             return nullptr;
           }
           break;
+        // TVM local begin
+        case BinOpInit::LISTSPLAT:
+          if (ItemType && InitList.size() == 1) {
+            if (!isa<ListRecTy>(ItemType)) {
+              Error(OpLoc,
+                    Twine("expected output type to be a list, got type '") +
+                        ItemType->getAsString() + "'");
+              return nullptr;
+            }
+            if (!ArgType->getListTy()->typeIsConvertibleTo(ItemType)) {
+              Error(OpLoc, Twine("expected first arg type to be '") +
+                               ArgType->getAsString() +
+                               "', got value of type '" +
+                               cast<ListRecTy>(ItemType)
+                                   ->getElementType()
+                                   ->getAsString() +
+                               "'");
+              return nullptr;
+            }
+          }
+          if (InitList.size() == 2 && !isa<IntRecTy>(ArgType)) {
+            Error(InitLoc, Twine("expected second parameter to be an int, got "
+                                 "value of type '") +
+                               ArgType->getAsString() + "'");
+            return nullptr;
+          }
+          ArgType = nullptr; // Broken invariant: types not identical.
+          break;
+        // TVM local end
         case BinOpInit::EQ:
         case BinOpInit::NE:
           if (!ArgType->typeIsConvertibleTo(IntRecTy::get()) &&
@@ -1170,8 +1210,14 @@ Init *TGParser::ParseOperation(Record *CurRec, RecTy *ItemType) {
     }
     Lex.Lex();  // eat the ')'
 
+    // TVM local begin
+    // listconcat returns a list with type of the argument.
     if (Code == BinOpInit::LISTCONCAT)
       Type = ArgType;
+    // listsplat returns a list of type of the *first* argument.
+    if (Code == BinOpInit::LISTSPLAT)
+      Type = cast<TypedInit>(InitList.front())->getType()->getListTy();
+    // TVM local end
 
     // We allow multiple operands to associative operators like !strconcat as
     // shorthand for nesting them.
@@ -1620,6 +1666,9 @@ RecTy *TGParser::ParseOperatorType() {
 ///   SimpleValue ::= SRATOK '(' Value ',' Value ')'
 ///   SimpleValue ::= SRLTOK '(' Value ',' Value ')'
 ///   SimpleValue ::= LISTCONCATTOK '(' Value ',' Value ')'
+// TVM local begin
+///   SimpleValue ::= LISTSPLATTOK '(' Value ',' Value ')'
+// TVM local end
 ///   SimpleValue ::= STRCONCATTOK '(' Value ',' Value ')'
 ///
 Init *TGParser::ParseSimpleValue(Record *CurRec, RecTy *ItemType,
@@ -1931,6 +1980,7 @@ Init *TGParser::ParseSimpleValue(Record *CurRec, RecTy *ItemType,
   case tgtok::XGe:
   case tgtok::XGt:
   case tgtok::XListConcat:
+  case tgtok::XListSplat:
   case tgtok::XStrConcat:   // Value ::= !binop '(' Value ',' Value ')'
   case tgtok::XIf:
   case tgtok::XFoldl:

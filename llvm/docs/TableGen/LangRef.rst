@@ -93,6 +93,7 @@ TableGen also has the following keywords::
 TableGen also has "bang operators" which have a
 wide variety of meanings:
 
+// TVM local begin
 .. productionlist::
    BangOperator: one of
                :!eq     !if      !head    !tail      !con
@@ -100,8 +101,8 @@ wide variety of meanings:
                :!or     !empty   !subst   !foreach   !strconcat
                :!cast   !listconcat       !size      !foldl
                :!isa    !dag     !le      !lt        !ge
-               :!gt     !ne
-
+               :!gt     !ne      !listsplat
+// TVM local end
 
 Syntax
 ======

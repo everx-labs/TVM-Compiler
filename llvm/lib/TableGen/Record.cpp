@@ -842,6 +842,12 @@ Init *BinOpInit::getStrConcat(Init *I0, Init *I1) {
   return BinOpInit::get(BinOpInit::STRCONCAT, I0, I1, StringRecTy::get());
 }
 
+// TVM local begin
+Init *BinOpInit::getListSplat(TypedInit *LHS, Init *RHS) {
+  return BinOpInit::get(BinOpInit::LISTSPLAT, LHS, RHS, LHS->getType());
+}
+// TVM local end
+
 Init *BinOpInit::Fold(Record *CurRec) const {
   switch (getOpcode()) {
   case CONCAT: {
@@ -882,6 +888,17 @@ Init *BinOpInit::Fold(Record *CurRec) const {
     }
     break;
   }
+  // TVM local begin
+  case LISTSPLAT: {
+    TypedInit *Value = dyn_cast<TypedInit>(LHS);
+    IntInit *Size = dyn_cast<IntInit>(RHS);
+    if (Value && Size) {
+      SmallVector<Init *, 8> Args(Size->getValue(), Value);
+      return ListInit::get(Args, Value->getType());
+    }
+    break;
+  }
+  // TVM local end
   case STRCONCAT: {
     StringInit *LHSs = dyn_cast<StringInit>(LHS);
     StringInit *RHSs = dyn_cast<StringInit>(RHS);
@@ -986,6 +1003,9 @@ std::string BinOpInit::getAsString() const {
   case GE: Result = "!ge"; break;
   case GT: Result = "!gt"; break;
   case LISTCONCAT: Result = "!listconcat"; break;
+  // TVM local begin
+  case LISTSPLAT: Result = "!listsplat"; break;
+  // TVM local end
   case STRCONCAT: Result = "!strconcat"; break;
   }
   return Result + "(" + LHS->getAsString() + ", " + RHS->getAsString() + ")";

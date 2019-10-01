@@ -194,6 +194,12 @@ supported include:
     More than two arguments are accepted with the result being the concatenation
     of all the strings given.
 
+// TVM local begin
+``!listsplat(a, size)``
+    A list value that contains the value ``a`` ``size`` times.
+    Example: ``!listsplat(0, 2)`` results in ``[0, 0]``.
+// TVM local end
+
 ``str1#str2``
     "#" (paste) is a shorthand for !strconcat.  It may concatenate things that
     are not quoted strings, in which case an implicit !cast<string> is done on

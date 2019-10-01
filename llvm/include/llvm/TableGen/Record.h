@@ -798,8 +798,11 @@ public:
 /// !op (X, Y) - Combine two inits.
 class BinOpInit : public OpInit, public FoldingSetNode {
 public:
+  // TVM local begin
   enum BinaryOp : uint8_t { ADD, AND, OR, SHL, SRA, SRL, LISTCONCAT,
-                            STRCONCAT, CONCAT, EQ, NE, LE, LT, GE, GT };
+                            LISTSPLAT, STRCONCAT, CONCAT, EQ, NE, LE, LT, GE,
+                            GT };
+  // TVM local end
 
 private:
   Init *LHS, *RHS;
@@ -818,6 +821,9 @@ public:
   static BinOpInit *get(BinaryOp opc, Init *lhs, Init *rhs,
                         RecTy *Type);
   static Init *getStrConcat(Init *lhs, Init *rhs);
+  // TVM local begin
+  static Init *getListSplat(TypedInit *lhs, Init *rhs);
+  // TVM local end
 
   void Profile(FoldingSetNodeID &ID) const;
 

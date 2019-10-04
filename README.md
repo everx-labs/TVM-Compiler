@@ -21,7 +21,7 @@ Sample build scenario:
 $ git clone git@github.com:tonlabs/TON-Compiler.git
 $ mkdir build
 $ cd build
-$ cmake -DLLVM_EXPERIMENTAL_TARGETS_TO_BUILD=TVM -DLLVM_TARGETS_TO_BUILD=X86 -GNinja ../TON-Compiler/llvm
+$ cmake -DLLVM_EXPERIMENTAL_TARGETS_TO_BUILD=TVM -DLLVM_TARGETS_TO_BUILD=X86 -DLLVM_BYTE_SIZE_IN_BITS=257 -GNinja ../TON-Compiler/llvm
 $ ninja
 ```
 To learn more about available CMake options, please refer to https://llvm.org/docs/CMake.html

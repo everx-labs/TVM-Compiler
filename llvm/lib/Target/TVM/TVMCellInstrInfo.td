@@ -73,6 +73,7 @@ defm STREF : I<(outs Builder:$obldr), (ins Cell:$icell, Builder:$ibldr),
 
                "STREF\t$obldr, $icell, $ibldr", "STREF", 0xcc>;
 
+let hasSideEffects = 1 in {
 defm LDI : I<(outs I257 : $x, Slice : $sliceo),
              (ins Slice : $slicei, uimm0_257 : $precision),
              (outs), (ins uimm0_257 : $precision),
@@ -108,6 +109,7 @@ defm STIXR : I0<(outs Builder : $builder),
 defm STUXR : I0<(outs Builder : $builder),
                 (ins Builder : $builderi, I257 : $val, I257 : $precision), [],
                 "LDUXR", 0xcf03>;
+}
 
 /// TODO: It should be a pipehole optimization for LDREF; SWAP; CTOS
 defm LDREFRTOS : I<(outs Slice:$cellslice, Slice:$sliceo), (ins Slice:$slicei),

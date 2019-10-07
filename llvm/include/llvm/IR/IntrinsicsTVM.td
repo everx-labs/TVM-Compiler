@@ -62,7 +62,7 @@ let TargetPrefix = "tvm" in {
 
   def int_tvm_ldi :
     GCCBuiltin<"__builtin_tvm_ldi">,
-    Intrinsic<[llvm_i257_ty, llvm_TVMSlice_ty], [llvm_i257_ty, llvm_TVMSlice_ty],
+    Intrinsic<[llvm_i257_ty, llvm_TVMSlice_ty], [llvm_TVMSlice_ty, llvm_i257_ty],
               [IntrNoMem, Throws]>;
 
   // A.10 Dictionary manipulation primitives
@@ -78,11 +78,11 @@ let TargetPrefix = "tvm" in {
               [llvm_i257_ty, llvm_TVMSlice_ty /* Dictionary */, llvm_i257_ty]>;
   def int_tvm_dictuset :
     GCCBuiltin<"__builtin_tvm_dictuset">,
-    Intrinsic<[llvm_i257_ty],
+    Intrinsic<[llvm_TVMSlice_ty],
               [llvm_i257_ty, llvm_i257_ty, llvm_TVMSlice_ty /* Dictionary */, llvm_i257_ty]>;
   def int_tvm_dictiset :
     GCCBuiltin<"__builtin_tvm_dictiset">,
-    Intrinsic<[llvm_i257_ty],
+    Intrinsic<[llvm_TVMSlice_ty],
               [llvm_i257_ty, llvm_i257_ty, llvm_TVMSlice_ty /* Dictionary */, llvm_i257_ty]>;
   def int_tvm_plddict :
     GCCBuiltin<"__builtin_tvm_plddict">,

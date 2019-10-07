@@ -56,7 +56,11 @@ void TVMMCInstLower::lower(const MachineInstr *MI, MCInst &OutMI) {
         MCOp = MCOperand::createImm(MO.getCImm()->getSExtValue());
         break;
       } else {
-        auto Str = new (Ctx) SmallString<40>();
+        // To avoid a memory leak, initial size of the SmallString should be
+        // chosen enough for the entire string. Otherwise, its internal memory
+        // will be reallocated into the generic heap but not into the Ctx
+        // arena and thus never deallocated.
+        auto Str = new (Ctx) SmallString<80>();
         if (MI->getOpcode() == TVM::CONST_U257_S)
           MO.getCImm()->getValue().toString(*Str, 16, false, true);
         else

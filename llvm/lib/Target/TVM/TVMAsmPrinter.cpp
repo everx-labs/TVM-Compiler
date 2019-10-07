@@ -201,8 +201,9 @@ void TVMAsmPrinter::EmitSubBlockForPushcont(const TVMMCInstLower &lower,
   if (isVerbose()) {
     // Print PUSHCONT_MBB comments at close brace '}'
     auto MIit = Mapping.find(&Inst);
-    for (auto &Comment : MFI->getStackModelComments(MIit->second))
-      OutStreamer->AddComment(Comment);
+    if (MIit != Mapping.end())
+      for (auto &Comment : MFI->getStackModelComments(MIit->second))
+        OutStreamer->AddComment(Comment);
   }
   OutStreamer->EmitRawText("\t" + std::string(depth, ' ') + "}\n");
 }
@@ -213,9 +214,9 @@ void TVMAsmPrinter::EmitBasicBlockStart(const MachineBasicBlock &MBB) const {
 
 /// Print a big LLVM constant int (>64 bit) to the .s file.
 void TVMAsmPrinter::EmitBigInt(const ConstantInt *CI) {
-  auto Str = new (OutContext) SmallString<40>();
-  CI->getValue().toString(*Str, 16, true, true);
-  OutStreamer->EmitValue(TVMImmStringMCExpr::create(*Str, OutContext), 1);
+  SmallString<80> Str;
+  CI->getValue().toString(Str, 16, true, true);
+  OutStreamer->EmitRawText(Str);
 }
 
 bool TVMAsmPrinter::runOnMachineFunction(MachineFunction &MF) {

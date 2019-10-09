@@ -1296,7 +1296,9 @@ void CoverageMappingModuleGen::addFunctionMappingRecord(
       FunctionRecordTy, makeArrayRef(FunctionRecordVals)));
   if (!IsUsed)
     FunctionNames.push_back(
-        llvm::ConstantExpr::getBitCast(NamePtr, llvm::Type::getInt8PtrTy(Ctx)));
+        // TVM local begin
+        llvm::ConstantExpr::getBitCast(NamePtr, llvm::Type::getIntBytePtrTy(Ctx)));
+        // TVM local end
   CoverageMappings.push_back(CoverageMapping);
 
   if (CGM.getCodeGenOpts().DumpCoverageMapping) {
@@ -1396,7 +1398,9 @@ void CoverageMappingModuleGen::emit() {
   CGM.addUsedGlobal(CovData);
   // Create the deferred function records array
   if (!FunctionNames.empty()) {
-    auto NamesArrTy = llvm::ArrayType::get(llvm::Type::getInt8PtrTy(Ctx),
+    // TVM local begin
+    auto NamesArrTy = llvm::ArrayType::get(llvm::Type::getIntBytePtrTy(Ctx),
+    // TVM local end
                                            FunctionNames.size());
     auto NamesArrVal = llvm::ConstantArray::get(NamesArrTy, FunctionNames);
     // This variable will *NOT* be emitted to the object file. It is used

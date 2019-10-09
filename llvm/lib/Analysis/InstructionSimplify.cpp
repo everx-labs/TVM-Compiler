@@ -4635,7 +4635,9 @@ static Value *SimplifyRelativeLoad(Constant *Ptr, Constant *Offset,
   if (!IsConstantOffsetFromGlobal(Ptr, PtrSym, PtrOffset, DL))
     return nullptr;
 
-  Type *Int8PtrTy = Type::getInt8PtrTy(Ptr->getContext());
+  // TVM local begin
+  Type *Int8PtrTy = Type::getIntBytePtrTy(Ptr->getContext());
+  // TVM local end
   Type *Int32Ty = Type::getInt32Ty(Ptr->getContext());
   Type *Int32PtrTy = Int32Ty->getPointerTo();
   Type *Int64Ty = Type::getInt64Ty(Ptr->getContext());

@@ -209,7 +209,9 @@ bool DwarfEHPrepare::InsertUnwindResumeCalls(Function &Fn) {
   // Find the rewind function if we didn't already.
   if (!RewindFunction) {
     FunctionType *FTy = FunctionType::get(Type::getVoidTy(Ctx),
-                                          Type::getInt8PtrTy(Ctx), false);
+                                          // TVM local begin
+                                          Type::getIntBytePtrTy(Ctx), false);
+                                          // TVM local end
     const char *RewindName = TLI->getLibcallName(RTLIB::UNWIND_RESUME);
     RewindFunction = Fn.getParent()->getOrInsertFunction(RewindName, FTy);
   }
@@ -232,8 +234,10 @@ bool DwarfEHPrepare::InsertUnwindResumeCalls(Function &Fn) {
   }
 
   BasicBlock *UnwindBB = BasicBlock::Create(Ctx, "unwind_resume", &Fn);
-  PHINode *PN = PHINode::Create(Type::getInt8PtrTy(Ctx), ResumesLeft,
+  // TVM local begin
+  PHINode *PN = PHINode::Create(Type::getIntBytePtrTy(Ctx), ResumesLeft,
                                 "exn.obj", UnwindBB);
+  // TVM local end
 
   // Extract the exception object from the ResumeInst and add it to the PHI node
   // that feeds the _Unwind_Resume call.

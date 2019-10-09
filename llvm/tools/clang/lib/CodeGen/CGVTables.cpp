@@ -595,7 +595,9 @@ void CodeGenVTables::addVTableComponent(
   auto addOffsetConstant = [&](CharUnits offset) {
     builder.add(llvm::ConstantExpr::getIntToPtr(
         llvm::ConstantInt::get(CGM.PtrDiffTy, offset.getQuantity()),
-        CGM.Int8PtrTy));
+        // TVM local begin
+        CGM.BytePtrTy));
+        // TVM local end
   };
 
   switch (component.getKind()) {
@@ -609,7 +611,9 @@ void CodeGenVTables::addVTableComponent(
     return addOffsetConstant(component.getOffsetToTop());
 
   case VTableComponent::CK_RTTI:
-    return builder.add(llvm::ConstantExpr::getBitCast(rtti, CGM.Int8PtrTy));
+    // TVM local begin
+    return builder.add(llvm::ConstantExpr::getBitCast(rtti, CGM.BytePtrTy));
+    // TVM local end
 
   case VTableComponent::CK_FunctionPointer:
   case VTableComponent::CK_CompleteDtorPointer:
@@ -643,7 +647,9 @@ void CodeGenVTables::addVTableComponent(
               ? MD->hasAttr<CUDADeviceAttr>()
               : (MD->hasAttr<CUDAHostAttr>() || !MD->hasAttr<CUDADeviceAttr>());
       if (!CanEmitMethod)
-        return builder.addNullPointer(CGM.Int8PtrTy);
+        // TVM local begin
+        return builder.addNullPointer(CGM.BytePtrTy);
+        // TVM local end
       // Method is acceptable, continue processing as usual.
     }
 
@@ -653,7 +659,9 @@ void CodeGenVTables::addVTableComponent(
       llvm::Constant *fn = CGM.CreateRuntimeFunction(fnTy, name);
       if (auto f = dyn_cast<llvm::Function>(fn))
         f->setUnnamedAddr(llvm::GlobalValue::UnnamedAddr::Global);
-      return llvm::ConstantExpr::getBitCast(fn, CGM.Int8PtrTy);
+      // TVM local begin
+      return llvm::ConstantExpr::getBitCast(fn, CGM.BytePtrTy);
+      // TVM local end
     };
 
     llvm::Constant *fnPtr;
@@ -686,13 +694,17 @@ void CodeGenVTables::addVTableComponent(
       fnPtr = CGM.GetAddrOfFunction(GD, fnTy, /*ForVTable=*/true);
     }
 
-    fnPtr = llvm::ConstantExpr::getBitCast(fnPtr, CGM.Int8PtrTy);
+    // TVM local begin
+    fnPtr = llvm::ConstantExpr::getBitCast(fnPtr, CGM.BytePtrTy);
+    // TVM local end
     builder.add(fnPtr);
     return;
   }
 
   case VTableComponent::CK_UnusedFunctionPointer:
-    return builder.addNullPointer(CGM.Int8PtrTy);
+    // TVM local begin
+    return builder.addNullPointer(CGM.BytePtrTy);
+    // TVM local end
   }
 
   llvm_unreachable("Unexpected vtable component kind");
@@ -701,7 +713,9 @@ void CodeGenVTables::addVTableComponent(
 llvm::Type *CodeGenVTables::getVTableType(const VTableLayout &layout) {
   SmallVector<llvm::Type *, 4> tys;
   for (unsigned i = 0, e = layout.getNumVTables(); i != e; ++i) {
-    tys.push_back(llvm::ArrayType::get(CGM.Int8PtrTy, layout.getVTableSize(i)));
+    // TVM local begin
+    tys.push_back(llvm::ArrayType::get(CGM.BytePtrTy, layout.getVTableSize(i)));
+    // TVM local end
   }
 
   return llvm::StructType::get(CGM.getLLVMContext(), tys);
@@ -712,7 +726,9 @@ void CodeGenVTables::createVTableInitializer(ConstantStructBuilder &builder,
                                              llvm::Constant *rtti) {
   unsigned nextVTableThunkIndex = 0;
   for (unsigned i = 0, e = layout.getNumVTables(); i != e; ++i) {
-    auto vtableElem = builder.beginArray(CGM.Int8PtrTy);
+    // TVM local begin
+    auto vtableElem = builder.beginArray(CGM.BytePtrTy);
+    // TVM local end
     size_t thisIndex = layout.getVTableOffset(i);
     size_t nextIndex = thisIndex + layout.getVTableSize(i);
     for (unsigned i = thisIndex; i != nextIndex; ++i) {

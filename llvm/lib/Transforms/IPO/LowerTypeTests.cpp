@@ -333,7 +333,9 @@ class LowerTypeTestsModule {
 
   IntegerType *Int1Ty = Type::getInt1Ty(M.getContext());
   IntegerType *Int8Ty = Type::getInt8Ty(M.getContext());
-  PointerType *Int8PtrTy = Type::getInt8PtrTy(M.getContext());
+  // TVM local begin
+  PointerType *Int8PtrTy = Type::getIntBytePtrTy(M.getContext());
+  // TVM local end
   ArrayType *Int8Arr0Ty = ArrayType::get(Type::getInt8Ty(M.getContext()), 0);
   IntegerType *Int32Ty = Type::getInt32Ty(M.getContext());
   PointerType *Int32PtrTy = PointerType::getUnqual(Int32Ty);

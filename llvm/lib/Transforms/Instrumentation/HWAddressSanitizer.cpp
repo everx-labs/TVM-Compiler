@@ -422,7 +422,9 @@ void HWAddressSanitizer::instrumentMemAccessInline(Value *PtrLong, bool IsWrite,
   Value *AddrLong = untagPointer(IRB, PtrLong);
   Value *ShadowLong = memToShadow(AddrLong, PtrLong->getType(), IRB);
   Value *MemTag =
-      IRB.CreateLoad(IRB.CreateIntToPtr(ShadowLong, IRB.getInt8PtrTy()));
+      // TVM local begin
+      IRB.CreateLoad(IRB.CreateIntToPtr(ShadowLong, IRB.getIntBytePtrTy()));
+      // TVM local end
   Value *TagMismatch = IRB.CreateICmpNE(PtrTag, MemTag);
 
   int matchAllTag = ClMatchAllTag.getNumOccurrences() > 0 ?
@@ -527,7 +529,9 @@ bool HWAddressSanitizer::tagAlloca(IRBuilder<> &IRB, AllocaInst *AI,
     size_t ShadowSize = Size >> Mapping.Scale;
     Value *ShadowPtr = IRB.CreateIntToPtr(
         memToShadow(IRB.CreatePointerCast(AI, IntptrTy), AI->getType(), IRB),
-        IRB.getInt8PtrTy());
+        // TVM local begin
+        IRB.getIntBytePtrTy());
+        // TVM local end
     // If this memset is not inlined, it will be intercepted in the hwasan
     // runtime library. That's OK, because the interceptor skips the checks if
     // the address is in the shadow region.

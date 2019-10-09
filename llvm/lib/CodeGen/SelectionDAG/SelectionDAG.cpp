@@ -966,7 +966,9 @@ SDNode *SelectionDAG::FindModifiedNodeSlot(SDNode *N, ArrayRef<SDValue> Ops,
 
 unsigned SelectionDAG::getEVTAlignment(EVT VT) const {
   Type *Ty = VT == MVT::iPTR ?
-                   PointerType::get(Type::getInt8Ty(*getContext()), 0) :
+                   // TVM local begin
+                   PointerType::get(Type::getByteTy(*getContext()), 0) :
+                   // TVM local end
                    VT.getTypeForEVT(*getContext());
 
   return getDataLayout().getABITypeAlignment(Ty);
@@ -5046,7 +5048,9 @@ static SDValue getMemsetValue(SDValue Value, EVT VT, SelectionDAG &DAG,
 
   unsigned NumBits = VT.getScalarSizeInBits();
   if (ConstantSDNode *C = dyn_cast<ConstantSDNode>(Value)) {
-    assert(C->getAPIntValue().getBitWidth() == 8);
+    // TVM local begin
+    assert(C->getAPIntValue().getBitWidth() == ByteSizeInBits);
+    // TVM local end
     APInt Val = APInt::getSplat(NumBits, C->getAPIntValue());
     if (VT.isInteger())
       return DAG.getConstant(Val, dl, VT);
@@ -5054,16 +5058,22 @@ static SDValue getMemsetValue(SDValue Value, EVT VT, SelectionDAG &DAG,
                              VT);
   }
 
-  assert(Value.getValueType() == MVT::i8 && "memset with non-byte fill value?");
+  // TVM local begin
+  // assert(Value.getValueType() == MVT::i8 && "memset with non-byte fill value?");
+  // TVM local end
   EVT IntVT = VT.getScalarType();
   if (!IntVT.isInteger())
     IntVT = EVT::getIntegerVT(*DAG.getContext(), IntVT.getSizeInBits());
 
   Value = DAG.getNode(ISD::ZERO_EXTEND, dl, IntVT, Value);
-  if (NumBits > 8) {
+  // TVM local begin
+  if (NumBits > ByteSizeInBits) {
+  // TVM local end
     // Use a multiplication with 0x010101... to extend the input to the
     // required length.
-    APInt Magic = APInt::getSplat(NumBits, APInt(8, 0x01));
+    // TVM local begin
+    APInt Magic = APInt::getSplat(NumBits, APInt(ByteSizeInBits, 0x01));
+    // TVM local end
     Value = DAG.getNode(ISD::MUL, dl, IntVT, Value,
                         DAG.getConstant(Magic, dl, IntVT));
   }
@@ -5250,7 +5260,9 @@ static bool FindOptimalMemOpLowering(std::vector<EVT> &MemOps,
       // cost model for unaligned load / store.
       bool Fast;
       if (NumMemOps && AllowOverlap &&
-          VTSize >= 8 && NewVTSize < Size &&
+          // TVM local begin
+          VTSize >= ByteSizeInBits && NewVTSize < Size &&
+          // TVM local end
           TLI.allowsMisalignedMemoryAccesses(VT, DstAS, DstAlign, &Fast) && Fast)
         VTSize = Size;
       else {
@@ -5987,8 +5999,9 @@ SDValue SelectionDAG::getAtomicMemset(SDValue Chain, const SDLoc &dl,
   Entry.Ty = getDataLayout().getIntPtrType(*getContext());
   Entry.Node = Dst;
   Args.push_back(Entry);
-
-  Entry.Ty = Type::getInt8Ty(*getContext());
+  // TVM local begin
+  Entry.Ty = Type::getByteTy(*getContext());
+  // TVM local end
   Entry.Node = Value;
   Args.push_back(Entry);
 

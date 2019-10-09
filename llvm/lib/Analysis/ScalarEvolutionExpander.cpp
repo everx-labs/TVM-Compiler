@@ -502,7 +502,9 @@ Value *SCEVExpander::expandAddToGEP(const SCEV *const *op_begin,
   if (!AnyNonZeroIndices) {
     // Cast the base to i8*.
     V = InsertNoopCastOfTo(V,
-       Type::getInt8PtrTy(Ty->getContext(), PTy->getAddressSpace()));
+    // TVM local begin
+       Type::getIntBytePtrTy(Ty->getContext(), PTy->getAddressSpace()));
+    // TVM local end
 
     assert(!isa<Instruction>(V) ||
            SE.DT.dominates(cast<Instruction>(V), &*Builder.GetInsertPoint()));
@@ -513,8 +515,10 @@ Value *SCEVExpander::expandAddToGEP(const SCEV *const *op_begin,
     // Fold a GEP with constant operands.
     if (Constant *CLHS = dyn_cast<Constant>(V))
       if (Constant *CRHS = dyn_cast<Constant>(Idx))
-        return ConstantExpr::getGetElementPtr(Type::getInt8Ty(Ty->getContext()),
+        // TVM local begin
+        return ConstantExpr::getGetElementPtr(Type::getByteTy(Ty->getContext()),
                                               CLHS, CRHS);
+        // TVM local end
 
     // Do a quick scan to see if we have this GEP nearby.  If so, reuse it.
     unsigned ScanLimit = 6;
@@ -951,7 +955,9 @@ Instruction *SCEVExpander::getIVIncOperand(Instruction *IncV,
         return nullptr;
       unsigned AS = cast<PointerType>(IncV->getType())->getAddressSpace();
       if (IncV->getType() != Type::getInt1PtrTy(SE.getContext(), AS)
-          && IncV->getType() != Type::getInt8PtrTy(SE.getContext(), AS))
+          // TVM local begin
+          && IncV->getType() != Type::getIntBytePtrTy(SE.getContext(), AS))
+          // TVM local end
         return nullptr;
       break;
     }
@@ -1795,19 +1801,22 @@ Value *SCEVExpander::expand(const SCEV *S) {
       Type *Ety = Vty->getPointerElementType();
       int64_t Offset = VO.second->getSExtValue();
       int64_t ESize = SE.getTypeSizeInBits(Ety);
-      if ((Offset * 8) % ESize == 0) {
+      // TVM local begin
+      if ((Offset * ByteSizeInBits) % ESize == 0) {
         ConstantInt *Idx =
-            ConstantInt::getSigned(VO.second->getType(), -(Offset * 8) / ESize);
+            ConstantInt::getSigned(VO.second->getType(),
+                                   -(Offset * ByteSizeInBits) / ESize);
         V = Builder.CreateGEP(Ety, V, Idx, "scevgep");
       } else {
         ConstantInt *Idx =
             ConstantInt::getSigned(VO.second->getType(), -Offset);
         unsigned AS = Vty->getAddressSpace();
-        V = Builder.CreateBitCast(V, Type::getInt8PtrTy(SE.getContext(), AS));
-        V = Builder.CreateGEP(Type::getInt8Ty(SE.getContext()), V, Idx,
+        V = Builder.CreateBitCast(V, Type::getIntBytePtrTy(SE.getContext(), AS));
+        V = Builder.CreateGEP(Type::getByteTy(SE.getContext()), V, Idx,
                               "uglygep");
         V = Builder.CreateBitCast(V, Vty);
       }
+      // TVM local end
     } else {
       V = Builder.CreateSub(V, VO.second);
     }

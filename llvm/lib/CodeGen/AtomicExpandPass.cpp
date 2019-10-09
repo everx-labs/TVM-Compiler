@@ -1546,7 +1546,9 @@ bool AtomicExpand::expandAtomicOpToLibcall(
 
   // 'ptr' argument.
   Value *PtrVal =
-      Builder.CreateBitCast(PointerOperand, Type::getInt8PtrTy(Ctx));
+      // TVM local begin
+      Builder.CreateBitCast(PointerOperand, Type::getIntBytePtrTy(Ctx));
+      // TVM local end
   Args.push_back(PtrVal);
 
   // 'expected' argument, if present.
@@ -1554,7 +1556,9 @@ bool AtomicExpand::expandAtomicOpToLibcall(
     AllocaCASExpected = AllocaBuilder.CreateAlloca(CASExpected->getType());
     AllocaCASExpected->setAlignment(AllocaAlignment);
     AllocaCASExpected_i8 =
-        Builder.CreateBitCast(AllocaCASExpected, Type::getInt8PtrTy(Ctx));
+        // TVM local begin
+        Builder.CreateBitCast(AllocaCASExpected, Type::getIntBytePtrTy(Ctx));
+        // TVM local end
     Builder.CreateLifetimeStart(AllocaCASExpected_i8, SizeVal64);
     Builder.CreateAlignedStore(CASExpected, AllocaCASExpected, AllocaAlignment);
     Args.push_back(AllocaCASExpected_i8);
@@ -1570,7 +1574,9 @@ bool AtomicExpand::expandAtomicOpToLibcall(
       AllocaValue = AllocaBuilder.CreateAlloca(ValueOperand->getType());
       AllocaValue->setAlignment(AllocaAlignment);
       AllocaValue_i8 =
-          Builder.CreateBitCast(AllocaValue, Type::getInt8PtrTy(Ctx));
+          // TVM local begin
+          Builder.CreateBitCast(AllocaValue, Type::getIntBytePtrTy(Ctx));
+          // TVM local end
       Builder.CreateLifetimeStart(AllocaValue_i8, SizeVal64);
       Builder.CreateAlignedStore(ValueOperand, AllocaValue, AllocaAlignment);
       Args.push_back(AllocaValue_i8);
@@ -1582,7 +1588,9 @@ bool AtomicExpand::expandAtomicOpToLibcall(
     AllocaResult = AllocaBuilder.CreateAlloca(I->getType());
     AllocaResult->setAlignment(AllocaAlignment);
     AllocaResult_i8 =
-        Builder.CreateBitCast(AllocaResult, Type::getInt8PtrTy(Ctx));
+        // TVM local begin
+        Builder.CreateBitCast(AllocaResult, Type::getIntBytePtrTy(Ctx));
+        // TVM local end
     Builder.CreateLifetimeStart(AllocaResult_i8, SizeVal64);
     Args.push_back(AllocaResult_i8);
   }

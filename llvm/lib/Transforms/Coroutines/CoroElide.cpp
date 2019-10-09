@@ -130,7 +130,9 @@ void Lowerer::elideHeapAllocations(Function *F, Type *FrameTy, AAResults &AA) {
   const DataLayout &DL = F->getParent()->getDataLayout();
   auto *Frame = new AllocaInst(FrameTy, DL.getAllocaAddrSpace(), "", InsertPt);
   auto *FrameVoidPtr =
-      new BitCastInst(Frame, Type::getInt8PtrTy(C), "vFrame", InsertPt);
+      // TVM local begin
+      new BitCastInst(Frame, Type::getIntBytePtrTy(C), "vFrame", InsertPt);
+      // TVM local end
 
   for (auto *CB : CoroBegins) {
     CB->replaceAllUsesWith(FrameVoidPtr);

@@ -449,6 +449,7 @@ public:
   static IntegerType *getInt128Ty(LLVMContext &C);
   // TVM local begin
   static IntegerType *getInt257Ty(LLVMContext &C);
+  static IntegerType *getByteTy(LLVMContext &C);
   // TVM local end
   template <typename ScalarTy> static Type *getScalarTy(LLVMContext &C) {
     int noOfBits = sizeof(ScalarTy) * CHAR_BIT;
@@ -478,6 +479,9 @@ public:
   static PointerType *getX86_MMXPtrTy(LLVMContext &C, unsigned AS = 0);
   static PointerType *getIntNPtrTy(LLVMContext &C, unsigned N, unsigned AS = 0);
   static PointerType *getInt1PtrTy(LLVMContext &C, unsigned AS = 0);
+  // TVM local begin
+  static PointerType *getIntBytePtrTy(LLVMContext &C, unsigned AS = 0);
+  // TVM local end
   static PointerType *getInt8PtrTy(LLVMContext &C, unsigned AS = 0);
   static PointerType *getInt16PtrTy(LLVMContext &C, unsigned AS = 0);
   static PointerType *getInt32PtrTy(LLVMContext &C, unsigned AS = 0);

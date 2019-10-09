@@ -126,7 +126,9 @@ struct CGRecordLowering {
   /// Gets an llvm type of size NumBytes and alignment 1.
   llvm::Type *getByteArrayType(CharUnits NumBytes) {
     assert(!NumBytes.isZero() && "Empty byte arrays aren't allowed.");
-    llvm::Type *Type = llvm::Type::getInt8Ty(Types.getLLVMContext());
+    // TVM local begin
+    llvm::Type *Type = llvm::Type::getByteTy(Types.getLLVMContext());
+    // TVM local end
     return NumBytes == CharUnits::One() ? Type :
         (llvm::Type *)llvm::ArrayType::get(Type, NumBytes.getQuantity());
   }

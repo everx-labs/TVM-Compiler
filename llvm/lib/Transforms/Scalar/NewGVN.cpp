@@ -3754,9 +3754,11 @@ void NewGVN::deleteInstructionsInBlock(BasicBlock *BB) {
     ++NumGVNInstrDeleted;
   }
   // Now insert something that simplifycfg will turn into an unreachable.
-  Type *Int8Ty = Type::getInt8Ty(BB->getContext());
-  new StoreInst(UndefValue::get(Int8Ty),
-                Constant::getNullValue(Int8Ty->getPointerTo()),
+  // TVM local begin
+  Type *ByteTy = Type::getByteTy(BB->getContext());
+  new StoreInst(UndefValue::get(ByteTy),
+                Constant::getNullValue(ByteTy->getPointerTo()),
+  // TVM local end
                 BB->getTerminator());
 }
 

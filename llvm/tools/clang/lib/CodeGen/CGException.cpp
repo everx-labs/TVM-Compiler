@@ -34,7 +34,9 @@ static llvm::Constant *getFreeExceptionFn(CodeGenModule &CGM) {
   // void __cxa_free_exception(void *thrown_exception);
 
   llvm::FunctionType *FTy =
-    llvm::FunctionType::get(CGM.VoidTy, CGM.Int8PtrTy, /*IsVarArgs=*/false);
+    // TVM local begin
+    llvm::FunctionType::get(CGM.VoidTy, CGM.BytePtrTy, /*IsVarArgs=*/false);
+    // TVM local end
 
   return CGM.CreateRuntimeFunction(FTy, "__cxa_free_exception");
 }
@@ -43,7 +45,9 @@ static llvm::Constant *getUnexpectedFn(CodeGenModule &CGM) {
   // void __cxa_call_unexpected(void *thrown_exception);
 
   llvm::FunctionType *FTy =
-    llvm::FunctionType::get(CGM.VoidTy, CGM.Int8PtrTy, /*IsVarArgs=*/false);
+    // TVM local begin
+    llvm::FunctionType::get(CGM.VoidTy, CGM.BytePtrTy, /*IsVarArgs=*/false);
+    // TVM local end
 
   return CGM.CreateRuntimeFunction(FTy, "__cxa_call_unexpected");
 }
@@ -77,7 +81,9 @@ llvm::Constant *CodeGenModule::getTerminateFn() {
 static llvm::Constant *getCatchallRethrowFn(CodeGenModule &CGM,
                                             StringRef Name) {
   llvm::FunctionType *FTy =
-    llvm::FunctionType::get(CGM.VoidTy, CGM.Int8PtrTy, /*IsVarArgs=*/false);
+    // TVM local begin
+    llvm::FunctionType::get(CGM.VoidTy, CGM.BytePtrTy, /*IsVarArgs=*/false);
+    // TVM local end
 
   return CGM.CreateRuntimeFunction(FTy, Name);
 }
@@ -250,7 +256,9 @@ static llvm::Constant *getPersonalityFn(CodeGenModule &CGM,
 static llvm::Constant *getOpaquePersonalityFn(CodeGenModule &CGM,
                                         const EHPersonality &Personality) {
   llvm::Constant *Fn = getPersonalityFn(CGM, Personality);
-  return llvm::ConstantExpr::getBitCast(Fn, CGM.Int8PtrTy);
+  // TVM local begin
+  return llvm::ConstantExpr::getBitCast(Fn, CGM.BytePtrTy);
+  // TVM local end
 }
 
 /// Check whether a landingpad instruction only uses C++ features.
@@ -354,7 +362,9 @@ void CodeGenModule::SimplifyPersonality() {
 /// presence of a catch-all.
 static llvm::Constant *getCatchAllValue(CodeGenFunction &CGF) {
   // Possibly we should use @llvm.eh.catch.all.value here.
-  return llvm::ConstantPointerNull::get(CGF.Int8PtrTy);
+  // TVM local begin
+  return llvm::ConstantPointerNull::get(CGF.BytePtrTy);
+  // TVM local end
 }
 
 namespace {
@@ -401,7 +411,9 @@ void CodeGenFunction::EmitAnyExprToExn(const Expr *e, Address addr) {
 
 Address CodeGenFunction::getExceptionSlot() {
   if (!ExceptionSlot)
-    ExceptionSlot = CreateTempAlloca(Int8PtrTy, "exn.slot");
+    // TVM local begin
+    ExceptionSlot = CreateTempAlloca(BytePtrTy, "exn.slot");
+    // TVM local end
   return Address(ExceptionSlot, getPointerAlign());
 }
 
@@ -774,7 +786,9 @@ llvm::BasicBlock *CodeGenFunction::EmitLandingPad() {
   EmitBlock(lpad);
 
   llvm::LandingPadInst *LPadInst =
-      Builder.CreateLandingPad(llvm::StructType::get(Int8PtrTy, Int32Ty), 0);
+      // TVM local begin
+      Builder.CreateLandingPad(llvm::StructType::get(BytePtrTy, Int32Ty), 0);
+      // TVM local end
 
   llvm::Value *LPadExn = Builder.CreateExtractValue(LPadInst, 0);
   Builder.CreateStore(LPadExn, getExceptionSlot());
@@ -863,7 +877,9 @@ llvm::BasicBlock *CodeGenFunction::EmitLandingPad() {
     SmallVector<llvm::Constant*, 8> Filters;
     llvm::ArrayType *AType =
       llvm::ArrayType::get(!filterTypes.empty() ?
-                             filterTypes[0]->getType() : Int8PtrTy,
+                             // TVM local begin
+                             filterTypes[0]->getType() : BytePtrTy,
+                             // TVM local end
                            filterTypes.size());
 
     for (unsigned i = 0, e = filterTypes.size(); i != e; ++i)
@@ -1080,7 +1096,9 @@ static void emitCatchDispatchBlock(CodeGenFunction &CGF,
     assert(handler.Type.Flags == 0 &&
            "landingpads do not support catch handler flags");
     assert(typeValue && "fell into catch-all case!");
-    typeValue = CGF.Builder.CreateBitCast(typeValue, CGF.Int8PtrTy);
+    // TVM local begin
+    typeValue = CGF.Builder.CreateBitCast(typeValue, CGF.BytePtrTy);
+    // TVM local end
 
     // Figure out the next block.
     bool nextIsEnd;
@@ -1378,7 +1396,9 @@ void CodeGenFunction::FinallyInfo::enter(CodeGenFunction &CGF,
       cast<llvm::PointerType>(rethrowFn->getType())->getElementType());
   SavedExnVar = nullptr;
   if (rethrowFnTy->getNumParams())
-    SavedExnVar = CGF.CreateTempAlloca(CGF.Int8PtrTy, "finally.exn");
+    // TVM local begin
+    SavedExnVar = CGF.CreateTempAlloca(CGF.BytePtrTy, "finally.exn");
+    // TVM local end
 
   // A finally block is a statement which must be executed on any edge
   // out of a given scope.  Unlike a cleanup, the finally block may
@@ -1470,7 +1490,9 @@ llvm::BasicBlock *CodeGenFunction::getTerminateLandingPad() {
     CurFn->setPersonalityFn(getOpaquePersonalityFn(CGM, Personality));
 
   llvm::LandingPadInst *LPadInst =
-      Builder.CreateLandingPad(llvm::StructType::get(Int8PtrTy, Int32Ty), 0);
+      // TVM local begin
+      Builder.CreateLandingPad(llvm::StructType::get(BytePtrTy, Int32Ty), 0);
+      // TVM local end
   LPadInst->addClause(getCatchAllValue(*this));
 
   llvm::Value *Exn = nullptr;
@@ -1714,7 +1736,9 @@ Address CodeGenFunction::recoverAddrOfEscapedLocal(CodeGenFunction &ParentCGF,
     llvm::Function *FrameRecoverFn = llvm::Intrinsic::getDeclaration(
         &CGM.getModule(), llvm::Intrinsic::localrecover);
     llvm::Constant *ParentI8Fn =
-        llvm::ConstantExpr::getBitCast(ParentCGF.CurFn, Int8PtrTy);
+        // TVM local begin
+        llvm::ConstantExpr::getBitCast(ParentCGF.CurFn, BytePtrTy);
+        // TVM local end
     RecoverCall = Builder.CreateCall(
         FrameRecoverFn, {ParentI8Fn, ParentFP,
                          llvm::ConstantInt::get(Int32Ty, FrameEscapeIdx)});
@@ -1779,7 +1803,9 @@ void CodeGenFunction::EmitCapturedLocals(CodeGenFunction &ParentCGF,
     llvm::Function *RecoverFPIntrin =
         CGM.getIntrinsic(llvm::Intrinsic::x86_seh_recoverfp);
     llvm::Constant *ParentI8Fn =
-        llvm::ConstantExpr::getBitCast(ParentCGF.CurFn, Int8PtrTy);
+        // TVM local begin
+        llvm::ConstantExpr::getBitCast(ParentCGF.CurFn, BytePtrTy);
+        // TVM local end
     ParentFP = Builder.CreateCall(RecoverFPIntrin, {ParentI8Fn, EntryFP});
   }
 
@@ -1927,9 +1953,11 @@ void CodeGenFunction::EmitSEHExceptionCodeSave(CodeGenFunction &ParentCGF,
     // exception registration object. It contains 6 32-bit fields, and the info
     // pointer is stored in the second field. So, GEP 20 bytes backwards and
     // load the pointer.
-    SEHInfo = Builder.CreateConstInBoundsGEP1_32(Int8Ty, EntryFP, -20);
-    SEHInfo = Builder.CreateBitCast(SEHInfo, Int8PtrTy->getPointerTo());
-    SEHInfo = Builder.CreateAlignedLoad(Int8PtrTy, SEHInfo, getPointerAlign());
+    // TVM local begin
+    SEHInfo = Builder.CreateConstInBoundsGEP1_32(ByteTy, EntryFP, -20);
+    SEHInfo = Builder.CreateBitCast(SEHInfo, BytePtrTy->getPointerTo());
+    SEHInfo = Builder.CreateAlignedLoad(BytePtrTy, SEHInfo, getPointerAlign());
+    // TVM local end
     SEHCodeSlotStack.push_back(recoverAddrOfEscapedLocal(
         ParentCGF, ParentCGF.SEHCodeSlotStack.back(), ParentFP));
   }
@@ -1954,9 +1982,11 @@ void CodeGenFunction::EmitSEHExceptionCodeSave(CodeGenFunction &ParentCGF,
 llvm::Value *CodeGenFunction::EmitSEHExceptionInfo() {
   // Sema should diagnose calling this builtin outside of a filter context, but
   // don't crash if we screw up.
+  // TVM local begin
   if (!SEHInfo)
-    return llvm::UndefValue::get(Int8PtrTy);
-  assert(SEHInfo->getType() == Int8PtrTy);
+    return llvm::UndefValue::get(BytePtrTy);
+  assert(SEHInfo->getType() == BytePtrTy);
+  // TVM local end
   return SEHInfo;
 }
 
@@ -2013,7 +2043,9 @@ void CodeGenFunction::EnterSEHTryStmt(const SEHTryStmt &S) {
   llvm::Function *FilterFunc =
       HelperCGF.GenerateSEHFilterFunction(*this, *Except);
   llvm::Constant *OpaqueFunc =
-      llvm::ConstantExpr::getBitCast(FilterFunc, Int8PtrTy);
+      // TVM local begin
+      llvm::ConstantExpr::getBitCast(FilterFunc, BytePtrTy);
+      // TVM local end
   CatchScope->setHandler(0, OpaqueFunc, createBasicBlock("__except.ret"));
 }
 

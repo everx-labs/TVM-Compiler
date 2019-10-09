@@ -291,10 +291,14 @@ int analyzeLoadFromClobberingMemInst(Type *LoadTy, Value *LoadPtr,
   // Otherwise, see if we can constant fold a load from the constant with the
   // offset applied as appropriate.
   Src =
-      ConstantExpr::getBitCast(Src, Type::getInt8PtrTy(Src->getContext(), AS));
+      // TVM local begin
+      ConstantExpr::getBitCast(Src, Type::getIntBytePtrTy(Src->getContext(), AS));
+      // TVM local end
   Constant *OffsetCst =
       ConstantInt::get(Type::getInt64Ty(Src->getContext()), (unsigned)Offset);
-  Src = ConstantExpr::getGetElementPtr(Type::getInt8Ty(Src->getContext()), Src,
+  // TVM local begin
+  Src = ConstantExpr::getGetElementPtr(Type::getByteTy(Src->getContext()), Src,
+  // TVM local end
                                        OffsetCst);
   Src = ConstantExpr::getBitCast(Src, PointerType::get(LoadTy, AS));
   if (ConstantFoldLoadFromConstPtr(Src, LoadTy, DL))
@@ -426,7 +430,8 @@ T *getMemInstValueForLoadHelper(MemIntrinsic *SrcInst, unsigned Offset,
                                 Type *LoadTy, HelperClass &Helper,
                                 const DataLayout &DL) {
   LLVMContext &Ctx = LoadTy->getContext();
-  uint64_t LoadSize = DL.getTypeSizeInBits(LoadTy) / 8;
+  // TVM local begin
+  uint64_t LoadSize = DL.getTypeSizeInBits(LoadTy) / ByteSizeInBits;
 
   // We know that this method is only called when the mem transfer fully
   // provides the bits for the load.
@@ -435,29 +440,31 @@ T *getMemInstValueForLoadHelper(MemIntrinsic *SrcInst, unsigned Offset,
     // independently of what the offset is.
     T *Val = cast<T>(MSI->getValue());
     if (LoadSize != 1)
-      Val =
-          Helper.CreateZExtOrBitCast(Val, IntegerType::get(Ctx, LoadSize * 8));
+      Val = Helper.CreateZExtOrBitCast(Val,
+          IntegerType::get(Ctx, LoadSize * ByteSizeInBits));
     T *OneElt = Val;
 
     // Splat the value out to the right number of bits.
     for (unsigned NumBytesSet = 1; NumBytesSet != LoadSize;) {
       // If we can double the number of bytes set, do it.
       if (NumBytesSet * 2 <= LoadSize) {
-        T *ShVal = Helper.CreateShl(
-            Val, ConstantInt::get(Val->getType(), NumBytesSet * 8));
+        T *ShVal = Helper.CreateShl(Val,
+            ConstantInt::get(Val->getType(), NumBytesSet * ByteSizeInBits));
         Val = Helper.CreateOr(Val, ShVal);
         NumBytesSet <<= 1;
         continue;
       }
 
       // Otherwise insert one byte at a time.
-      T *ShVal = Helper.CreateShl(Val, ConstantInt::get(Val->getType(), 1 * 8));
+      T *ShVal = Helper.CreateShl(Val,
+          ConstantInt::get(Val->getType(), 1 * ByteSizeInBits));
       Val = Helper.CreateOr(OneElt, ShVal);
       ++NumBytesSet;
     }
 
     return coerceAvailableValueToLoadTypeHelper(Val, LoadTy, Helper, DL);
   }
+  // TVM local end
 
   // Otherwise, this is a memcpy/memmove from a constant global.
   MemTransferInst *MTI = cast<MemTransferInst>(SrcInst);
@@ -467,10 +474,14 @@ T *getMemInstValueForLoadHelper(MemIntrinsic *SrcInst, unsigned Offset,
   // Otherwise, see if we can constant fold a load from the constant with the
   // offset applied as appropriate.
   Src =
-      ConstantExpr::getBitCast(Src, Type::getInt8PtrTy(Src->getContext(), AS));
+      // TVM local begin
+      ConstantExpr::getBitCast(Src, Type::getIntBytePtrTy(Src->getContext(), AS));
+      // TVM local end
   Constant *OffsetCst =
       ConstantInt::get(Type::getInt64Ty(Src->getContext()), (unsigned)Offset);
-  Src = ConstantExpr::getGetElementPtr(Type::getInt8Ty(Src->getContext()), Src,
+  // TVM local begin
+  Src = ConstantExpr::getGetElementPtr(Type::getByteTy(Src->getContext()), Src,
+  // TVM local end
                                        OffsetCst);
   Src = ConstantExpr::getBitCast(Src, PointerType::get(LoadTy, AS));
   return ConstantFoldLoadFromConstPtr(Src, LoadTy, DL);

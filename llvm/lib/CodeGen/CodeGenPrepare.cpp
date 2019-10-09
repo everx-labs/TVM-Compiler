@@ -4548,7 +4548,9 @@ bool CodeGenPrepare::optimizeMemoryInst(Instruction *MemoryInst, Value *Addr,
       return false;
     } else {
       Type *I8PtrTy =
-          Builder.getInt8PtrTy(Addr->getType()->getPointerAddressSpace());
+          // TVM local begin
+          Builder.getIntBytePtrTy(Addr->getType()->getPointerAddressSpace());
+          // TVM local end
       Type *I8Ty = Builder.getInt8Ty();
 
       // Start with the base register. Do this first so that subsequent address
@@ -5030,7 +5032,9 @@ bool CodeGenPrepare::splitLargeGEPOffsets() {
       IRBuilder<> Builder(GEP);
       Type *IntPtrTy = DL->getIntPtrType(GEP->getType());
       Type *I8PtrTy =
-          Builder.getInt8PtrTy(GEP->getType()->getPointerAddressSpace());
+          // TVM local begin
+          Builder.getIntBytePtrTy(GEP->getType()->getPointerAddressSpace());
+          // TVM local end
       Type *I8Ty = Builder.getInt8Ty();
 
       if (!NewBaseGEP) {

@@ -808,7 +808,9 @@ IRLinker::linkAppendingVarProto(GlobalVariable *DstGV,
       IsOldStructor = true;
   }
 
-  PointerType *VoidPtrTy = Type::getInt8Ty(SrcGV->getContext())->getPointerTo();
+  // TVM local begin
+  PointerType *VoidPtrTy = Type::getByteTy(SrcGV->getContext())->getPointerTo();
+  // TVM local end
   if (IsOldStructor) {
     auto &ST = *cast<StructType>(EltTy);
     Type *Tys[3] = {ST.getElementType(0), ST.getElementType(1), VoidPtrTy};

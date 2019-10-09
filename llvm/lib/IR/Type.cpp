@@ -191,6 +191,7 @@ IntegerType *Type::getInt64Ty(LLVMContext &C) { return &C.pImpl->Int64Ty; }
 IntegerType *Type::getInt128Ty(LLVMContext &C) { return &C.pImpl->Int128Ty; }
 // TVM local begin
 IntegerType *Type::getInt257Ty(LLVMContext &C) { return &C.pImpl->Int257Ty; }
+IntegerType *Type::getByteTy(LLVMContext &C) { return C.pImpl->ByteTy; }
 // TVM local end
 
 IntegerType *Type::getIntNTy(LLVMContext &C, unsigned N) {
@@ -232,6 +233,12 @@ PointerType *Type::getIntNPtrTy(LLVMContext &C, unsigned N, unsigned AS) {
 PointerType *Type::getInt1PtrTy(LLVMContext &C, unsigned AS) {
   return getInt1Ty(C)->getPointerTo(AS);
 }
+
+// TVM local begin
+PointerType *Type::getIntBytePtrTy(LLVMContext &C, unsigned AS) {
+  return getIntNTy(C, ByteSizeInBits)->getPointerTo(AS);
+}
+// TVM local end
 
 PointerType *Type::getInt8PtrTy(LLVMContext &C, unsigned AS) {
   return getInt8Ty(C)->getPointerTo(AS);

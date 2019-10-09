@@ -1295,6 +1295,9 @@ public:
   // TVM local begin
   Type TVMSliceTy, TVMBuilderTy, TVMCellTy, TVMTupleTy;
   IntegerType Int1Ty, Int8Ty, Int16Ty, Int32Ty, Int64Ty, Int128Ty, Int257Ty;
+  // If ByteTy is not one of standart integer types
+  IntegerType VeryNonStandartByteTy;
+  IntegerType *ByteTy;
   // TVM local end
 
   /// TypeAllocator - All dynamically allocated types are allocated from this.

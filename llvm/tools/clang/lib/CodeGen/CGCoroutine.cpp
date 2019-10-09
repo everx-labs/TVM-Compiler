@@ -196,7 +196,9 @@ static LValueOrRValue emitSuspendExpression(CodeGenFunction &CGF, CGCoroData &Co
 
   auto &Builder = CGF.Builder;
   llvm::Function *CoroSave = CGF.CGM.getIntrinsic(llvm::Intrinsic::coro_save);
-  auto *NullPtr = llvm::ConstantPointerNull::get(CGF.CGM.Int8PtrTy);
+  // TVM local begin
+  auto *NullPtr = llvm::ConstantPointerNull::get(CGF.CGM.BytePtrTy);
+  // TVM local end
   auto *SaveCall = Builder.CreateCall(CoroSave, {NullPtr});
 
   auto *SuspendRet = CGF.EmitScalarExpr(S.getSuspendExpr());
@@ -398,7 +400,9 @@ namespace {
 struct CallCoroEnd final : public EHScopeStack::Cleanup {
   void Emit(CodeGenFunction &CGF, Flags flags) override {
     auto &CGM = CGF.CGM;
-    auto *NullPtr = llvm::ConstantPointerNull::get(CGF.Int8PtrTy);
+    // TVM local begin
+    auto *NullPtr = llvm::ConstantPointerNull::get(CGF.BytePtrTy);
+    // TVM local end
     llvm::Function *CoroEndFn = CGM.getIntrinsic(llvm::Intrinsic::coro_end);
     // See if we have a funclet bundle to associate coro.end with. (WinEH)
     auto Bundles = getBundlesForCoroEnd(CGF);
@@ -455,7 +459,9 @@ struct CallCoroDelete final : public EHScopeStack::Cleanup {
     CGF.Builder.SetInsertPoint(InsertPt);
 
     // Add if (auto *mem = coro.free) Deallocate;
-    auto *NullPtr = llvm::ConstantPointerNull::get(CGF.Int8PtrTy);
+    // TVM local begin
+    auto *NullPtr = llvm::ConstantPointerNull::get(CGF.BytePtrTy);
+    // TVM local end
     auto *Cond = CGF.Builder.CreateICmpNE(CoroFree, NullPtr);
     CGF.Builder.CreateCondBr(Cond, FreeBB, AfterFreeBB);
 
@@ -543,7 +549,9 @@ static void emitBodyAndFallthrough(CodeGenFunction &CGF,
 }
 
 void CodeGenFunction::EmitCoroutineBody(const CoroutineBodyStmt &S) {
-  auto *NullPtr = llvm::ConstantPointerNull::get(Builder.getInt8PtrTy());
+  // TVM local begin
+  auto *NullPtr = llvm::ConstantPointerNull::get(Builder.getIntBytePtrTy());
+  // TVM local end
   auto &TI = CGM.getContext().getTargetInfo();
   unsigned NewAlign = TI.getNewAlign() / TI.getCharWidth();
 
@@ -575,7 +583,9 @@ void CodeGenFunction::EmitCoroutineBody(const CoroutineBodyStmt &S) {
     auto *RetOnFailureBB = createBasicBlock("coro.ret.on.failure");
 
     // See if allocation was successful.
-    auto *NullPtr = llvm::ConstantPointerNull::get(Int8PtrTy);
+    // TVM local begin
+    auto *NullPtr = llvm::ConstantPointerNull::get(BytePtrTy);
+    // TVM local end
     auto *Cond = Builder.CreateICmpNE(AllocateCall, NullPtr);
     Builder.CreateCondBr(Cond, InitBB, RetOnFailureBB);
 
@@ -709,7 +719,9 @@ RValue CodeGenFunction::EmitCoroutineIntrinsic(const CallExpr *E,
     }
     CGM.Error(E->getLocStart(), "this builtin expect that __builtin_coro_begin "
       "has been used earlier in this function");
-    auto NullPtr = llvm::ConstantPointerNull::get(Builder.getInt8PtrTy());
+    // TVM local begin
+    auto NullPtr = llvm::ConstantPointerNull::get(Builder.getIntBytePtrTy());
+    // TVM local end
     return RValue::get(NullPtr);
   }
   // The following three intrinsics take a token parameter referring to a token

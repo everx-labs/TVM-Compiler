@@ -535,12 +535,16 @@ static bool isLoadInvariantInLoop(LoadInst *LI, DominatorTree *DT,
 
   // if the type is i8 addrspace(x)*, we know this is the type of
   // llvm.invariant.start operand
-  auto *PtrInt8Ty = PointerType::get(Type::getInt8Ty(LI->getContext()),
+  // TVM local begin
+  auto *PtrByteTy = PointerType::get(Type::getByteTy(LI->getContext()),
+  // TVM local end
                                      LI->getPointerAddressSpace());
   unsigned BitcastsVisited = 0;
   // Look through bitcasts until we reach the i8* type (this is invariant.start
   // operand type).
-  while (Addr->getType() != PtrInt8Ty) {
+  // TVM local begin
+  while (Addr->getType() != PtrByteTy) {
+  // TVM local end
     auto *BC = dyn_cast<BitCastInst>(Addr);
     // Avoid traversing high number of bitcast uses.
     if (++BitcastsVisited > MaxNumUsesTraversed || !BC)
@@ -561,8 +565,11 @@ static bool isLoadInvariantInLoop(LoadInst *LI, DominatorTree *DT,
     if (!II || II->getIntrinsicID() != Intrinsic::invariant_start ||
         !II->use_empty())
       continue;
+    // TVM local begin
     unsigned InvariantSizeInBits =
-        cast<ConstantInt>(II->getArgOperand(0))->getSExtValue() * 8;
+        cast<ConstantInt>(II->getArgOperand(0))->getSExtValue() *
+        ByteSizeInBits;
+    // TVM local end
     // Confirm the invariant.start location size contains the load operand size
     // in bits. Also, the invariant.start should dominate the load, and we
     // should not hoist the load out of a loop that contains this dominating

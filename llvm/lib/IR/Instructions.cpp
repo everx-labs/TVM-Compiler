@@ -447,7 +447,9 @@ static Instruction *createMalloc(Instruction *InsertBefore,
   // Create the call to Malloc.
   BasicBlock *BB = InsertBefore ? InsertBefore->getParent() : InsertAtEnd;
   Module *M = BB->getParent()->getParent();
-  Type *BPTy = Type::getInt8PtrTy(BB->getContext());
+  // TVM local begin
+  Type *BPTy = Type::getIntBytePtrTy(BB->getContext());
+  // TVM local end
   Value *MallocFunc = MallocF;
   if (!MallocFunc)
     // prototype malloc as "void *malloc(size_t)"
@@ -543,7 +545,9 @@ static Instruction *createFree(Value *Source,
   Module *M = BB->getParent()->getParent();
 
   Type *VoidTy = Type::getVoidTy(M->getContext());
-  Type *IntPtrTy = Type::getInt8PtrTy(M->getContext());
+  // TVM local begin
+  Type *IntPtrTy = Type::getIntBytePtrTy(M->getContext());
+  // TVM local end
   // prototype free as "void free(void*)"
   Value *FreeFunc = M->getOrInsertFunction("free", VoidTy, IntPtrTy);
   CallInst *Result = nullptr;

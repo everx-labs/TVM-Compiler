@@ -2069,7 +2069,9 @@ expandBounds(const RuntimePointerChecking::CheckingPtrGroup *CG, Loop *TheLoop,
   LLVMContext &Ctx = Loc->getContext();
 
   // Use this type for pointer arithmetic.
-  Type *PtrArithTy = Type::getInt8PtrTy(Ctx, AS);
+  // TVM local begin
+  Type *PtrArithTy = Type::getIntBytePtrTy(Ctx, AS);
+  // TVM local end
 
   if (SE->isLoopInvariant(Sc, TheLoop)) {
     LLVM_DEBUG(dbgs() << "LAA: Adding RT check for a loop invariant ptr:"
@@ -2144,8 +2146,10 @@ std::pair<Instruction *, Instruction *> LoopAccessInfo::addRuntimeChecks(
            (AS1 == A.End->getType()->getPointerAddressSpace()) &&
            "Trying to bounds check pointers with different address spaces");
 
-    Type *PtrArithTy0 = Type::getInt8PtrTy(Ctx, AS0);
-    Type *PtrArithTy1 = Type::getInt8PtrTy(Ctx, AS1);
+    // TVM local begin
+    Type *PtrArithTy0 = Type::getIntBytePtrTy(Ctx, AS0);
+    Type *PtrArithTy1 = Type::getIntBytePtrTy(Ctx, AS1);
+    // TVM local end
 
     Value *Start0 = ChkBuilder.CreateBitCast(A.Start, PtrArithTy0, "bc");
     Value *Start1 = ChkBuilder.CreateBitCast(B.Start, PtrArithTy1, "bc");

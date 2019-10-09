@@ -199,7 +199,9 @@ void MemCmpExpansion::emitLoadCompareByteBlock(unsigned BlockIndex,
   Value *Source2 = CI->getArgOperand(1);
 
   Builder.SetInsertPoint(LoadCmpBlocks[BlockIndex]);
-  Type *LoadSizeType = Type::getInt8Ty(CI->getContext());
+  // TVM local begin
+  Type *LoadSizeType = Type::getByteTy(CI->getContext());
+  // TVM local end
   // Cast source to LoadSizeType*.
   if (Source1->getType() != LoadSizeType)
     Source1 = Builder.CreateBitCast(Source1, LoadSizeType->getPointerTo());

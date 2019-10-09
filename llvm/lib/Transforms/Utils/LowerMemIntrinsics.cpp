@@ -168,8 +168,10 @@ void llvm::createMemCpyLoopUnknownSize(Instruction *InsertBefore,
   IntegerType *ILengthType = dyn_cast<IntegerType>(CopyLenType);
   assert(ILengthType &&
          "expected size argument to memcpy to be an integer type!");
-  Type *Int8Type = Type::getInt8Ty(Ctx);
-  bool LoopOpIsInt8 = LoopOpType == Int8Type;
+  // TVM local begin
+  Type *ByteType = Type::getByteTy(Ctx);
+  bool LoopOpIsInt8 = LoopOpType == ByteType;
+  // TVM local end
   ConstantInt *CILoopOpSize = ConstantInt::get(ILengthType, LoopOpSize);
   Value *RuntimeLoopCount = LoopOpIsInt8 ?
                             CopyLen :
@@ -228,16 +230,18 @@ void llvm::createMemCpyLoopUnknownSize(Instruction *InsertBefore,
         ResBuilder.CreatePHI(CopyLenType, 2, "residual-loop-index");
     ResidualIndex->addIncoming(Zero, ResHeaderBB);
 
+  // TVM local begin
     Value *SrcAsInt8 =
-        ResBuilder.CreateBitCast(SrcAddr, PointerType::get(Int8Type, SrcAS));
+        ResBuilder.CreateBitCast(SrcAddr, PointerType::get(ByteType, SrcAS));
     Value *DstAsInt8 =
-        ResBuilder.CreateBitCast(DstAddr, PointerType::get(Int8Type, DstAS));
+        ResBuilder.CreateBitCast(DstAddr, PointerType::get(ByteType, DstAS));
     Value *FullOffset = ResBuilder.CreateAdd(RuntimeBytesCopied, ResidualIndex);
     Value *SrcGEP =
-        ResBuilder.CreateInBoundsGEP(Int8Type, SrcAsInt8, FullOffset);
+        ResBuilder.CreateInBoundsGEP(ByteType, SrcAsInt8, FullOffset);
     Value *Load = ResBuilder.CreateLoad(SrcGEP, SrcIsVolatile);
     Value *DstGEP =
-        ResBuilder.CreateInBoundsGEP(Int8Type, DstAsInt8, FullOffset);
+        ResBuilder.CreateInBoundsGEP(ByteType, DstAsInt8, FullOffset);
+    // TVM local end
     ResBuilder.CreateStore(Load, DstGEP, DstIsVolatile);
 
     Value *ResNewIndex =

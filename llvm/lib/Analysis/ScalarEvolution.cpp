@@ -8012,7 +8012,9 @@ static Constant *BuildConstantFromSCEV(const SCEV *V) {
       if (Constant *C = BuildConstantFromSCEV(SA->getOperand(0))) {
         if (PointerType *PTy = dyn_cast<PointerType>(C->getType())) {
           unsigned AS = PTy->getAddressSpace();
-          Type *DestPtrTy = Type::getInt8PtrTy(C->getContext(), AS);
+          // TVM local begin
+          Type *DestPtrTy = Type::getIntBytePtrTy(C->getContext(), AS);
+          // TVM local end
           C = ConstantExpr::getBitCast(C, DestPtrTy);
         }
         for (unsigned i = 1, e = SA->getNumOperands(); i != e; ++i) {
@@ -8023,7 +8025,9 @@ static Constant *BuildConstantFromSCEV(const SCEV *V) {
           if (!C->getType()->isPointerTy() && C2->getType()->isPointerTy()) {
             unsigned AS = C2->getType()->getPointerAddressSpace();
             std::swap(C, C2);
-            Type *DestPtrTy = Type::getInt8PtrTy(C->getContext(), AS);
+            // TVM local begin
+            Type *DestPtrTy = Type::getIntBytePtrTy(C->getContext(), AS);
+            // TVM local end
             // The offsets have been converted to bytes.  We can add bytes to an
             // i8* by GEP with the byte count in the first index.
             C = ConstantExpr::getBitCast(C, DestPtrTy);

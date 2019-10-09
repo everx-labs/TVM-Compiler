@@ -44,7 +44,9 @@ static void lowerSubFn(IRBuilder<> &Builder, CoroSubFnInst *SubFn) {
   int Index = SubFn->getIndex();
 
   auto *FrameTy = StructType::get(
-      SubFn->getContext(), {Builder.getInt8PtrTy(), Builder.getInt8PtrTy()});
+      // TVM local begin
+      SubFn->getContext(), {Builder.getIntBytePtrTy(), Builder.getIntBytePtrTy()});
+      // TVM local end
   PointerType *FramePtrTy = FrameTy->getPointerTo();
 
   Builder.SetInsertPoint(SubFn);

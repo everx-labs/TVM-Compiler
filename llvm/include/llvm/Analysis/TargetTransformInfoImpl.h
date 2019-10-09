@@ -500,7 +500,9 @@ public:
 
   Type *getMemcpyLoopLoweringType(LLVMContext &Context, Value *Length,
                                   unsigned SrcAlign, unsigned DestAlign) const {
-    return Type::getInt8Ty(Context);
+    // TVM local begin
+    return Type::getByteTy(Context);
+    // TVM local end
   }
 
   void getMemcpyLoopResidualLoweringType(SmallVectorImpl<Type *> &OpsOut,
@@ -508,8 +510,10 @@ public:
                                          unsigned RemainingBytes,
                                          unsigned SrcAlign,
                                          unsigned DestAlign) const {
+    // TVM local begin
     for (unsigned i = 0; i != RemainingBytes; ++i)
-      OpsOut.push_back(Type::getInt8Ty(Context));
+      OpsOut.push_back(Type::getByteTy(Context));
+    // TVM local end
   }
 
   bool areInlineCompatible(const Function *Caller,

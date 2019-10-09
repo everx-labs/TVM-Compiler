@@ -22,8 +22,10 @@ using namespace clang;
 using namespace CodeGen;
 
 static llvm::Function *GetVprintfDeclaration(llvm::Module &M) {
-  llvm::Type *ArgTypes[] = {llvm::Type::getInt8PtrTy(M.getContext()),
-                            llvm::Type::getInt8PtrTy(M.getContext())};
+  // TVM local begin
+  llvm::Type *ArgTypes[] = {llvm::Type::getIntBytePtrTy(M.getContext()),
+                            llvm::Type::getIntBytePtrTy(M.getContext())};
+  // TVM local end
   llvm::FunctionType *VprintfFuncType = llvm::FunctionType::get(
       llvm::Type::getInt32Ty(M.getContext()), ArgTypes, false);
 
@@ -94,7 +96,9 @@ CodeGenFunction::EmitNVPTXDevicePrintfCallExpr(const CallExpr *E,
   llvm::Value *BufferPtr;
   if (Args.size() <= 1) {
     // If there are no args, pass a null pointer to vprintf.
-    BufferPtr = llvm::ConstantPointerNull::get(llvm::Type::getInt8PtrTy(Ctx));
+    // TVM local begin
+    BufferPtr = llvm::ConstantPointerNull::get(llvm::Type::getIntBytePtrTy(Ctx));
+    // TVM local end
   } else {
     llvm::SmallVector<llvm::Type *, 8> ArgTypes;
     for (unsigned I = 1, NumArgs = Args.size(); I < NumArgs; ++I)
@@ -113,7 +117,9 @@ CodeGenFunction::EmitNVPTXDevicePrintfCallExpr(const CallExpr *E,
       llvm::Value *Arg = Args[I].getRValue(*this).getScalarVal();
       Builder.CreateAlignedStore(Arg, P, DL.getPrefTypeAlignment(Arg->getType()));
     }
-    BufferPtr = Builder.CreatePointerCast(Alloca, llvm::Type::getInt8PtrTy(Ctx));
+    // TVM local begin
+    BufferPtr = Builder.CreatePointerCast(Alloca, llvm::Type::getIntBytePtrTy(Ctx));
+    // TVM local end
   }
 
   // Invoke vprintf and return.

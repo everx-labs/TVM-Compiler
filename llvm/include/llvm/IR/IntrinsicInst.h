@@ -382,8 +382,10 @@ namespace llvm {
     }
 
     void setElementSizeInBytes(Constant *V) {
-      assert(V->getType() == Type::getInt8Ty(getContext()) &&
+      // TVM local begin
+      assert(V->getType() == Type::getByteTy(getContext()) &&
              "setElementSizeInBytes called with value of wrong type!");
+      // TVM local end
       setArgOperand(ARG_ELEMENTSIZE, V);
     }
 

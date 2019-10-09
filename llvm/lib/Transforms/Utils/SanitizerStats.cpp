@@ -23,7 +23,9 @@
 using namespace llvm;
 
 SanitizerStatReport::SanitizerStatReport(Module *M) : M(M) {
-  StatTy = ArrayType::get(Type::getInt8PtrTy(M->getContext()), 2);
+  // TVM local begin
+  StatTy = ArrayType::get(Type::getIntBytePtrTy(M->getContext()), 2);
+  // TVM local end
   EmptyModuleStatsTy = makeModuleStatsTy();
 
   ModuleStatsGV = new GlobalVariable(*M, EmptyModuleStatsTy, false,
@@ -35,7 +37,9 @@ ArrayType *SanitizerStatReport::makeModuleStatsArrayTy() {
 }
 
 StructType *SanitizerStatReport::makeModuleStatsTy() {
-  return StructType::get(M->getContext(), {Type::getInt8PtrTy(M->getContext()),
+  // TVM local begin
+  return StructType::get(M->getContext(), {Type::getIntBytePtrTy(M->getContext()),
+  // TVM local end
                                            Type::getInt32Ty(M->getContext()),
                                            makeModuleStatsArrayTy()});
 }
@@ -43,7 +47,9 @@ StructType *SanitizerStatReport::makeModuleStatsTy() {
 void SanitizerStatReport::create(IRBuilder<> &B, SanitizerStatKind SK) {
   Function *F = B.GetInsertBlock()->getParent();
   Module *M = F->getParent();
-  PointerType *Int8PtrTy = B.getInt8PtrTy();
+  // TVM local begin
+  PointerType *Int8PtrTy = B.getIntBytePtrTy();
+  // TVM local end
   IntegerType *IntPtrTy = B.getIntPtrTy(M->getDataLayout());
   ArrayType *StatTy = ArrayType::get(Int8PtrTy, 2);
 
@@ -75,7 +81,9 @@ void SanitizerStatReport::finish() {
     return;
   }
 
-  PointerType *Int8PtrTy = Type::getInt8PtrTy(M->getContext());
+  // TVM local begin
+  PointerType *Int8PtrTy = Type::getIntBytePtrTy(M->getContext());
+  // TVM local end
   IntegerType *Int32Ty = Type::getInt32Ty(M->getContext());
   Type *VoidTy = Type::getVoidTy(M->getContext());
 

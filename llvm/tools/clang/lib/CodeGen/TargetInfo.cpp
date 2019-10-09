@@ -294,8 +294,10 @@ static Address emitVoidPtrDirectVAArg(CodeGenFunction &CGF,
                                       bool AllowHigherAlign) {
   // Cast the element type to i8* if necessary.  Some platforms define
   // va_list as a struct containing an i8* instead of just an i8*.
-  if (VAListAddr.getElementType() != CGF.Int8PtrTy)
-    VAListAddr = CGF.Builder.CreateElementBitCast(VAListAddr, CGF.Int8PtrTy);
+  // TVM local begin
+  if (VAListAddr.getElementType() != CGF.BytePtrTy)
+    VAListAddr = CGF.Builder.CreateElementBitCast(VAListAddr, CGF.BytePtrTy);
+  // TVM local end
 
   llvm::Value *Ptr = CGF.Builder.CreateLoad(VAListAddr, "argp.cur");
 
@@ -5390,7 +5392,9 @@ Address AArch64ABIInfo::EmitAAPCSVAArg(Address VAListAddr,
         OnStackPtr, llvm::ConstantInt::get(CGF.Int64Ty, -Align),
         "align_stack");
 
-    OnStackPtr = CGF.Builder.CreateIntToPtr(OnStackPtr, CGF.Int8PtrTy);
+    // TVM local begin
+    OnStackPtr = CGF.Builder.CreateIntToPtr(OnStackPtr, CGF.BytePtrTy);
+    // TVM local end
   }
   Address OnStackAddr(OnStackPtr,
                       std::max(CharUnits::fromQuantity(8), TyAlign));

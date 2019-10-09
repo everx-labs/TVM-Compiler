@@ -116,10 +116,22 @@ CodeGenModule::CodeGenModule(ASTContext &C, const HeaderSearchOptions &HSO,
   IntTy = llvm::IntegerType::get(LLVMContext, C.getTargetInfo().getIntWidth());
   IntPtrTy = llvm::IntegerType::get(LLVMContext,
     C.getTargetInfo().getMaxPointerWidth());
-  Int8PtrTy = Int8Ty->getPointerTo(0);
-  Int8PtrPtrTy = Int8PtrTy->getPointerTo(0);
-  AllocaInt8PtrTy = Int8Ty->getPointerTo(
-      M.getDataLayout().getAllocaAddrSpace());
+  // TVM local begin
+  switch (ByteSizeInBits) {
+  case 8: ByteTy = Int8Ty; break;
+  case 16: ByteTy = Int16Ty; break;
+  case 32: ByteTy = Int32Ty; break;
+  case 64: ByteTy = Int64Ty; break;
+  default:
+    ByteTy = llvm::Type::getIntNTy(LLVMContext, ByteSizeInBits);
+    break;
+  }
+
+  BytePtrTy = ByteTy->getPointerTo(0);
+  BytePtrPtrTy = BytePtrTy->getPointerTo(0);
+  AllocaBytePtrTy = ByteTy->getPointerTo(
+    M.getDataLayout().getAllocaAddrSpace());
+  // TVM local end
   ASTAllocaAddressSpace = getTargetCodeGenInfo().getASTAllocaAddressSpace();
 
   RuntimeCC = getTargetCodeGenInfo().getABIInfo().getRuntimeCC();
@@ -1591,12 +1603,16 @@ static void emitUsed(CodeGenModule &CGM, StringRef Name,
   for (unsigned i = 0, e = List.size(); i != e; ++i) {
     UsedArray[i] =
         llvm::ConstantExpr::getPointerBitCastOrAddrSpaceCast(
-            cast<llvm::Constant>(&*List[i]), CGM.Int8PtrTy);
+            // TVM local begin
+            cast<llvm::Constant>(&*List[i]), CGM.BytePtrTy);
+            // TVM local end
   }
 
   if (UsedArray.empty())
     return;
-  llvm::ArrayType *ATy = llvm::ArrayType::get(CGM.Int8PtrTy, UsedArray.size());
+  // TVM local begin
+  llvm::ArrayType *ATy = llvm::ArrayType::get(CGM.BytePtrTy, UsedArray.size());
+  // TVM local end
 
   auto *GV = new llvm::GlobalVariable(
       CGM.getModule(), ATy, false, llvm::GlobalValue::AppendingLinkage,
@@ -1881,9 +1897,11 @@ llvm::Constant *CodeGenModule::EmitAnnotateAttr(llvm::GlobalValue *GV,
 
   // Create the ConstantStruct for the global annotation.
   llvm::Constant *Fields[4] = {
-    llvm::ConstantExpr::getBitCast(GV, Int8PtrTy),
-    llvm::ConstantExpr::getBitCast(AnnoGV, Int8PtrTy),
-    llvm::ConstantExpr::getBitCast(UnitGV, Int8PtrTy),
+    // TVM local begin
+    llvm::ConstantExpr::getBitCast(GV, BytePtrTy),
+    llvm::ConstantExpr::getBitCast(AnnoGV, BytePtrTy),
+    llvm::ConstantExpr::getBitCast(UnitGV, BytePtrTy),
+    // TVM local end
     LineNoCst
   };
   return llvm::ConstantStruct::getAnon(Fields);
@@ -4114,7 +4132,9 @@ CodeGenModule::GetAddrOfConstantCFString(const StringLiteral *Literal) {
 
   if (isUTF16)
     // Cast the UTF16 string to the correct type.
-    Str = llvm::ConstantExpr::getBitCast(Str, Int8PtrTy);
+    // TVM local begin
+    Str = llvm::ConstantExpr::getBitCast(Str, BytePtrTy);
+    // TVM local end
   Fields.add(Str);
 
   // String length.
@@ -5053,7 +5073,9 @@ llvm::Constant *CodeGenModule::GetAddrOfRTTIDescriptor(QualType Ty,
   // FIXME: should we even be calling this method if RTTI is disabled
   // and it's not for EH?
   if ((!ForEH && !getLangOpts().RTTI) || getLangOpts().CUDAIsDevice)
-    return llvm::Constant::getNullValue(Int8PtrTy);
+    // TVM local begin
+    return llvm::Constant::getNullValue(BytePtrTy);
+    // TVM local end
 
   if (ForEH && Ty->isObjCObjectPointerType() &&
       LangOpts.ObjCRuntime.isGNUFamily())

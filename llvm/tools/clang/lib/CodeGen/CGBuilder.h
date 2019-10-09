@@ -233,13 +233,17 @@ public:
   /// Given a pointer to i8, adjust it by a given constant offset.
   Address CreateConstInBoundsByteGEP(Address Addr, CharUnits Offset,
                                      const llvm::Twine &Name = "") {
-    assert(Addr.getElementType() == TypeCache.Int8Ty);
+    // TVM local begin
+    assert(Addr.getElementType() == TypeCache.ByteTy);
+    // TVM local end
     return Address(CreateInBoundsGEP(Addr.getPointer(), getSize(Offset), Name),
                    Addr.getAlignment().alignmentAtOffset(Offset));
   }
   Address CreateConstByteGEP(Address Addr, CharUnits Offset,
                              const llvm::Twine &Name = "") {
-    assert(Addr.getElementType() == TypeCache.Int8Ty);
+    // TVM local begin
+    assert(Addr.getElementType() == TypeCache.ByteTy);
+    // TVM local end
     return Address(CreateGEP(Addr.getPointer(), getSize(Offset), Name),
                    Addr.getAlignment().alignmentAtOffset(Offset));
   }
@@ -261,12 +265,16 @@ public:
 
   llvm::Value *CreateConstInBoundsByteGEP(llvm::Value *Ptr, CharUnits Offset,
                                           const llvm::Twine &Name = "") {
-    assert(Ptr->getType()->getPointerElementType() == TypeCache.Int8Ty);
+    // TVM local begin
+    assert(Ptr->getType()->getPointerElementType() == TypeCache.ByteTy);
+    // TVM local end
     return CreateInBoundsGEP(Ptr, getSize(Offset), Name);
   }
   llvm::Value *CreateConstByteGEP(llvm::Value *Ptr, CharUnits Offset,
                                   const llvm::Twine &Name = "") {
-    assert(Ptr->getType()->getPointerElementType() == TypeCache.Int8Ty);
+    // TVM local begin
+    assert(Ptr->getType()->getPointerElementType() == TypeCache.ByteTy);
+    // TVM local end
     return CreateGEP(Ptr, getSize(Offset), Name);
   }
 

@@ -843,7 +843,9 @@ Error LTO::runRegularLTO(AddStreamFn AddStream) {
       continue;
     }
     ArrayType *Ty =
-        ArrayType::get(Type::getInt8Ty(RegularLTO.Ctx), I.second.Size);
+        // TVM local begin
+        ArrayType::get(Type::getByteTy(RegularLTO.Ctx), I.second.Size);
+        // TVM local end
     auto *GV = new GlobalVariable(*RegularLTO.CombinedModule, Ty, false,
                                   GlobalValue::CommonLinkage,
                                   ConstantAggregateZero::get(Ty), "");

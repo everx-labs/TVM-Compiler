@@ -437,7 +437,9 @@ struct DevirtModule {
                const ModuleSummaryIndex *ImportSummary)
       : M(M), AARGetter(AARGetter), ExportSummary(ExportSummary),
         ImportSummary(ImportSummary), Int8Ty(Type::getInt8Ty(M.getContext())),
-        Int8PtrTy(Type::getInt8PtrTy(M.getContext())),
+        // TVM local begin
+        Int8PtrTy(Type::getIntBytePtrTy(M.getContext())),
+        // TVM local end
         Int32Ty(Type::getInt32Ty(M.getContext())),
         Int64Ty(Type::getInt64Ty(M.getContext())),
         IntPtrTy(M.getDataLayout().getIntPtrType(M.getContext(), 0)),

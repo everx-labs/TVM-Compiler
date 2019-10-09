@@ -1419,7 +1419,9 @@ BlockAddress *BlockAddress::get(Function *F, BasicBlock *BB) {
 }
 
 BlockAddress::BlockAddress(Function *F, BasicBlock *BB)
-: Constant(Type::getInt8PtrTy(F->getContext()), Value::BlockAddressVal,
+// TVM local begin
+: Constant(Type::getIntBytePtrTy(F->getContext()), Value::BlockAddressVal,
+// TVM local end
            &Op<0>(), 2) {
   setOperand(0, F);
   setOperand(1, BB);

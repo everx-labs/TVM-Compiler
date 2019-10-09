@@ -35,7 +35,9 @@ static void appendToGlobalArray(const char *Array, Module &M, Function *F,
     // Upgrade a 2-field global array type to the new 3-field format if needed.
     if (Data && OldEltTy->getNumElements() < 3)
       EltTy = StructType::get(IRB.getInt32Ty(), PointerType::getUnqual(FnTy),
-                              IRB.getInt8PtrTy());
+                              // TVM local begin
+                              IRB.getIntBytePtrTy());
+                              // TVM local end
     else
       EltTy = OldEltTy;
     if (Constant *Init = GVCtor->getInitializer()) {
@@ -47,7 +49,9 @@ static void appendToGlobalArray(const char *Array, Module &M, Function *F,
           Ctor =
               ConstantStruct::get(EltTy, Ctor->getAggregateElement((unsigned)0),
                                   Ctor->getAggregateElement(1),
-                                  Constant::getNullValue(IRB.getInt8PtrTy()));
+                                  // TVM local begin
+                                  Constant::getNullValue(IRB.getIntBytePtrTy()));
+                                  // TVM local end
         CurrentCtors.push_back(Ctor);
       }
     }
@@ -55,7 +59,9 @@ static void appendToGlobalArray(const char *Array, Module &M, Function *F,
   } else {
     // Use the new three-field struct if there isn't one already.
     EltTy = StructType::get(IRB.getInt32Ty(), PointerType::getUnqual(FnTy),
-                            IRB.getInt8PtrTy());
+                            // TVM local begin
+                            IRB.getIntBytePtrTy());
+                            // TVM local end
   }
 
   // Build a 2 or 3 field global_ctor entry.  We don't take a comdat key.
@@ -64,8 +70,10 @@ static void appendToGlobalArray(const char *Array, Module &M, Function *F,
   CSVals[1] = F;
   // FIXME: Drop support for the two element form in LLVM 4.0.
   if (EltTy->getNumElements() >= 3)
-    CSVals[2] = Data ? ConstantExpr::getPointerCast(Data, IRB.getInt8PtrTy())
-                     : Constant::getNullValue(IRB.getInt8PtrTy());
+    // TVM local begin
+    CSVals[2] = Data ? ConstantExpr::getPointerCast(Data, IRB.getIntBytePtrTy())
+                     : Constant::getNullValue(IRB.getIntBytePtrTy());
+    // TVM local end
   Constant *RuntimeCtorInit =
       ConstantStruct::get(EltTy, makeArrayRef(CSVals, EltTy->getNumElements()));
 
@@ -103,7 +111,9 @@ static void appendToUsedList(Module &M, StringRef Name, ArrayRef<GlobalValue *> 
     GV->eraseFromParent();
   }
 
-  Type *Int8PtrTy = llvm::Type::getInt8PtrTy(M.getContext());
+  // TVM local begin
+  Type *Int8PtrTy = llvm::Type::getIntBytePtrTy(M.getContext());
+  // TVM local end
   for (auto *V : Values) {
     Constant *C = ConstantExpr::getBitCast(V, Int8PtrTy);
     if (InitAsSet.insert(C).second)

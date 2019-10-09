@@ -828,8 +828,10 @@ CleanupAndPrepareModules(BugDriver &BD, std::unique_ptr<Module> Test,
   // Add the resolver to the Safe module.
   // Prototype: void *getPointerToNamedFunction(const char* Name)
   Constant *resolverFunc = Safe->getOrInsertFunction(
-      "getPointerToNamedFunction", Type::getInt8PtrTy(Safe->getContext()),
-      Type::getInt8PtrTy(Safe->getContext()));
+      // TVM local begin
+      "getPointerToNamedFunction", Type::getIntBytePtrTy(Safe->getContext()),
+      Type::getIntBytePtrTy(Safe->getContext()));
+      // TVM local end
 
   // Use the function we just added to get addresses of functions we need.
   for (Module::iterator F = Safe->begin(), E = Safe->end(); F != E; ++F) {

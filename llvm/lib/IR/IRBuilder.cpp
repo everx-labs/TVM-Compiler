@@ -58,13 +58,16 @@ Type *IRBuilderBase::getCurrentFunctionReturnType() const {
   return BB->getParent()->getReturnType();
 }
 
-Value *IRBuilderBase::getCastedInt8PtrValue(Value *Ptr) {
+// TVM local begin
+Value *IRBuilderBase::getCastedIntBytePtrValue(Value *Ptr) {
   auto *PT = cast<PointerType>(Ptr->getType());
-  if (PT->getElementType()->isIntegerTy(8))
+  if (PT->getElementType()->isIntegerTy(ByteSizeInBits))
     return Ptr;
 
   // Otherwise, we need to insert a bitcast.
-  PT = getInt8PtrTy(PT->getAddressSpace());
+  PT = getIntBytePtrTy(PT->getAddressSpace());
+  // TVM local end
+
   BitCastInst *BCI = new BitCastInst(Ptr, PT, "");
   BB->getInstList().insert(InsertPt, BCI);
   SetInstDebugLocation(BCI);
@@ -100,7 +103,9 @@ CallInst *IRBuilderBase::
 CreateMemSet(Value *Ptr, Value *Val, Value *Size, unsigned Align,
              bool isVolatile, MDNode *TBAATag, MDNode *ScopeTag,
              MDNode *NoAliasTag) {
-  Ptr = getCastedInt8PtrValue(Ptr);
+  // TVM local begin
+  Ptr = getCastedIntBytePtrValue(Ptr);
+  // TVM local end
   Value *Ops[] = {Ptr, Val, Size, getInt1(isVolatile)};
   Type *Tys[] = { Ptr->getType(), Size->getType() };
   Module *M = BB->getParent()->getParent();
@@ -130,7 +135,9 @@ CallInst *IRBuilderBase::CreateElementUnorderedAtomicMemSet(
   assert(Align >= ElementSize &&
          "Pointer alignment must be at least element size.");
 
-  Ptr = getCastedInt8PtrValue(Ptr);
+  // TVM local begin
+  Ptr = getCastedIntBytePtrValue(Ptr);
+  // TVM local end
   Value *Ops[] = {Ptr, Val, Size, getInt32(ElementSize)};
   Type *Tys[] = {Ptr->getType(), Size->getType()};
   Module *M = BB->getParent()->getParent();
@@ -160,8 +167,10 @@ CreateMemCpy(Value *Dst, unsigned DstAlign, Value *Src, unsigned SrcAlign,
              MDNode *TBAAStructTag, MDNode *ScopeTag, MDNode *NoAliasTag) {
   assert((DstAlign == 0 || isPowerOf2_32(DstAlign)) && "Must be 0 or a power of 2");
   assert((SrcAlign == 0 || isPowerOf2_32(SrcAlign)) && "Must be 0 or a power of 2");
-  Dst = getCastedInt8PtrValue(Dst);
-  Src = getCastedInt8PtrValue(Src);
+  // TVM local begin
+  Dst = getCastedIntBytePtrValue(Dst);
+  Src = getCastedIntBytePtrValue(Src);
+  // TVM local end
 
   Value *Ops[] = {Dst, Src, Size, getInt1(isVolatile)};
   Type *Tys[] = { Dst->getType(), Src->getType(), Size->getType() };
@@ -201,8 +210,10 @@ CallInst *IRBuilderBase::CreateElementUnorderedAtomicMemCpy(
          "Pointer alignment must be at least element size");
   assert(SrcAlign >= ElementSize &&
          "Pointer alignment must be at least element size");
-  Dst = getCastedInt8PtrValue(Dst);
-  Src = getCastedInt8PtrValue(Src);
+  // TVM local begin
+  Dst = getCastedIntBytePtrValue(Dst);
+  Src = getCastedIntBytePtrValue(Src);
+  // TVM local end
 
   Value *Ops[] = {Dst, Src, Size, getInt32(ElementSize)};
   Type *Tys[] = {Dst->getType(), Src->getType(), Size->getType()};
@@ -240,8 +251,10 @@ CreateMemMove(Value *Dst, unsigned DstAlign, Value *Src, unsigned SrcAlign,
               MDNode *NoAliasTag) {
   assert((DstAlign == 0 || isPowerOf2_32(DstAlign)) && "Must be 0 or a power of 2");
   assert((SrcAlign == 0 || isPowerOf2_32(SrcAlign)) && "Must be 0 or a power of 2");
-  Dst = getCastedInt8PtrValue(Dst);
-  Src = getCastedInt8PtrValue(Src);
+  // TVM local begin
+  Dst = getCastedIntBytePtrValue(Dst);
+  Src = getCastedIntBytePtrValue(Src);
+  // TVM local end
 
   Value *Ops[] = {Dst, Src, Size, getInt1(isVolatile)};
   Type *Tys[] = { Dst->getType(), Src->getType(), Size->getType() };
@@ -277,8 +290,10 @@ CallInst *IRBuilderBase::CreateElementUnorderedAtomicMemMove(
          "Pointer alignment must be at least element size");
   assert(SrcAlign >= ElementSize &&
          "Pointer alignment must be at least element size");
-  Dst = getCastedInt8PtrValue(Dst);
-  Src = getCastedInt8PtrValue(Src);
+  // TVM local begin
+  Dst = getCastedIntBytePtrValue(Dst);
+  Src = getCastedIntBytePtrValue(Src);
+  // TVM local end
 
   Value *Ops[] = {Dst, Src, Size, getInt32(ElementSize)};
   Type *Tys[] = {Dst->getType(), Src->getType(), Size->getType()};
@@ -400,7 +415,9 @@ CallInst *IRBuilderBase::CreateFPMinReduce(Value *Src, bool NoNaN) {
 CallInst *IRBuilderBase::CreateLifetimeStart(Value *Ptr, ConstantInt *Size) {
   assert(isa<PointerType>(Ptr->getType()) &&
          "lifetime.start only applies to pointers.");
-  Ptr = getCastedInt8PtrValue(Ptr);
+  // TVM local begin
+  Ptr = getCastedIntBytePtrValue(Ptr);
+  // TVM local end
   if (!Size)
     Size = getInt64(-1);
   else
@@ -416,7 +433,9 @@ CallInst *IRBuilderBase::CreateLifetimeStart(Value *Ptr, ConstantInt *Size) {
 CallInst *IRBuilderBase::CreateLifetimeEnd(Value *Ptr, ConstantInt *Size) {
   assert(isa<PointerType>(Ptr->getType()) &&
          "lifetime.end only applies to pointers.");
-  Ptr = getCastedInt8PtrValue(Ptr);
+  // TVM local begin
+  Ptr = getCastedIntBytePtrValue(Ptr);
+  // TVM local end
   if (!Size)
     Size = getInt64(-1);
   else
@@ -433,7 +452,9 @@ CallInst *IRBuilderBase::CreateInvariantStart(Value *Ptr, ConstantInt *Size) {
 
   assert(isa<PointerType>(Ptr->getType()) &&
          "invariant.start only applies to pointers.");
-  Ptr = getCastedInt8PtrValue(Ptr);
+  // TVM local begin
+  Ptr = getCastedIntBytePtrValue(Ptr);
+  // TVM local end
   if (!Size)
     Size = getInt64(-1);
   else

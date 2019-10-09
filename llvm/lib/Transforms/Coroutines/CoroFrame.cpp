@@ -354,7 +354,9 @@ struct PaddingCalculator {
   // If padding required, return the padding field type to insert.
   ArrayType *getPaddingType(Type *Ty, unsigned ForcedAlignment) {
     if (auto Padding = computePadding(Ty, ForcedAlignment))
-      return ArrayType::get(Type::getInt8Ty(Context), Padding);
+      // TVM local begin
+      return ArrayType::get(Type::getByteTy(Context), Padding);
+      // TVM local end
 
     return nullptr;
   }

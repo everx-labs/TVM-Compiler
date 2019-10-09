@@ -2927,12 +2927,14 @@ bool llvm::isKnownNeverNaN(const Value *V) {
 /// byte store (e.g. i16 0x1234), return null.
 Value *llvm::isBytewiseValue(Value *V) {
   // All byte-wide stores are splatable, even of arbitrary variables.
-  if (V->getType()->isIntegerTy(8)) return V;
+  // TVM local begin
+  if (V->getType()->isIntegerTy(ByteSizeInBits)) return V;
 
   // Handle 'null' ConstantArrayZero etc.
   if (Constant *C = dyn_cast<Constant>(V))
     if (C->isNullValue())
-      return Constant::getNullValue(Type::getInt8Ty(V->getContext()));
+      return Constant::getNullValue(Type::getByteTy(V->getContext()));
+  // TVM local end
 
   // Constant float and double values can be handled as integer values if the
   // corresponding integer value is "byteable".  An important case is 0.0.
@@ -2946,13 +2948,17 @@ Value *llvm::isBytewiseValue(Value *V) {
 
   // We can handle constant integers that are multiple of 8 bits.
   if (ConstantInt *CI = dyn_cast<ConstantInt>(V)) {
-    if (CI->getBitWidth() % 8 == 0) {
-      assert(CI->getBitWidth() > 8 && "8 bits should be handled above!");
+    // TVM local begin
+    if (CI->getBitWidth() % ByteSizeInBits == 0) {
+      assert(CI->getBitWidth() > ByteSizeInBits &&
+             "ByteSizeInBits bits should be handled above!");
 
-      if (!CI->getValue().isSplat(8))
+      if (!CI->getValue().isSplat(ByteSizeInBits))
         return nullptr;
-      return ConstantInt::get(V->getContext(), CI->getValue().trunc(8));
+      return ConstantInt::get(V->getContext(),
+                              CI->getValue().trunc(ByteSizeInBits));
     }
+    // TVM local end
   }
 
   // A ConstantDataArray/Vector is splatable if all its members are equal and

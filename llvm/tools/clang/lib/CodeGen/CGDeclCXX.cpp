@@ -114,7 +114,9 @@ static void EmitDeclDestroy(CodeGenFunction &CGF, const VarDecl &D,
     function = CodeGenFunction(CGM)
         .generateDestroyHelper(addr, type, CGF.getDestroyer(dtorKind),
                                CGF.needsEHCleanup(dtorKind), &D);
-    argument = llvm::Constant::getNullValue(CGF.Int8PtrTy);
+    // TVM local begin
+    argument = llvm::Constant::getNullValue(CGF.BytePtrTy);
+    // TVM local end
   }
 
   CGM.getCXXABI().registerGlobalDtor(CGF, D, function, argument);
@@ -131,14 +133,18 @@ static void EmitDeclInvariant(CodeGenFunction &CGF, const VarDecl &D,
   // Grab the llvm.invariant.start intrinsic.
   llvm::Intrinsic::ID InvStartID = llvm::Intrinsic::invariant_start;
   // Overloaded address space type.
-  llvm::Type *ObjectPtr[1] = {CGF.Int8PtrTy};
+  // TVM local begin
+  llvm::Type *ObjectPtr[1] = {CGF.BytePtrTy};
+  // TVM local end
   llvm::Constant *InvariantStart = CGF.CGM.getIntrinsic(InvStartID, ObjectPtr);
 
   // Emit a call with the size in bytes of the object.
   CharUnits WidthChars = CGF.getContext().getTypeSizeInChars(D.getType());
   uint64_t Width = WidthChars.getQuantity();
   llvm::Value *Args[2] = { llvm::ConstantInt::getSigned(CGF.Int64Ty, Width),
-                           llvm::ConstantExpr::getBitCast(Addr, CGF.Int8PtrTy)};
+                           // TVM local begin
+                           llvm::ConstantExpr::getBitCast(Addr, CGF.BytePtrTy)};
+                           // TVM local end
   CGF.Builder.CreateCall(InvariantStart, Args);
 }
 

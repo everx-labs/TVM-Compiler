@@ -1134,10 +1134,12 @@ static Type *findCommonType(AllocaSlices::const_iterator B,
       // this for split integer operations where we want to use the type of the
       // entity causing the split. Also skip if the type is not a byte width
       // multiple.
+      // TVM local begin
       if (UserITy->getBitWidth() % ByteSizeInBits != 0 ||
           UserITy->getBitWidth() / ByteSizeInBits >
           (EndOffset - B->beginOffset()))
         continue;
+      // TVM local end
 
       // Track the largest bitwidth integer type used in this way in case there
       // is no common type.
@@ -1456,11 +1458,15 @@ static Value *getNaturalGEPRecursively(IRBuilderTy &IRB, const DataLayout &DL,
   // over a vector from the IR completely.
   if (VectorType *VecTy = dyn_cast<VectorType>(Ty)) {
     unsigned ElementSizeInBits = DL.getTypeSizeInBits(VecTy->getScalarType());
-    if (ElementSizeInBits % 8 != 0) {
+    // TVM local begin
+    if (ElementSizeInBits % ByteSizeInBits != 0) {
+    // TVM local end
       // GEPs over non-multiple of 8 size vector elements are invalid.
       return nullptr;
     }
-    APInt ElementSize(Offset.getBitWidth(), ElementSizeInBits / 8);
+    // TVM local begin
+    APInt ElementSize(Offset.getBitWidth(), ElementSizeInBits / ByteSizeInBits);
+    // TVM local end
     APInt NumSkippedElements = Offset.sdiv(ElementSize);
     if (NumSkippedElements.ugt(VecTy->getNumElements()))
       return nullptr;
@@ -1520,7 +1526,10 @@ static Value *getNaturalGEPWithOffset(IRBuilderTy &IRB, const DataLayout &DL,
 
   // Don't consider any GEPs through an i8* as natural unless the TargetTy is
   // an i8.
-  if (Ty == IRB.getInt8PtrTy(Ty->getAddressSpace()) && TargetTy->isIntegerTy(8))
+  // TVM local begin
+  if (Ty == IRB.getIntBytePtrTy(Ty->getAddressSpace()) &&
+      TargetTy->isIntegerTy(ByteSizeInBits))
+  // TVM local end
     return nullptr;
 
   Type *ElementTy = Ty->getElementType();
@@ -1605,7 +1614,9 @@ static Value *getAdjustedPtr(IRBuilderTy &IRB, const DataLayout &DL, Value *Ptr,
     }
 
     // Stash this pointer if we've found an i8*.
-    if (Ptr->getType()->isIntegerTy(8)) {
+    // TVM local begin
+    if (Ptr->getType()->isIntegerTy(ByteSizeInBits)) {
+    // TVM local end
       Int8Ptr = Ptr;
       Int8PtrOffset = Offset;
     }
@@ -1626,7 +1637,9 @@ static Value *getAdjustedPtr(IRBuilderTy &IRB, const DataLayout &DL, Value *Ptr,
   if (!OffsetPtr) {
     if (!Int8Ptr) {
       Int8Ptr = IRB.CreateBitCast(
-          Ptr, IRB.getInt8PtrTy(PointerTy->getPointerAddressSpace()),
+          // TVM local begin
+          Ptr, IRB.getIntBytePtrTy(PointerTy->getPointerAddressSpace()),
+          // TVM local end
           NamePrefix + "sroa_raw_cast");
       Int8PtrOffset = Offset;
     }
@@ -2687,11 +2700,17 @@ private:
   Value *getIntegerSplat(Value *V, unsigned Size) {
     assert(Size > 0 && "Expected a positive number of bytes.");
     IntegerType *VTy = cast<IntegerType>(V->getType());
-    assert(VTy->getBitWidth() == 8 && "Expected an i8 value for the byte");
+    // TVM local begin
+    assert(VTy->getBitWidth() == ByteSizeInBits
+           && "Expected an i8 value for the byte");
+    // TVM local end
     if (Size == 1)
       return V;
 
-    Type *SplatIntTy = Type::getIntNTy(VTy->getContext(), Size * 8);
+    // TVM local begin
+    Type *SplatIntTy = Type::getIntNTy(VTy->getContext(),
+                                       Size * ByteSizeInBits);
+    // TVM local end
     V = IRB.CreateMul(
         IRB.CreateZExt(V, SplatIntTy, "zext"),
         ConstantExpr::getUDiv(
@@ -2741,7 +2760,9 @@ private:
          SliceSize != DL.getTypeStoreSize(AllocaTy) ||
          !AllocaTy->isSingleValueType() ||
          !DL.isLegalInteger(DL.getTypeSizeInBits(ScalarTy)) ||
-         DL.getTypeSizeInBits(ScalarTy) % 8 != 0)) {
+      // TVM local begin
+         DL.getTypeSizeInBits(ScalarTy) % ByteSizeInBits != 0)) {
+      // TVM local end
       Type *SizeTy = II.getLength()->getType();
       Constant *Size = ConstantInt::get(SizeTy, NewEndOffset - NewBeginOffset);
       CallInst *New = IRB.CreateMemSet(
@@ -2770,8 +2791,11 @@ private:
       unsigned NumElements = EndIndex - BeginIndex;
       assert(NumElements <= VecTy->getNumElements() && "Too many elements!");
 
+      // TVM local begin
       Value *Splat =
-          getIntegerSplat(II.getValue(), DL.getTypeSizeInBits(ElementTy) / 8);
+          getIntegerSplat(II.getValue(),
+                          DL.getTypeSizeInBits(ElementTy) / ByteSizeInBits);
+      // TVM local end
       Splat = convertValue(DL, IRB, Splat, ElementTy);
       if (NumElements > 1)
         Splat = getVectorSplat(Splat, NumElements);
@@ -2804,7 +2828,10 @@ private:
       assert(NewBeginOffset == NewAllocaBeginOffset);
       assert(NewEndOffset == NewAllocaEndOffset);
 
-      V = getIntegerSplat(II.getValue(), DL.getTypeSizeInBits(ScalarTy) / 8);
+      // TVM local begin
+      V = getIntegerSplat(II.getValue(),
+                          DL.getTypeSizeInBits(ScalarTy) / ByteSizeInBits);
+      // TVM local end
       if (VectorType *AllocaVecTy = dyn_cast<VectorType>(AllocaTy))
         V = getVectorSplat(V, AllocaVecTy->getNumElements());
 
@@ -2945,8 +2972,11 @@ private:
     unsigned BeginIndex = VecTy ? getIndex(NewBeginOffset) : 0;
     unsigned EndIndex = VecTy ? getIndex(NewEndOffset) : 0;
     unsigned NumElements = EndIndex - BeginIndex;
+    // TVM local begin
     IntegerType *SubIntTy =
-        IntTy ? Type::getIntNTy(IntTy->getContext(), Size * 8) : nullptr;
+        IntTy ? Type::getIntNTy(IntTy->getContext(),
+                                Size * ByteSizeInBits) : nullptr;
+    // TVM local end
 
     // Reset the other pointer type to match the register type we're going to
     // use, but using the address space of the original other pointer.
@@ -3746,7 +3776,9 @@ bool SROA::presplitLoadsAndStores(AllocaInst &AI, AllocaSlices &AS) {
     SplitLoads.clear();
 
     IntegerType *Ty = cast<IntegerType>(LI->getType());
-    uint64_t LoadSize = Ty->getBitWidth() / 8;
+    // TVM local begin
+    uint64_t LoadSize = Ty->getBitWidth() / ByteSizeInBits;
+    // TVM local end
     assert(LoadSize > 0 && "Cannot have a zero-sized integer load!");
 
     auto &Offsets = SplitOffsetsMap[LI];
@@ -3764,7 +3796,10 @@ bool SROA::presplitLoadsAndStores(AllocaInst &AI, AllocaSlices &AS) {
     uint64_t PartOffset = 0, PartSize = Offsets.Splits.front();
     int Idx = 0, Size = Offsets.Splits.size();
     for (;;) {
-      auto *PartTy = Type::getIntNTy(Ty->getContext(), PartSize * 8);
+      // TVM local begin
+      auto *PartTy = Type::getIntNTy(Ty->getContext(),
+                                     PartSize * ByteSizeInBits);
+      // TVM local end
       auto AS = LI->getPointerAddressSpace();
       auto *PartPtrTy = PartTy->getPointerTo(AS);
       LoadInst *PLoad = IRB.CreateAlignedLoad(
@@ -3866,7 +3901,9 @@ bool SROA::presplitLoadsAndStores(AllocaInst &AI, AllocaSlices &AS) {
   for (StoreInst *SI : Stores) {
     auto *LI = cast<LoadInst>(SI->getValueOperand());
     IntegerType *Ty = cast<IntegerType>(LI->getType());
-    uint64_t StoreSize = Ty->getBitWidth() / 8;
+    // TVM local begin
+    uint64_t StoreSize = Ty->getBitWidth() / ByteSizeInBits;
+    // TVM local end
     assert(StoreSize > 0 && "Cannot have a zero-sized integer store!");
 
     auto &Offsets = SplitOffsetsMap[SI];
@@ -3895,7 +3932,10 @@ bool SROA::presplitLoadsAndStores(AllocaInst &AI, AllocaSlices &AS) {
     uint64_t PartOffset = 0, PartSize = Offsets.Splits.front();
     int Idx = 0, Size = Offsets.Splits.size();
     for (;;) {
-      auto *PartTy = Type::getIntNTy(Ty->getContext(), PartSize * 8);
+      // TVM local begin
+      auto *PartTy = Type::getIntNTy(Ty->getContext(),
+                                     PartSize * ByteSizeInBits);
+      // TVM local end
       auto *LoadPartPtrTy = PartTy->getPointerTo(LI->getPointerAddressSpace());
       auto *StorePartPtrTy = PartTy->getPointerTo(SI->getPointerAddressSpace());
 
@@ -4029,12 +4069,14 @@ AllocaInst *SROA::rewritePartition(AllocaInst &AI, AllocaSlices &AS,
     if (Type *TypePartitionTy = getTypePartition(DL, AI.getAllocatedType(),
                                                  P.beginOffset(), P.size()))
       SliceTy = TypePartitionTy;
+  // TVM local begin
   if ((!SliceTy || (SliceTy->isArrayTy() &&
                     SliceTy->getArrayElementType()->isIntegerTy())) &&
       DL.isLegalInteger(P.size() * ByteSizeInBits))
     SliceTy = Type::getIntNTy(*C, P.size() * ByteSizeInBits);
   if (!SliceTy)
     SliceTy = ArrayType::get(Type::getIntNTy(*C, ByteSizeInBits), P.size());
+  // TVM local end
   assert(DL.getTypeAllocSize(SliceTy) >= P.size());
 
   bool IsIntegerPromotable = isIntegerWideningViable(P, SliceTy, DL);
@@ -4240,7 +4282,9 @@ bool SROA::splitAlloca(AllocaInst &AI, AllocaSlices &AS) {
     if (AllocaInst *NewAI = rewritePartition(AI, AS, P)) {
       Changed = true;
       if (NewAI != &AI) {
-        uint64_t SizeOfByte = 8;
+        // TVM local begin
+        uint64_t SizeOfByte = ByteSizeInBits;
+        // TVM local end
         uint64_t AllocaSize = DL.getTypeSizeInBits(NewAI->getAllocatedType());
         // Don't include any padding.
         uint64_t Size = std::min(AllocaSize, P.size() * SizeOfByte);

@@ -108,7 +108,9 @@ void CrossDSOCFI::buildCFICheck(Module &M) {
   LLVMContext &Ctx = M.getContext();
   Constant *C = M.getOrInsertFunction(
       "__cfi_check", Type::getVoidTy(Ctx), Type::getInt64Ty(Ctx),
-      Type::getInt8PtrTy(Ctx), Type::getInt8PtrTy(Ctx));
+      // TVM local begin
+      Type::getIntBytePtrTy(Ctx), Type::getIntBytePtrTy(Ctx));
+      // TVM local end
   Function *F = dyn_cast<Function>(C);
   // Take over the existing function. The frontend emits a weak stub so that the
   // linker knows about the symbol; this pass replaces the function body.
@@ -134,8 +136,10 @@ void CrossDSOCFI::buildCFICheck(Module &M) {
   BasicBlock *TrapBB = BasicBlock::Create(Ctx, "fail", F);
   IRBuilder<> IRBFail(TrapBB);
   Constant *CFICheckFailFn = M.getOrInsertFunction(
-      "__cfi_check_fail", Type::getVoidTy(Ctx), Type::getInt8PtrTy(Ctx),
-      Type::getInt8PtrTy(Ctx));
+      // TVM local begin
+      "__cfi_check_fail", Type::getVoidTy(Ctx), Type::getIntBytePtrTy(Ctx),
+      Type::getIntBytePtrTy(Ctx));
+      // TVM local end
   IRBFail.CreateCall(CFICheckFailFn, {&CFICheckFailData, &Addr});
   IRBFail.CreateBr(ExitBB);
 

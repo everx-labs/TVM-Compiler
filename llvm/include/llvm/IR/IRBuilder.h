@@ -319,6 +319,13 @@ public:
     return ConstantInt::get(getIntNTy(N), C);
   }
 
+  // TVM local begin
+  /// Geta byte-sized constant value
+  ConstantInt *getByte(uint64_t C) {
+    return ConstantInt::get(getIntNTy(ByteSizeInBits), C);
+  }
+  // TVM local end
+
   /// Get a constant integer value.
   ConstantInt *getInt(const APInt &AI) {
     return ConstantInt::get(Context, AI);
@@ -361,6 +368,13 @@ public:
     return Type::getIntNTy(Context, N);
   }
 
+  // TVM local begin
+  /// Fetch the type representing byte-sized int
+  IntegerType *getByteTy() {
+    return Type::getByteTy(Context);
+  }
+  // TVM local end
+
   /// Fetch the type representing a 16-bit floating point value.
   Type *getHalfTy() {
     return Type::getHalfTy(Context);
@@ -381,10 +395,15 @@ public:
     return Type::getVoidTy(Context);
   }
 
-  /// Fetch the type representing a pointer to an 8-bit integer value.
+  // TVM local begin
+  /// Fetch the type representing a pointer to an Byte-bit integer value.
+  PointerType *getIntBytePtrTy(unsigned AddrSpace = 0) {
+    return Type::getIntBytePtrTy(Context, AddrSpace);
+  }
   PointerType *getInt8PtrTy(unsigned AddrSpace = 0) {
     return Type::getInt8PtrTy(Context, AddrSpace);
   }
+  // TVM local end
 
   /// Fetch the type representing a pointer to an integer value.
   IntegerType *getIntPtrTy(const DataLayout &DL, unsigned AddrSpace = 0) {
@@ -709,7 +728,9 @@ private:
                                   ArrayRef<Type *> OverloadedTypes,
                                   const Twine &Name = "");
 
-  Value *getCastedInt8PtrValue(Value *Ptr);
+  // TVM local begin
+  Value *getCastedIntBytePtrValue(Value *Ptr);
+  // TVM local end
 };
 
 /// This provides a uniform API for creating instructions and inserting
@@ -2024,7 +2045,9 @@ public:
            "launder.invariant.group only applies to pointers.");
     // FIXME: we could potentially avoid casts to/from i8*.
     auto *PtrType = Ptr->getType();
-    auto *Int8PtrTy = getInt8PtrTy(PtrType->getPointerAddressSpace());
+    // TVM local begin
+    auto *Int8PtrTy = getIntBytePtrTy(PtrType->getPointerAddressSpace());
+    // TVM local end
     if (PtrType != Int8PtrTy)
       Ptr = CreateBitCast(Ptr, Int8PtrTy);
     Module *M = BB->getParent()->getParent();
@@ -2052,7 +2075,9 @@ public:
 
     // FIXME: we could potentially avoid casts to/from i8*.
     auto *PtrType = Ptr->getType();
-    auto *Int8PtrTy = getInt8PtrTy(PtrType->getPointerAddressSpace());
+    // TVM local begin
+    auto *Int8PtrTy = getIntBytePtrTy(PtrType->getPointerAddressSpace());
+    // TVM local end
     if (PtrType != Int8PtrTy)
       Ptr = CreateBitCast(Ptr, Int8PtrTy);
     Module *M = BB->getParent()->getParent();

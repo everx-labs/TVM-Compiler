@@ -861,7 +861,9 @@ static void emitCPPObjectAtomicGetterCall(CodeGenFunction &CGF,
   llvm::Value *ivarAddr =
     CGF.EmitLValueForIvar(CGF.TypeOfSelfObject(),
                           CGF.LoadObjCSelf(), ivar, 0).getPointer();
-  ivarAddr = CGF.Builder.CreateBitCast(ivarAddr, CGF.Int8PtrTy);
+  // TVM local begin
+  ivarAddr = CGF.Builder.CreateBitCast(ivarAddr, CGF.BytePtrTy);
+  // TVM local end
   args.add(RValue::get(ivarAddr), CGF.getContext().VoidPtrTy);
 
   // Third argument is the helper function.
@@ -1063,7 +1065,9 @@ static void emitStructSetterCall(CodeGenFunction &CGF, ObjCMethodDecl *OMD,
   llvm::Value *ivarAddr = CGF.EmitLValueForIvar(CGF.TypeOfSelfObject(),
                                                 CGF.LoadObjCSelf(), ivar, 0)
     .getPointer();
-  ivarAddr = CGF.Builder.CreateBitCast(ivarAddr, CGF.Int8PtrTy);
+  // TVM local begin
+  ivarAddr = CGF.Builder.CreateBitCast(ivarAddr, CGF.BytePtrTy);
+  // TVM local end
   args.add(RValue::get(ivarAddr), CGF.getContext().VoidPtrTy);
 
   // The second argument is the address of the parameter variable.
@@ -1071,7 +1075,9 @@ static void emitStructSetterCall(CodeGenFunction &CGF, ObjCMethodDecl *OMD,
   DeclRefExpr argRef(argVar, false, argVar->getType().getNonReferenceType(),
                      VK_LValue, SourceLocation());
   llvm::Value *argAddr = CGF.EmitLValue(&argRef).getPointer();
-  argAddr = CGF.Builder.CreateBitCast(argAddr, CGF.Int8PtrTy);
+  // TVM local begin
+  argAddr = CGF.Builder.CreateBitCast(argAddr, CGF.BytePtrTy);
+  // TVM local end
   args.add(RValue::get(argAddr), CGF.getContext().VoidPtrTy);
 
   // The third argument is the sizeof the type.
@@ -1108,7 +1114,9 @@ static void emitCPPObjectAtomicSetterCall(CodeGenFunction &CGF,
   llvm::Value *ivarAddr =
     CGF.EmitLValueForIvar(CGF.TypeOfSelfObject(),
                           CGF.LoadObjCSelf(), ivar, 0).getPointer();
-  ivarAddr = CGF.Builder.CreateBitCast(ivarAddr, CGF.Int8PtrTy);
+  // TVM local begin
+  ivarAddr = CGF.Builder.CreateBitCast(ivarAddr, CGF.BytePtrTy);
+  // TVM local end
   args.add(RValue::get(ivarAddr), CGF.getContext().VoidPtrTy);
 
   // The second argument is the address of the parameter variable.
@@ -1116,7 +1124,9 @@ static void emitCPPObjectAtomicSetterCall(CodeGenFunction &CGF,
   DeclRefExpr argRef(argVar, false, argVar->getType().getNonReferenceType(),
                      VK_LValue, SourceLocation());
   llvm::Value *argAddr = CGF.EmitLValue(&argRef).getPointer();
-  argAddr = CGF.Builder.CreateBitCast(argAddr, CGF.Int8PtrTy);
+  // TVM local begin
+  argAddr = CGF.Builder.CreateBitCast(argAddr, CGF.BytePtrTy);
+  // TVM local end
   args.add(RValue::get(argAddr), CGF.getContext().VoidPtrTy);
 
   // Third argument is the helper function.
@@ -1851,14 +1861,18 @@ static llvm::Value *emitARCValueOperation(CodeGenFunction &CGF,
     return value;
 
   if (!fn) {
+    // TVM local begin
     llvm::FunctionType *fnType =
-      llvm::FunctionType::get(CGF.Int8PtrTy, CGF.Int8PtrTy, false);
+      llvm::FunctionType::get(CGF.BytePtrTy, CGF.BytePtrTy, false);
+    // TVM local end
     fn = createARCRuntimeFunction(CGF.CGM, fnType, fnName);
   }
 
   // Cast the argument to 'id'.
   llvm::Type *origType = value->getType();
-  value = CGF.Builder.CreateBitCast(value, CGF.Int8PtrTy);
+  // TVM local begin
+  value = CGF.Builder.CreateBitCast(value, CGF.BytePtrTy);
+  // TVM local end
 
   // Call the function.
   llvm::CallInst *call = CGF.EmitNounwindRuntimeCall(fn, value);
@@ -1876,21 +1890,27 @@ static llvm::Value *emitARCLoadOperation(CodeGenFunction &CGF,
                                          llvm::Constant *&fn,
                                          StringRef fnName) {
   if (!fn) {
+    // TVM local begin
     llvm::FunctionType *fnType =
-      llvm::FunctionType::get(CGF.Int8PtrTy, CGF.Int8PtrPtrTy, false);
+      llvm::FunctionType::get(CGF.BytePtrTy, CGF.BytePtrPtrTy, false);
+    // TVM local end
     fn = createARCRuntimeFunction(CGF.CGM, fnType, fnName);
   }
 
   // Cast the argument to 'id*'.
   llvm::Type *origType = addr.getElementType();
-  addr = CGF.Builder.CreateBitCast(addr, CGF.Int8PtrPtrTy);
+  // TVM local begin
+  addr = CGF.Builder.CreateBitCast(addr, CGF.BytePtrPtrTy);
+  // TVM local end
 
   // Call the function.
   llvm::Value *result = CGF.EmitNounwindRuntimeCall(fn, addr.getPointer());
 
   // Cast the result back to a dereference of the original type.
-  if (origType != CGF.Int8PtrTy)
+  // TVM local begin
+  if (origType != CGF.BytePtrTy)
     result = CGF.Builder.CreateBitCast(result, origType);
+  // TVM local end
 
   return result;
 }
@@ -1906,18 +1926,22 @@ static llvm::Value *emitARCStoreOperation(CodeGenFunction &CGF,
   assert(addr.getElementType() == value->getType());
 
   if (!fn) {
-    llvm::Type *argTypes[] = { CGF.Int8PtrPtrTy, CGF.Int8PtrTy };
+    // TVM local begin
+    llvm::Type *argTypes[] = { CGF.BytePtrPtrTy, CGF.BytePtrTy };
 
     llvm::FunctionType *fnType
-      = llvm::FunctionType::get(CGF.Int8PtrTy, argTypes, false);
+      = llvm::FunctionType::get(CGF.BytePtrTy, argTypes, false);
+    // TVM local end
     fn = createARCRuntimeFunction(CGF.CGM, fnType, fnName);
   }
 
   llvm::Type *origType = value->getType();
 
   llvm::Value *args[] = {
-    CGF.Builder.CreateBitCast(addr.getPointer(), CGF.Int8PtrPtrTy),
-    CGF.Builder.CreateBitCast(value, CGF.Int8PtrTy)
+    // TVM local begin
+    CGF.Builder.CreateBitCast(addr.getPointer(), CGF.BytePtrPtrTy),
+    CGF.Builder.CreateBitCast(value, CGF.BytePtrTy)
+    // TVM local end
   };
   llvm::CallInst *result = CGF.EmitNounwindRuntimeCall(fn, args);
 
@@ -1936,7 +1960,9 @@ static void emitARCCopyOperation(CodeGenFunction &CGF,
   assert(dst.getType() == src.getType());
 
   if (!fn) {
-    llvm::Type *argTypes[] = { CGF.Int8PtrPtrTy, CGF.Int8PtrPtrTy };
+    // TVM local begin
+    llvm::Type *argTypes[] = { CGF.BytePtrPtrTy, CGF.BytePtrPtrTy };
+    // TVM local end
 
     llvm::FunctionType *fnType
       = llvm::FunctionType::get(CGF.Builder.getVoidTy(), argTypes, false);
@@ -1944,8 +1970,10 @@ static void emitARCCopyOperation(CodeGenFunction &CGF,
   }
 
   llvm::Value *args[] = {
-    CGF.Builder.CreateBitCast(dst.getPointer(), CGF.Int8PtrPtrTy),
-    CGF.Builder.CreateBitCast(src.getPointer(), CGF.Int8PtrPtrTy)
+    // TVM local begin
+    CGF.Builder.CreateBitCast(dst.getPointer(), CGF.BytePtrPtrTy),
+    CGF.Builder.CreateBitCast(src.getPointer(), CGF.BytePtrPtrTy)
+    // TVM local end
   };
   CGF.EmitNounwindRuntimeCall(fn, args);
 }
@@ -2075,13 +2103,17 @@ void CodeGenFunction::EmitARCRelease(llvm::Value *value,
 
   llvm::Constant *&fn = CGM.getObjCEntrypoints().objc_release;
   if (!fn) {
+    // TVM local begin
     llvm::FunctionType *fnType =
-      llvm::FunctionType::get(Builder.getVoidTy(), Int8PtrTy, false);
+      llvm::FunctionType::get(Builder.getVoidTy(), BytePtrTy, false);
+    // TVM local end
     fn = createARCRuntimeFunction(CGM, fnType, "objc_release");
   }
 
   // Cast the argument to 'id'.
-  value = Builder.CreateBitCast(value, Int8PtrTy);
+  // TVM local begin
+  value = Builder.CreateBitCast(value, BytePtrTy);
+  // TVM local end
 
   // Call objc_release.
   llvm::CallInst *call = EmitNounwindRuntimeCall(fn, value);
@@ -2122,15 +2154,19 @@ llvm::Value *CodeGenFunction::EmitARCStoreStrongCall(Address addr,
 
   llvm::Constant *&fn = CGM.getObjCEntrypoints().objc_storeStrong;
   if (!fn) {
-    llvm::Type *argTypes[] = { Int8PtrPtrTy, Int8PtrTy };
+    // TVM local begin
+    llvm::Type *argTypes[] = { BytePtrPtrTy, BytePtrTy };
+    // TVM local end
     llvm::FunctionType *fnType
       = llvm::FunctionType::get(Builder.getVoidTy(), argTypes, false);
     fn = createARCRuntimeFunction(CGM, fnType, "objc_storeStrong");
   }
 
   llvm::Value *args[] = {
-    Builder.CreateBitCast(addr.getPointer(), Int8PtrPtrTy),
-    Builder.CreateBitCast(value, Int8PtrTy)
+    // TVM local begin
+    Builder.CreateBitCast(addr.getPointer(), BytePtrPtrTy),
+    Builder.CreateBitCast(value, BytePtrTy)
+    // TVM local end
   };
   EmitNounwindRuntimeCall(fn, args);
 
@@ -2215,7 +2251,9 @@ llvm::Value *CodeGenFunction::EmitARCRetainAutorelease(QualType type,
   if (isa<llvm::ConstantPointerNull>(value)) return value;
 
   llvm::Type *origType = value->getType();
-  value = Builder.CreateBitCast(value, Int8PtrTy);
+  // TVM local begin
+  value = Builder.CreateBitCast(value, BytePtrTy);
+  // TVM local end
   value = EmitARCRetainBlock(value, /*mandatory*/ true);
   value = EmitARCAutorelease(value);
   return Builder.CreateBitCast(value, origType);
@@ -2280,13 +2318,17 @@ void CodeGenFunction::EmitARCInitWeak(Address addr, llvm::Value *value) {
 void CodeGenFunction::EmitARCDestroyWeak(Address addr) {
   llvm::Constant *&fn = CGM.getObjCEntrypoints().objc_destroyWeak;
   if (!fn) {
+    // TVM local begin
     llvm::FunctionType *fnType =
-      llvm::FunctionType::get(Builder.getVoidTy(), Int8PtrPtrTy, false);
+      llvm::FunctionType::get(Builder.getVoidTy(), BytePtrPtrTy, false);
+    // TVM local end
     fn = createARCRuntimeFunction(CGM, fnType, "objc_destroyWeak");
   }
 
   // Cast the argument to 'id*'.
-  addr = Builder.CreateBitCast(addr, Int8PtrPtrTy);
+  // TVM local begin
+  addr = Builder.CreateBitCast(addr, BytePtrPtrTy);
+  // TVM local end
 
   EmitNounwindRuntimeCall(fn, addr.getPointer());
 }
@@ -2329,8 +2371,10 @@ void CodeGenFunction::emitARCMoveAssignWeak(QualType Ty, Address DstAddr,
 llvm::Value *CodeGenFunction::EmitObjCAutoreleasePoolPush() {
   llvm::Constant *&fn = CGM.getObjCEntrypoints().objc_autoreleasePoolPush;
   if (!fn) {
+    // TVM local begin
     llvm::FunctionType *fnType =
-      llvm::FunctionType::get(Int8PtrTy, false);
+      llvm::FunctionType::get(BytePtrTy, false);
+    // TVM local end
     fn = createARCRuntimeFunction(CGM, fnType, "objc_autoreleasePoolPush");
   }
 
@@ -2340,12 +2384,16 @@ llvm::Value *CodeGenFunction::EmitObjCAutoreleasePoolPush() {
 /// Produce the code to do a primitive release.
 ///   call void \@objc_autoreleasePoolPop(i8* %ptr)
 void CodeGenFunction::EmitObjCAutoreleasePoolPop(llvm::Value *value) {
-  assert(value->getType() == Int8PtrTy);
+  // TVM local begin
+  assert(value->getType() == BytePtrTy);
+  // TVM local end
 
   llvm::Constant *&fn = CGM.getObjCEntrypoints().objc_autoreleasePoolPop;
   if (!fn) {
+    // TVM local begin
     llvm::FunctionType *fnType =
-      llvm::FunctionType::get(Builder.getVoidTy(), Int8PtrTy, false);
+      llvm::FunctionType::get(Builder.getVoidTy(), BytePtrTy, false);
+    // TVM local end
 
     // We don't want to use a weak import here; instead we should not
     // fall into this path.

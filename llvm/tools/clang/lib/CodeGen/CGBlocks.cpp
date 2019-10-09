@@ -86,7 +86,9 @@ static llvm::Constant *buildBlockDescriptor(CodeGenModule &CGM,
   llvm::PointerType *i8p = nullptr;
   if (CGM.getLangOpts().OpenCL)
     i8p =
-      llvm::Type::getInt8PtrTy(
+      // TVM local begin
+      llvm::Type::getIntBytePtrTy(
+      // TVM local end
            CGM.getLLVMContext(), C.getTargetAddressSpace(LangAS::opencl_constant));
   else
     i8p = CGM.VoidPtrTy;
@@ -577,7 +579,9 @@ static void computeBlockInfo(CodeGenModule &CGM, CodeGenFunction *CGF,
       info.BlockHeaderForcedGapSize = padding;
     }
 
-    elementTypes.push_back(llvm::ArrayType::get(CGM.Int8Ty,
+    // TVM local begin
+    elementTypes.push_back(llvm::ArrayType::get(CGM.ByteTy,
+    // TVM local end
                                                 padding.getQuantity()));
     blockSize = newBlockSize;
     endAlign = getLowBit(blockSize); // might be > maxFieldAlign
@@ -595,7 +599,9 @@ static void computeBlockInfo(CodeGenModule &CGM, CodeGenFunction *CGF,
       // an over-aligned variable. We will be adding a padding field to
       // make the size be multiple of alignment.
       CharUnits padding = li->Alignment - endAlign;
-      elementTypes.push_back(llvm::ArrayType::get(CGM.Int8Ty,
+      // TVM local begin
+      elementTypes.push_back(llvm::ArrayType::get(CGM.ByteTy,
+      // TVM local end
                                                   padding.getQuantity()));
       blockSize += padding;
       endAlign = getLowBit(blockSize);
@@ -1217,7 +1223,9 @@ static llvm::Constant *buildGlobalBlock(CodeGenModule &CGM,
   if (!IsOpenCL) {
     // isa
     if (IsWindows)
-      fields.addNullPointer(CGM.Int8PtrPtrTy);
+      // TVM local begin
+      fields.addNullPointer(CGM.BytePtrPtrTy);
+      // TVM local end
     else
       fields.add(CGM.getNSConcreteGlobalBlock());
 
@@ -1958,7 +1966,9 @@ public:
   }
 
   void emitDispose(CodeGenFunction &CGF, Address field) override {
-    field = CGF.Builder.CreateBitCast(field, CGF.Int8PtrTy->getPointerTo(0));
+    // TVM local begin
+    field = CGF.Builder.CreateBitCast(field, CGF.BytePtrTy->getPointerTo(0));
+    // TVM local end
     llvm::Value *value = CGF.Builder.CreateLoad(field);
 
     CGF.BuildBlockRelease(value, Flags | BLOCK_BYREF_CALLER);
@@ -2177,7 +2187,9 @@ generateByrefCopyHelper(CodeGenFunction &CGF, const BlockByrefInfo &byrefInfo,
 
   CGF.FinishFunction();
 
-  return llvm::ConstantExpr::getBitCast(Fn, CGF.Int8PtrTy);
+  // TVM local begin
+  return llvm::ConstantExpr::getBitCast(Fn, CGF.BytePtrTy);
+  // TVM local end
 }
 
 /// Build the copy helper for a __block variable.
@@ -2239,7 +2251,9 @@ generateByrefDisposeHelper(CodeGenFunction &CGF,
 
   CGF.FinishFunction();
 
-  return llvm::ConstantExpr::getBitCast(Fn, CGF.Int8PtrTy);
+  // TVM local begin
+  return llvm::ConstantExpr::getBitCast(Fn, CGF.BytePtrTy);
+  // TVM local end
 }
 
 /// Build the dispose helper for a __block variable.
@@ -2411,7 +2425,9 @@ const BlockByrefInfo &CodeGenFunction::getBlockByrefInfo(const VarDecl *D) {
   SmallVector<llvm::Type *, 8> types;
 
   // void *__isa;
-  types.push_back(Int8PtrTy);
+  // TVM local begin
+  types.push_back(BytePtrTy);
+  // TVM local end
   size += getPointerSize();
 
   // void *__forwarding;
@@ -2430,11 +2446,15 @@ const BlockByrefInfo &CodeGenFunction::getBlockByrefInfo(const VarDecl *D) {
   bool hasCopyAndDispose = getContext().BlockRequiresCopying(Ty, D);
   if (hasCopyAndDispose) {
     /// void *__copy_helper;
-    types.push_back(Int8PtrTy);
+    // TVM local begin
+    types.push_back(BytePtrTy);
+    // TVM local end
     size += getPointerSize();
 
     /// void *__destroy_helper;
-    types.push_back(Int8PtrTy);
+    // TVM local begin
+    types.push_back(BytePtrTy);
+    // TVM local end
     size += getPointerSize();
   }
 
@@ -2443,7 +2463,9 @@ const BlockByrefInfo &CodeGenFunction::getBlockByrefInfo(const VarDecl *D) {
   if (getContext().getByrefLifetime(Ty, Lifetime, HasByrefExtendedLayout) &&
       HasByrefExtendedLayout) {
     /// void *__byref_variable_layout;
-    types.push_back(Int8PtrTy);
+    // TVM local begin
+    types.push_back(BytePtrTy);
+    // TVM local end
     size += CharUnits::fromQuantity(PointerSizeInBytes);
   }
 
@@ -2457,7 +2479,9 @@ const BlockByrefInfo &CodeGenFunction::getBlockByrefInfo(const VarDecl *D) {
   // We may have to insert padding.
   if (varOffset != size) {
     llvm::Type *paddingTy =
-      llvm::ArrayType::get(Int8Ty, (varOffset - size).getQuantity());
+      // TVM local begin
+      llvm::ArrayType::get(ByteTy, (varOffset - size).getQuantity());
+      // TVM local end
 
     types.push_back(paddingTy);
     size = varOffset;
@@ -2521,7 +2545,9 @@ void CodeGenFunction::emitByrefStructureInit(const AutoVarEmission &emission) {
   int isa = 0;
   if (type.isObjCGCWeak())
     isa = 1;
-  V = Builder.CreateIntToPtr(Builder.getInt32(isa), Int8PtrTy, "isa");
+  // TVM local begin
+  V = Builder.CreateIntToPtr(Builder.getInt32(isa), BytePtrTy, "isa");
+  // TVM local end
   storeHeaderField(V, getPointerSize(), "byref.isa");
 
   // Store the address of the variable into its own forwarding pointer.
@@ -2594,7 +2620,9 @@ void CodeGenFunction::emitByrefStructureInit(const AutoVarEmission &emission) {
 void CodeGenFunction::BuildBlockRelease(llvm::Value *V, BlockFieldFlags flags) {
   llvm::Value *F = CGM.getBlockObjectDispose();
   llvm::Value *args[] = {
-    Builder.CreateBitCast(V, Int8PtrTy),
+    // TVM local begin
+    Builder.CreateBitCast(V, BytePtrTy),
+    // TVM local end
     llvm::ConstantInt::get(Int32Ty, flags.getBitMask())
   };
   EmitNounwindRuntimeCall(F, args); // FIXME: throwing destructors?
@@ -2647,7 +2675,9 @@ llvm::Constant *CodeGenModule::getBlockObjectDispose() {
   if (BlockObjectDispose)
     return BlockObjectDispose;
 
-  llvm::Type *args[] = { Int8PtrTy, Int32Ty };
+  // TVM local begin
+  llvm::Type *args[] = { BytePtrTy, Int32Ty };
+  // TVM local end
   llvm::FunctionType *fty
     = llvm::FunctionType::get(VoidTy, args, false);
   BlockObjectDispose = CreateRuntimeFunction(fty, "_Block_object_dispose");
@@ -2659,7 +2689,9 @@ llvm::Constant *CodeGenModule::getBlockObjectAssign() {
   if (BlockObjectAssign)
     return BlockObjectAssign;
 
-  llvm::Type *args[] = { Int8PtrTy, Int8PtrTy, Int32Ty };
+  // TVM local begin
+  llvm::Type *args[] = { BytePtrTy, BytePtrTy, Int32Ty };
+  // TVM local end
   llvm::FunctionType *fty
     = llvm::FunctionType::get(VoidTy, args, false);
   BlockObjectAssign = CreateRuntimeFunction(fty, "_Block_object_assign");
@@ -2672,7 +2704,9 @@ llvm::Constant *CodeGenModule::getNSConcreteGlobalBlock() {
     return NSConcreteGlobalBlock;
 
   NSConcreteGlobalBlock = GetOrCreateLLVMGlobal("_NSConcreteGlobalBlock",
-                                                Int8PtrTy->getPointerTo(),
+                                                // TVM local begin
+                                                BytePtrTy->getPointerTo(),
+                                                // TVM local end
                                                 nullptr);
   configureBlocksRuntimeObject(*this, NSConcreteGlobalBlock);
   return NSConcreteGlobalBlock;
@@ -2683,7 +2717,9 @@ llvm::Constant *CodeGenModule::getNSConcreteStackBlock() {
     return NSConcreteStackBlock;
 
   NSConcreteStackBlock = GetOrCreateLLVMGlobal("_NSConcreteStackBlock",
-                                               Int8PtrTy->getPointerTo(),
+                                               // TVM local begin
+                                               BytePtrTy->getPointerTo(),
+                                               // TVM local end
                                                nullptr);
   configureBlocksRuntimeObject(*this, NSConcreteStackBlock);
   return NSConcreteStackBlock;

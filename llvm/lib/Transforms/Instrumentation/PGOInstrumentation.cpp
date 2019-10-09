@@ -725,7 +725,9 @@ static void instrumentOneFunc(
   unsigned NumCounters = FuncInfo.getNumCounters();
 
   uint32_t I = 0;
-  Type *I8PtrTy = Type::getInt8PtrTy(M->getContext());
+  // TVM local begin
+  Type *I8PtrTy = Type::getIntBytePtrTy(M->getContext());
+  // TVM local end
   for (auto &E : FuncInfo.MST.AllEdges) {
     BasicBlock *InstrBB = FuncInfo.getInstrBB(E.get());
     if (!InstrBB)
@@ -1219,7 +1221,9 @@ void SelectInstVisitor::instrumentOneSelectInst(SelectInst &SI) {
   Module *M = F.getParent();
   IRBuilder<> Builder(&SI);
   Type *Int64Ty = Builder.getInt64Ty();
-  Type *I8PtrTy = Builder.getInt8PtrTy();
+  // TVM local begin
+  Type *I8PtrTy = Builder.getIntBytePtrTy();
+  // TVM local end
   auto *Step = Builder.CreateZExt(SI.getCondition(), Int64Ty);
   Builder.CreateCall(
       Intrinsic::getDeclaration(M, Intrinsic::instrprof_increment_step),
@@ -1273,7 +1277,9 @@ void MemIntrinsicVisitor::instrumentOneMemIntrinsic(MemIntrinsic &MI) {
   Module *M = F.getParent();
   IRBuilder<> Builder(&MI);
   Type *Int64Ty = Builder.getInt64Ty();
-  Type *I8PtrTy = Builder.getInt8PtrTy();
+  // TVM local begin
+  Type *I8PtrTy = Builder.getIntBytePtrTy();
+  // TVM local end
   Value *Length = MI.getLength();
   assert(!dyn_cast<ConstantInt>(Length));
   Builder.CreateCall(

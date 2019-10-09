@@ -1253,8 +1253,10 @@ static llvm::Value *CreateCoercedLoad(Address Src, llvm::Type *Ty,
 
   // Otherwise do coercion through memory. This is stupid, but simple.
   Address Tmp = CreateTempAllocaForCoercion(CGF, Ty, Src.getAlignment());
-  Address Casted = CGF.Builder.CreateBitCast(Tmp, CGF.AllocaInt8PtrTy);
-  Address SrcCasted = CGF.Builder.CreateBitCast(Src, CGF.AllocaInt8PtrTy);
+  // TVM local begin
+  Address Casted = CGF.Builder.CreateBitCast(Tmp, CGF.AllocaBytePtrTy);
+  Address SrcCasted = CGF.Builder.CreateBitCast(Src, CGF.AllocaBytePtrTy);
+  // TVM local end
   CGF.Builder.CreateMemCpy(Casted, SrcCasted,
       llvm::ConstantInt::get(CGF.IntPtrTy, SrcSize),
       false);
@@ -1335,8 +1337,10 @@ static void CreateCoercedStore(llvm::Value *Src,
     // to that information.
     Address Tmp = CreateTempAllocaForCoercion(CGF, SrcTy, Dst.getAlignment());
     CGF.Builder.CreateStore(Src, Tmp);
-    Address Casted = CGF.Builder.CreateBitCast(Tmp, CGF.AllocaInt8PtrTy);
-    Address DstCasted = CGF.Builder.CreateBitCast(Dst, CGF.AllocaInt8PtrTy);
+    // TVM local begin
+    Address Casted = CGF.Builder.CreateBitCast(Tmp, CGF.AllocaBytePtrTy);
+    Address DstCasted = CGF.Builder.CreateBitCast(Dst, CGF.AllocaBytePtrTy);
+    // TVM local end
     CGF.Builder.CreateMemCpy(DstCasted, Casted,
         llvm::ConstantInt::get(CGF.IntPtrTy, DstSize),
         false);
@@ -1346,7 +1350,9 @@ static void CreateCoercedStore(llvm::Value *Src,
 static Address emitAddressAtOffset(CodeGenFunction &CGF, Address addr,
                                    const ABIArgInfo &info) {
   if (unsigned offset = info.getDirectOffset()) {
-    addr = CGF.Builder.CreateElementBitCast(addr, CGF.Int8Ty);
+    // TVM local begin
+    addr = CGF.Builder.CreateElementBitCast(addr, CGF.ByteTy);
+    // TVM local end
     addr = CGF.Builder.CreateConstInBoundsByteGEP(addr,
                                              CharUnits::fromQuantity(offset));
     addr = CGF.Builder.CreateElementBitCast(addr, info.getCoerceToType());
@@ -2318,8 +2324,10 @@ void CodeGenFunction::EmitFunctionProlog(const CGFunctionInfo &FI,
           // copy.
           CharUnits Size = getContext().getTypeSizeInChars(Ty);
           auto SizeVal = llvm::ConstantInt::get(IntPtrTy, Size.getQuantity());
-          Address Dst = Builder.CreateBitCast(AlignedTemp, Int8PtrTy);
-          Address Src = Builder.CreateBitCast(ParamAddr, Int8PtrTy);
+          // TVM local begin
+          Address Dst = Builder.CreateBitCast(AlignedTemp, BytePtrTy);
+          Address Src = Builder.CreateBitCast(ParamAddr, BytePtrTy);
+          // TVM local end
           Builder.CreateMemCpy(Dst, Src, SizeVal, false);
           V = AlignedTemp;
         }

@@ -215,7 +215,9 @@ CodeGenFunction::GetAddressOfDirectBaseInCompleteClass(Address This,
   // TODO: for complete types, this should be possible with a GEP.
   Address V = This;
   if (!Offset.isZero()) {
-    V = Builder.CreateElementBitCast(V, Int8Ty);
+    // TVM local begin
+    V = Builder.CreateElementBitCast(V, ByteTy);
+    // TVM local end
     V = Builder.CreateConstInBoundsByteGEP(V, Offset);
   }
   V = Builder.CreateElementBitCast(V, ConvertType(Base));
@@ -246,7 +248,9 @@ ApplyNonVirtualAndVirtualOffset(CodeGenFunction &CGF, Address addr,
 
   // Apply the base offset.
   llvm::Value *ptr = addr.getPointer();
-  ptr = CGF.Builder.CreateBitCast(ptr, CGF.Int8PtrTy);
+  // TVM local begin
+  ptr = CGF.Builder.CreateBitCast(ptr, CGF.BytePtrTy);
+  // TVM local end
   ptr = CGF.Builder.CreateInBoundsGEP(ptr, baseOffset, "add.ptr");
 
   // If we have a virtual component, the alignment of the result will
@@ -405,7 +409,9 @@ CodeGenFunction::GetAddressOfDerivedClass(Address BaseAddr,
   }
 
   // Apply the offset.
-  llvm::Value *Value = Builder.CreateBitCast(BaseAddr.getPointer(), Int8PtrTy);
+  // TVM local begin
+  llvm::Value *Value = Builder.CreateBitCast(BaseAddr.getPointer(), BytePtrTy);
+  // TVM local end
   Value = Builder.CreateInBoundsGEP(Value, Builder.CreateNeg(NonVirtualOffset),
                                     "sub.ptr");
 
@@ -980,12 +986,16 @@ namespace {
     void emitMemcpyIR(Address DestPtr, Address SrcPtr, CharUnits Size) {
       llvm::PointerType *DPT = DestPtr.getType();
       llvm::Type *DBP =
-        llvm::Type::getInt8PtrTy(CGF.getLLVMContext(), DPT->getAddressSpace());
+        // TVM local begin
+        llvm::Type::getIntBytePtrTy(CGF.getLLVMContext(), DPT->getAddressSpace());
+        // TVM local end
       DestPtr = CGF.Builder.CreateBitCast(DestPtr, DBP);
 
       llvm::PointerType *SPT = SrcPtr.getType();
       llvm::Type *SBP =
-        llvm::Type::getInt8PtrTy(CGF.getLLVMContext(), SPT->getAddressSpace());
+        // TVM local begin
+        llvm::Type::getIntBytePtrTy(CGF.getLLVMContext(), SPT->getAddressSpace());
+        // TVM local end
       SrcPtr = CGF.Builder.CreateBitCast(SrcPtr, SBP);
 
       CGF.Builder.CreateMemCpy(DestPtr, SrcPtr, Size.getQuantity());
@@ -1699,7 +1709,9 @@ namespace {
               .getQuantity());
 
       llvm::Value *OffsetPtr = CGF.Builder.CreateGEP(
-          CGF.Builder.CreateBitCast(CGF.LoadCXXThis(), CGF.Int8PtrTy),
+          // TVM local begin
+          CGF.Builder.CreateBitCast(CGF.LoadCXXThis(), CGF.BytePtrTy),
+          // TVM local end
           OffsetSizePtr);
 
       CharUnits::QuantityType PoisonSize;
@@ -2611,7 +2623,9 @@ void CodeGenFunction::EmitTypeMetadataCodeForVCall(const CXXRecordDecl *RD,
     llvm::Value *TypeId =
         llvm::MetadataAsValue::get(CGM.getLLVMContext(), MD);
 
-    llvm::Value *CastedVTable = Builder.CreateBitCast(VTable, Int8PtrTy);
+    // TVM local begin
+    llvm::Value *CastedVTable = Builder.CreateBitCast(VTable, BytePtrTy);
+    // TVM local end
     llvm::Value *TypeTest =
         Builder.CreateCall(CGM.getIntrinsic(llvm::Intrinsic::type_test),
                            {CastedVTable, TypeId});
@@ -2719,12 +2733,16 @@ void CodeGenFunction::EmitVTablePtrCheck(const CXXRecordDecl *RD,
       CGM.CreateMetadataIdentifierForType(QualType(RD->getTypeForDecl(), 0));
   llvm::Value *TypeId = llvm::MetadataAsValue::get(getLLVMContext(), MD);
 
-  llvm::Value *CastedVTable = Builder.CreateBitCast(VTable, Int8PtrTy);
+  // TVM local begin
+  llvm::Value *CastedVTable = Builder.CreateBitCast(VTable, BytePtrTy);
+  // TVM local end
   llvm::Value *TypeTest = Builder.CreateCall(
       CGM.getIntrinsic(llvm::Intrinsic::type_test), {CastedVTable, TypeId});
 
   llvm::Constant *StaticData[] = {
-      llvm::ConstantInt::get(Int8Ty, TCK),
+      // TVM local begin
+      llvm::ConstantInt::get(ByteTy, TCK),
+      // TVM local end
       EmitCheckSourceLocation(Loc),
       EmitCheckTypeDescriptor(QualType(RD->getTypeForDecl(), 0)),
   };
@@ -2771,7 +2789,9 @@ llvm::Value *CodeGenFunction::EmitVTableTypeCheckedLoad(
       CGM.CreateMetadataIdentifierForType(QualType(RD->getTypeForDecl(), 0));
   llvm::Value *TypeId = llvm::MetadataAsValue::get(CGM.getLLVMContext(), MD);
 
-  llvm::Value *CastedVTable = Builder.CreateBitCast(VTable, Int8PtrTy);
+  // TVM local begin
+  llvm::Value *CastedVTable = Builder.CreateBitCast(VTable, BytePtrTy);
+  // TVM local end
   llvm::Value *CheckedLoad = Builder.CreateCall(
       CGM.getIntrinsic(llvm::Intrinsic::type_checked_load),
       {CastedVTable, llvm::ConstantInt::get(Int32Ty, VTableByteOffset),

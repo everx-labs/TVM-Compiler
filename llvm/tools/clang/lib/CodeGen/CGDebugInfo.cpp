@@ -1700,7 +1700,9 @@ CGDebugInfo::CollectTemplateParams(const TemplateParameterList *TPList,
         if (MPT->isMemberDataPointer())
           V = CGM.getCXXABI().EmitNullMemberPointer(MPT);
       if (!V)
-        V = llvm::ConstantInt::get(CGM.Int8Ty, 0);
+        // TVM local begin
+        V = llvm::ConstantInt::get(CGM.ByteTy, 0);
+        // TVM local end
       TemplateParams.push_back(
           DBuilder.createTemplateValueParameter(TheCU, Name, TTy, V));
     } break;

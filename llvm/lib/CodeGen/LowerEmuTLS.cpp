@@ -84,7 +84,9 @@ bool LowerEmuTLS::runOnModule(Module &M) {
 
 bool LowerEmuTLS::addEmuTlsVar(Module &M, const GlobalVariable *GV) {
   LLVMContext &C = M.getContext();
-  PointerType *VoidPtrType = Type::getInt8PtrTy(C);
+  // TVM local begin
+  PointerType *VoidPtrType = Type::getIntBytePtrTy(C);
+  // TVM local end
 
   std::string EmuTlsVarName = ("__emutls_v." + GV->getName()).str();
   GlobalVariable *EmuTlsVar = M.getNamedGlobal(EmuTlsVarName);

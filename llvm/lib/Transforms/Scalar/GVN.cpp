@@ -1395,12 +1395,16 @@ bool GVN::processAssumeIntrinsic(IntrinsicInst *IntrinsicI) {
 
   if (ConstantInt *Cond = dyn_cast<ConstantInt>(V)) {
     if (Cond->isZero()) {
-      Type *Int8Ty = Type::getInt8Ty(V->getContext());
+      // TVM local begin
+      Type *ByteTy = Type::getByteTy(V->getContext());
+      // TVM local end
       // Insert a new store to null instruction before the load to indicate that
       // this code is not reachable.  FIXME: We could insert unreachable
       // instruction directly because we can modify the CFG.
-      new StoreInst(UndefValue::get(Int8Ty),
-                    Constant::getNullValue(Int8Ty->getPointerTo()),
+      // TVM local begin
+      new StoreInst(UndefValue::get(ByteTy),
+                    Constant::getNullValue(ByteTy->getPointerTo()),
+      // TVM local end
                     IntrinsicI);
     }
     markInstructionForDeletion(IntrinsicI);

@@ -108,7 +108,9 @@ public:
   void clearPromise() {
     Value *Arg = getArgOperand(PromiseArg);
     setArgOperand(PromiseArg,
-                  ConstantPointerNull::get(Type::getInt8PtrTy(getContext())));
+                  // TVM local begin
+                  ConstantPointerNull::get(Type::getIntBytePtrTy(getContext())));
+                  // TVM local end
     if (isa<AllocaInst>(Arg))
       return;
     assert((isa<BitCastInst>(Arg) || isa<GetElementPtrInst>(Arg)) &&
@@ -169,7 +171,9 @@ public:
   void setCoroutineSelf() {
     assert(isa<ConstantPointerNull>(getArgOperand(CoroutineArg)) &&
            "Coroutine argument is already assigned");
-    auto *const Int8PtrTy = Type::getInt8PtrTy(getContext());
+    // TVM local begin
+    auto *const Int8PtrTy = Type::getIntBytePtrTy(getContext());
+    // TVM local end
     setArgOperand(CoroutineArg,
                   ConstantExpr::getBitCast(getFunction(), Int8PtrTy));
   }

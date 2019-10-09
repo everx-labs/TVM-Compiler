@@ -259,6 +259,7 @@ llvm::createEfficiencySanitizerPass(const EfficiencySanitizerOptions &Options) {
 void EfficiencySanitizer::initializeCallbacks(Module &M) {
   IRBuilder<> IRB(M.getContext());
   // Initialize the callbacks.
+  // TVM local begin
   for (size_t Idx = 0; Idx < NumberOfAccessSizes; ++Idx) {
     const unsigned ByteSize = 1U << Idx;
     std::string ByteSizeStr = utostr(ByteSize);
@@ -267,35 +268,36 @@ void EfficiencySanitizer::initializeCallbacks(Module &M) {
     SmallString<32> AlignedLoadName("__esan_aligned_load" + ByteSizeStr);
     EsanAlignedLoad[Idx] =
         checkSanitizerInterfaceFunction(M.getOrInsertFunction(
-            AlignedLoadName, IRB.getVoidTy(), IRB.getInt8PtrTy()));
+            AlignedLoadName, IRB.getVoidTy(), IRB.getIntBytePtrTy()));
     SmallString<32> AlignedStoreName("__esan_aligned_store" + ByteSizeStr);
     EsanAlignedStore[Idx] =
         checkSanitizerInterfaceFunction(M.getOrInsertFunction(
-            AlignedStoreName, IRB.getVoidTy(), IRB.getInt8PtrTy()));
+            AlignedStoreName, IRB.getVoidTy(), IRB.getIntBytePtrTy()));
     SmallString<32> UnalignedLoadName("__esan_unaligned_load" + ByteSizeStr);
     EsanUnalignedLoad[Idx] =
         checkSanitizerInterfaceFunction(M.getOrInsertFunction(
-            UnalignedLoadName, IRB.getVoidTy(), IRB.getInt8PtrTy()));
+            UnalignedLoadName, IRB.getVoidTy(), IRB.getIntBytePtrTy()));
     SmallString<32> UnalignedStoreName("__esan_unaligned_store" + ByteSizeStr);
     EsanUnalignedStore[Idx] =
         checkSanitizerInterfaceFunction(M.getOrInsertFunction(
-            UnalignedStoreName, IRB.getVoidTy(), IRB.getInt8PtrTy()));
+            UnalignedStoreName, IRB.getVoidTy(), IRB.getIntBytePtrTy()));
   }
   EsanUnalignedLoadN = checkSanitizerInterfaceFunction(
       M.getOrInsertFunction("__esan_unaligned_loadN", IRB.getVoidTy(),
-                            IRB.getInt8PtrTy(), IntptrTy));
+                            IRB.getIntBytePtrTy(), IntptrTy));
   EsanUnalignedStoreN = checkSanitizerInterfaceFunction(
       M.getOrInsertFunction("__esan_unaligned_storeN", IRB.getVoidTy(),
-                            IRB.getInt8PtrTy(), IntptrTy));
+                            IRB.getIntBytePtrTy(), IntptrTy));
   MemmoveFn = checkSanitizerInterfaceFunction(
-      M.getOrInsertFunction("memmove", IRB.getInt8PtrTy(), IRB.getInt8PtrTy(),
-                            IRB.getInt8PtrTy(), IntptrTy));
+      M.getOrInsertFunction("memmove", IRB.getIntBytePtrTy(), IRB.getIntBytePtrTy(),
+                            IRB.getIntBytePtrTy(), IntptrTy));
   MemcpyFn = checkSanitizerInterfaceFunction(
-      M.getOrInsertFunction("memcpy", IRB.getInt8PtrTy(), IRB.getInt8PtrTy(),
-                            IRB.getInt8PtrTy(), IntptrTy));
+      M.getOrInsertFunction("memcpy", IRB.getIntBytePtrTy(), IRB.getIntBytePtrTy(),
+                            IRB.getIntBytePtrTy(), IntptrTy));
   MemsetFn = checkSanitizerInterfaceFunction(
-      M.getOrInsertFunction("memset", IRB.getInt8PtrTy(), IRB.getInt8PtrTy(),
+      M.getOrInsertFunction("memset", IRB.getIntBytePtrTy(), IRB.getIntBytePtrTy(),
                             IRB.getInt32Ty(), IntptrTy));
+  // TVM local end
 }
 
 bool EfficiencySanitizer::shouldIgnoreStructType(StructType *StructTy) {
@@ -337,7 +339,9 @@ void EfficiencySanitizer::createCacheFragAuxGV(
     Module &M, const DataLayout &DL, StructType *StructTy,
     GlobalVariable *&TypeName, GlobalVariable *&Offset,
     GlobalVariable *&Size) {
-  auto *Int8PtrTy = Type::getInt8PtrTy(*Ctx);
+  // TVM local begin
+  auto *Int8PtrTy = Type::getIntBytePtrTy(*Ctx);
+  // TVM local end
   auto *Int32Ty = Type::getInt32Ty(*Ctx);
   // FieldTypeName.
   auto *TypeNameArrayTy = ArrayType::get(Int8PtrTy, StructTy->getNumElements());
@@ -379,7 +383,9 @@ GlobalVariable *EfficiencySanitizer::createCacheFragInfoGV(
     Module &M, const DataLayout &DL, Constant *UnitName) {
   assert(Options.ToolType == EfficiencySanitizerOptions::ESAN_CacheFrag);
 
-  auto *Int8PtrTy = Type::getInt8PtrTy(*Ctx);
+  // TVM local begin
+  auto *Int8PtrTy = Type::getIntBytePtrTy(*Ctx);
+  // TVM local end
   auto *Int8PtrPtrTy = Int8PtrTy->getPointerTo();
   auto *Int32Ty = Type::getInt32Ty(*Ctx);
   auto *Int32PtrTy = Type::getInt32PtrTy(*Ctx);
@@ -501,7 +507,9 @@ Constant *EfficiencySanitizer::createEsanInitToolInfoArg(Module &M,
   // unit (module) and is passed to the runtime library.
   GlobalVariable *ToolInfoGV = nullptr;
 
-  auto *Int8PtrTy = Type::getInt8PtrTy(*Ctx);
+  // TVM local begin
+  auto *Int8PtrTy = Type::getIntBytePtrTy(*Ctx);
+  // TVM local end
   // Compilation unit name.
   auto *UnitName = ConstantExpr::getPointerCast(
       createPrivateGlobalForString(M, M.getModuleIdentifier(), true),
@@ -519,7 +527,9 @@ Constant *EfficiencySanitizer::createEsanInitToolInfoArg(Module &M,
 }
 
 void EfficiencySanitizer::createDestructor(Module &M, Constant *ToolInfoArg) {
-  PointerType *Int8PtrTy = Type::getInt8PtrTy(*Ctx);
+  // TVM local begin
+  PointerType *Int8PtrTy = Type::getIntBytePtrTy(*Ctx);
+  // TVM local end
   EsanDtorFunction = Function::Create(FunctionType::get(Type::getVoidTy(*Ctx),
                                                         false),
                                       GlobalValue::InternalLinkage,
@@ -546,7 +556,9 @@ bool EfficiencySanitizer::initOnModule(Module &M) {
   const DataLayout &DL = M.getDataLayout();
   IRBuilder<> IRB(M.getContext());
   IntegerType *OrdTy = IRB.getInt32Ty();
-  PointerType *Int8PtrTy = Type::getInt8PtrTy(*Ctx);
+  // TVM local begin
+  PointerType *Int8PtrTy = Type::getIntBytePtrTy(*Ctx);
+  // TVM local end
   IntptrTy = DL.getIntPtrType(M.getContext());
   // Create the variable passed to EsanInit and EsanExit.
   Constant *ToolInfoArg = createEsanInitToolInfoArg(M, DL);
@@ -699,7 +711,9 @@ bool EfficiencySanitizer::instrumentLoadOrStore(Instruction *I,
   if (Idx < 0) {
     OnAccessFunc = IsStore ? EsanUnalignedStoreN : EsanUnalignedLoadN;
     IRB.CreateCall(OnAccessFunc,
-                   {IRB.CreatePointerCast(Addr, IRB.getInt8PtrTy()),
+                   // TVM local begin
+                   {IRB.CreatePointerCast(Addr, IRB.getIntBytePtrTy()),
+                   // TVM local end
                     ConstantInt::get(IntptrTy, TypeSizeBytes)});
   } else {
     if (ClInstrumentFastpath &&
@@ -712,7 +726,9 @@ bool EfficiencySanitizer::instrumentLoadOrStore(Instruction *I,
     else
       OnAccessFunc = IsStore ? EsanUnalignedStore[Idx] : EsanUnalignedLoad[Idx];
     IRB.CreateCall(OnAccessFunc,
-                   IRB.CreatePointerCast(Addr, IRB.getInt8PtrTy()));
+                   // TVM local begin
+                   IRB.CreatePointerCast(Addr, IRB.getIntBytePtrTy()));
+                   // TVM local end
   }
   return true;
 }
@@ -726,7 +742,9 @@ bool EfficiencySanitizer::instrumentMemIntrinsic(MemIntrinsic *MI) {
   if (isa<MemSetInst>(MI)) {
     IRB.CreateCall(
         MemsetFn,
-        {IRB.CreatePointerCast(MI->getArgOperand(0), IRB.getInt8PtrTy()),
+        // TVM local begin
+        {IRB.CreatePointerCast(MI->getArgOperand(0), IRB.getIntBytePtrTy()),
+        // TVM local end
          IRB.CreateIntCast(MI->getArgOperand(1), IRB.getInt32Ty(), false),
          IRB.CreateIntCast(MI->getArgOperand(2), IntptrTy, false)});
     MI->eraseFromParent();
@@ -734,8 +752,10 @@ bool EfficiencySanitizer::instrumentMemIntrinsic(MemIntrinsic *MI) {
   } else if (isa<MemTransferInst>(MI)) {
     IRB.CreateCall(
         isa<MemCpyInst>(MI) ? MemcpyFn : MemmoveFn,
-        {IRB.CreatePointerCast(MI->getArgOperand(0), IRB.getInt8PtrTy()),
-         IRB.CreatePointerCast(MI->getArgOperand(1), IRB.getInt8PtrTy()),
+        // TVM local begin
+        {IRB.CreatePointerCast(MI->getArgOperand(0), IRB.getIntBytePtrTy()),
+         IRB.CreatePointerCast(MI->getArgOperand(1), IRB.getIntBytePtrTy()),
+        // TVM local end
          IRB.CreateIntCast(MI->getArgOperand(2), IntptrTy, false)});
     MI->eraseFromParent();
     Res = true;

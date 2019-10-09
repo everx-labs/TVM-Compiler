@@ -867,8 +867,10 @@ bool LoopIdiomRecognize::processLoopStridedStore(
   BasicBlock *Preheader = CurLoop->getLoopPreheader();
   IRBuilder<> Builder(Preheader->getTerminator());
   SCEVExpander Expander(*SE, *DL, "loop-idiom");
-
-  Type *DestInt8PtrTy = Builder.getInt8PtrTy(DestAS);
+  
+  // TVM local begin
+  Type *DestInt8PtrTy = Builder.getIntBytePtrTy(DestAS);
+  // TVM local end
   Type *IntPtr = Builder.getIntPtrTy(*DL, DestAS);
 
   const SCEV *Start = Ev->getStart();
@@ -995,7 +997,9 @@ bool LoopIdiomRecognize::processLoopStoreOfLoopLoad(StoreInst *SI,
   // feeds the stores.  Check for an alias by generating the base address and
   // checking everything.
   Value *StoreBasePtr = Expander.expandCodeFor(
-      StrStart, Builder.getInt8PtrTy(StrAS), Preheader->getTerminator());
+      // TVM local begin
+      StrStart, Builder.getIntBytePtrTy(StrAS), Preheader->getTerminator());
+      // TVM local end
 
   SmallPtrSet<Instruction *, 1> Stores;
   Stores.insert(SI);
@@ -1017,7 +1021,9 @@ bool LoopIdiomRecognize::processLoopStoreOfLoopLoad(StoreInst *SI,
   // For a memcpy, we have to make sure that the input array is not being
   // mutated by the loop.
   Value *LoadBasePtr = Expander.expandCodeFor(
-      LdStart, Builder.getInt8PtrTy(LdAS), Preheader->getTerminator());
+      // TVM local begin
+      LdStart, Builder.getIntBytePtrTy(LdAS), Preheader->getTerminator());
+      // TVM local end
 
   if (mayLoopAccessLocation(LoadBasePtr, ModRefInfo::Mod, CurLoop, BECount,
                             StoreSize, *AA, Stores)) {

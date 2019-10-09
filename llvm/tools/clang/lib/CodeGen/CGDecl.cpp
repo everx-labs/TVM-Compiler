@@ -729,8 +729,10 @@ void CodeGenFunction::EmitNullabilityCheck(LValue LHS, llvm::Value *RHS,
   llvm::Value *IsNotNull = Builder.CreateIsNotNull(RHS);
   llvm::Constant *StaticData[] = {
       EmitCheckSourceLocation(Loc), EmitCheckTypeDescriptor(LHS.getType()),
-      llvm::ConstantInt::get(Int8Ty, 0), // The LogAlignment info is unused.
-      llvm::ConstantInt::get(Int8Ty, TCK_NonnullAssign)};
+      // TVM local begin
+      llvm::ConstantInt::get(ByteTy, 0), // The LogAlignment info is unused.
+      llvm::ConstantInt::get(ByteTy, TCK_NonnullAssign)};
+      // TVM local end
   EmitCheck({{IsNotNull, SanitizerKind::NullabilityAssign}},
             SanitizerHandler::TypeMismatch, StaticData, RHS);
 }
@@ -1076,7 +1078,9 @@ llvm::Value *CodeGenFunction::EmitLifetimeStart(uint64_t Size,
              CGM.getDataLayout().getAllocaAddrSpace() &&
          "Pointer should be in alloca address space");
   llvm::Value *SizeV = llvm::ConstantInt::get(Int64Ty, Size);
-  Addr = Builder.CreateBitCast(Addr, AllocaInt8PtrTy);
+  // TVM local begin
+  Addr = Builder.CreateBitCast(Addr, AllocaBytePtrTy);
+  // TVM local end
   llvm::CallInst *C =
       Builder.CreateCall(CGM.getLLVMLifetimeStartFn(), {SizeV, Addr});
   C->setDoesNotThrow();
@@ -1087,7 +1091,9 @@ void CodeGenFunction::EmitLifetimeEnd(llvm::Value *Size, llvm::Value *Addr) {
   assert(Addr->getType()->getPointerAddressSpace() ==
              CGM.getDataLayout().getAllocaAddrSpace() &&
          "Pointer should be in alloca address space");
-  Addr = Builder.CreateBitCast(Addr, AllocaInt8PtrTy);
+  // TVM local begin
+  Addr = Builder.CreateBitCast(Addr, AllocaBytePtrTy);
+  // TVM local end
   llvm::CallInst *C =
       Builder.CreateCall(CGM.getLLVMLifetimeEndFn(), {Size, Addr});
   C->setDoesNotThrow();
@@ -1303,7 +1309,9 @@ CodeGenFunction::EmitAutoVarAlloca(const VarDecl &D) {
     if (!DidCallStackSave) {
       // Save the stack.
       Address Stack =
-        CreateTempAlloca(Int8PtrTy, getPointerAlign(), "saved_stack");
+        // TVM local begin
+        CreateTempAlloca(BytePtrTy, getPointerAlign(), "saved_stack");
+        // TVM local end
 
       llvm::Value *F = CGM.getIntrinsic(llvm::Intrinsic::stacksave);
       llvm::Value *V = Builder.CreateCall(F);
@@ -1504,7 +1512,9 @@ void CodeGenFunction::EmitAutoVarInit(const AutoVarEmission &emission) {
     llvm::ConstantInt::get(IntPtrTy,
                            getContext().getTypeSizeInChars(type).getQuantity());
 
-  llvm::Type *BP = CGM.Int8Ty->getPointerTo(Loc.getAddressSpace());
+  // TVM local begin
+  llvm::Type *BP = CGM.ByteTy->getPointerTo(Loc.getAddressSpace());
+  // TVM local end
   if (Loc.getType() != BP)
     Loc = Builder.CreateBitCast(Loc, BP);
 
@@ -1513,7 +1523,9 @@ void CodeGenFunction::EmitAutoVarInit(const AutoVarEmission &emission) {
   uint64_t ConstantSize =
       CGM.getDataLayout().getTypeAllocSize(constant->getType());
   if (shouldUseBZeroPlusStoresToInitialize(constant, ConstantSize)) {
-    Builder.CreateMemSet(Loc, llvm::ConstantInt::get(Int8Ty, 0), SizeVal,
+    // TVM local begin
+    Builder.CreateMemSet(Loc, llvm::ConstantInt::get(ByteTy, 0), SizeVal,
+    // TVM local end
                          isVolatile);
     // Zero and undef don't require a stores.
     if (!constant->isNullValue() && !isa<llvm::UndefValue>(constant)) {
@@ -1527,7 +1539,9 @@ void CodeGenFunction::EmitAutoVarInit(const AutoVarEmission &emission) {
   BytePattern Pattern = shouldUseMemSetToInitialize(constant, ConstantSize);
   if (!Pattern.isNone()) {
     uint8_t Value = Pattern.isAny() ? 0x00 : Pattern.getValue();
-    Builder.CreateMemSet(Loc, llvm::ConstantInt::get(Int8Ty, Value), SizeVal,
+    // TVM local begin
+    Builder.CreateMemSet(Loc, llvm::ConstantInt::get(ByteTy, Value), SizeVal,
+    // TVM local end
                          isVolatile);
     return;
   }
@@ -1537,7 +1551,9 @@ void CodeGenFunction::EmitAutoVarInit(const AutoVarEmission &emission) {
   std::string Name = getStaticDeclName(CGM, D);
   unsigned AS = CGM.getContext().getTargetAddressSpace(
       CGM.getStringLiteralAddressSpace());
-  BP = llvm::PointerType::getInt8PtrTy(getLLVMContext(), AS);
+  // TVM local begin
+  BP = llvm::PointerType::getIntBytePtrTy(getLLVMContext(), AS);
+  // TVM local end
 
   llvm::GlobalVariable *GV = new llvm::GlobalVariable(
       CGM.getModule(), constant->getType(), true,
@@ -2007,7 +2023,9 @@ llvm::Constant *CodeGenModule::getLLVMLifetimeStartFn() {
   if (LifetimeStartFn)
     return LifetimeStartFn;
   LifetimeStartFn = llvm::Intrinsic::getDeclaration(&getModule(),
-    llvm::Intrinsic::lifetime_start, AllocaInt8PtrTy);
+    // TVM local begin
+    llvm::Intrinsic::lifetime_start, AllocaBytePtrTy);
+    // TVM local end
   return LifetimeStartFn;
 }
 
@@ -2016,7 +2034,9 @@ llvm::Constant *CodeGenModule::getLLVMLifetimeEndFn() {
   if (LifetimeEndFn)
     return LifetimeEndFn;
   LifetimeEndFn = llvm::Intrinsic::getDeclaration(&getModule(),
-    llvm::Intrinsic::lifetime_end, AllocaInt8PtrTy);
+    // TVM local begin
+    llvm::Intrinsic::lifetime_end, AllocaBytePtrTy);
+    // TVM local end
   return LifetimeEndFn;
 }
 

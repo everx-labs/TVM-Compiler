@@ -518,7 +518,9 @@ TransformedFunction DataFlowSanitizer::getCustomFunctionType(FunctionType *T) {
             cast<PointerType>(param_type)->getElementType()))) {
       ArgumentIndexMapping.push_back(ArgTypes.size());
       ArgTypes.push_back(getTrampolineFunctionType(FT)->getPointerTo());
-      ArgTypes.push_back(Type::getInt8PtrTy(*Ctx));
+      // TVM local begin
+      ArgTypes.push_back(Type::getIntBytePtrTy(*Ctx));
+      // TVM local end
     } else {
       ArgumentIndexMapping.push_back(ArgTypes.size());
       ArgTypes.push_back(param_type);
@@ -568,15 +570,19 @@ bool DataFlowSanitizer::doInitialization(Module &M) {
   Type *DFSanUnionLoadArgs[2] = { ShadowPtrTy, IntptrTy };
   DFSanUnionLoadFnTy =
       FunctionType::get(ShadowTy, DFSanUnionLoadArgs, /*isVarArg=*/ false);
+  // TVM local begin
   DFSanUnimplementedFnTy = FunctionType::get(
-      Type::getVoidTy(*Ctx), Type::getInt8PtrTy(*Ctx), /*isVarArg=*/false);
-  Type *DFSanSetLabelArgs[3] = { ShadowTy, Type::getInt8PtrTy(*Ctx), IntptrTy };
+      Type::getVoidTy(*Ctx), Type::getIntBytePtrTy(*Ctx), /*isVarArg=*/false);
+  Type *DFSanSetLabelArgs[3] = { ShadowTy, Type::getIntBytePtrTy(*Ctx), IntptrTy };
+  // TVM local end
   DFSanSetLabelFnTy = FunctionType::get(Type::getVoidTy(*Ctx),
                                         DFSanSetLabelArgs, /*isVarArg=*/false);
   DFSanNonzeroLabelFnTy = FunctionType::get(
       Type::getVoidTy(*Ctx), None, /*isVarArg=*/false);
   DFSanVarargWrapperFnTy = FunctionType::get(
-      Type::getVoidTy(*Ctx), Type::getInt8PtrTy(*Ctx), /*isVarArg=*/false);
+      // TVM local begin
+      Type::getVoidTy(*Ctx), Type::getIntBytePtrTy(*Ctx), /*isVarArg=*/false);
+      // TVM local end
 
   if (GetArgTLSPtr) {
     Type *ArgTLSTy = ArrayType::get(ShadowTy, 64);
@@ -1453,7 +1459,9 @@ void DFSanVisitor::visitMemSetInst(MemSetInst &I) {
   IRBuilder<> IRB(&I);
   Value *ValShadow = DFSF.getShadow(I.getValue());
   IRB.CreateCall(DFSF.DFS.DFSanSetLabelFn,
-                 {ValShadow, IRB.CreateBitCast(I.getDest(), Type::getInt8PtrTy(
+                 // TVM local begin
+                 {ValShadow, IRB.CreateBitCast(I.getDest(), Type::getIntBytePtrTy(
+                 // TVM local end
                                                                 *DFSF.DFS.Ctx)),
                   IRB.CreateZExtOrTrunc(I.getLength(), DFSF.DFS.IntptrTy)});
 }
@@ -1462,22 +1470,24 @@ void DFSanVisitor::visitMemTransferInst(MemTransferInst &I) {
   IRBuilder<> IRB(&I);
   Value *DestShadow = DFSF.DFS.getShadowAddress(I.getDest(), &I);
   Value *SrcShadow = DFSF.DFS.getShadowAddress(I.getSource(), &I);
+  // TVM local begin
   Value *LenShadow = IRB.CreateMul(
       I.getLength(),
-      ConstantInt::get(I.getLength()->getType(), DFSF.DFS.ShadowWidth / 8));
-  Type *Int8Ptr = Type::getInt8PtrTy(*DFSF.DFS.Ctx);
+      ConstantInt::get(I.getLength()->getType(), DFSF.DFS.ShadowWidth / ByteSizeInBits));
+  Type *Int8Ptr = Type::getIntBytePtrTy(*DFSF.DFS.Ctx);
   DestShadow = IRB.CreateBitCast(DestShadow, Int8Ptr);
   SrcShadow = IRB.CreateBitCast(SrcShadow, Int8Ptr);
   auto *MTI = cast<MemTransferInst>(
       IRB.CreateCall(I.getCalledValue(),
                      {DestShadow, SrcShadow, LenShadow, I.getVolatileCst()}));
   if (ClPreserveAlignment) {
-    MTI->setDestAlignment(I.getDestAlignment() * (DFSF.DFS.ShadowWidth / 8));
-    MTI->setSourceAlignment(I.getSourceAlignment() * (DFSF.DFS.ShadowWidth / 8));
+    MTI->setDestAlignment(I.getDestAlignment() * (DFSF.DFS.ShadowWidth / ByteSizeInBits));
+    MTI->setSourceAlignment(I.getSourceAlignment() * (DFSF.DFS.ShadowWidth / ByteSizeInBits));
   } else {
-    MTI->setDestAlignment(DFSF.DFS.ShadowWidth / 8);
-    MTI->setSourceAlignment(DFSF.DFS.ShadowWidth / 8);
+    MTI->setDestAlignment(DFSF.DFS.ShadowWidth / ByteSizeInBits);
+    MTI->setSourceAlignment(DFSF.DFS.ShadowWidth / ByteSizeInBits);
   }
+  // TVM local end
 }
 
 void DFSanVisitor::visitReturnInst(ReturnInst &RI) {
@@ -1573,7 +1583,9 @@ void DFSanVisitor::visitCallSite(CallSite CS) {
             Constant *T = DFSF.DFS.getOrBuildTrampolineFunction(ParamFT, TName);
             Args.push_back(T);
             Args.push_back(
-                IRB.CreateBitCast(*i, Type::getInt8PtrTy(*DFSF.DFS.Ctx)));
+                // TVM local begin
+                IRB.CreateBitCast(*i, Type::getIntBytePtrTy(*DFSF.DFS.Ctx)));
+                // TVM local end
           } else {
             Args.push_back(*i);
           }

@@ -1105,12 +1105,14 @@ void CGOpenMPRuntimeNVPTX::emitWorkerLoop(CodeGenFunction &CGF,
   // Wait for parallel work
   syncCTAThreads(CGF);
 
+  // TVM local begin
   Address WorkFn =
-      CGF.CreateDefaultAlignTempAlloca(CGF.Int8PtrTy, /*Name=*/"work_fn");
+      CGF.CreateDefaultAlignTempAlloca(CGF.BytePtrTy, /*Name=*/"work_fn");
   Address ExecStatus =
-      CGF.CreateDefaultAlignTempAlloca(CGF.Int8Ty, /*Name=*/"exec_status");
+      CGF.CreateDefaultAlignTempAlloca(CGF.ByteTy, /*Name=*/"exec_status");
   CGF.InitTempAlloca(ExecStatus, Bld.getInt8(/*C=*/0));
-  CGF.InitTempAlloca(WorkFn, llvm::Constant::getNullValue(CGF.Int8PtrTy));
+  CGF.InitTempAlloca(WorkFn, llvm::Constant::getNullValue(CGF.BytePtrTy));
+  // TVM local end
 
   // TODO: Optimize runtime initialization and pass in correct value.
   llvm::Value *Args[] = {WorkFn.getPointer(),
@@ -1136,7 +1138,9 @@ void CGOpenMPRuntimeNVPTX::emitWorkerLoop(CodeGenFunction &CGF,
   // Process work items: outlined parallel functions.
   for (llvm::Function *W : Work) {
     // Try to match this outlined function.
-    llvm::Value *ID = Bld.CreatePointerBitCastOrAddrSpaceCast(W, CGM.Int8PtrTy);
+    // TVM local begin
+    llvm::Value *ID = Bld.CreatePointerBitCastOrAddrSpaceCast(W, CGM.BytePtrTy);
+    // TVM local end
 
     llvm::Value *WorkFnMatch =
         Bld.CreateICmpEQ(Bld.CreateLoad(WorkFn), ID, "work_match");
@@ -1238,7 +1242,9 @@ CGOpenMPRuntimeNVPTX::createNVPTXRuntimeFunction(unsigned Function) {
   case OMPRTL_NVPTX__kmpc_kernel_prepare_parallel: {
     /// Build void __kmpc_kernel_prepare_parallel(
     /// void *outlined_function, int16_t IsOMPRuntimeInitialized);
-    llvm::Type *TypeParams[] = {CGM.Int8PtrTy, CGM.Int16Ty};
+    // TVM local begin
+    llvm::Type *TypeParams[] = {CGM.BytePtrTy, CGM.Int16Ty};
+    // TVM local end
     auto *FnTy =
         llvm::FunctionType::get(CGM.VoidTy, TypeParams, /*isVarArg*/ false);
     RTLFn = CGM.CreateRuntimeFunction(FnTy, "__kmpc_kernel_prepare_parallel");
@@ -1247,7 +1253,9 @@ CGOpenMPRuntimeNVPTX::createNVPTXRuntimeFunction(unsigned Function) {
   case OMPRTL_NVPTX__kmpc_kernel_parallel: {
     /// Build bool __kmpc_kernel_parallel(void **outlined_function,
     /// int16_t IsOMPRuntimeInitialized);
-    llvm::Type *TypeParams[] = {CGM.Int8PtrPtrTy, CGM.Int16Ty};
+    // TVM local begin
+    llvm::Type *TypeParams[] = {CGM.BytePtrPtrTy, CGM.Int16Ty};
+    // TVM local end
     llvm::Type *RetTy = CGM.getTypes().ConvertType(CGM.getContext().BoolTy);
     auto *FnTy =
         llvm::FunctionType::get(RetTy, TypeParams, /*isVarArg*/ false);
@@ -1439,7 +1447,9 @@ CGOpenMPRuntimeNVPTX::createNVPTXRuntimeFunction(unsigned Function) {
   case OMPRTL_NVPTX__kmpc_begin_sharing_variables: {
     /// Build void __kmpc_begin_sharing_variables(void ***args,
     /// size_t n_args);
-    llvm::Type *TypeParams[] = {CGM.Int8PtrPtrTy->getPointerTo(), CGM.SizeTy};
+    // TVM local begin
+    llvm::Type *TypeParams[] = {CGM.BytePtrPtrTy->getPointerTo(), CGM.SizeTy};
+    // TVM local end
     auto *FnTy =
         llvm::FunctionType::get(CGM.VoidTy, TypeParams, /*isVarArg*/ false);
     RTLFn = CGM.CreateRuntimeFunction(FnTy, "__kmpc_begin_sharing_variables");
@@ -1454,7 +1464,9 @@ CGOpenMPRuntimeNVPTX::createNVPTXRuntimeFunction(unsigned Function) {
   }
   case OMPRTL_NVPTX__kmpc_get_shared_variables: {
     /// Build void __kmpc_get_shared_variables(void ***GlobalArgs);
-    llvm::Type *TypeParams[] = {CGM.Int8PtrPtrTy->getPointerTo()};
+    // TVM local begin
+    llvm::Type *TypeParams[] = {CGM.BytePtrPtrTy->getPointerTo()};
+    // TVM local end
     auto *FnTy =
         llvm::FunctionType::get(CGM.VoidTy, TypeParams, /*isVarArg*/ false);
     RTLFn = CGM.CreateRuntimeFunction(FnTy, "__kmpc_get_shared_variables");
@@ -1808,7 +1820,9 @@ void CGOpenMPRuntimeNVPTX::emitNonSPMDParallelCall(
     CGBuilderTy &Bld = CGF.Builder;
     llvm::Function *WFn = WrapperFunctionsMap[Fn];
     assert(WFn && "Wrapper function does not exist!");
-    llvm::Value *ID = Bld.CreateBitOrPointerCast(WFn, CGM.Int8PtrTy);
+    // TVM local begin
+    llvm::Value *ID = Bld.CreateBitOrPointerCast(WFn, CGM.BytePtrTy);
+    // TVM local end
 
     // Prepare for parallel region. Indicate the outlined function.
     llvm::Value *Args[] = {ID, /*RequiresOMPRuntime=*/Bld.getInt16(1)};

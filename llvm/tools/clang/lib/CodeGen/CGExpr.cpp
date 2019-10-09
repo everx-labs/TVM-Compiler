@@ -51,9 +51,11 @@ llvm::Value *CodeGenFunction::EmitCastToVoidPtr(llvm::Value *value) {
   unsigned addressSpace =
       cast<llvm::PointerType>(value->getType())->getAddressSpace();
 
-  llvm::PointerType *destType = Int8PtrTy;
+  // TVM local begin
+  llvm::PointerType *destType = BytePtrTy;
   if (addressSpace)
-    destType = llvm::Type::getInt8PtrTy(getLLVMContext(), addressSpace);
+    destType = llvm::Type::getIntBytePtrTy(getLLVMContext(), addressSpace);
+  // TVM local end
 
   if (value->getType() == destType) return value;
   return Builder.CreateBitCast(value, destType);
@@ -338,7 +340,9 @@ pushTemporaryCleanup(CodeGenFunction &CGF, const MaterializeTemporaryExpr *M,
           ReferenceTemporary, E->getType(),
           CodeGenFunction::destroyCXXObject, CGF.getLangOpts().Exceptions,
           dyn_cast_or_null<VarDecl>(M->getExtendingDecl()));
-      CleanupArg = llvm::Constant::getNullValue(CGF.Int8PtrTy);
+      // TVM local begin
+      CleanupArg = llvm::Constant::getNullValue(CGF.BytePtrTy);
+      // TVM local end
     } else {
       CleanupFn = CGF.CGM.getAddrOfCXXStructor(ReferenceTemporaryDtor,
                                                StructorType::Complete);
@@ -680,11 +684,15 @@ void CodeGenFunction::EmitTypeCheck(TypeCheckKind TCK, SourceLocation Loc,
     // FIXME: If Address Sanitizer is enabled, insert dynamic instrumentation
     //        to check this.
     // FIXME: Get object address space
-    llvm::Type *Tys[2] = { IntPtrTy, Int8PtrTy };
+    // TVM local begin
+    llvm::Type *Tys[2] = { IntPtrTy, BytePtrTy };
+    // TVM local end
     llvm::Value *F = CGM.getIntrinsic(llvm::Intrinsic::objectsize, Tys);
     llvm::Value *Min = Builder.getFalse();
     llvm::Value *NullIsUnknown = Builder.getFalse();
-    llvm::Value *CastAddr = Builder.CreateBitCast(Ptr, Int8PtrTy);
+    // TVM local begin
+    llvm::Value *CastAddr = Builder.CreateBitCast(Ptr, BytePtrTy);
+    // TVM local end
     llvm::Value *LargeEnough = Builder.CreateICmpUGE(
         Builder.CreateCall(F, {CastAddr, Min, NullIsUnknown}),
         llvm::ConstantInt::get(IntPtrTy, Size));
@@ -719,8 +727,10 @@ void CodeGenFunction::EmitTypeCheck(TypeCheckKind TCK, SourceLocation Loc,
     assert(!AlignVal || (uint64_t)1 << llvm::Log2_64(AlignVal) == AlignVal);
     llvm::Constant *StaticData[] = {
         EmitCheckSourceLocation(Loc), EmitCheckTypeDescriptor(Ty),
-        llvm::ConstantInt::get(Int8Ty, AlignVal ? llvm::Log2_64(AlignVal) : 1),
-        llvm::ConstantInt::get(Int8Ty, TCK)};
+        // TVM local begin
+        llvm::ConstantInt::get(ByteTy, AlignVal ? llvm::Log2_64(AlignVal) : 1),
+        llvm::ConstantInt::get(ByteTy, TCK)};
+        // TVM local end
     EmitCheck(Checks, SanitizerHandler::TypeMismatch, StaticData,
               PtrAsInt ? PtrAsInt : Ptr);
   }
@@ -794,7 +804,9 @@ void CodeGenFunction::EmitTypeCheck(TypeCheckKind TCK, SourceLocation Loc,
         EmitCheckSourceLocation(Loc),
         EmitCheckTypeDescriptor(Ty),
         CGM.GetAddrOfRTTIDescriptor(Ty.getUnqualifiedType()),
-        llvm::ConstantInt::get(Int8Ty, TCK)
+        // TVM local begin
+        llvm::ConstantInt::get(ByteTy, TCK)
+        // TVM local end
       };
       llvm::Value *DynamicData[] = { Ptr, Hash };
       EmitCheck(std::make_pair(EqualHash, SanitizerKind::Vptr),
@@ -2782,7 +2794,9 @@ llvm::Constant *CodeGenFunction::EmitCheckSourceLocation(SourceLocation Loc) {
     Line = PLoc.getLine();
     Column = PLoc.getColumn();
   } else {
-    Filename = llvm::Constant::getNullValue(Int8PtrTy);
+    // TVM local begin
+    Filename = llvm::Constant::getNullValue(BytePtrTy);
+    // TVM local end
     Line = Column = 0;
   }
 
@@ -2948,8 +2962,10 @@ void CodeGenFunction::EmitCheck(
                                    llvm::GlobalVariable::PrivateLinkage, Info);
       InfoPtr->setUnnamedAddr(llvm::GlobalValue::UnnamedAddr::Global);
       CGM.getSanitizerMetadata()->disableSanitizerForGlobal(InfoPtr);
-      Args.push_back(Builder.CreateBitCast(InfoPtr, Int8PtrTy));
-      ArgTypes.push_back(Int8PtrTy);
+      // TVM local begin
+      Args.push_back(Builder.CreateBitCast(InfoPtr, BytePtrTy));
+      ArgTypes.push_back(BytePtrTy);
+      // TVM local end
     }
 
     for (size_t i = 0, n = DynamicArgs.size(); i != n; ++i) {
@@ -3012,14 +3028,20 @@ void CodeGenFunction::EmitCfiSlowPathCheck(
 
     SlowPathFn = CGM.getModule().getOrInsertFunction(
         "__cfi_slowpath_diag",
-        llvm::FunctionType::get(VoidTy, {Int64Ty, Int8PtrTy, Int8PtrTy},
+        // TVM local begin
+        llvm::FunctionType::get(VoidTy, {Int64Ty, BytePtrTy, BytePtrTy},
+        // TVM local end
                                 false));
     CheckCall = Builder.CreateCall(
-        SlowPathFn, {TypeId, Ptr, Builder.CreateBitCast(InfoPtr, Int8PtrTy)});
+        // TVM local begin
+        SlowPathFn, {TypeId, Ptr, Builder.CreateBitCast(InfoPtr, BytePtrTy)});
+        // TVM local end
   } else {
     SlowPathFn = CGM.getModule().getOrInsertFunction(
         "__cfi_slowpath",
-        llvm::FunctionType::get(VoidTy, {Int64Ty, Int8PtrTy}, false));
+        // TVM local begin
+        llvm::FunctionType::get(VoidTy, {Int64Ty, BytePtrTy}, false));
+        // TVM local end
     CheckCall = Builder.CreateCall(SlowPathFn, {TypeId, Ptr});
   }
 
@@ -3035,7 +3057,9 @@ void CodeGenFunction::EmitCfiCheckStub() {
   llvm::Module *M = &CGM.getModule();
   auto &Ctx = M->getContext();
   llvm::Function *F = llvm::Function::Create(
-      llvm::FunctionType::get(VoidTy, {Int64Ty, Int8PtrTy, Int8PtrTy}, false),
+      // TVM local begin
+      llvm::FunctionType::get(VoidTy, {Int64Ty, BytePtrTy, BytePtrTy}, false),
+      // TVM local end
       llvm::GlobalValue::WeakAnyLinkage, "__cfi_check", M);
   CGM.setDSOLocal(F);
   llvm::BasicBlock *BB = llvm::BasicBlock::Create(Ctx, "entry", F);
@@ -3090,13 +3114,17 @@ void CodeGenFunction::EmitCfiCheckFail() {
 
   // Data == nullptr means the calling module has trap behaviour for this check.
   llvm::Value *DataIsNotNullPtr =
-      Builder.CreateICmpNE(Data, llvm::ConstantPointerNull::get(Int8PtrTy));
+      // TVM local begin
+      Builder.CreateICmpNE(Data, llvm::ConstantPointerNull::get(BytePtrTy));
+      // TVM local end
   EmitTrapCheck(DataIsNotNullPtr);
 
   llvm::StructType *SourceLocationTy =
       llvm::StructType::get(VoidPtrTy, Int32Ty, Int32Ty);
   llvm::StructType *CfiCheckFailDataTy =
-      llvm::StructType::get(Int8Ty, SourceLocationTy, VoidPtrTy);
+      // TVM local begin
+      llvm::StructType::get(ByteTy, SourceLocationTy, VoidPtrTy);
+      // TVM local end
 
   llvm::Value *V = Builder.CreateConstGEP2_32(
       CfiCheckFailDataTy,
@@ -3125,7 +3153,9 @@ void CodeGenFunction::EmitCfiCheckFail() {
     int Kind = CheckKindMaskPair.first;
     SanitizerMask Mask = CheckKindMaskPair.second;
     llvm::Value *Cond =
-        Builder.CreateICmpNE(CheckKind, llvm::ConstantInt::get(Int8Ty, Kind));
+        // TVM local begin
+        Builder.CreateICmpNE(CheckKind, llvm::ConstantInt::get(ByteTy, Kind));
+        // TVM local end
     if (CGM.getLangOpts().Sanitize.has(Mask))
       EmitCheck(std::make_pair(Cond, Mask), SanitizerHandler::CFICheckFail, {},
                 {Data, Addr, ValidVtable});
@@ -3403,7 +3433,9 @@ LValue CodeGenFunction::EmitArraySubscriptExpr(const ArraySubscriptExpr *E,
     // correctly, so we need to cast to i8*.  FIXME: is this actually
     // true?  A lot of other things in the fragile ABI would break...
     llvm::Type *OrigBaseTy = Addr.getType();
-    Addr = Builder.CreateElementBitCast(Addr, Int8Ty);
+    // TVM local begin
+    Addr = Builder.CreateElementBitCast(Addr, ByteTy);
+    // TVM local end
 
     // Do the GEP.
     CharUnits EltAlign =
@@ -4651,13 +4683,17 @@ RValue CodeGenFunction::EmitCall(QualType CalleeType, const CGCallee &OrigCallee
     llvm::Value *TypeId = llvm::MetadataAsValue::get(getLLVMContext(), MD);
 
     llvm::Value *CalleePtr = Callee.getFunctionPointer();
-    llvm::Value *CastedCallee = Builder.CreateBitCast(CalleePtr, Int8PtrTy);
+    // TVM local begin
+    llvm::Value *CastedCallee = Builder.CreateBitCast(CalleePtr, BytePtrTy);
+    // TVM local end
     llvm::Value *TypeTest = Builder.CreateCall(
         CGM.getIntrinsic(llvm::Intrinsic::type_test), {CastedCallee, TypeId});
 
     auto CrossDsoTypeId = CGM.CreateCrossDsoCfiTypeId(MD);
     llvm::Constant *StaticData[] = {
-        llvm::ConstantInt::get(Int8Ty, CFITCK_ICall),
+        // TVM local begin
+        llvm::ConstantInt::get(ByteTy, CFITCK_ICall),
+        // TVM local end
         EmitCheckSourceLocation(E->getLocStart()),
         EmitCheckTypeDescriptor(QualType(FnType, 0)),
     };

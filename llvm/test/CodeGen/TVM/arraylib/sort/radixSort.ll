@@ -67,7 +67,7 @@ for.cond2.preheader.lr.ph:                        ; preds = %while.body
   br i1 %cmp771, label %for.cond2.preheader.us.preheader, label %for.cond2.preheader.preheader
 
 for.cond2.preheader.preheader:                    ; preds = %for.cond2.preheader.lr.ph
-  %4 = bitcast [10 x i257]* %bucket_count to i8*
+  %4 = bitcast [10 x i257]* %bucket_count to i257*
   br label %for.inc33.9
 
 for.cond2.preheader.us.preheader:                 ; preds = %for.cond2.preheader.lr.ph
@@ -81,13 +81,13 @@ for.cond2.preheader.us.preheader:                 ; preds = %for.cond2.preheader
   %arrayidx.us.7 = getelementptr inbounds [10 x i257], [10 x i257]* %bucket_count, i257 0, i257 7
   %arrayidx.us.8 = getelementptr inbounds [10 x i257], [10 x i257]* %bucket_count, i257 0, i257 8
   %arrayidx.us.9 = getelementptr inbounds [10 x i257], [10 x i257]* %bucket_count, i257 0, i257 9
-  %5 = bitcast [10 x i257]* %bucket_count to i8*
+  %5 = bitcast [10 x i257]* %bucket_count to i257*
   br label %for.cond2.preheader.us
 
 for.cond2.preheader.us:                           ; preds = %for.cond2.preheader.us.preheader, %for.inc33.us.9
   %pass.081.us = phi i257 [ %inc37.us, %for.inc33.us.9 ], [ 0, %for.cond2.preheader.us.preheader ]
   %divisor.080.us = phi i257 [ %mul.us, %for.inc33.us.9 ], [ 1, %for.cond2.preheader.us.preheader ]
-  call void @llvm.memset.p0i8.i64(i8* nonnull align 1 %5, i8 0, i64 10, i1 false)
+  call void @llvm.memset.p0i257.i64(i257* nonnull align 1 %5, i257 0, i64 10, i1 false)
   br label %for.body8.us
 
 for.inc33.us:                                     ; preds = %for.body25.us, %for.cond22.preheader.us.preheader
@@ -306,14 +306,14 @@ for.inc33.us.9:                                   ; preds = %for.body25.us.9, %f
 
 for.inc33.9:                                      ; preds = %for.cond2.preheader.preheader, %for.inc33.9
   %pass.081 = phi i257 [ %inc37, %for.inc33.9 ], [ 0, %for.cond2.preheader.preheader ]
-  call void @llvm.memset.p0i8.i64(i8* nonnull align 1 %4, i8 0, i64 10, i1 false)
+  call void @llvm.memset.p0i257.i64(i257* nonnull align 1 %4, i257 0, i64 10, i1 false)
   %inc37 = add nuw nsw i257 %pass.081, 1
   %cmp1 = icmp ult i257 %pass.081, %NOP.083
   br i1 %cmp1, label %for.inc33.9, label %for.end38
 }
 
 ; Function Attrs: argmemonly nounwind
-declare void @llvm.memset.p0i8.i64(i8* nocapture writeonly, i8, i64, i1) #1
+declare void @llvm.memset.p0i257.i64(i257* nocapture writeonly, i257, i64, i1) #1
 
 attributes #0 = { norecurse nounwind readonly "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "unsafe-fp-math"="false" "use-soft-float"="false" }
 attributes #1 = { argmemonly nounwind }

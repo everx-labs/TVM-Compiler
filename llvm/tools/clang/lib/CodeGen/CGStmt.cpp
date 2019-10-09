@@ -586,7 +586,9 @@ void CodeGenFunction::EmitIndirectGotoStmt(const IndirectGotoStmt &S) {
 
   // Ensure that we have an i8* for our PHI node.
   llvm::Value *V = Builder.CreateBitCast(EmitScalarExpr(S.getTarget()),
-                                         Int8PtrTy, "addr");
+                                         // TVM local begin
+                                         BytePtrTy, "addr");
+                                         // TVM local end
   llvm::BasicBlock *CurBB = Builder.GetInsertBlock();
 
   // Get the basic block for the indirect goto.
@@ -1027,7 +1029,9 @@ void CodeGenFunction::EmitReturnStmt(const ReturnStmt &S) {
     SLocPtr->setUnnamedAddr(llvm::GlobalValue::UnnamedAddr::Global);
     CGM.getSanitizerMetadata()->disableSanitizerForGlobal(SLocPtr);
     assert(ReturnLocation.isValid() && "No valid return location");
-    Builder.CreateStore(Builder.CreateBitCast(SLocPtr, Int8PtrTy),
+    // TVM local begin
+    Builder.CreateStore(Builder.CreateBitCast(SLocPtr, BytePtrTy),
+    // TVM local end
                         ReturnLocation);
   }
 

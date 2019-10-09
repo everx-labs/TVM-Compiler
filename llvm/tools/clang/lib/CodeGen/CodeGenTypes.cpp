@@ -432,7 +432,9 @@ llvm::Type *CodeGenTypes::ConvertType(QualType T) {
     case BuiltinType::ObjCSel:
       // LLVM void type can only be used as the result of a function call.  Just
       // map to the same as char.
-      ResultType = llvm::Type::getInt8Ty(getLLVMContext());
+      // TVM local begin
+      ResultType = llvm::Type::getByteTy(getLLVMContext());
+      // TVM local end
       break;
 
     case BuiltinType::Bool:
@@ -509,7 +511,9 @@ llvm::Type *CodeGenTypes::ConvertType(QualType T) {
 
     case BuiltinType::NullPtr:
       // Model std::nullptr_t as i8*
-      ResultType = llvm::Type::getInt8PtrTy(getLLVMContext());
+      // TVM local begin
+      ResultType = llvm::Type::getIntBytePtrTy(getLLVMContext());
+      // TVM local end
       break;
 
     case BuiltinType::UInt128:
@@ -559,7 +563,9 @@ llvm::Type *CodeGenTypes::ConvertType(QualType T) {
     QualType ETy = PTy->getPointeeType();
     llvm::Type *PointeeType = ConvertTypeForMem(ETy);
     if (PointeeType->isVoidTy())
-      PointeeType = llvm::Type::getInt8Ty(getLLVMContext());
+      // TVM local begin
+      PointeeType = llvm::Type::getByteTy(getLLVMContext());
+      // TVM local end
     unsigned AS = Context.getTargetAddressSpace(ETy);
     ResultType = llvm::PointerType::get(PointeeType, AS);
     break;
@@ -583,7 +589,9 @@ llvm::Type *CodeGenTypes::ConvertType(QualType T) {
     ResultType = ConvertTypeForMem(A->getElementType());
     if (!ResultType->isSized()) {
       SkippedLayout = true;
-      ResultType = llvm::Type::getInt8Ty(getLLVMContext());
+      // TVM local begin
+      ResultType = llvm::Type::getByteTy(getLLVMContext());
+      // TVM local end
     }
     ResultType = llvm::ArrayType::get(ResultType, 0);
     break;
@@ -596,7 +604,9 @@ llvm::Type *CodeGenTypes::ConvertType(QualType T) {
     // concrete type.
     if (!EltTy->isSized()) {
       SkippedLayout = true;
-      EltTy = llvm::Type::getInt8Ty(getLLVMContext());
+      // TVM local begin
+      EltTy = llvm::Type::getByteTy(getLLVMContext());
+      // TVM local end
     }
 
     ResultType = llvm::ArrayType::get(EltTy, A->getSize().getZExtValue());
@@ -679,7 +689,10 @@ llvm::Type *CodeGenTypes::ConvertType(QualType T) {
       assert(valueSize < atomicSize);
       llvm::Type *elts[] = {
         ResultType,
-        llvm::ArrayType::get(CGM.Int8Ty, (atomicSize - valueSize) / 8)
+        // TVM local begin
+        llvm::ArrayType::get(CGM.ByteTy,
+          (atomicSize - valueSize) / ByteSizeInBits)
+        // TVM local end
       };
       ResultType = llvm::StructType::get(getLLVMContext(),
                                          llvm::makeArrayRef(elts));

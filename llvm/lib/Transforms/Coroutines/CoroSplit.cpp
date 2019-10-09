@@ -298,7 +298,9 @@ static Function *createClone(Function &F, Twine Suffix, coro::Shape &Shape,
 
   // Remap vFrame pointer.
   auto *NewVFrame = Builder.CreateBitCast(
-      NewFramePtr, Type::getInt8PtrTy(Builder.getContext()), "vFrame");
+      // TVM local begin
+      NewFramePtr, Type::getIntBytePtrTy(Builder.getContext()), "vFrame");
+      // TVM local end
   Value *OldVFrame = cast<Value>(VMap[Shape.CoroBegin]);
   OldVFrame->replaceAllUsesWith(NewVFrame);
 
@@ -392,7 +394,9 @@ static void setCoroInfo(Function &F, CoroBeginInst *CoroBegin,
 
   // Update coro.begin instruction to refer to this constant.
   LLVMContext &C = F.getContext();
-  auto *BC = ConstantExpr::getPointerCast(GV, Type::getInt8PtrTy(C));
+  // TVM local begin
+  auto *BC = ConstantExpr::getPointerCast(GV, Type::getIntBytePtrTy(C));
+  // TVM local end
   CoroBegin->getId()->setInfo(BC);
 }
 
@@ -528,7 +532,9 @@ static void handleNoSuspendCoroutine(CoroBeginInst *CoroBegin, Type *FrameTy) {
     IRBuilder<> Builder(AllocInst);
     // FIXME: Need to handle overaligned members.
     auto *Frame = Builder.CreateAlloca(FrameTy);
-    auto *VFrame = Builder.CreateBitCast(Frame, Builder.getInt8PtrTy());
+    // TVM local begin
+    auto *VFrame = Builder.CreateBitCast(Frame, Builder.getIntBytePtrTy());
+    // TVM local end
     AllocInst->replaceAllUsesWith(Builder.getFalse());
     AllocInst->eraseFromParent();
     CoroBegin->replaceAllUsesWith(VFrame);
@@ -774,7 +780,9 @@ static void prepareForSplit(Function &F, CallGraph &CG) {
   //    call void %1(i8* null)
   coro::LowererBase Lowerer(M);
   Instruction *InsertPt = F.getEntryBlock().getTerminator();
-  auto *Null = ConstantPointerNull::get(Type::getInt8PtrTy(F.getContext()));
+  // TVM local begin
+  auto *Null = ConstantPointerNull::get(Type::getIntBytePtrTy(F.getContext()));
+  // TVM local end
   auto *DevirtFnAddr =
       Lowerer.makeSubFnCall(Null, CoroSubFnInst::RestartTrigger, InsertPt);
   auto *IndirectCall = CallInst::Create(DevirtFnAddr, Null, "", InsertPt);
@@ -792,8 +800,10 @@ static void createDevirtTriggerFunc(CallGraph &CG, CallGraphSCC &SCC) {
     return;
 
   LLVMContext &C = M.getContext();
-  auto *FnTy = FunctionType::get(Type::getVoidTy(C), Type::getInt8PtrTy(C),
+  // TVM local begin
+  auto *FnTy = FunctionType::get(Type::getVoidTy(C), Type::getIntBytePtrTy(C),
                                  /*IsVarArgs=*/false);
+  // TVM local end
   Function *DevirtFn =
       Function::Create(FnTy, GlobalValue::LinkageTypes::PrivateLinkage,
                        CORO_DEVIRT_TRIGGER_FN, &M);

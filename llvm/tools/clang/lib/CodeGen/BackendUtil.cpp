@@ -1313,7 +1313,9 @@ void clang::EmbedBitcode(llvm::Module *M, const CodeGenOptions &CGOpts,
   // Save llvm.compiler.used and remote it.
   SmallVector<Constant*, 2> UsedArray;
   SmallPtrSet<GlobalValue*, 4> UsedGlobals;
-  Type *UsedElementType = Type::getInt8Ty(M->getContext())->getPointerTo(0);
+  // TVM local begin
+  Type *UsedElementType = Type::getByteTy(M->getContext())->getPointerTo(0);
+  // TVM local end
   GlobalVariable *Used = collectUsedGlobalVariables(*M, UsedGlobals, true);
   for (auto *GV : UsedGlobals) {
     if (GV->getName() != "llvm.embedded.module" &&

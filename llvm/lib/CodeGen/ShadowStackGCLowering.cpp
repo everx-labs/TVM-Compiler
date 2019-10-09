@@ -101,7 +101,9 @@ ShadowStackGCLowering::ShadowStackGCLowering() : FunctionPass(ID) {
 
 Constant *ShadowStackGCLowering::GetFrameMap(Function &F) {
   // doInitialization creates the abstract type of this value.
-  Type *VoidPtr = Type::getInt8PtrTy(F.getContext());
+  // TVM local begin
+  Type *VoidPtr = Type::getIntBytePtrTy(F.getContext());
+  // TVM local end
 
   // Truncate the ShadowStackDescriptor if some metadata is null.
   unsigned NumMeta = 0;

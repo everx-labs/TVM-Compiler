@@ -891,7 +891,9 @@ void CodeGenPGO::emitCounterIncrement(CGBuilderTy &Builder, const Stmt *S,
     return;
 
   unsigned Counter = (*RegionCounterMap)[S];
-  auto *I8PtrTy = llvm::Type::getInt8PtrTy(CGM.getLLVMContext());
+  // TVM local begin
+  auto *I8PtrTy = llvm::Type::getIntBytePtrTy(CGM.getLLVMContext());
+  // TVM local end
 
   llvm::Value *Args[] = {llvm::ConstantExpr::getBitCast(FuncNameVar, I8PtrTy),
                          Builder.getInt64(FunctionHash),
@@ -925,7 +927,9 @@ void CodeGenPGO::valueProfile(CGBuilderTy &Builder, uint32_t ValueKind,
     auto BuilderInsertPoint = Builder.saveIP();
     Builder.SetInsertPoint(ValueSite);
     llvm::Value *Args[5] = {
-        llvm::ConstantExpr::getBitCast(FuncNameVar, Builder.getInt8PtrTy()),
+        // TVM local begin
+        llvm::ConstantExpr::getBitCast(FuncNameVar, Builder.getIntBytePtrTy()),
+        // TVM local end
         Builder.getInt64(FunctionHash),
         Builder.CreatePtrToInt(ValuePtr, Builder.getInt64Ty()),
         Builder.getInt32(ValueKind),

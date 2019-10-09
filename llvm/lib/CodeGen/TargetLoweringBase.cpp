@@ -1570,7 +1570,9 @@ Value *TargetLoweringBase::getDefaultSafeStackPointerLocation(IRBuilder<> &IRB,
   auto UnsafeStackPtr =
       dyn_cast_or_null<GlobalVariable>(M->getNamedValue(UnsafeStackPtrVar));
 
-  Type *StackPtrTy = Type::getInt8PtrTy(M->getContext());
+  // TVM local begin
+  Type *StackPtrTy = Type::getIntBytePtrTy(M->getContext());
+  // TVM local end
 
   if (!UnsafeStackPtr) {
     auto TLSModel = UseTLS ?
@@ -1600,7 +1602,9 @@ Value *TargetLoweringBase::getSafeStackPointerLocation(IRBuilder<> &IRB) const {
   // Android provides a libc function to retrieve the address of the current
   // thread's unsafe stack pointer.
   Module *M = IRB.GetInsertBlock()->getParent()->getParent();
-  Type *StackPtrTy = Type::getInt8PtrTy(M->getContext());
+  // TVM local begin
+  Type *StackPtrTy = Type::getIntBytePtrTy(M->getContext());
+  // TVM local end
   Value *Fn = M->getOrInsertFunction("__safestack_pointer_address",
                                      StackPtrTy->getPointerTo(0));
   return IRB.CreateCall(Fn);
@@ -1656,7 +1660,9 @@ bool TargetLoweringBase::isLegalAddressingMode(const DataLayout &DL,
 Value *TargetLoweringBase::getIRStackGuard(IRBuilder<> &IRB) const {
   if (getTargetMachine().getTargetTriple().isOSOpenBSD()) {
     Module &M = *IRB.GetInsertBlock()->getParent()->getParent();
-    PointerType *PtrTy = Type::getInt8PtrTy(M.getContext());
+    // TVM local begin
+    PointerType *PtrTy = Type::getIntBytePtrTy(M.getContext());
+    // TVM local end
     return M.getOrInsertGlobal("__guard_local", PtrTy);
   }
   return nullptr;
@@ -1666,7 +1672,9 @@ Value *TargetLoweringBase::getIRStackGuard(IRBuilder<> &IRB) const {
 // TODO: add LOAD_STACK_GUARD support.
 void TargetLoweringBase::insertSSPDeclarations(Module &M) const {
   if (!M.getNamedValue("__stack_chk_guard"))
-    new GlobalVariable(M, Type::getInt8PtrTy(M.getContext()), false,
+    // TVM local begin
+    new GlobalVariable(M, Type::getIntBytePtrTy(M.getContext()), false,
+    // TVM local end
                        GlobalVariable::ExternalLinkage,
                        nullptr, "__stack_chk_guard");
 }

@@ -306,7 +306,9 @@ bool LoopDataPrefetch::runOnLoop(Loop *L) {
 
       PrefLoads.push_back(std::make_pair(MemI, LSCEVAddRec));
 
-      Type *I8Ptr = Type::getInt8PtrTy(BB->getContext(), PtrAddrSpace);
+      // TVM local begin
+      Type *I8Ptr = Type::getIntBytePtrTy(BB->getContext(), PtrAddrSpace);
+      // TVM local end
       SCEVExpander SCEVE(*SE, I.getModule()->getDataLayout(), "prefaddr");
       Value *PrefPtrValue = SCEVE.expandCodeFor(NextLSCEV, I8Ptr, MemI);
 

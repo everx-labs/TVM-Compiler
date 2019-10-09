@@ -440,7 +440,9 @@ bool GlobalMerge::doMerge(const SmallVectorImpl<GlobalVariable *> &Globals,
   assert(Globals.size() > 1);
 
   Type *Int32Ty = Type::getInt32Ty(M.getContext());
-  Type *Int8Ty = Type::getInt8Ty(M.getContext());
+  // TVM local begin
+  Type *ByteTy = Type::getByteTy(M.getContext());
+  // TVM local end
   auto &DL = M.getDataLayout();
 
   LLVM_DEBUG(dbgs() << " Trying to merge set, starts with #"
@@ -469,7 +471,9 @@ bool GlobalMerge::doMerge(const SmallVectorImpl<GlobalVariable *> &Globals,
         break;
       }
       if (Padding) {
-        Tys.push_back(ArrayType::get(Int8Ty, Padding));
+        // TVM local begin
+        Tys.push_back(ArrayType::get(ByteTy, Padding));
+        // TVM local end
         Inits.push_back(ConstantAggregateZero::get(Tys.back()));
         ++CurIdx;
       }

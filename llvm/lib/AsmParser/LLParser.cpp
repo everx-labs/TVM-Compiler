@@ -3159,8 +3159,10 @@ bool LLParser::ParseValID(ValID &ID, PerFunctionState *PFS) {
               .first->second.insert(std::make_pair(std::move(Label), nullptr))
               .first->second;
       if (!FwdRef)
-        FwdRef = new GlobalVariable(*M, Type::getInt8Ty(Context), false,
+        // TVM local begin
+        FwdRef = new GlobalVariable(*M, Type::getByteTy(Context), false,
                                     GlobalValue::InternalLinkage, nullptr, "");
+        // TVM local end
       ID.ConstantVal = FwdRef;
       ID.Kind = ValID::t_Constant;
       return false;

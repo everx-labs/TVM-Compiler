@@ -1525,8 +1525,10 @@ void AggExprEmitter::VisitInitListExpr(InitListExpr *E) {
       if (CGF.needsEHCleanup(dtorKind)) {
         if (!cleanupDominator)
           cleanupDominator = CGF.Builder.CreateAlignedLoad(
-              CGF.Int8Ty,
-              llvm::Constant::getNullValue(CGF.Int8PtrTy),
+              // TVM local begin
+              CGF.ByteTy,
+              llvm::Constant::getNullValue(CGF.BytePtrTy),
+              // TVM local end
               CharUnits::One()); // placeholder
 
         CGF.pushDestroy(EHCleanup, LV.getAddress(), field->getType(),
@@ -1755,8 +1757,11 @@ static void CheckAggExprForMemSetUse(AggValueSlot &Slot, const Expr *E,
   llvm::Constant *SizeVal = CGF.Builder.getInt64(Size.getQuantity());
 
   Address Loc = Slot.getAddress();
-  Loc = CGF.Builder.CreateElementBitCast(Loc, CGF.Int8Ty);
-  CGF.Builder.CreateMemSet(Loc, CGF.Builder.getInt8(0), SizeVal, false);
+  // TVM local begin
+  Loc = CGF.Builder.CreateElementBitCast(Loc, CGF.ByteTy);
+  CGF.Builder.CreateMemSet(Loc, CGF.Builder.getIntN(ByteSizeInBits, 0), SizeVal,
+                           false);
+  // TVM local end
 
   // Tell the AggExprEmitter that the slot is known zero.
   Slot.setZeroed();
@@ -1890,8 +1895,10 @@ void CodeGenFunction::EmitAggregateCopy(LValue Dest, LValue Src, QualType Ty,
   // we need to use a different call here.  We use isVolatile to indicate when
   // either the source or the destination is volatile.
 
-  DestPtr = Builder.CreateElementBitCast(DestPtr, Int8Ty);
-  SrcPtr = Builder.CreateElementBitCast(SrcPtr, Int8Ty);
+  // TVM local begin
+  DestPtr = Builder.CreateElementBitCast(DestPtr, ByteTy);
+  SrcPtr = Builder.CreateElementBitCast(SrcPtr, ByteTy);
+  // TVM local end
 
   // Don't do any of the memmove_collectable tests if GC isn't set.
   if (CGM.getLangOpts().getGC() == LangOptions::NonGC) {

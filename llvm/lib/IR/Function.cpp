@@ -733,7 +733,11 @@ static void DecodeIITType(unsigned &NextElt, ArrayRef<unsigned char> Infos,
     OutputTable.push_back(IITDescriptor::get(IITDescriptor::Integer, 1));
     return;
   case IIT_I8:
-    OutputTable.push_back(IITDescriptor::get(IITDescriptor::Integer, 8));
+    // TVM local begin
+    // TODO: Maybe implement separate intrinsic type descriptor for Byte
+    OutputTable.push_back(IITDescriptor::get(IITDescriptor::Integer,
+                                             ByteSizeInBits));
+    // TVM local end
     return;
   case IIT_I16:
     OutputTable.push_back(IITDescriptor::get(IITDescriptor::Integer,16));

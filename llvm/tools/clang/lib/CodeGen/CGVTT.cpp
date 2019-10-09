@@ -44,7 +44,9 @@ CodeGenVTables::EmitVTTDefinition(llvm::GlobalVariable *VTT,
                                   const CXXRecordDecl *RD) {
   VTTBuilder Builder(CGM.getContext(), RD, /*GenerateDefinition=*/true);
 
-  llvm::Type *Int8PtrTy = CGM.Int8PtrTy, *Int32Ty = CGM.Int32Ty;
+  // TVM local begin
+  llvm::Type *Int8PtrTy = CGM.BytePtrTy, *Int32Ty = CGM.Int32Ty;
+  // TVM local end
   llvm::ArrayType *ArrayType =
     llvm::ArrayType::get(Int8PtrTy, Builder.getVTTComponents().size());
 
@@ -118,7 +120,9 @@ llvm::GlobalVariable *CodeGenVTables::GetAddrOfVTT(const CXXRecordDecl *RD) {
   VTTBuilder Builder(CGM.getContext(), RD, /*GenerateDefinition=*/false);
 
   llvm::ArrayType *ArrayType =
-    llvm::ArrayType::get(CGM.Int8PtrTy, Builder.getVTTComponents().size());
+    // TVM local begin
+    llvm::ArrayType::get(CGM.BytePtrTy, Builder.getVTTComponents().size());
+    // TVM local end
 
   llvm::GlobalVariable *GV =
     CGM.CreateOrReplaceCXXRuntimeVariable(Name, ArrayType,

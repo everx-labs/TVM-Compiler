@@ -2561,7 +2561,9 @@ static void setUsedInitializer(GlobalVariable &V,
   }
 
   // Type of pointer to the array of pointers.
-  PointerType *Int8PtrTy = Type::getInt8PtrTy(V.getContext(), 0);
+  // TVM local begin
+  PointerType *Int8PtrTy = Type::getIntBytePtrTy(V.getContext(), 0);
+  // TVM local end
 
   SmallVector<Constant *, 8> UsedArray;
   for (GlobalValue *GV : Init) {

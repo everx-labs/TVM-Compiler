@@ -210,7 +210,9 @@ void CGCXXABI::ReadArrayCookie(CodeGenFunction &CGF, Address ptr,
                                llvm::Value *&numElements,
                                llvm::Value *&allocPtr, CharUnits &cookieSize) {
   // Derive a char* in the same address space as the pointer.
-  ptr = CGF.Builder.CreateElementBitCast(ptr, CGF.Int8Ty);
+  // TVM local begin
+  ptr = CGF.Builder.CreateElementBitCast(ptr, CGF.ByteTy);
+  // TVM local end
 
   // If we don't need an array cookie, bail out early.
   if (!requiresArrayCookie(expr, eltTy)) {

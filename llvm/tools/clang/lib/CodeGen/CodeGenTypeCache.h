@@ -36,6 +36,9 @@ struct CodeGenTypeCache {
 
   /// i8, i16, i32, and i64
   llvm::IntegerType *Int8Ty, *Int16Ty, *Int32Ty, *Int64Ty;
+  // TVM local begin
+  llvm::IntegerType *ByteTy;
+  // TVM local end
   /// float, double
   llvm::Type *HalfTy, *FloatTy, *DoubleTy;
 
@@ -49,22 +52,26 @@ struct CodeGenTypeCache {
     llvm::IntegerType *PtrDiffTy;
   };
 
+  // TVM local begin
   /// void* in address space 0
   union {
     llvm::PointerType *VoidPtrTy;
-    llvm::PointerType *Int8PtrTy;
+    llvm::PointerType *BytePtrTy;
   };
 
   /// void** in address space 0
   union {
     llvm::PointerType *VoidPtrPtrTy;
-    llvm::PointerType *Int8PtrPtrTy;
+    llvm::PointerType *BytePtrPtrTy;
   };
+  // TVM local end
 
   /// void* in alloca address space
   union {
     llvm::PointerType *AllocaVoidPtrTy;
-    llvm::PointerType *AllocaInt8PtrTy;
+    // TVM local begin
+    llvm::PointerType *AllocaBytePtrTy;
+    // TVM local end
   };
 
   /// The size and alignment of the builtin C type 'int'.  This comes

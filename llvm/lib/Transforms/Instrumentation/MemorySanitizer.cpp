@@ -536,9 +536,10 @@ void MemorySanitizer::createUserspaceApi(Module &M) {
                                     : "__msan_warning_noreturn";
   WarningFn = M.getOrInsertFunction(WarningFnName, IRB.getVoidTy());
 
+  // TVM local begin
   // Create the global TLS variables.
   RetvalTLS = new GlobalVariable(
-      M, ArrayType::get(IRB.getInt64Ty(), kRetvalTLSSize / 8), false,
+      M, ArrayType::get(IRB.getInt64Ty(), kRetvalTLSSize / ByteSizeInBits), false,
       GlobalVariable::ExternalLinkage, nullptr, "__msan_retval_tls", nullptr,
       GlobalVariable::InitialExecTLSModel);
 
@@ -547,7 +548,7 @@ void MemorySanitizer::createUserspaceApi(Module &M) {
       "__msan_retval_origin_tls", nullptr, GlobalVariable::InitialExecTLSModel);
 
   ParamTLS = new GlobalVariable(
-      M, ArrayType::get(IRB.getInt64Ty(), kParamTLSSize / 8), false,
+      M, ArrayType::get(IRB.getInt64Ty(), kParamTLSSize / ByteSizeInBits), false,
       GlobalVariable::ExternalLinkage, nullptr, "__msan_param_tls", nullptr,
       GlobalVariable::InitialExecTLSModel);
 
@@ -557,7 +558,7 @@ void MemorySanitizer::createUserspaceApi(Module &M) {
       nullptr, GlobalVariable::InitialExecTLSModel);
 
   VAArgTLS = new GlobalVariable(
-      M, ArrayType::get(IRB.getInt64Ty(), kParamTLSSize / 8), false,
+      M, ArrayType::get(IRB.getInt64Ty(), kParamTLSSize / ByteSizeInBits), false,
       GlobalVariable::ExternalLinkage, nullptr, "__msan_va_arg_tls", nullptr,
       GlobalVariable::InitialExecTLSModel);
   VAArgOverflowSizeTLS = new GlobalVariable(
@@ -573,21 +574,22 @@ void MemorySanitizer::createUserspaceApi(Module &M) {
     unsigned AccessSize = 1 << AccessSizeIndex;
     std::string FunctionName = "__msan_maybe_warning_" + itostr(AccessSize);
     MaybeWarningFn[AccessSizeIndex] = M.getOrInsertFunction(
-        FunctionName, IRB.getVoidTy(), IRB.getIntNTy(AccessSize * 8),
+        FunctionName, IRB.getVoidTy(), IRB.getIntNTy(AccessSize * ByteSizeInBits),
         IRB.getInt32Ty());
 
     FunctionName = "__msan_maybe_store_origin_" + itostr(AccessSize);
     MaybeStoreOriginFn[AccessSizeIndex] = M.getOrInsertFunction(
-        FunctionName, IRB.getVoidTy(), IRB.getIntNTy(AccessSize * 8),
-        IRB.getInt8PtrTy(), IRB.getInt32Ty());
+        FunctionName, IRB.getVoidTy(), IRB.getIntNTy(AccessSize * ByteSizeInBits),
+        IRB.getIntBytePtrTy(), IRB.getInt32Ty());
   }
 
   MsanSetAllocaOrigin4Fn = M.getOrInsertFunction(
-    "__msan_set_alloca_origin4", IRB.getVoidTy(), IRB.getInt8PtrTy(), IntptrTy,
-    IRB.getInt8PtrTy(), IntptrTy);
+    "__msan_set_alloca_origin4", IRB.getVoidTy(), IRB.getIntBytePtrTy(), IntptrTy,
+    IRB.getIntBytePtrTy(), IntptrTy);
   MsanPoisonStackFn =
       M.getOrInsertFunction("__msan_poison_stack", IRB.getVoidTy(),
-                            IRB.getInt8PtrTy(), IntptrTy);
+                            IRB.getIntBytePtrTy(), IntptrTy);
+  // TVM local end
 }
 
 /// Insert extern declaration of runtime-provided functions and globals.
@@ -599,17 +601,19 @@ void MemorySanitizer::initializeCallbacks(Module &M) {
   IRBuilder<> IRB(*C);
   // Initialize callbacks that are common for kernel and userspace
   // instrumentation.
+  // TVM local begin
   MsanChainOriginFn = M.getOrInsertFunction(
     "__msan_chain_origin", IRB.getInt32Ty(), IRB.getInt32Ty());
   MemmoveFn = M.getOrInsertFunction(
-    "__msan_memmove", IRB.getInt8PtrTy(), IRB.getInt8PtrTy(),
-    IRB.getInt8PtrTy(), IntptrTy);
+    "__msan_memmove", IRB.getIntBytePtrTy(), IRB.getIntBytePtrTy(),
+    IRB.getIntBytePtrTy(), IntptrTy);
   MemcpyFn = M.getOrInsertFunction(
-    "__msan_memcpy", IRB.getInt8PtrTy(), IRB.getInt8PtrTy(), IRB.getInt8PtrTy(),
+    "__msan_memcpy", IRB.getIntBytePtrTy(), IRB.getIntBytePtrTy(), IRB.getIntBytePtrTy(),
     IntptrTy);
   MemsetFn = M.getOrInsertFunction(
-    "__msan_memset", IRB.getInt8PtrTy(), IRB.getInt8PtrTy(), IRB.getInt32Ty(),
+    "__msan_memset", IRB.getIntBytePtrTy(), IRB.getIntBytePtrTy(), IRB.getInt32Ty(),
     IntptrTy);
+  // TVM local end
   // We insert an empty inline asm after __msan_report* to avoid callback merge.
   EmptyAsm = InlineAsm::get(FunctionType::get(IRB.getVoidTy(), false),
                             StringRef(""), StringRef(""),
@@ -888,7 +892,9 @@ struct MemorySanitizerVisitor : public InstVisitor<MemorySanitizerVisitor> {
         Value *ConvertedShadow2 = IRB.CreateZExt(
             ConvertedShadow, IRB.getIntNTy(8 * (1 << SizeIndex)));
         IRB.CreateCall(Fn, {ConvertedShadow2,
-                            IRB.CreatePointerCast(Addr, IRB.getInt8PtrTy()),
+                            // TVM local begin
+                            IRB.CreatePointerCast(Addr, IRB.getIntBytePtrTy()),
+                            // TVM local end
                             Origin});
       } else {
         Value *Cmp = IRB.CreateICmpNE(
@@ -2076,8 +2082,10 @@ struct MemorySanitizerVisitor : public InstVisitor<MemorySanitizerVisitor> {
     IRBuilder<> IRB(&I);
     IRB.CreateCall(
         MS.MemmoveFn,
-        {IRB.CreatePointerCast(I.getArgOperand(0), IRB.getInt8PtrTy()),
-         IRB.CreatePointerCast(I.getArgOperand(1), IRB.getInt8PtrTy()),
+        // TVM local begin
+        {IRB.CreatePointerCast(I.getArgOperand(0), IRB.getIntBytePtrTy()),
+         IRB.CreatePointerCast(I.getArgOperand(1), IRB.getIntBytePtrTy()),
+        // TVM local end
          IRB.CreateIntCast(I.getArgOperand(2), MS.IntptrTy, false)});
     I.eraseFromParent();
   }
@@ -2090,8 +2098,10 @@ struct MemorySanitizerVisitor : public InstVisitor<MemorySanitizerVisitor> {
     IRBuilder<> IRB(&I);
     IRB.CreateCall(
         MS.MemcpyFn,
-        {IRB.CreatePointerCast(I.getArgOperand(0), IRB.getInt8PtrTy()),
-         IRB.CreatePointerCast(I.getArgOperand(1), IRB.getInt8PtrTy()),
+        // TVM local begin
+        {IRB.CreatePointerCast(I.getArgOperand(0), IRB.getIntBytePtrTy()),
+         IRB.CreatePointerCast(I.getArgOperand(1), IRB.getIntBytePtrTy()),
+        // TVM local end
          IRB.CreateIntCast(I.getArgOperand(2), MS.IntptrTy, false)});
     I.eraseFromParent();
   }
@@ -2101,7 +2111,9 @@ struct MemorySanitizerVisitor : public InstVisitor<MemorySanitizerVisitor> {
     IRBuilder<> IRB(&I);
     IRB.CreateCall(
         MS.MemsetFn,
-        {IRB.CreatePointerCast(I.getArgOperand(0), IRB.getInt8PtrTy()),
+        // TVM local begin
+        {IRB.CreatePointerCast(I.getArgOperand(0), IRB.getIntBytePtrTy()),
+        // TVM local end
          IRB.CreateIntCast(I.getArgOperand(1), IRB.getInt32Ty(), false),
          IRB.CreateIntCast(I.getArgOperand(2), MS.IntptrTy, false)});
     I.eraseFromParent();
@@ -3044,7 +3056,9 @@ struct MemorySanitizerVisitor : public InstVisitor<MemorySanitizerVisitor> {
       Len = IRB.CreateMul(Len, I.getArraySize());
     if (PoisonStack && ClPoisonStackWithCall) {
       IRB.CreateCall(MS.MsanPoisonStackFn,
-                     {IRB.CreatePointerCast(&I, IRB.getInt8PtrTy()), Len});
+                     // TVM local begin
+                     {IRB.CreatePointerCast(&I, IRB.getIntBytePtrTy()), Len});
+                     // TVM local end
     } else {
       Value *ShadowBase = getShadowOriginPtr(&I, IRB, IRB.getInt8Ty(),
                                              I.getAlignment(), /*isStore*/ true)
@@ -3068,8 +3082,10 @@ struct MemorySanitizerVisitor : public InstVisitor<MemorySanitizerVisitor> {
                                                StackDescription.str());
 
       IRB.CreateCall(MS.MsanSetAllocaOrigin4Fn,
-                     {IRB.CreatePointerCast(&I, IRB.getInt8PtrTy()), Len,
-                      IRB.CreatePointerCast(Descr, IRB.getInt8PtrTy()),
+                     // TVM local begin
+                     {IRB.CreatePointerCast(&I, IRB.getIntBytePtrTy()), Len,
+                      IRB.CreatePointerCast(Descr, IRB.getIntBytePtrTy()),
+                     // TVM local end
                       IRB.CreatePointerCast(&F, MS.IntptrTy)});
     }
   }
@@ -3400,7 +3416,9 @@ struct VarArgAMD64Helper : public VarArgHelper {
       Value *CopySize =
         IRB.CreateAdd(ConstantInt::get(MS.IntptrTy, AMD64FpEndOffset),
                       VAArgOverflowSize);
-      VAArgTLSCopy = IRB.CreateAlloca(Type::getInt8Ty(*MS.C), CopySize);
+      // TVM local begin
+      VAArgTLSCopy = IRB.CreateAlloca(Type::getByteTy(*MS.C), CopySize);
+      // TVM local end
       IRB.CreateMemCpy(VAArgTLSCopy, 8, MS.VAArgTLS, 8, CopySize);
     }
 
@@ -3525,7 +3543,9 @@ struct VarArgMIPS64Helper : public VarArgHelper {
     if (!VAStartInstrumentationList.empty()) {
       // If there is a va_start in this function, make a backup copy of
       // va_arg_tls somewhere in the function entry block.
-      VAArgTLSCopy = IRB.CreateAlloca(Type::getInt8Ty(*MS.C), CopySize);
+      // TVM local begin
+      VAArgTLSCopy = IRB.CreateAlloca(Type::getByteTy(*MS.C), CopySize);
+      // TVM local end
       IRB.CreateMemCpy(VAArgTLSCopy, 8, MS.VAArgTLS, 8, CopySize);
     }
 
@@ -3707,7 +3727,9 @@ struct VarArgAArch64Helper : public VarArgHelper {
       Value *CopySize =
         IRB.CreateAdd(ConstantInt::get(MS.IntptrTy, AArch64VAEndOffset),
                       VAArgOverflowSize);
-      VAArgTLSCopy = IRB.CreateAlloca(Type::getInt8Ty(*MS.C), CopySize);
+      // TVM local begin
+      VAArgTLSCopy = IRB.CreateAlloca(Type::getByteTy(*MS.C), CopySize);
+      // TVM local end
       IRB.CreateMemCpy(VAArgTLSCopy, 8, MS.VAArgTLS, 8, CopySize);
     }
 
@@ -3946,7 +3968,9 @@ struct VarArgPowerPC64Helper : public VarArgHelper {
     if (!VAStartInstrumentationList.empty()) {
       // If there is a va_start in this function, make a backup copy of
       // va_arg_tls somewhere in the function entry block.
-      VAArgTLSCopy = IRB.CreateAlloca(Type::getInt8Ty(*MS.C), CopySize);
+      // TVM local begin
+      VAArgTLSCopy = IRB.CreateAlloca(Type::getByteTy(*MS.C), CopySize);
+      // TVM local end
       IRB.CreateMemCpy(VAArgTLSCopy, 8, MS.VAArgTLS, 8, CopySize);
     }
 

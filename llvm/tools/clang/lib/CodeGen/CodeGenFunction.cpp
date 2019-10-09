@@ -500,7 +500,9 @@ CodeGenFunction::DecodeAddrUsedInPrologue(llvm::Value *F,
   auto *PCRelAsInt = Builder.CreateSExt(EncodedAddr, IntPtrTy);
   auto *FuncAsInt = Builder.CreatePtrToInt(F, IntPtrTy, "func_addr.int");
   auto *GOTAsInt = Builder.CreateAdd(PCRelAsInt, FuncAsInt, "global_addr.int");
-  auto *GOTAddr = Builder.CreateIntToPtr(GOTAsInt, Int8PtrPtrTy, "global_addr");
+  // TVM local begin
+  auto *GOTAddr = Builder.CreateIntToPtr(GOTAsInt, BytePtrPtrTy, "global_addr");
+  // TVM local end
 
   // Load the original pointer through the global.
   return Builder.CreateLoad(Address(GOTAddr, getPointerAlign()),
@@ -996,8 +998,10 @@ void CodeGenFunction::StartFunction(GlobalDecl GD,
   // If we're checking the return value, allocate space for a pointer to a
   // precise source location of the checked return statement.
   if (requiresReturnValueCheck()) {
-    ReturnLocation = CreateDefaultAlignTempAlloca(Int8PtrTy, "return.sloc.ptr");
-    InitTempAlloca(ReturnLocation, llvm::ConstantPointerNull::get(Int8PtrTy));
+    // TVM local begin
+    ReturnLocation = CreateDefaultAlignTempAlloca(BytePtrTy, "return.sloc.ptr");
+    InitTempAlloca(ReturnLocation, llvm::ConstantPointerNull::get(BytePtrTy));
+    // TVM local end
   }
 
   // Emit subprogram debug descriptor.
@@ -1728,7 +1732,9 @@ static void emitNonZeroVLAInit(CodeGenFunction &CGF, QualType baseType,
     = llvm::ConstantInt::get(CGF.IntPtrTy, baseSize.getQuantity());
 
   Address begin =
-    Builder.CreateElementBitCast(dest, CGF.Int8Ty, "vla.begin");
+    // TVM local begin
+    Builder.CreateElementBitCast(dest, CGF.ByteTy, "vla.begin");
+    // TVM local end
   llvm::Value *end =
     Builder.CreateInBoundsGEP(begin.getPointer(), sizeInChars, "vla.end");
 
@@ -1752,7 +1758,9 @@ static void emitNonZeroVLAInit(CodeGenFunction &CGF, QualType baseType,
 
   // Go to the next element.
   llvm::Value *next =
-    Builder.CreateInBoundsGEP(CGF.Int8Ty, cur, baseSizeInChars, "vla.next");
+    // TVM local begin
+    Builder.CreateInBoundsGEP(CGF.ByteTy, cur, baseSizeInChars, "vla.next");
+    // TVM local end
 
   // Leave if that's the end of the VLA.
   llvm::Value *done = Builder.CreateICmpEQ(next, end, "vla-init.isdone");
@@ -1773,8 +1781,10 @@ CodeGenFunction::EmitNullInitialization(Address DestPtr, QualType Ty) {
   }
 
   // Cast the dest ptr to the appropriate i8 pointer type.
-  if (DestPtr.getElementType() != Int8Ty)
-    DestPtr = Builder.CreateElementBitCast(DestPtr, Int8Ty);
+  // TVM local begin
+  if (DestPtr.getElementType() != ByteTy)
+    DestPtr = Builder.CreateElementBitCast(DestPtr, ByteTy);
+  // TVM local end
 
   // Get size and alignment info for this aggregate.
   CharUnits size = getContext().getTypeSizeInChars(Ty);
@@ -1819,7 +1829,9 @@ CodeGenFunction::EmitNullInitialization(Address DestPtr, QualType Ty) {
                                NullConstant, Twine());
     CharUnits NullAlign = DestPtr.getAlignment();
     NullVariable->setAlignment(NullAlign.getQuantity());
-    Address SrcPtr(Builder.CreateBitCast(NullVariable, Builder.getInt8PtrTy()),
+    // TVM local begin
+    Address SrcPtr(Builder.CreateBitCast(NullVariable, Builder.getIntBytePtrTy()),
+    // TVM local end
                    NullAlign);
 
     if (vla) return emitNonZeroVLAInit(*this, Ty, DestPtr, SrcPtr, SizeVal);
@@ -1854,7 +1866,9 @@ llvm::BasicBlock *CodeGenFunction::GetIndirectGotoBlock() {
   CGBuilderTy TmpBuilder(*this, createBasicBlock("indirectgoto"));
 
   // Create the PHI node that indirect gotos will add entries to.
-  llvm::Value *DestVal = TmpBuilder.CreatePHI(Int8PtrTy, 0,
+  // TVM local begin
+  llvm::Value *DestVal = TmpBuilder.CreatePHI(BytePtrTy, 0,
+  // TVM local end
                                               "indirect.goto.dest");
 
   // Create the indirect branch instruction.
@@ -2195,8 +2209,10 @@ llvm::Value *CodeGenFunction::EmitAnnotationCall(llvm::Value *AnnotationFn,
                                                  SourceLocation Location) {
   llvm::Value *Args[4] = {
     AnnotatedVal,
-    Builder.CreateBitCast(CGM.EmitAnnotationString(AnnotationStr), Int8PtrTy),
-    Builder.CreateBitCast(CGM.EmitAnnotationUnit(Location), Int8PtrTy),
+    // TVM local begin
+    Builder.CreateBitCast(CGM.EmitAnnotationString(AnnotationStr), BytePtrTy),
+    Builder.CreateBitCast(CGM.EmitAnnotationUnit(Location), BytePtrTy),
+    // TVM local end
     CGM.EmitAnnotationLineNo(Location)
   };
   return Builder.CreateCall(AnnotationFn, Args);
@@ -2208,7 +2224,9 @@ void CodeGenFunction::EmitVarAnnotations(const VarDecl *D, llvm::Value *V) {
   // llvm-gcc was doing.
   for (const auto *I : D->specific_attrs<AnnotateAttr>())
     EmitAnnotationCall(CGM.getIntrinsic(llvm::Intrinsic::var_annotation),
-                       Builder.CreateBitCast(V, CGM.Int8PtrTy, V->getName()),
+                       // TVM local begin
+                       Builder.CreateBitCast(V, CGM.BytePtrTy, V->getName()),
+                       // TVM local end
                        I->getAnnotation(), D->getLocation());
 }
 
@@ -2218,14 +2236,18 @@ Address CodeGenFunction::EmitFieldAnnotations(const FieldDecl *D,
   llvm::Value *V = Addr.getPointer();
   llvm::Type *VTy = V->getType();
   llvm::Value *F = CGM.getIntrinsic(llvm::Intrinsic::ptr_annotation,
-                                    CGM.Int8PtrTy);
+                                    // TVM local begin
+                                    CGM.BytePtrTy);
+                                    // TVM local begin
 
   for (const auto *I : D->specific_attrs<AnnotateAttr>()) {
     // FIXME Always emit the cast inst so we can differentiate between
     // annotation on the first field of a struct and annotation on the struct
     // itself.
-    if (VTy != CGM.Int8PtrTy)
-      V = Builder.Insert(new llvm::BitCastInst(V, CGM.Int8PtrTy));
+    // TVM local begin
+    if (VTy != CGM.BytePtrTy)
+      V = Builder.Insert(new llvm::BitCastInst(V, CGM.BytePtrTy));
+    // TVM local end
     V = EmitAnnotationCall(F, V, I->getAnnotation(), D->getLocation());
     V = Builder.CreateBitCast(V, VTy);
   }

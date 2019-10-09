@@ -484,7 +484,9 @@ static void EmitNullBaseClassInitialization(CodeGenFunction &CGF,
   if (Base->isEmpty())
     return;
 
-  DestPtr = CGF.Builder.CreateElementBitCast(DestPtr, CGF.Int8Ty);
+  // TVM local begin
+  DestPtr = CGF.Builder.CreateElementBitCast(DestPtr, CGF.ByteTy);
+  // TVM local end
 
   const ASTRecordLayout &Layout = CGF.getContext().getASTRecordLayout(Base);
   CharUnits NVSize = Layout.getNonVirtualSize();

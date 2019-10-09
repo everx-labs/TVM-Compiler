@@ -270,7 +270,9 @@ public:
     assert(Buffer->IsComplete && "serialization did not complete");
     auto &SerializedAST = Buffer->Data;
     auto Size = SerializedAST.size();
-    auto Int8Ty = llvm::Type::getInt8Ty(*VMContext);
+    // TVM local begin
+    auto Int8Ty = llvm::Type::getByteTy(*VMContext);
+    // TVM local end
     auto *Ty = llvm::ArrayType::get(Int8Ty, Size);
     auto *Data = llvm::ConstantDataArray::getString(
         *VMContext, StringRef(SerializedAST.data(), Size),

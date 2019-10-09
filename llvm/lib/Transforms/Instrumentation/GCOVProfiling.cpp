@@ -819,8 +819,10 @@ GlobalVariable *GCOVProfiler::buildEdgeLookupTable(
 
 Constant *GCOVProfiler::getStartFileFunc() {
   Type *Args[] = {
-    Type::getInt8PtrTy(*Ctx),  // const char *orig_filename
-    Type::getInt8PtrTy(*Ctx),  // const char version[4]
+    // TVM local begin
+    Type::getIntBytePtrTy(*Ctx),  // const char *orig_filename
+    Type::getIntBytePtrTy(*Ctx),  // const char version[4]
+    // TVM local end
     Type::getInt32Ty(*Ctx),    // uint32_t checksum
   };
   FunctionType *FTy = FunctionType::get(Type::getVoidTy(*Ctx), Args, false);
@@ -846,7 +848,9 @@ Constant *GCOVProfiler::getIncrementIndirectCounterFunc() {
 Constant *GCOVProfiler::getEmitFunctionFunc() {
   Type *Args[] = {
     Type::getInt32Ty(*Ctx),    // uint32_t ident
-    Type::getInt8PtrTy(*Ctx),  // const char *function_name
+    // TVM local begin
+    Type::getIntBytePtrTy(*Ctx),  // const char *function_name
+    // TVM local end
     Type::getInt32Ty(*Ctx),    // uint32_t func_checksum
     Type::getInt8Ty(*Ctx),     // uint8_t use_extra_checksum
     Type::getInt32Ty(*Ctx),    // uint32_t cfg_checksum
@@ -928,11 +932,13 @@ Function *GCOVProfiler::insertCounterWriteout(
 
   // Collect the relevant data into a large constant data structure that we can
   // walk to write out everything.
+  // TVM local begin
   StructType *StartFileCallArgsTy = StructType::create(
-      {Builder.getInt8PtrTy(), Builder.getInt8PtrTy(), Builder.getInt32Ty()});
+      {Builder.getIntBytePtrTy(), Builder.getIntBytePtrTy(), Builder.getInt32Ty()});
   StructType *EmitFunctionCallArgsTy = StructType::create(
-      {Builder.getInt32Ty(), Builder.getInt8PtrTy(), Builder.getInt32Ty(),
+      {Builder.getInt32Ty(), Builder.getIntBytePtrTy(), Builder.getInt32Ty(),
        Builder.getInt8Ty(), Builder.getInt32Ty()});
+  // TVM local end
   StructType *EmitArcsCallArgsTy = StructType::create(
       {Builder.getInt32Ty(), Builder.getInt64Ty()->getPointerTo()});
   StructType *FileInfoTy =
@@ -969,7 +975,9 @@ Function *GCOVProfiler::insertCounterWriteout(
           {Builder.getInt32(j),
            Options.FunctionNamesInData
                ? Builder.CreateGlobalStringPtr(getFunctionName(SP))
-               : Constant::getNullValue(Builder.getInt8PtrTy()),
+               // TVM local begin
+               : Constant::getNullValue(Builder.getIntBytePtrTy()),
+               // TVM local end
            Builder.getInt32(FuncChecksum),
            Builder.getInt8(Options.UseCfgChecksum),
            Builder.getInt32(CfgChecksum)}));

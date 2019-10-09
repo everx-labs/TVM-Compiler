@@ -47,7 +47,19 @@ LLVMContextImpl::LLVMContextImpl(LLVMContext &C)
     Int64Ty(C, 64),
     Int128Ty(C, 128),
 // TVM local begin
-    Int257Ty(C, 257) {}
+    Int257Ty(C, 257),
+    VeryNonStandartByteTy(C, ByteSizeInBits) {
+  switch (ByteSizeInBits) {
+  case 8:   ByteTy = &Int8Ty; break;
+  case 16:  ByteTy = &Int16Ty; break;
+  case 32:  ByteTy = &Int32Ty; break;
+  case 64:  ByteTy = &Int64Ty; break;
+  case 257: ByteTy = &Int257Ty; break;
+  default:
+    ByteTy = &VeryNonStandartByteTy;
+    break;
+  }
+}
 // TVM local end
 
 LLVMContextImpl::~LLVMContextImpl() {

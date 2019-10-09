@@ -86,12 +86,16 @@ bool llvm::isAllocaPromotable(const AllocaInst *AI) {
           II->getIntrinsicID() != Intrinsic::lifetime_end)
         return false;
     } else if (const BitCastInst *BCI = dyn_cast<BitCastInst>(U)) {
-      if (BCI->getType() != Type::getInt8PtrTy(U->getContext(), AS))
+      // TVM local begin
+      if (BCI->getType() != Type::getIntBytePtrTy(U->getContext(), AS))
+      // TVM local end
         return false;
       if (!onlyUsedByLifetimeMarkers(BCI))
         return false;
     } else if (const GetElementPtrInst *GEPI = dyn_cast<GetElementPtrInst>(U)) {
-      if (GEPI->getType() != Type::getInt8PtrTy(U->getContext(), AS))
+      // TVM local begin
+      if (GEPI->getType() != Type::getIntBytePtrTy(U->getContext(), AS))
+      // TVM local end
         return false;
       if (!GEPI->hasAllZeroIndices())
         return false;

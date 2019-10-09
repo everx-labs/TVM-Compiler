@@ -1473,8 +1473,10 @@ Address CGOpenMPRuntime::getOrCreateDefaultLocation(unsigned Flags) {
       // http://llvm.org/svn/llvm-project/openmp/trunk/runtime/src/kmp_str.c
       DefaultOpenMPPSource =
           CGM.GetAddrOfConstantCString(";unknown;unknown;0;0;;").getPointer();
+      // TVM local begin
       DefaultOpenMPPSource =
-          llvm::ConstantExpr::getBitCast(DefaultOpenMPPSource, CGM.Int8PtrTy);
+          llvm::ConstantExpr::getBitCast(DefaultOpenMPPSource, CGM.BytePtrTy);
+      // TVM local end
     }
 
     llvm::Constant *Data[] = {llvm::ConstantInt::getNullValue(CGM.Int32Ty),
@@ -2429,8 +2431,10 @@ CGOpenMPRuntime::getOrCreateThreadPrivateCache(const VarDecl *VD) {
          !CGM.getContext().getTargetInfo().isTLSSupported());
   // Lookup the entry, lazily creating it if necessary.
   std::string Suffix = getName({"cache", ""});
+  // TVM local begin
   return getOrCreateInternalVariable(
-      CGM.Int8PtrPtrTy, Twine(CGM.getMangledName(VD)).concat(Suffix));
+      CGM.BytePtrPtrTy, Twine(CGM.getMangledName(VD)).concat(Suffix));
+  // TVM local end
 }
 
 Address CGOpenMPRuntime::getAddrOfThreadPrivate(CodeGenFunction &CGF,
@@ -2444,7 +2448,9 @@ Address CGOpenMPRuntime::getAddrOfThreadPrivate(CodeGenFunction &CGF,
   llvm::Type *VarTy = VDAddr.getElementType();
   llvm::Value *Args[] = {emitUpdateLocation(CGF, Loc), getThreadID(CGF, Loc),
                          CGF.Builder.CreatePointerCast(VDAddr.getPointer(),
-                                                       CGM.Int8PtrTy),
+                         // TVM local begin
+                                                       CGM.BytePtrTy),
+                         // TVM local end
                          CGM.getSize(CGM.GetTargetTypeStoreSize(VarTy)),
                          getOrCreateThreadPrivateCache(VD)};
   return Address(CGF.EmitRuntimeCall(
@@ -2667,7 +2673,9 @@ bool CGOpenMPRuntime::emitDeclareTargetVarDefinition(const VarDecl *VD,
                                /*IsInitializer=*/true);
       CtorCGF.FinishFunction();
       Ctor = Fn;
-      ID = llvm::ConstantExpr::getBitCast(Fn, CGM.Int8PtrTy);
+      // TVM local begin
+      ID = llvm::ConstantExpr::getBitCast(Fn, CGM.BytePtrTy);
+      // TVM local end
       CGM.addUsedGlobal(cast<llvm::GlobalValue>(Ctor));
     } else {
       Ctor = new llvm::GlobalVariable(
@@ -2706,7 +2714,9 @@ bool CGOpenMPRuntime::emitDeclareTargetVarDefinition(const VarDecl *VD,
                           DtorCGF.needsEHCleanup(ASTTy.isDestructedType()));
       DtorCGF.FinishFunction();
       Dtor = Fn;
-      ID = llvm::ConstantExpr::getBitCast(Fn, CGM.Int8PtrTy);
+      // TVM local begin
+      ID = llvm::ConstantExpr::getBitCast(Fn, CGM.BytePtrTy);
+      // TVM local end
       CGM.addUsedGlobal(cast<llvm::GlobalValue>(Dtor));
     } else {
       Dtor = new llvm::GlobalVariable(
@@ -3844,7 +3854,9 @@ void CGOpenMPRuntime::createOffloadEntry(
   Str->setUnnamedAddr(llvm::GlobalValue::UnnamedAddr::Global);
 
   llvm::Constant *Data[] = {llvm::ConstantExpr::getBitCast(ID, CGM.VoidPtrTy),
-                            llvm::ConstantExpr::getBitCast(Str, CGM.Int8PtrTy),
+                            // TVM local begin
+                            llvm::ConstantExpr::getBitCast(Str, CGM.BytePtrTy),
+                            // TVM local end
                             llvm::ConstantInt::get(CGM.SizeTy, Size),
                             llvm::ConstantInt::get(CGM.Int32Ty, Flags),
                             llvm::ConstantInt::get(CGM.Int32Ty, 0)};
@@ -6289,7 +6301,9 @@ void CGOpenMPRuntime::emitTargetOutlinedFunctionHelper(
   // the device, because these functions will be entry points to the device.
 
   if (CGM.getLangOpts().OpenMPIsDevice) {
-    OutlinedFnID = llvm::ConstantExpr::getBitCast(OutlinedFn, CGM.Int8PtrTy);
+    // TVM local begin
+    OutlinedFnID = llvm::ConstantExpr::getBitCast(OutlinedFn, CGM.BytePtrTy);
+    // TVM local end
     OutlinedFn->setLinkage(llvm::GlobalValue::WeakAnyLinkage);
     OutlinedFn->setDSOLocal(false);
   } else {

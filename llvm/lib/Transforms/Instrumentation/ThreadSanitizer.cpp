@@ -160,7 +160,9 @@ void ThreadSanitizer::initializeCallbacks(Module &M) {
                            Attribute::NoUnwind);
   // Initialize the callbacks.
   TsanFuncEntry = checkSanitizerInterfaceFunction(M.getOrInsertFunction(
-      "__tsan_func_entry", Attr, IRB.getVoidTy(), IRB.getInt8PtrTy()));
+      // TVM local begin
+      "__tsan_func_entry", Attr, IRB.getVoidTy(), IRB.getIntBytePtrTy()));
+      // TVM local end
   TsanFuncExit = checkSanitizerInterfaceFunction(
       M.getOrInsertFunction("__tsan_func_exit", Attr, IRB.getVoidTy()));
   TsanIgnoreBegin = checkSanitizerInterfaceFunction(M.getOrInsertFunction(
@@ -174,22 +176,24 @@ void ThreadSanitizer::initializeCallbacks(Module &M) {
     std::string ByteSizeStr = utostr(ByteSize);
     std::string BitSizeStr = utostr(BitSize);
     SmallString<32> ReadName("__tsan_read" + ByteSizeStr);
+    // TVM local begin
     TsanRead[i] = checkSanitizerInterfaceFunction(M.getOrInsertFunction(
-        ReadName, Attr, IRB.getVoidTy(), IRB.getInt8PtrTy()));
+        ReadName, Attr, IRB.getVoidTy(), IRB.getIntBytePtrTy()));
 
     SmallString<32> WriteName("__tsan_write" + ByteSizeStr);
     TsanWrite[i] = checkSanitizerInterfaceFunction(M.getOrInsertFunction(
-        WriteName, Attr, IRB.getVoidTy(), IRB.getInt8PtrTy()));
+        WriteName, Attr, IRB.getVoidTy(), IRB.getIntBytePtrTy()));
 
     SmallString<64> UnalignedReadName("__tsan_unaligned_read" + ByteSizeStr);
     TsanUnalignedRead[i] =
         checkSanitizerInterfaceFunction(M.getOrInsertFunction(
-            UnalignedReadName, Attr, IRB.getVoidTy(), IRB.getInt8PtrTy()));
+            UnalignedReadName, Attr, IRB.getVoidTy(), IRB.getIntBytePtrTy()));
 
     SmallString<64> UnalignedWriteName("__tsan_unaligned_write" + ByteSizeStr);
     TsanUnalignedWrite[i] =
         checkSanitizerInterfaceFunction(M.getOrInsertFunction(
-            UnalignedWriteName, Attr, IRB.getVoidTy(), IRB.getInt8PtrTy()));
+            UnalignedWriteName, Attr, IRB.getVoidTy(), IRB.getIntBytePtrTy()));
+    // TVM local end
 
     Type *Ty = Type::getIntNTy(M.getContext(), BitSize);
     Type *PtrTy = Ty->getPointerTo();
@@ -231,25 +235,27 @@ void ThreadSanitizer::initializeCallbacks(Module &M) {
     TsanAtomicCAS[i] = checkSanitizerInterfaceFunction(M.getOrInsertFunction(
         AtomicCASName, Attr, Ty, PtrTy, Ty, Ty, OrdTy, OrdTy));
   }
+  // TVM local begin
   TsanVptrUpdate = checkSanitizerInterfaceFunction(
       M.getOrInsertFunction("__tsan_vptr_update", Attr, IRB.getVoidTy(),
-                            IRB.getInt8PtrTy(), IRB.getInt8PtrTy()));
+                            IRB.getIntBytePtrTy(), IRB.getIntBytePtrTy()));
   TsanVptrLoad = checkSanitizerInterfaceFunction(M.getOrInsertFunction(
-      "__tsan_vptr_read", Attr, IRB.getVoidTy(), IRB.getInt8PtrTy()));
+      "__tsan_vptr_read", Attr, IRB.getVoidTy(), IRB.getIntBytePtrTy()));
   TsanAtomicThreadFence = checkSanitizerInterfaceFunction(M.getOrInsertFunction(
       "__tsan_atomic_thread_fence", Attr, IRB.getVoidTy(), OrdTy));
   TsanAtomicSignalFence = checkSanitizerInterfaceFunction(M.getOrInsertFunction(
       "__tsan_atomic_signal_fence", Attr, IRB.getVoidTy(), OrdTy));
 
   MemmoveFn = checkSanitizerInterfaceFunction(
-      M.getOrInsertFunction("memmove", Attr, IRB.getInt8PtrTy(), IRB.getInt8PtrTy(),
-                            IRB.getInt8PtrTy(), IntptrTy));
+      M.getOrInsertFunction("memmove", Attr, IRB.getIntBytePtrTy(), IRB.getIntBytePtrTy(),
+                            IRB.getIntBytePtrTy(), IntptrTy));
   MemcpyFn = checkSanitizerInterfaceFunction(
-      M.getOrInsertFunction("memcpy", Attr, IRB.getInt8PtrTy(), IRB.getInt8PtrTy(),
-                            IRB.getInt8PtrTy(), IntptrTy));
+      M.getOrInsertFunction("memcpy", Attr, IRB.getIntBytePtrTy(), IRB.getIntBytePtrTy(),
+                            IRB.getIntBytePtrTy(), IntptrTy));
   MemsetFn = checkSanitizerInterfaceFunction(
-      M.getOrInsertFunction("memset", Attr, IRB.getInt8PtrTy(), IRB.getInt8PtrTy(),
+      M.getOrInsertFunction("memset", Attr, IRB.getIntBytePtrTy(), IRB.getIntBytePtrTy(),
                             IRB.getInt32Ty(), IntptrTy));
+  // TVM local end
 }
 
 bool ThreadSanitizer::doInitialization(Module &M) {
@@ -511,17 +517,23 @@ bool ThreadSanitizer::instrumentLoadOrStore(Instruction *I,
       StoredValue = IRB.CreateExtractElement(
           StoredValue, ConstantInt::get(IRB.getInt32Ty(), 0));
     if (StoredValue->getType()->isIntegerTy())
-      StoredValue = IRB.CreateIntToPtr(StoredValue, IRB.getInt8PtrTy());
+      // TVM local begin
+      StoredValue = IRB.CreateIntToPtr(StoredValue, IRB.getIntBytePtrTy());
+      // TVM local end
     // Call TsanVptrUpdate.
     IRB.CreateCall(TsanVptrUpdate,
-                   {IRB.CreatePointerCast(Addr, IRB.getInt8PtrTy()),
-                    IRB.CreatePointerCast(StoredValue, IRB.getInt8PtrTy())});
+                   // TVM local begin
+                   {IRB.CreatePointerCast(Addr, IRB.getIntBytePtrTy()),
+                    IRB.CreatePointerCast(StoredValue, IRB.getIntBytePtrTy())});
+                   // TVM local end
     NumInstrumentedVtableWrites++;
     return true;
   }
   if (!IsWrite && isVtableAccess(I)) {
     IRB.CreateCall(TsanVptrLoad,
-                   IRB.CreatePointerCast(Addr, IRB.getInt8PtrTy()));
+                   // TVM local begin
+                   IRB.CreatePointerCast(Addr, IRB.getIntBytePtrTy()));
+                   // TVM local end
     NumInstrumentedVtableReads++;
     return true;
   }
@@ -535,7 +547,9 @@ bool ThreadSanitizer::instrumentLoadOrStore(Instruction *I,
     OnAccessFunc = IsWrite ? TsanWrite[Idx] : TsanRead[Idx];
   else
     OnAccessFunc = IsWrite ? TsanUnalignedWrite[Idx] : TsanUnalignedRead[Idx];
-  IRB.CreateCall(OnAccessFunc, IRB.CreatePointerCast(Addr, IRB.getInt8PtrTy()));
+  // TVM local begin
+  IRB.CreateCall(OnAccessFunc, IRB.CreatePointerCast(Addr, IRB.getIntBytePtrTy()));
+  // TVM local end
   if (IsWrite) NumInstrumentedWrites++;
   else         NumInstrumentedReads++;
   return true;
@@ -571,15 +585,19 @@ bool ThreadSanitizer::instrumentMemIntrinsic(Instruction *I) {
   if (MemSetInst *M = dyn_cast<MemSetInst>(I)) {
     IRB.CreateCall(
         MemsetFn,
-        {IRB.CreatePointerCast(M->getArgOperand(0), IRB.getInt8PtrTy()),
+        // TVM local begin
+        {IRB.CreatePointerCast(M->getArgOperand(0), IRB.getIntBytePtrTy()),
+        // TVM local end
          IRB.CreateIntCast(M->getArgOperand(1), IRB.getInt32Ty(), false),
          IRB.CreateIntCast(M->getArgOperand(2), IntptrTy, false)});
     I->eraseFromParent();
   } else if (MemTransferInst *M = dyn_cast<MemTransferInst>(I)) {
     IRB.CreateCall(
         isa<MemCpyInst>(M) ? MemcpyFn : MemmoveFn,
-        {IRB.CreatePointerCast(M->getArgOperand(0), IRB.getInt8PtrTy()),
-         IRB.CreatePointerCast(M->getArgOperand(1), IRB.getInt8PtrTy()),
+        // TVM local begin
+        {IRB.CreatePointerCast(M->getArgOperand(0), IRB.getIntBytePtrTy()),
+         IRB.CreatePointerCast(M->getArgOperand(1), IRB.getIntBytePtrTy()),
+        // TVM local end
          IRB.CreateIntCast(M->getArgOperand(2), IntptrTy, false)});
     I->eraseFromParent();
   }

@@ -1644,6 +1644,14 @@ def ObjCIndependentClass : InheritableAttr {
   let Documentation = [Undocumented];
 }
 
+// TVM local begin
+def TVMTupleStruct : InheritableAttr {
+  let Spellings = [Clang<"tvm_tuple">];
+  let Documentation = [Undocumented];
+  let MeaningfulToClassTemplateDefinition = 1;
+}
+// TVM local end
+
 def ObjCPreciseLifetime : InheritableAttr {
   let Spellings = [Clang<"objc_precise_lifetime">];
   let Subjects = SubjectList<[Var], ErrorDiag>;

@@ -6375,6 +6375,10 @@ static void ProcessDeclAttribute(Sema &S, Scope *scope, Decl *D,
   case ParsedAttr::AT_ObjCIndependentClass:
     handleObjCIndependentClass(S, D, AL);
     break;
+  case ParsedAttr::AT_TVMTupleStruct:
+    handleSimpleAttribute<TVMTupleStructAttr>(S, D, AL);
+    D->setLiteral();
+    break;
   case ParsedAttr::AT_Blocks:
     handleBlocksAttr(S, D, AL);
     break;
@@ -6674,11 +6678,21 @@ void Sema::ProcessDeclAttributeList(Scope *S, Decl *D,
 // Helper for delayed processing TransparentUnion attribute.
 void Sema::ProcessDeclAttributeDelayed(Decl *D,
                                        const ParsedAttributesView &AttrList) {
-  for (const ParsedAttr &AL : AttrList)
+  for (const ParsedAttr &AL : AttrList) {
+    // TVM local begin
     if (AL.getKind() == ParsedAttr::AT_TransparentUnion) {
       handleTransparentUnionAttr(*this, D, AL);
+    } else if (AL.getKind() == ParsedAttr::AT_TVMTupleStruct) {
+      if (auto *RD = dyn_cast<RecordDecl>(D)) {
+        if (!RD->canPassInRegisters()) {
+          Diag(AL.getLoc(), diag::err_attribute_invalid_for_non_pod)
+            << AL.getName();
+        }
+      }
       break;
     }
+    // TVM local end
+  }
 }
 
 // Annotation attributes are the only attributes allowed after an access

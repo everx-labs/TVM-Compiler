@@ -555,7 +555,8 @@ StackFixup TVMStackModel::prepareStackFor(MachineInstr &MI,
       SmallVector<unsigned, 16> RetRegs;
       RetRegs.reserve(NumOperands);
       for (const auto &Op : MI.operands())
-        RetRegs.push_back(Op.getReg());
+        RetRegs.push_back(Op.isUndef() ? TVMFunctionInfo::UnusedReg :
+                                         Op.getReg());
       return StackFixup::DiffForReturnMulti(TheStack, RetRegs);
     }
   }

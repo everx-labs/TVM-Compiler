@@ -3752,10 +3752,38 @@ RValue CodeGenFunction::EmitBuiltinExpr(const FunctionDecl *FD,
     llvm::FunctionType *FTy = F->getFunctionType();
 
     for (unsigned i = 0, e = E->getNumArgs(); i != e; ++i) {
-      Value *ArgValue;
-      // If this is a normal argument, just emit it as a scalar.
+      // TVM local begin
+
+      // If the intrinsic arg type is different from the builtin arg type
+      // we need to do a bit cast.
+      auto DoCast = [&](llvm::Value *Val, unsigned i) -> llvm::Value * {
+        if (i < FTy->getNumParams()) {
+          llvm::Type *PTy = FTy->getParamType(i);
+          if (PTy != Val->getType()) {
+            assert(PTy->canLosslesslyBitCastTo(FTy->getParamType(i)) &&
+                   "Must be able to losslessly bit cast to param");
+            return Builder.CreateBitCast(Val, PTy);
+          }
+        }
+        return Val;
+      };
       if ((ICEArguments & (1 << i)) == 0) {
-        ArgValue = EmitScalarExpr(E->getArg(i));
+        auto ArgExpr = E->getArg(i);
+        // If it is literal record, unpack it into elements.
+        const auto *RT = ArgExpr->getType()->getAs<RecordType>();
+        if (RT && RT->getDecl()->isLiteral()) {
+          auto SType = getTypes().ConvertRecordDeclType(RT->getDecl());
+          LValue LV = EmitLValue(ArgExpr);
+          auto StructVal = Builder.CreateLoad(LV.getAddress());
+          for (unsigned i = 0, e = SType->getNumElements(); i != e; ++i) {
+            Value *CurVal = Builder.CreateExtractValue(StructVal, i);
+            Args.push_back(DoCast(CurVal, Args.size()));
+          }
+        } else {
+          // If this is a normal argument, just emit it as a scalar.
+          Value *ArgValue = EmitScalarExpr(ArgExpr);
+          Args.push_back(DoCast(ArgValue, Args.size()));
+        }
       } else {
         // If this is required to be a constant, constant fold it so that we
         // know that the generated intrinsic gets a ConstantInt.
@@ -3763,23 +3791,10 @@ RValue CodeGenFunction::EmitBuiltinExpr(const FunctionDecl *FD,
         bool IsConst = E->getArg(i)->isIntegerConstantExpr(Result,getContext());
         assert(IsConst && "Constant arg isn't actually constant?");
         (void)IsConst;
-        ArgValue = llvm::ConstantInt::get(getLLVMContext(), Result);
-      }
-
-      // If the intrinsic arg type is different from the builtin arg type
-      // we need to do a bit cast.
-      // TVM local begin
-      if (i < FTy->getNumParams()) {
-        llvm::Type *PTy = FTy->getParamType(i);
-        if (PTy != ArgValue->getType()) {
-          assert(PTy->canLosslesslyBitCastTo(FTy->getParamType(i)) &&
-                 "Must be able to losslessly bit cast to param");
-          ArgValue = Builder.CreateBitCast(ArgValue, PTy);
-        }
+        Value *ArgValue = llvm::ConstantInt::get(getLLVMContext(), Result);
+        Args.push_back(DoCast(ArgValue, Args.size()));
       }
       // TVM local end
-
-      Args.push_back(ArgValue);
     }
 
     Value *V = Builder.CreateCall(F, Args);

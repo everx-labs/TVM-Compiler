@@ -11,7 +11,7 @@
 
 unsigned tonstdlib_log_8 (unsigned value);
 
-void tonstdlib_create_empty_work_slice ();
+void tonstdlib_create_empty_work_slice (void);
 int tonstdlib_work_slice_load_int (unsigned width);
 unsigned tonstdlib_work_slice_load_uint (unsigned width);
 void tonstdlib_work_slice_store_int (int value, unsigned width);

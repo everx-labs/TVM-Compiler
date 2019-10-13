@@ -5494,6 +5494,22 @@ void InitializationSequence::InitializeFrom(Sema &S,
 
   //     - If the destination type is a (possibly cv-qualified) class type:
   if (DestType->isRecordType()) {
+    // TVM local begin
+    if (!SourceType.isNull() && DestType->isTVMTupleStructType()) {
+      if (SourceType->isRecordType()) {
+        const RecordType *RecordTy = SourceType->getAs<RecordType>();
+        if (RecordTy->getDecl()->isLiteral() &&
+            !SourceType->isTVMTupleStructType()) {
+          unsigned SrcSz = Context.getTypeSizeInChars(SourceType).getQuantity();
+          unsigned DstSz = Context.getTypeSizeInChars(DestType).getQuantity();
+          if (SrcSz == DstSz) {
+            AddQualificationConversionStep(DestType, VK_RValue);
+            return;
+          }
+        }
+      }
+    }
+    // TVM local end
     //     - If the initialization is direct-initialization, or if it is
     //       copy-initialization where the cv-unqualified version of the
     //       source type is the same class as, or a derived class of, the

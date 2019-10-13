@@ -1363,6 +1363,11 @@ public:
 
   /// Creating { tuple, i257 } literal struct for tvm tpop result
   QualType prepareTVMTuplePopStructType(StringRef StructName) const;
+
+  /// Creating literal struct with Elems
+  ///  (for builtin functions with struct returns)
+  QualType prepareTVMLiteralStructType(ArrayRef<QualType> Elems,
+                                       StringRef ElemsStr) const;
   // TVM local end
 
   /// \pre Return a non-unique reference to the type for a dependently-sized

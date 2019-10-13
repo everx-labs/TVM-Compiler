@@ -2545,6 +2545,8 @@ def err_attribute_no_member_pointers : Error<
   "%0 attribute cannot be used with pointers to members">;
 def err_attribute_invalid_implicit_this_argument : Error<
   "%0 attribute is invalid for the implicit this argument">;
+def err_attribute_invalid_for_non_pod : Error<
+  "%0 attribute can only be used on a POD (plain old data) class or structure">;
 def err_ownership_type : Error<
   "%0 attribute only applies to %select{pointer|integer}1 arguments">;
 def err_ownership_returns_index_mismatch : Error<

@@ -72,7 +72,7 @@ let isCall = 1, hasCtrlDep = 1 in {
                   (ins variable_ops, i257imm:$callee),
                   (outs), (ins),
                   [],
-                  "CALL\t1, $callee", "CALL", 0xF0>;
+                  "CALL\t1, $callee", "CALL\t1", 0xF0>;
 }
 
 let isMoveImm = 1, isAsCheapAsAMove = 1, isReMaterializable = 1 in {

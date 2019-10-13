@@ -3953,6 +3953,23 @@ bool Type::isObjCIndependentClassType() const {
   return false;
 }
 
+// TVM local begin
+bool Type::isTVMTupleStructType() const {
+  if (const auto *RT = getAs<RecordType>())
+    return RT->getDecl()->hasAttr<TVMTupleStructAttr>();
+  if (const auto *typedefType = dyn_cast<TypedefType>(this))
+    return typedefType->getDecl()->hasAttr<TVMTupleStructAttr>();
+  return false;
+}
+
+bool Type::isTVMLiteralStructType() const {
+  if (const auto *RT = getAs<RecordType>())
+    return RT->getDecl()->isLiteral() &&
+        !RT->getDecl()->hasAttr<TVMTupleStructAttr>();
+  return false;
+}
+// TVM local end
+
 bool Type::isObjCRetainableType() const {
   return isObjCObjectPointerType() ||
          isBlockPointerType() ||

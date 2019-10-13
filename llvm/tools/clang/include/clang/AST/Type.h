@@ -1858,6 +1858,11 @@ public:
   bool isObjCIndirectLifetimeType() const;      // (pointer to)* lifetime type
   bool isObjCNSObjectType() const;              // __attribute__((NSObject))
   bool isObjCIndependentClassType() const;      // __attribute__((objc_independent_class))
+  // TVM local begin
+  bool isTVMTupleStructType() const;            // __attribute__((tvm_tuple))
+  // Generated into literal llvm struct like { ty, ty, ... }
+  bool isTVMLiteralStructType() const;
+  // TVM local end
   // FIXME: change this to 'raw' interface type, so we can used 'interface' type
   // for the common case.
   bool isObjCObjectType() const;                // NSString or typeof(*(id)0)

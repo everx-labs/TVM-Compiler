@@ -1252,8 +1252,7 @@ void ASTContext::InitBuiltinTypes(const TargetInfo &Target,
   if (Target.getTriple().getArch() == llvm::Triple::tvm) {
     for (unsigned i = 0; i < TVM_max_tuple_size; ++i) {
       unsigned Size = i + 1;
-      char TupleName[32];
-      sprintf(TupleName, "__tvm_tuple%d", Size);
+      std::string TupleName = "__tvm_tuple" + Size;
       TVMTuples[i] = getSplatStructType(IntTy, Size, TupleName, "v");
     }
     TVMTuplePop = prepareTVMTuplePopStructType("__tvm_tpop");
@@ -3472,10 +3471,8 @@ QualType ASTContext::getSplatStructType(QualType ElemType, unsigned NumFields,
 
   // Create fields
   for (unsigned i = 0; i < NumFields; ++i) {
-    char Buf[16];
-    sprintf(Buf, "%d", i);
-    std::string fName(FieldName);
-    fName = fName + Buf;
+
+    std::string fName = FieldName.str() + std::to_string(i);
     FieldDecl *Field = FieldDecl::Create(*this, RecDecl,
                                          SourceLocation(),
                                          SourceLocation(),
@@ -3523,6 +3520,37 @@ QualType ASTContext::prepareTVMTuplePopStructType(StringRef StructName) const {
   Field1->setAccess(AS_public);
   RecDecl->addDecl(Field1);
 
+  RecDecl->completeDefinition();
+  TUDecl->addDecl(RecDecl);
+  auto tagType = getTagDeclType(RecDecl);
+  auto TypedefDec = buildImplicitTypedef(tagType, StructName);
+  TUDecl->addDecl(TypedefDec);
+  return getTypeDeclType(TypedefDec);
+}
+
+/// Creating literal struct with Elems
+///  (for builtin functions with struct returns)
+QualType ASTContext::prepareTVMLiteralStructType(ArrayRef<QualType> Elems,
+                                                 StringRef ElemsStr) const {
+  auto StructName = "__tvm_literal_struct_" + ElemsStr.str();
+  auto *RecDecl = buildImplicitRecord(StructName + "_Tag");
+  RecDecl->setLiteral();
+  RecDecl->startDefinition();
+
+  std::string Name = "v";
+  for (unsigned i = 0, sz = Elems.size(); i < sz; ++i) {
+    QualType Ty = Elems[i];
+    FieldDecl *F = FieldDecl::Create(*this, RecDecl,
+                                     SourceLocation(),
+                                     SourceLocation(),
+                                     &Idents.get(Name + std::to_string(i)),
+                                     Ty, /*TInfo=*/nullptr,
+                                     /*BitWidth=*/nullptr,
+                                     /*Mutable=*/false,
+                                     ICIS_NoInit);
+    F->setAccess(AS_public);
+    RecDecl->addDecl(F);
+  }
   RecDecl->completeDefinition();
   TUDecl->addDecl(RecDecl);
   auto tagType = getTagDeclType(RecDecl);
@@ -9267,6 +9295,20 @@ static QualType DecodeTypeFromStr(const char *&Str, const ASTContext &Context,
                                   bool &RequiresICE,
                                   bool AllowTypeModifiers) {
   // TVM local begin
+  if (Str[0] == '{') {
+    const char *BeginStr = ++Str;
+    SmallVector<QualType, 4> Elems;
+    while (Str[0] && Str[0] != '}') {
+      auto Ty = DecodeTypeFromStr(Str, Context, Error, RequiresICE,
+                                  AllowTypeModifiers);
+      Elems.push_back(Ty);
+    }
+    const char *EndStr = Str;
+    if (Str[0] == '}')
+      ++Str;
+    return Context.prepareTVMLiteralStructType(
+      Elems, StringRef(BeginStr, EndStr - BeginStr));
+  }
   if (Str[0] == 'T') {
     switch (Str[1]) {
     case 's': Str += 2; return Context.TVMSliceTy;

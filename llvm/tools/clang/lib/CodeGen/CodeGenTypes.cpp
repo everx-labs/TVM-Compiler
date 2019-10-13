@@ -782,7 +782,7 @@ llvm::StructType *CodeGenTypes::ConvertRecordDeclType(const RecordDecl *RD) {
 
   // TVM local begin
   // Converting into literal llvm struct
-  if (RD->isLiteral())
+  if (RD->isLiteral() || RD->hasAttr<TVMTupleStructAttr>())
     Entry = Ty = llvm::StructType::get(Ty->getContext(), Ty->elements(),
                                        Ty->isPacked());
   // TVM local end

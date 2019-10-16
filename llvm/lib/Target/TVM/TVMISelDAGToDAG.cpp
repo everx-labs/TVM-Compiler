@@ -86,10 +86,10 @@ bool TVMDAGToDAGISel::tryIndexedBinOp(SDNode *Op, SDValue N1, SDValue N2,
 }
 
 static const unsigned UntupleTable[] = {
-  #include "TVMUntupleN.def"
+#include "TVMUntupleN.def"
 };
 static const unsigned UnpackfirstTable[] = {
-  #include "TVMUnpackfirstN.def"
+#include "TVMUnpackfirstN.def"
 };
 
 void TVMDAGToDAGISel::Select(SDNode *Node) {
@@ -102,7 +102,8 @@ void TVMDAGToDAGISel::Select(SDNode *Node) {
     return;
   }
   switch (Node->getOpcode()) {
-  default: break;
+  default:
+    break;
   case TVMISD::TUPLE: {
     SmallVector<SDValue, 16> Ops(Node->op_begin(), Node->op_end());
     SDNode *Res = CurDAG->getMachineNode(TVM::TUPLE, dl, MVT::TVMTuple, Ops);
@@ -124,20 +125,25 @@ void TVMDAGToDAGISel::Select(SDNode *Node) {
     Ops.push_back(Chain); // Chain to the end
     SmallVector<EVT, 16> VTs(Sz, MVT::i257);
     VTs.push_back(MVT::Other);
-    SDNode *Res = CurDAG->getMachineNode(TVM::CALL_N, dl,
-                                         CurDAG->getVTList(VTs), Ops);
+    SDNode *Res =
+        CurDAG->getMachineNode(TVM::CALL_N, dl, CurDAG->getVTList(VTs), Ops);
     ReplaceNode(Node, Res);
     return;
   }
   case ISD::INTRINSIC_WO_CHAIN: {
     unsigned IntNo = cast<ConstantSDNode>(Node->getOperand(0))->getZExtValue();
     // Common lambda to process both untupleN and unpackfirstN intrinsics
-    auto processUntuple = [&](ArrayRef<unsigned> Table, unsigned CmdSmall,
-                              unsigned CmdBig) -> bool {
+    auto processUntuple = [&](ArrayRef<unsigned> Table, unsigned CmsSingle,
+                              unsigned CmdSmall, unsigned CmdBig) -> bool {
       auto it = llvm::find(Table, IntNo);
       if (it != Table.end()) {
         const auto &Tp = Node->getOperand(1);
         unsigned Sz = it - Table.begin() + 1;
+        if (Sz == 1) {
+          SDNode *Res = CurDAG->getMachineNode(CmsSingle, dl, MVT::i257, Tp);
+          ReplaceNode(Node, Res);
+          return true;
+        }
 
         SmallVector<EVT, 16> VTs(Sz, MVT::i257);
         SmallVector<SDValue, 2> Ops;
@@ -146,22 +152,24 @@ void TVMDAGToDAGISel::Select(SDNode *Node) {
         bool SmallTuple = Sz <= TVMTargetMachine::SmallTupleLimit;
         SDValue SzVal = CurDAG->getTargetConstant(Sz, dl, MVT::i257);
         if (!SmallTuple)
-          SzVal = SDValue(CurDAG->getMachineNode(TVM::CONST_I257, dl, MVT::i257,
-                                                 SzVal), 0);
+          SzVal = SDValue(
+              CurDAG->getMachineNode(TVM::CONST_I257, dl, MVT::i257, SzVal), 0);
         Ops.push_back(SzVal);
 
         unsigned Cmd = SmallTuple ? CmdSmall : CmdBig;
-        SDNode *Res = CurDAG->getMachineNode(Cmd, dl, CurDAG->getVTList(VTs),
-                                             Ops);
+        SDNode *Res =
+            CurDAG->getMachineNode(Cmd, dl, CurDAG->getVTList(VTs), Ops);
         ReplaceNode(Node, Res);
         return true;
       }
       return false;
     };
     // Processing Intrinsic::tvm_untupleN intrinsics
-    if (processUntuple(UntupleTable, TVM::UNTUPLE, TVM::UNTUPLEVAR))
+    if (processUntuple(UntupleTable, TVM::UNTUPLE1, TVM::UNTUPLE,
+                       TVM::UNTUPLEVAR))
       return;
-    if (processUntuple(UnpackfirstTable, TVM::UNPACKFIRST, TVM::UNPACKFIRSTVAR))
+    if (processUntuple(UnpackfirstTable, TVM::UNPACKFIRST1, TVM::UNPACKFIRST,
+                       TVM::UNPACKFIRSTVAR))
       return;
   }
   }

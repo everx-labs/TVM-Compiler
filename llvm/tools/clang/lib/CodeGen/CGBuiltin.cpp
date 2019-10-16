@@ -3805,9 +3805,18 @@ RValue CodeGenFunction::EmitBuiltinExpr(const FunctionDecl *FD,
       RetTy = ConvertType(BuiltinRetType);
 
     if (RetTy != V->getType()) {
-      assert(V->getType()->canLosslesslyBitCastTo(RetTy) &&
-             "Must be able to losslessly bit cast result type");
-      V = Builder.CreateBitCast(V, RetTy);
+      // TVM local begin
+      auto *RetSTy = dyn_cast<llvm::StructType>(RetTy);
+      if (RetSTy && RetSTy->getNumElements() == 1 &&
+          V->getType()->isIntegerTy()) {
+        Value *Agg = UndefValue::get(RetTy);
+        V = Builder.CreateInsertValue(Agg, V, 0);
+      } else {
+        assert(V->getType()->canLosslesslyBitCastTo(RetTy) &&
+               "Must be able to losslessly bit cast result type");
+        V = Builder.CreateBitCast(V, RetTy);
+      }
+      // TVM local end
     }
     // TVM local begin
     if (!ReturnValue.isNull()) {

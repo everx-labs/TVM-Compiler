@@ -26,6 +26,10 @@ defm TUPLEVAR : I<(outs Tuple:$result),
                   "TUPLEVAR\t$result, $sz, $regs",
                   "TUPLEVAR", 0x6f80>;
 
+defm UNTUPLE1 : I<(outs I257:$ret), (ins Tuple:$tuple), (outs), (ins), [],
+                  "UNTUPLE\t1, $ret, $tuple",
+                  "UNTUPLE\t1", 0x6f20>;
+
 defm UNTUPLE : I<(outs reglist:$regs, variable_ops),
                  (ins Tuple:$tuple, uimm4:$sz),
                  (outs), (ins uimm4:$sz),
@@ -39,6 +43,10 @@ defm UNTUPLEVAR : I<(outs reglist:$regs, variable_ops),
                     [],
                     "UNTUPLEVAR\t$sz, $regs, $tuple",
                     "UNTUPLEVAR", 0x6f82>;
+
+defm UNPACKFIRST1 : I<(outs I257:$ret), (ins Tuple:$tuple), (outs), (ins), [],
+                     "UNPACKFIRST\t1, $ret, $tuple",
+                     "UNPACKFIRST\t1", 0x6f20>;
 
 defm UNPACKFIRST : I<(outs reglist:$regs, variable_ops),
                      (ins Tuple:$tuple, uimm4:$sz),

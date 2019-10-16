@@ -1263,6 +1263,44 @@ static llvm::Value *CreateCoercedLoad(Address Src, llvm::Type *Ty,
   return CGF.Builder.CreateLoad(Tmp);
 }
 
+// TVM local begin
+static llvm::Value *TVMImplicitCast(CodeGenFunction &CGF, llvm::Value *Src,
+                                    llvm::Type *DstTy) {
+  auto doCast = [&](unsigned IntID, llvm::Value *Op) {
+    return CGF.Builder.CreateCall(CGF.CGM.getIntrinsic(IntID), Op);
+  };
+  auto SrcTy = Src->getType();
+  if (SrcTy != DstTy) {
+    auto *STyDst = dyn_cast<llvm::StructType>(DstTy);
+    if (STyDst && STyDst->getNumElements() == 1) {
+      auto RV = llvm::UndefValue::get(DstTy);
+      Src = TVMImplicitCast(CGF, Src, STyDst->getElementType(0));
+      return CGF.Builder.CreateInsertValue(RV, Src, 0);
+    }
+    if (DstTy->isIntegerTy()) {
+      if (SrcTy->isTVMTupleTy())
+        return doCast(llvm::Intrinsic::tvm_cast_from_tuple, Src);
+      if (SrcTy->isTVMSliceTy())
+        return doCast(llvm::Intrinsic::tvm_cast_from_slice, Src);
+      if (SrcTy->isTVMBuilderTy())
+        return doCast(llvm::Intrinsic::tvm_cast_from_builder, Src);
+      if (SrcTy->isTVMCellTy())
+        return doCast(llvm::Intrinsic::tvm_cast_from_cell, Src);
+    } else if (SrcTy->isIntegerTy()) {
+      if (DstTy->isTVMTupleTy())
+        return doCast(llvm::Intrinsic::tvm_cast_to_tuple, Src);
+      if (DstTy->isTVMSliceTy())
+        return doCast(llvm::Intrinsic::tvm_cast_to_slice, Src);
+      if (DstTy->isTVMBuilderTy())
+        return doCast(llvm::Intrinsic::tvm_cast_to_builder, Src);
+      if (DstTy->isTVMCellTy())
+        return doCast(llvm::Intrinsic::tvm_cast_to_cell, Src);
+    }
+  }
+  return Src;
+}
+// TVM local end
+
 // Function to store a first-class aggregate into memory.  We prefer to
 // store the elements rather than the aggregate to be more friendly to
 // fast-isel.
@@ -1279,7 +1317,12 @@ static void BuildAggStore(CodeGenFunction &CGF, llvm::Value *Val,
       auto EltOffset = CharUnits::fromQuantity(Layout->getElementOffset(i));
       Address EltPtr = CGF.Builder.CreateStructGEP(Dest, i, EltOffset);
       llvm::Value *Elt = CGF.Builder.CreateExtractValue(Val, i);
+      // TVM local begin
+      auto *STyDst = dyn_cast<llvm::StructType>(Dest.getElementType());
+      if (STyDst && STy->isLiteral() && STyDst->isLiteral())
+        Elt = TVMImplicitCast(CGF, Elt, EltPtr.getElementType());
       CGF.Builder.CreateStore(Elt, EltPtr, DestIsVolatile);
+      // TVM local end
     }
   } else {
     CGF.Builder.CreateStore(Val, Dest, DestIsVolatile);
@@ -1323,8 +1366,13 @@ static void CreateCoercedStore(llvm::Value *Src,
 
   // If store is legal, just bitcast the src pointer.
   if (SrcSize <= DstSize) {
-    Dst = CGF.Builder.CreateElementBitCast(Dst, SrcTy);
+    // TVM local begin
+    Src = TVMImplicitCast(CGF, Src, DstTy);
+    SrcTy = Src->getType();
+    if (SrcTy != DstTy)
+      Dst = CGF.Builder.CreateElementBitCast(Dst, SrcTy);
     BuildAggStore(CGF, Src, Dst, DstIsVolatile);
+    // TVM local end
   } else {
     // Otherwise do coercion through memory. This is stupid, but
     // simple.

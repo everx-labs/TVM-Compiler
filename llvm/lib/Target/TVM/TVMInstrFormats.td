@@ -62,8 +62,6 @@ def UImm6    : ImmAsmOperand<0,63> { let Name = "UImm6"; }
 def UImm4    : ImmAsmOperand<0,15> { let Name = "UImm4"; }
 def UImm2    : ImmAsmOperand<0,3> { let Name = "UImm2"; }
 def UImm1_256: ImmAsmOperand<1,256> { let Name = "UImm1_256"; }
-def UImm0_257: ImmAsmOperand<0,257> { let Name = "UImm0_257"; }
-def UImm0_256: ImmAsmOperand<0,257> { let Name = "UImm0_256"; }
 
 // A list of registers separated by comma. Used by Tuple and call operations.
 def RegListAsmOperand : AsmOperandClass { let Name = "RegList"; }
@@ -108,17 +106,6 @@ def uimm1_256 : Operand<i257>, IntImmLeaf<i257, [{
   let ParserMatchClass = UImm1_256;
 }
 
-def uimm0_257 : Operand<i257>, ImmLeaf<i257, [{
-  return Imm >=0 && Imm <= 257;
-}]> {
-  let ParserMatchClass = UImm0_257;
-}
-
-def uimm0_256 : Operand<i257>, ImmLeaf<i257, [{
-  return Imm >=0 && Imm <= 257;
-}]> {
-  let ParserMatchClass = UImm0_256;
-}
 //===----------------------------------------------------------------------===//
 // Multiclasses for instructions
 //===----------------------------------------------------------------------===//

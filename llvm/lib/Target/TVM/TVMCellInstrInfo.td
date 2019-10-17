@@ -37,35 +37,35 @@ defm ENDS : I0<(outs), (ins Slice : $slice),
 
 let hasSideEffects = 1 in {
 defm STI : I<(outs Builder : $builder),
-             (ins I257 : $val, Builder : $builderi, uimm0_257 : $precision),
-             (outs), (ins uimm0_257 : $precision),
+             (ins I257 : $val, Builder : $builderi, uimm1_256 : $precision),
+             (outs), (ins uimm1_256 : $precision),
              [(set Builder : $builder, (TVMsti I257 : $val, Builder : $builderi,
-               uimm0_257 : $precision))],
+               uimm1_256 : $precision))],
              "STI\t$precision", "STI\t$precision", 0xca>;
 
 defm STU : I<(outs Builder : $obldr),
-             (ins I257 : $val, Builder : $bldr, uimm0_256 : $precision),
-             (outs), (ins uimm0_256 : $precision),
+             (ins I257 : $val, Builder : $bldr, uimm1_256 : $precision),
+             (outs), (ins uimm1_256 : $precision),
              [(set Builder : $obldr, (TVMstu I257 : $val, Builder : $bldr,
-               uimm0_256 : $precision))],
+               uimm1_256 : $precision))],
              "STU\t$precision, $obldr, $val, $bldr", "STU\t$precision", 0xcb>;
 
 defm STIR : I<(outs Builder : $builder),
-              (ins Builder : $builderi, I257 : $val, uimm0_257 : $precision),
-              (outs), (ins uimm0_257 : $precision), [],
+              (ins Builder : $builderi, I257 : $val, uimm1_256 : $precision),
+              (outs), (ins uimm1_256 : $precision), [],
               "STIR\t$precision", "STIR\t$precision", 0xcf0a>;
 
 defm STUR : I<(outs Builder : $obldr),
-              (ins Builder : $bldr, I257 : $val, uimm0_256 : $precision),
-              (outs), (ins uimm0_256 : $precision), [],
+              (ins Builder : $bldr, I257 : $val, uimm1_256 : $precision),
+              (outs), (ins uimm1_256 : $precision), [],
               "STUR\t$precision", "STUR\t$precision", 0xcf0b>;
 }
 
-def : Pat<(int_tvm_stu I257 : $val, Builder : $bldr, uimm0_256 : $precision),
-          (STU I257 : $val, Builder : $bldr, uimm0_256 : $precision)>;
+def : Pat<(int_tvm_stu I257 : $val, Builder : $bldr, uimm1_256 : $precision),
+          (STU I257 : $val, Builder : $bldr, uimm1_256 : $precision)>;
 
-def : Pat<(int_tvm_sti I257 : $val, Builder : $bldr, uimm0_257 : $precision),
-          (STI I257 : $val, Builder : $bldr, uimm0_257 : $precision)>;
+def : Pat<(int_tvm_sti I257 : $val, Builder : $bldr, uimm1_256 : $precision),
+          (STI I257 : $val, Builder : $bldr, uimm1_256 : $precision)>;
 
 defm STREF : I<(outs Builder:$obldr), (ins Cell:$icell, Builder:$ibldr),
                (outs), (ins),
@@ -75,18 +75,18 @@ defm STREF : I<(outs Builder:$obldr), (ins Cell:$icell, Builder:$ibldr),
 
 let hasSideEffects = 1 in {
 defm LDI : I<(outs I257 : $x, Slice : $sliceo),
-             (ins Slice : $slicei, uimm0_257 : $precision),
-             (outs), (ins uimm0_257 : $precision),
+             (ins Slice : $slicei, uimm1_256 : $precision),
+             (outs), (ins uimm1_256 : $precision),
              [(set I257 : $x, Slice : $sliceo,
-               (int_tvm_ldi Slice : $slicei, uimm0_257 : $precision))],
+               (int_tvm_ldi Slice : $slicei, uimm1_256 : $precision))],
              "LDI\t $precision, $slicei, $x, $sliceo",
              "LDI\t $precision", 0xd2>;
 
 defm LDU : I<(outs I257 : $x, Slice : $sliceo),
-             (ins Slice : $slicei, uimm0_256 : $precision),
-             (outs), (ins uimm0_256 : $precision),
+             (ins Slice : $slicei, uimm1_256 : $precision),
+             (outs), (ins uimm1_256 : $precision),
              [(set I257 : $x, Slice : $sliceo,
-               (int_tvm_ldu Slice : $slicei, uimm0_256 : $precision))],
+               (int_tvm_ldu Slice : $slicei, uimm1_256 : $precision))],
              "LDU\t $precision, $slicei, $x, $sliceo",
              "LDU\t $precision", 0xd3>;
 

@@ -1252,7 +1252,8 @@ void ASTContext::InitBuiltinTypes(const TargetInfo &Target,
   if (Target.getTriple().getArch() == llvm::Triple::tvm) {
     for (unsigned i = 0; i < TVM_max_tuple_size; ++i) {
       unsigned Size = i + 1;
-      std::string TupleName = "__tvm_tuple" + Size;
+      std::string TupleName = "__tvm_tuple";
+      TupleName += std::to_string(Size);
       TVMTuples[i] = getSplatStructType(IntTy, Size, TupleName, "v");
     }
     TVMTuplePop = prepareTVMTuplePopStructType("__tvm_tpop");

@@ -26,10 +26,9 @@ define dso_local i257 @check_main() local_unnamed_addr nounwind {
 ; CHECK:	CALL	$:frameidx$
 ; CHECK:	PUSHINT	0
 ; CHECK:	CALL	$:store$
-; CHECK:	PUSHINT	$f$
 ; CHECK:	PUSHINT	0
 ; CHECK:	CALL	$:frameidx$
-; CHECK:	SWAP
+; CHECK:	PUSHINT	$f$
 ; CHECK:	CALL	1
 ; CHECK:	PUSHINT	0
 ; CHECK:	CALL	$:frameidx$

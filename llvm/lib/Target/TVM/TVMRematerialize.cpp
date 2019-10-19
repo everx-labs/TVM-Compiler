@@ -62,6 +62,8 @@ FunctionPass *llvm::createTVMRematerialize() { return new TVMRematerialize(); }
 // Test whether Def is safe and profitable to rematerialize.
 static bool ShouldRematerialize(const MachineInstr &Def, AliasAnalysis &AA,
                                 const TVMInstrInfo *TII) {
+  if (Def.getOpcode() == TVM::PUSH_GLOBAL_ADDRESS)
+    return true;
   return Def.isAsCheapAsAMove() && TII->isTriviallyReMaterializable(Def, &AA);
 }
 

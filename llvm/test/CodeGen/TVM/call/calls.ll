@@ -17,8 +17,8 @@ define void @test0() nounwind {
 ; CHECK-LABEL: test00
 define void @test00() nounwind {
 ; CHECK: PUSHINT $nop$
-; CHECK: DUP
 ; CHECK: CALL 1
+; CHECK: PUSHINT $nop$
 ; CHECK: CALL 1
   call void @nop()
   call void @nop()
@@ -36,9 +36,9 @@ define i257 @one() nounwind {
 ; CHECK-LABEL: test11
 define i257 @test11() nounwind {
 ; CHECK: PUSHINT $one$
-; CHECK: DUP
 ; CHECK: CALL 1
   %1 = call i257 @one()
+; CHECK: PUSHINT $one$
 ; CHECK: CALL 1
   %2 = call i257 @one()
 ; CHECK: ADD

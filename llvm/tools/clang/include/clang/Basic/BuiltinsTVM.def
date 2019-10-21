@@ -74,6 +74,15 @@ BUILTIN(__builtin_tvm_cast_from_tuple, "WiTt", "nc")
 BUILTIN(__builtin_tvm_cast_from_slice, "WiTs", "nc")
 BUILTIN(__builtin_tvm_cast_from_builder, "WiTb", "nc")
 BUILTIN(__builtin_tvm_cast_from_cell, "WiTc", "nc")
+// A.11.8 Message and address manipulation primitives.
+BUILTIN(__builtin_tvm_ldmsgaddr, "{TsTs}Ts", "c")
+BUILTIN(__builtin_tvm_ldmsgaddrq, "{TsTsWi}Ts", "nc")
+BUILTIN(__builtin_tvm_parsemsgaddr, "TtTs", "c")
+BUILTIN(__builtin_tvm_parsemsgaddrq, "{TtWi}Ts", "nc")
+BUILTIN(__builtin_tvm_rewritestdaddr, "{WiWi}Ts", "c")
+BUILTIN(__builtin_tvm_rewritestdaddrq, "{WiWiWi}Ts", "nc")
+BUILTIN(__builtin_tvm_rewritevaraddr, "{WiTs}Ts", "c")
+BUILTIN(__builtin_tvm_rewritevaraddrq, "{WiTsWi}Ts", "nc")
 
 // TODO: Maybe implement explode intrinsic
 BUILTIN(__builtin_tvm_tuple, "Tt.", "nc")

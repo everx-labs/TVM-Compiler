@@ -98,6 +98,47 @@ let TargetPrefix = "tvm" in {
     Intrinsic<[llvm_i257_ty], [llvm_i257_ty, llvm_TVMSlice_ty, llvm_i257_ty],
               [IntrNoMem, Throws]>;
 
+  // A.11.8 Message and address manipulation primitives.
+  def int_tvm_ldmsgaddr :
+    GCCBuiltin<"__builtin_tvm_ldmsgaddr">,
+    Intrinsic<[llvm_TVMSlice_ty, llvm_TVMSlice_ty], [llvm_TVMSlice_ty],
+              [IntrNoMem, Throws]>;
+  def int_tvm_ldmsgaddrq :
+    GCCBuiltin<"__builtin_tvm_ldmsgaddrq">,
+    Intrinsic<[llvm_TVMSlice_ty, llvm_TVMSlice_ty, llvm_i257_ty],
+              [llvm_TVMSlice_ty],
+              [IntrNoMem]>;
+
+  def int_tvm_parsemsgaddr :
+    GCCBuiltin<"__builtin_tvm_parsemsgaddr">,
+    Intrinsic<[llvm_TVMTuple_ty], [llvm_TVMSlice_ty],
+              [IntrNoMem, Throws]>;
+  def int_tvm_parsemsgaddrq :
+    GCCBuiltin<"__builtin_tvm_parsemsgaddrq">,
+    Intrinsic<[llvm_TVMTuple_ty, llvm_i257_ty],
+              [llvm_TVMSlice_ty],
+              [IntrNoMem]>;
+
+  def int_tvm_rewritestdaddr :
+    GCCBuiltin<"__builtin_tvm_rewritestdaddr">,
+    Intrinsic<[llvm_i257_ty, llvm_i257_ty], [llvm_TVMSlice_ty],
+              [IntrNoMem, Throws]>;
+  def int_tvm_rewritestdaddrq :
+    GCCBuiltin<"__builtin_tvm_rewritestdaddrq">,
+    Intrinsic<[llvm_i257_ty, llvm_i257_ty, llvm_i257_ty],
+              [llvm_TVMSlice_ty],
+              [IntrNoMem]>;
+
+  def int_tvm_rewritevaraddr :
+    GCCBuiltin<"__builtin_tvm_rewritevaraddr">,
+    Intrinsic<[llvm_i257_ty, llvm_TVMSlice_ty], [llvm_TVMSlice_ty],
+              [IntrNoMem, Throws]>;
+  def int_tvm_rewritevaraddrq :
+    GCCBuiltin<"__builtin_tvm_rewritevaraddrq">,
+    Intrinsic<[llvm_i257_ty, llvm_TVMSlice_ty, llvm_i257_ty],
+              [llvm_TVMSlice_ty],
+              [IntrNoMem]>;
+
   // A.13 Codepage primitives
   def int_tvm_setcp :
     GCCBuiltin<"__builtin_tvm_setcp">,

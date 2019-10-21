@@ -50,9 +50,17 @@ define void @ends(slice %cell) {
 
 ; CHECK-LABEL: sti
 define builder @sti(i257 %value, builder %builder) {
+; CHECK: PUSHINT 0
+; CHECK: STIX
+  %builder.1 = call builder @llvm.tvm.sti(i257 %value, builder %builder, i257 0)
 ; CHECK: STI 42
-  %newbuilder = call builder @llvm.tvm.sti(i257 %value, builder %builder, i257 42)
-  ret builder %newbuilder
+  %builder.2 = call builder @llvm.tvm.sti(i257 %value, builder %builder.1, i257 42)
+; CHECK: STI 256
+  %builder.3 = call builder @llvm.tvm.sti(i257 %value, builder %builder.2, i257 256)
+; CHECK: PUSHINT 257
+; CHECK: STIX
+  %builder.4 = call builder @llvm.tvm.sti(i257 %value, builder %builder.3, i257 257)
+  ret builder %builder.4
 }
 
 ; CHECK-LABEL: stix
@@ -67,6 +75,28 @@ define builder @stux(i257 %value, builder %builder, i257 %size) {
 ; CHECK: STUX
   %newbuilder = call builder @llvm.tvm.stu(i257 %value, builder %builder, i257 %size)
   ret builder %newbuilder
+}
+
+; CHECK-LABEL: ldi
+define slice @ldi(slice %slice, i257 %size) {
+; CHECK: LDIX
+  %ldi.1 = call {i257, slice} @llvm.tvm.ldi(slice %slice, i257 %size)
+  %slice.1 = extractvalue {i257, slice} %ldi.1, 1
+; CHECK: PUSHINT 0
+; CHECK: LDIX
+  %ldi.2 = call {i257, slice} @llvm.tvm.ldi(slice %slice.1, i257 0)
+  %slice.2 = extractvalue {i257, slice} %ldi.2, 1
+; CHECK: LDI 42
+  %ldi.3 = call {i257, slice} @llvm.tvm.ldi(slice %slice.2, i257 42)
+  %slice.3 = extractvalue {i257, slice} %ldi.3, 1
+; CHECK: LDI 256
+  %ldi.4 = call {i257, slice} @llvm.tvm.ldi(slice %slice.3, i257 256)
+  %slice.4 = extractvalue {i257, slice} %ldi.4, 1
+; CHECK: PUSHINT 257
+; CHECK: LDIX
+  %ldi.5 = call {i257, slice} @llvm.tvm.ldi(slice %slice.4, i257 257)
+  %slice.5 = extractvalue {i257, slice} %ldi.5, 1
+  ret slice %slice.5
 }
 
 ; =================================== A.X =====================================
@@ -319,6 +349,7 @@ declare void @llvm.tvm.ends(slice %slice)
 declare slice @llvm.tvm.ctos(cell %cell)
 declare builder @llvm.tvm.sti(i257 %value, builder %builder, i257 %size)
 declare builder @llvm.tvm.stu(i257 %value, builder %builder, i257 %size)
+declare {i257, slice} @llvm.tvm.ldi(slice %slice, i257 %size)
 declare slice @llvm.tvm.newdict() nounwind
 declare builder @llvm.tvm.newc() nounwind
 declare cell @llvm.tvm.get.persistent.data() nounwind

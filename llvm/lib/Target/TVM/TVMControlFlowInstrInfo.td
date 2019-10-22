@@ -174,16 +174,6 @@ def : Pat<(store I257 : $value, I257 : $addr),
 def : Pat<(truncstore I257 : $value, I257 : $addr),
           (CALL_STORE I257 : $addr, I257 : $value)>;
 
-defm CALL_FRAMEIDX : I<(outs I257 : $offset), (ins I257 : $idx),
-                       (outs), (ins), [],
-                       "CALL_FRAMEIDX\t$idx", "CALL\t$$:frameidx$$", 0xF0>;
-
-defm CALL_ENTER : I<(outs), (ins I257 : $framesize), (outs), (ins),
-                    [], "CALL_ENTER\t$framesize", "CALL\t$$:enter$$", 0xF0>;
-
-defm CALL_LEAVE : I<(outs), (ins I257 : $framesize), (outs), (ins),
-                    [], "CALL_LEAVE\t$framesize", "CALL\t$$:leave$$", 0xF0>;
-
 defm PUSH_GLOBAL_ADDRESS : I<(outs I257 : $res), (ins I257 : $in),
                              (outs), (ins I257 : $in),
                              [], "PUSHINT\t$res, $in", "PUSHINT\t$in", 0x82>;

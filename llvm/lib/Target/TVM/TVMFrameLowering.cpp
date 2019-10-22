@@ -63,10 +63,33 @@ void TVMFrameLowering::emitPrologue(MachineFunction &MF,
     if (MBB.getBasicBlock() == &Fn.getEntryBlock())
       BuildMI(MBB, InsertPt, DL, TII->get(TVM::LOGSTR)).addGlobalAddress(&Fn);
   }
-  unsigned StSizeReg = MRI.createVirtualRegister(&TVM::I257RegClass);
-  BuildMI(MBB, InsertPt, DL, TII->get(TVM::CONST_I257), StSizeReg)
-      .addImm(StackSize);
-  BuildMI(MBB, InsertPt, DL, TII->get(TVM::CALL_ENTER)).addReg(StSizeReg);
+
+  // %RegFrameBase:i257 = GETGLOB i257 5
+  unsigned RegFrameBase = MRI.createVirtualRegister(&TVM::I257RegClass);
+  BuildMI(MBB, InsertPt, DL, TII->get(TVM::GETGLOB), RegFrameBase)
+      .addImm(5);
+
+  unsigned RegFrameBaseNew = MRI.createVirtualRegister(&TVM::I257RegClass);
+  if (StackSize <= 128) {
+    // %RegFrameBaseNew:i257 = SUB %RegFrameBase:i257, %RegStSize:i257
+    BuildMI(MBB, InsertPt, DL, TII->get(TVM::ADDCONST), RegFrameBaseNew)
+        .addReg(RegFrameBase)
+        .addImm(-StackSize);
+  } else {
+    // %RegStSize:i257 = PUSHINT i257 StackSize
+    unsigned RegStSize = MRI.createVirtualRegister(&TVM::I257RegClass);
+    BuildMI(MBB, InsertPt, DL, TII->get(TVM::CONST_I257), RegStSize)
+        .addImm(StackSize);
+    // %RegFrameBaseNew:i257 = SUB %RegFrameBase:i257, %RegStSize:i257
+    BuildMI(MBB, InsertPt, DL, TII->get(TVM::SUB), RegFrameBaseNew)
+        .addReg(RegFrameBase)
+        .addReg(RegStSize);
+  }
+
+  // SETGLOB i257 5, %RegFrameBaseNew:i257
+  BuildMI(MBB, InsertPt, DL, TII->get(TVM::SETGLOB))
+      .addReg(RegFrameBaseNew)
+      .addImm(5);
 }
 
 void TVMFrameLowering::emitEpilogue(MachineFunction &MF,
@@ -84,8 +107,30 @@ void TVMFrameLowering::emitEpilogue(MachineFunction &MF,
   if (InsertPt != MBB.end())
     DL = InsertPt->getDebugLoc();
 
-  unsigned StSizeReg = MRI.createVirtualRegister(&TVM::I257RegClass);
-  BuildMI(MBB, InsertPt, DL, TII->get(TVM::CONST_I257), StSizeReg)
-      .addImm(StackSize);
-  BuildMI(MBB, InsertPt, DL, TII->get(TVM::CALL_LEAVE)).addReg(StSizeReg);
+  // %RegFrameBase:i257 = GETGLOB i257 5
+  unsigned RegFrameBase = MRI.createVirtualRegister(&TVM::I257RegClass);
+  BuildMI(MBB, InsertPt, DL, TII->get(TVM::GETGLOB), RegFrameBase)
+      .addImm(5);
+
+  unsigned RegFrameBaseNew = MRI.createVirtualRegister(&TVM::I257RegClass);
+  if (StackSize <= 127) {
+    // %RegFrameBaseNew:i257 = SUB %RegFrameBase:i257, %RegStSize:i257
+    BuildMI(MBB, InsertPt, DL, TII->get(TVM::ADDCONST), RegFrameBaseNew)
+        .addReg(RegFrameBase)
+        .addImm(StackSize);
+  } else {
+    // %RegStSize:i257 = PUSHINT i257 StackSize
+    unsigned RegStSize = MRI.createVirtualRegister(&TVM::I257RegClass);
+    BuildMI(MBB, InsertPt, DL, TII->get(TVM::CONST_I257), RegStSize)
+        .addImm(StackSize);
+    // %RegFrameBaseNew:i257 = SUB %RegFrameBase:i257, %RegStSize:i257
+    BuildMI(MBB, InsertPt, DL, TII->get(TVM::ADD), RegFrameBaseNew)
+        .addReg(RegFrameBase)
+        .addReg(RegStSize);
+  }
+
+  // SETGLOB i257 5, %RegFrameBaseNew:i257
+  BuildMI(MBB, InsertPt, DL, TII->get(TVM::SETGLOB))
+      .addReg(RegFrameBaseNew)
+      .addImm(5);
 }

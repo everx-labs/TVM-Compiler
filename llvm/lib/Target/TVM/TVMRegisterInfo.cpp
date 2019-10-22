@@ -71,14 +71,31 @@ void TVMRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
          "We assume that variable-sized objects have already been lowered, "
          "and don't use FrameIndex operands.");
 
-  unsigned OffsetOperand = MRI.createVirtualRegister(&TVM::I257RegClass);
-  BuildMI(MBB, *II, II->getDebugLoc(), TII->get(TVM::CONST_I257), OffsetOperand)
-      .addImm(FrameOffset);
+  // %RegFrameBase:i257 = GETGLOB i257 5
+  unsigned RegFrameBase = MRI.createVirtualRegister(&TVM::I257RegClass);
+  BuildMI(MBB, *II, II->getDebugLoc(), TII->get(TVM::GETGLOB), RegFrameBase)
+      .addImm(5);
 
-  unsigned FIRegOperand = MRI.createVirtualRegister(&TVM::I257RegClass);
-  BuildMI(MBB, *II, II->getDebugLoc(), TII->get(TVM::CALL_FRAMEIDX),
-          FIRegOperand)
-      .addReg(OffsetOperand);
+  unsigned RegFrameOffset;
+  if (FrameOffset == 0)
+    RegFrameOffset = RegFrameBase;
+  else if (isInt<8>(FrameOffset)) {
+    // %RegFrameOffset:i257 = ADDCONST %RegFrameBase:i257, i257 FrameOffset
+    RegFrameOffset = MRI.createVirtualRegister(&TVM::I257RegClass);
+    BuildMI(MBB, *II, II->getDebugLoc(), TII->get(TVM::ADDCONST), RegFrameOffset)
+        .addReg(RegFrameBase)
+        .addImm(FrameOffset);
+  } else {
+    // %RegConst:i257 = PUSHINT i257 FrameOffset
+    unsigned RegConst = MRI.createVirtualRegister(&TVM::I257RegClass);
+    BuildMI(MBB, *II, II->getDebugLoc(), TII->get(TVM::CONST_I257), RegConst)
+        .addImm(FrameOffset);
+    // %RegFrameOffset:i257 = ADD %RegFrameBase:i257, %RegConst:i257
+    RegFrameOffset = MRI.createVirtualRegister(&TVM::I257RegClass);
+    BuildMI(MBB, *II, II->getDebugLoc(), TII->get(TVM::ADD), RegFrameOffset)
+        .addReg(RegFrameBase)
+        .addReg(RegConst);
+  }
 
-  MI.getOperand(FIOperandNum).ChangeToRegister(FIRegOperand, false);
+  MI.getOperand(FIOperandNum).ChangeToRegister(RegFrameOffset, false);
 }

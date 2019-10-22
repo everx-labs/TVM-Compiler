@@ -20,20 +20,19 @@ entry:
 ; Function Attrs: nounwind
 define dso_local i257 @check_main() local_unnamed_addr nounwind {
 ; CHECK-LABEL: check_main:
-; CHECK:	PUSHINT	1
-; CHECK:	CALL	$:enter$
-; CHECK:	PUSHINT	0
-; CHECK:	CALL	$:frameidx$
+; CHECK:	GETGLOB 5
+; CHECK-NEXT: ADDCONST -1
+; CHECK-NEXT: SETGLOB 5
+; CHECK:	GETGLOB 5
 ; CHECK:	PUSHINT	0
 ; CHECK:	CALL	$:store$
-; CHECK:	PUSHINT	0
-; CHECK:	CALL	$:frameidx$
+; CHECK:	GETGLOB 5
 ; CHECK:	CALL	$f$
-; CHECK:	PUSHINT	0
-; CHECK:	CALL	$:frameidx$
+; CHECK:	GETGLOB 5
 ; CHECK:	CALL	$:load$
-; CHECK:	PUSHINT	1
-; CHECK:	CALL	$:leave$
+; CHECK:	GETGLOB 5
+; CHECK-NEXT: ADDCONST 1
+; CHECK-NEXT: SETGLOB 5
 
 entry:
   %var = alloca i257, align 1

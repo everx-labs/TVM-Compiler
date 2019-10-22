@@ -242,21 +242,6 @@ tvm_sender_pubkey:
     SINGLE                     ; ( [sci] )
     POP c7                     ; Set c7 to sci singleton
 
-    .globl  :enter
-    .type   :enter, @function
-:enter:
-    GETGLOB 5
-    SWAP
-    SUB
-    SETGLOB 5
-
-    .globl   :leave
-    .type :leave, @function
-:leave:
-    GETGLOB 5
-    ADD
-    SETGLOB 5
-
     .globl  :load
     .type   :load, @function
 :load:
@@ -305,12 +290,6 @@ tvm_sender_pubkey:
         SETGLOB 1
     }
     IFELSE
-
-    .globl  :frameidx
-    .type   :frameidx, @function
-:frameidx:
-    GETGLOB 5
-    ADD
 
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ; User-level functions and constants ;

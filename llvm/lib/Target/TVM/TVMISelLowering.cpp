@@ -324,25 +324,29 @@ SDValue TVMTargetLowering::SaveC0(SDValue Chain, const SDLoc &DL,
 
   FI->setC0VirtReg(C0VirtReg);
   C0VirtRegNode.getNode()->setNodeId(PUSH_C0_FUNCTION_UNIQUE_ID);
+  // New PushC0 node has just appeared -> invalidate the cache
+  HasNoPushC0PredecessorCache.clear();
 
   return C0VirtRegNode;
 }
 
-namespace {
+bool TVMTargetLowering::hasPushC0Predecessor(SDNode *Node) const {
+  int NodeId = Node->getNodeId();
 
-bool hasPushC0Predecessor(SDNode *Node) {
-  if (Node->getNodeId() == PUSH_C0_FUNCTION_UNIQUE_ID)
+  if (NodeId == PUSH_C0_FUNCTION_UNIQUE_ID)
     return true;
+
+  if (HasNoPushC0PredecessorCache.count(NodeId) != 0)
+    return false;
 
   for (const SDUse &Use : Node->ops()) {
     if (hasPushC0Predecessor(Use.getNode()))
       return true;
   }
 
+  HasNoPushC0PredecessorCache.insert(NodeId);
   return false;
 }
-
-} // namespace
 
 SDValue TVMTargetLowering::RestoreC0(SDValue Chain, const SDLoc &DL,
                                      SelectionDAG &DAG) const {

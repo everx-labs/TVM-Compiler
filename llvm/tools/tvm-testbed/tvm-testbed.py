@@ -53,6 +53,8 @@ parser.add_argument('--cxxflags', help='flags and options for C++ frontend')
 parser.add_argument('--opt-flags', help='flags and options for LLVM optimizer')
 parser.add_argument('-S', '--asm-only', action='store_true', default=False,
                     help='produce assembler output')
+parser.add_argument('--inline-loads-stores', action='store_true', default=False,
+                    help='experimental inlining of loads/stores')
 
 parser.add_argument('--llvm-bin', help='path to LLVM binaries directory')
 parser.add_argument('--linker', help='path to TVM linker executable')
@@ -128,10 +130,14 @@ if not entry_points:
   print('No functions found in ' + args.abi)
   os.sys.exit(1)
 
+replace_loads_stores = []
+if args.inline_loads_stores:
+  replace_loads_stores = ['-tvm-load-store-replace']
+
 _, bitcode_int = tempfile.mkstemp()
-execute([os.path.join(tvm_llvm_bin, 'opt'), bitcode, '-o', bitcode_int,
-  '-internalize', '-internalize-public-api-list=' + ','.join(entry_points)],
-  args.verbose)
+execute([os.path.join(tvm_llvm_bin, 'opt'), bitcode, '-o', bitcode_int] +
+  replace_loads_stores + ['-internalize', '-internalize-public-api-list=' +
+  ','.join(entry_points)], args.verbose)
 
 if args.opt_flags:
   opt_flags = args.opt_flags.split()

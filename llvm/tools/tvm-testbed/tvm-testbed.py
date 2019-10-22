@@ -1,0 +1,190 @@
+#!/usr/bin/env python
+
+import os
+import glob
+import shutil
+import argparse
+import json
+import subprocess
+import tempfile
+from contextlib import contextmanager
+
+@contextmanager
+def cd(newdir):
+  prevdir = os.getcwd()
+  os.chdir(os.path.expanduser(newdir))
+  try:
+    yield
+  finally:
+    os.chdir(prevdir)
+
+def execute(cmdline, verbose=False):
+  if verbose:
+    print(' '.join(cmdline))
+  try:
+    subprocess.check_output(cmdline)
+  except subprocess.CalledProcessError as e:
+    print(e.output)
+    os.sys.exit(1)
+
+def get_path(opt, optname, varname):
+  if opt:
+    return opt
+  var = os.environ.get(varname)
+  if var:
+    return var
+  print('Use {} option or set {} environment variable'.format(optname,
+    varname))
+  os.sys.exit(1)
+
+extensions = ['.c', '.cpp', '.cxx', '.ll', '.bc', '.s', '.S']
+parser = argparse.ArgumentParser()
+
+named = parser.add_argument_group('required named arguments')
+named.add_argument('-A', '--abi', required=True, help='ABI description file')
+parser.add_argument('inputs', metavar='file', nargs='+',
+                    help=', '.join(extensions) + ' files')
+
+parser.add_argument('-v', '--verbose', action='store_true', default=False,
+                    help='print command lines of child processes')
+parser.add_argument('-o', '--output', help='bag-of-cells output file name')
+parser.add_argument('--cflags', help='flags and options for C frontend')
+parser.add_argument('--cxxflags', help='flags and options for C++ frontend')
+parser.add_argument('--opt-flags', help='flags and options for LLVM optimizer')
+parser.add_argument('-S', '--asm-only', action='store_true', default=False,
+                    help='produce assembler output')
+
+parser.add_argument('--llvm-bin', help='path to LLVM binaries directory')
+parser.add_argument('--linker', help='path to TVM linker executable')
+parser.add_argument('--stdlib', help='path to standard library directory')
+
+args = parser.parse_args()
+
+tvm_llvm_bin = get_path(args.llvm_bin, '--llvm-bin', 'TVM_LLVM_BIN')
+tvm_linker = get_path(args.linker, '--linker', 'TVM_LINKER')
+tvm_stdlib = get_path(args.stdlib, '--stdlib', 'TVM_STDLIB')
+
+input_c   = []
+input_cpp = []
+input_ll  = []
+input_bc  = []
+input_asm = []
+
+for filename in args.inputs:
+  _, ext = os.path.splitext(filename)
+  if ext == '.c':
+    input_c += [filename]
+  elif ext == '.cpp' or ext == '.cxx':
+    input_cpp += [filename]
+  elif ext == '.ll':
+    input_ll += [filename]
+  elif ext == '.bc':
+    input_bc += [filename]
+  elif ext == '.s' or ext == '.S':
+    input_asm += [filename]
+  else:
+    print('Unsupported input file extension: ' + filename)
+    print('Supported extensions: ' + ', '.join(extensions))
+    os.sys.exit(1)
+
+cxxflags = ['-O1']
+if args.cxxflags:
+  cxxflags += args.cxxflags.split()
+
+for filename in input_cpp:
+  _, tmp_file = tempfile.mkstemp()
+  execute([os.path.join(tvm_llvm_bin, 'clang++'), '-target', 'tvm'] +
+    cxxflags + ['-c', '-emit-llvm', filename, '-o', tmp_file], args.verbose)
+  input_bc += [tmp_file]
+
+cflags = ['-O1']
+if args.cflags:
+  cflags += args.cflags.split()
+
+for filename in input_c:
+  _, tmp_file = tempfile.mkstemp()
+  execute([os.path.join(tvm_llvm_bin, 'clang'), '-target', 'tvm'] +
+    cflags + ['-c', '-emit-llvm', filename, '-o', tmp_file], args.verbose)
+  input_bc += [tmp_file]
+
+for filename in input_ll:
+  _, tmp_file = tempfile.mkstemp()
+  execute([os.path.join(tvm_llvm_bin, 'llvm-as'), filename, '-o',
+    tmp_file], args.verbose)
+  input_bc += [tmp_file]
+
+_, bitcode = tempfile.mkstemp()
+execute([os.path.join(tvm_llvm_bin, 'llvm-link')] + input_bc +
+  ['-o', bitcode], args.verbose)
+
+entry_points = []
+with open(args.abi) as abi_file:
+  abi_data = json.load(abi_file)
+  for func in abi_data['functions']:
+    name = func['name']
+    entry_points += [name]
+
+if not entry_points:
+  print('No functions found in ' + args.abi)
+  os.sys.exit(1)
+
+_, bitcode_int = tempfile.mkstemp()
+execute([os.path.join(tvm_llvm_bin, 'opt'), bitcode, '-o', bitcode_int,
+  '-internalize', '-internalize-public-api-list=' + ','.join(entry_points)],
+  args.verbose)
+
+if args.opt_flags:
+  opt_flags = args.opt_flags.split()
+else:
+  opt_flags = ['-O3']
+
+_, bitcode_opt = tempfile.mkstemp()
+execute([os.path.join(tvm_llvm_bin, 'opt')] + opt_flags + [bitcode_int, '-o',
+  bitcode_opt], args.verbose)
+
+_, asm = tempfile.mkstemp()
+execute([os.path.join(tvm_llvm_bin, 'llc'), '-march', 'tvm', bitcode_opt,
+  '-o', asm], args.verbose)
+
+if input_asm:
+  if args.verbose:
+    print('cat ' + ' '.join(input_asm) + ' >>' + asm)
+  with open(asm, 'a') as asmfile:
+    for fname in input_asm:
+      with open(fname) as infile:
+        asmfile.write(infile.read())
+
+if args.asm_only:
+  if args.output:
+    if args.verbose:
+      print('cp ' + asm + ' ' + args.output)
+    shutil.copy2(asm, args.output)
+  else:
+    fname, _ = os.path.splitext(args.abi)
+    if args.verbose:
+      print('cp ' + asm + ' ' + fname + '.s')
+    shutil.copy2(asm, fname + '.s')
+  print('Build succeded.')
+  os.sys.exit(0)
+
+if not args.output:
+  output = os.getcwd()
+elif os.path.isabs(args.output):
+  output = args.output
+else:
+  output = os.path.join(os.getcwd(), args.output)
+abi_path = os.path.abspath(args.abi)
+
+tmpdir = tempfile.mkdtemp()
+if args.verbose:
+  print('cd ' + tmpdir)
+
+with cd(tmpdir):
+  execute([tvm_linker, 'compile', asm, '--lib', os.path.join(tvm_stdlib,
+    'stdlib_c.tvm'), '--abi-json', abi_path], args.verbose)
+  for tvc in glob.glob('*.tvc'):
+    if args.verbose:
+      print('cp ' + tvc + ' ' + output)
+    shutil.copy2(tvc, output)
+
+print('Build succeeded.')

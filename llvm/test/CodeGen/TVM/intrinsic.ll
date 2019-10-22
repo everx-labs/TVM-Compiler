@@ -20,24 +20,24 @@ define slice @pushrefslice() nounwind {
 
 ; =================================== A.6 =====================================
 ; CHECK-LABEL: sempty
-define slice @sempty(slice %slice) {
+define i257 @sempty(slice %slice) {
 ; CHECK: SEMPTY
-  %empty = call slice @llvm.tvm.sempty(slice %slice)
-  ret slice %empty
+  %empty = call i257 @llvm.tvm.sempty(slice %slice)
+  ret i257 %empty
 }
 
 ; CHECK-LABEL: sdempty
-define slice @sdempty(slice %slice) {
+define i257 @sdempty(slice %slice) {
 ; CHECK: SDEMPTY
-  %empty = call slice @llvm.tvm.sdempty(slice %slice)
-  ret slice %empty
+  %empty = call i257 @llvm.tvm.sdempty(slice %slice)
+  ret i257 %empty
 }
 
 ; CHECK-LABEL: srempty
-define slice @srempty(slice %slice) {
+define i257 @srempty(slice %slice) {
 ; CHECK: SREMPTY
-  %refempty = call slice @llvm.tvm.srempty(slice %slice)
-  ret slice %refempty
+  %refempty = call i257 @llvm.tvm.srempty(slice %slice)
+  ret i257 %refempty
 }
 
 ; =================================== A.7 =====================================
@@ -342,9 +342,9 @@ declare i257 @llvm.tvm.second(i257 %tuple)
 declare i257 @llvm.tvm.setfirst(i257 %tuple, i257 %value)
 declare i257 @llvm.tvm.setsecond(i257 %tuple, i257 %value)
 declare cell @llvm.tvm.pushref()
-declare slice @llvm.tvm.sempty(slice %slice)
-declare slice @llvm.tvm.sdempty(slice %slice)
-declare slice @llvm.tvm.srempty(slice %slice)
+declare i257 @llvm.tvm.sempty(slice %slice)
+declare i257 @llvm.tvm.sdempty(slice %slice)
+declare i257 @llvm.tvm.srempty(slice %slice)
 declare void @llvm.tvm.ends(slice %slice)
 declare slice @llvm.tvm.ctos(cell %cell)
 declare builder @llvm.tvm.sti(i257 %value, builder %builder, i257 %size)

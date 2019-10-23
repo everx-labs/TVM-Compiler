@@ -43,6 +43,12 @@ pipeline {
         stage('Processing...') {
         parallel {
             stage('On Linux') {
+                when {
+                    expression {
+                        GIT_BRANCH = "origin/${BRANCH_NAME}"
+                        return GIT_BRANCH == G_promoted_branch || params.FORCE_PROMOTE_LATEST
+                    } 
+                }
                 agent {
                     docker {
                         image G_container
@@ -141,6 +147,12 @@ pipeline {
                 }
             }
             stage('On Windows'){
+                when {
+                    expression {
+                        GIT_BRANCH = "origin/${BRANCH_NAME}"
+                        return GIT_BRANCH == G_promoted_branch || params.FORCE_PROMOTE_LATEST
+                    } 
+                }
                 agent { label 'Win01' }
                 stages{
                     stage('Configure'){
@@ -233,10 +245,19 @@ pipeline {
                                 script {
                                     G_dockerimage = "tonlabs/ton_compiler:${GIT_COMMIT}"
                                     docker.image(G_dockerimage).inside("-u root") {
-					    sh 'sh /app/install.sh'
-					    sh 'clang-7 --version'
-					    sh 'clang --version'
-				    }
+                                        // sh 'sh /app/install.sh'
+                                        sh 'clang-7 --version'
+                                        sh 'clang --version'
+                                        sh 'which abi_parser.py'
+                                        sh 'which ton-abi-parser'
+                                        sh 'ls -l /usr/bin/stdlib_c.tvm'
+                                        sh 'which llc'
+                                        sh 'which FileCheck'
+                                        sh 'which tvm-testrun'
+                                        sh 'which llvm-config'
+                                        sh 'which count'
+                                        sh 'which not'
+                                   }
                                 }
                             }
                         }
@@ -256,9 +277,10 @@ pipeline {
                             steps {
                                 script {
                                     def params = [
-                                      [$class: 'StringParameterValue', name: 'dockerimage_ton_compiler', value: "${G_dockerimage}"]
+                                        [$class: 'StringParameterValue', name: 'dockerimage_ton_compiler', value: "${G_dockerimage}"],
+                                        [$class: 'StringParameterValue', name: 'promoted_build_tag', value: "test-stdlib-c"]
                                     ]
-                                    build job : "Infrastructure/compilers/master", parameters : params
+                                    build job : "Infrastructure/compilers/fix-stdlib-c-src", parameters : params
                                 }
                             }
                             post {
@@ -272,9 +294,9 @@ pipeline {
                         }
                     }
                 }
+            }
         }
-        }
-	stage ('Tag as latest') {
+        stage ('Tag as latest') {
             when {
                 expression {
                     GIT_BRANCH = "origin/${BRANCH_NAME}"

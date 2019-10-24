@@ -39,6 +39,7 @@ FunctionPass *createTVMStackModel();
 FunctionPass *createTVMLoopInstructions();
 FunctionPass *createTVMLoopPrepare();
 FunctionPass *createTVMContinuationsHoist();
+BasicBlockPass *createTVMLoadStoreReplace();
 
 void initializeTVMArgumentMovePass(PassRegistry &);
 void initializeTVMControlFlowPreparePass(PassRegistry &);
@@ -52,6 +53,7 @@ void initializeTVMStackModelPass(PassRegistry &);
 void initializeTVMLoopInstructionsPass(PassRegistry &);
 void initializeTVMLoopPreparePass(PassRegistry &);
 void initializeTVMContinuationsHoistPass(PassRegistry &);
+void initializeTVMLoadStoreReplacePass(PassRegistry &);
 
 } // namespace llvm
 

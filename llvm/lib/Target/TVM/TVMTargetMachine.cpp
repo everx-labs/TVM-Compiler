@@ -42,6 +42,7 @@ extern "C" void LLVMInitializeTVMTarget() {
   initializeTVMLoopInstructionsPass(PR);
   initializeTVMLoopPreparePass(PR);
   initializeTVMContinuationsHoistPass(PR);
+  initializeTVMLoadStoreReplacePass(PR);
 }
 
 static Reloc::Model getEffectiveRelocModel(Optional<Reloc::Model> RM) {

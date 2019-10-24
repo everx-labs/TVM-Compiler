@@ -1179,6 +1179,11 @@ void AsmPrinter::EmitFunctionBody() {
   // Emit target-specific gunk after the function body.
   EmitFunctionBodyEnd();
 
+  // TVM local begin
+  if (F.hasFnAttribute("tvm_raw_func"))
+    return;
+  // TVM local end
+
   if (needFuncLabelsForEHOrDebugInfo(*MF, MMI) ||
       MAI->hasDotTypeDotSizeDirective()) {
     // Create a symbol for the end of function.

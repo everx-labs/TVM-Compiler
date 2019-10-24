@@ -604,6 +604,11 @@ bool ItaniumMangleContextImpl::shouldMangleCXXName(const NamedDecl *D) {
     if (FD->isMSVCRTEntryPoint())
       return false;
 
+    // TVM local begin
+    if (FD->hasAttr<TVMRawFuncAttr>())
+      return false;
+    // TVM local end
+
     // C++ functions and those whose names are not a simple identifier need
     // mangling.
     if (!FD->getDeclName().isIdentifier() || L == CXXLanguageLinkage)

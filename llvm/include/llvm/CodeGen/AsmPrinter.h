@@ -622,8 +622,12 @@ private:
   mutable unsigned LastFn = 0;
   mutable unsigned Counter = ~0U;
 
+  // TVM local begin
+protected:
   /// This method emits the header for the current function.
   virtual void EmitFunctionHeader();
+private:
+  // TVM local end
 
   /// Emit a blob of inline asm to the output streamer.
   void

@@ -53,6 +53,10 @@ void TVMFrameLowering::emitPrologue(MachineFunction &MF,
   uint64_t StackSize = MFI.getStackSize();
   if (StackSize == 0 && !TraceCalls)
     return;
+  if (MF.getFunction().hasFnAttribute("tvm_raw_func") && StackSize) {
+    report_fatal_error("Raw function requires stack");
+    return;
+  }
 
   auto InsertPt =
       llvm::find_if(MBB, [&](auto &pt) { return !TVM::isArgument(pt); });

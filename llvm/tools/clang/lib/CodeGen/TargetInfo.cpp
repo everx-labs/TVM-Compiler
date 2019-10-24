@@ -840,6 +840,16 @@ class TVMTargetCodeGenInfo final : public TargetCodeGenInfo {
 public:
   explicit TVMTargetCodeGenInfo(CodeGen::CodeGenTypes &CGT)
       : TargetCodeGenInfo(new TVMABIInfo(CGT)) {}
+
+  void setTargetAttributes(const Decl *D, llvm::GlobalValue *GV,
+                           CodeGen::CodeGenModule &CGM) const override {
+    if (auto *FD = dyn_cast_or_null<FunctionDecl>(D)) {
+      if (FD->hasAttr<TVMRawFuncAttr>()) {
+        llvm::Function *Fn = cast<llvm::Function>(GV);
+        Fn->addFnAttr("tvm_raw_func");
+      }
+    }
+  }
 };
 
 /// Classify argument of given type \p Ty.

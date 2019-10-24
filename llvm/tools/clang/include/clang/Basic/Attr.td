@@ -1650,6 +1650,11 @@ def TVMTupleStruct : InheritableAttr {
   let Documentation = [Undocumented];
   let MeaningfulToClassTemplateDefinition = 1;
 }
+def TVMRawFunc : Attr {
+  let Spellings = [Clang<"tvm_raw_func">];
+  let Documentation = [Undocumented];
+  let Subjects = SubjectList<[Function]>;
+}
 // TVM local end
 
 def ObjCPreciseLifetime : InheritableAttr {

@@ -52,6 +52,8 @@ public:
   std::string regToString(const MachineOperand &MO);
   void EmitBasicBlockStart(const MachineBasicBlock &MBB) const override;
 
+  void EmitFunctionHeader() override;
+
   /// Print a big LLVM constant int (>64 bit) to the .s file.
   void EmitBigInt(const ConstantInt *CI) override;
 
@@ -219,6 +221,15 @@ void TVMAsmPrinter::EmitSubBlockForPushcont(const TVMMCInstLower &lower,
 
 void TVMAsmPrinter::EmitBasicBlockStart(const MachineBasicBlock &MBB) const {
   EmitBBEntry(MBB);
+}
+
+void TVMAsmPrinter::EmitFunctionHeader() {
+  const Function &F = MF->getFunction();
+  if (F.hasFnAttribute("tvm_raw_func")) {
+    OutStreamer->EmitRawText("\t.internal\t:" + CurrentFnSym->getName());
+  } else {
+    AsmPrinter::EmitFunctionHeader();
+  }
 }
 
 /// Print a big LLVM constant int (>64 bit) to the .s file.

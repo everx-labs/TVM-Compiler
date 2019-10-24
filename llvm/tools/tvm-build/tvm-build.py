@@ -38,7 +38,8 @@ def get_path(opt, optname, varname):
   os.sys.exit(1)
 
 extensions = ['.c', '.cpp', '.cxx', '.ll', '.bc', '.s', '.S']
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser('tvm-build.py',
+  description='Tool for building a C/C++ contract for the TON virtual machine')
 
 named = parser.add_argument_group('required named arguments')
 named.add_argument('-A', '--abi', required=True, help='ABI description file')

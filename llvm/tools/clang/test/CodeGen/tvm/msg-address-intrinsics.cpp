@@ -1,4 +1,4 @@
-// RUN: %clang -O3 -S -c -emit-llvm -target tvm %s -o - | FileCheck %s
+// RUN: %clang -O3 -S -c -I%S/../../../../../../stdlib/cpp-sdk/ -emit-llvm -target tvm %s -o - | FileCheck %s
 // REQUIRES: tvm-registered-target
 
 #include "msg_address.hpp"

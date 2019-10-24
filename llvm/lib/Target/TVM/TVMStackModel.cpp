@@ -549,8 +549,11 @@ StackFixup TVMStackModel::prepareStackFor(MachineInstr &MI,
   if (MI.isReturn()) {
     if (NumOperands == 0)
       return StackFixup::DiffForReturn(TheStack);
-    else if (NumOperands == 1)
-      return StackFixup::DiffForReturn(TheStack, MI.getOperand(0).getReg());
+    else if (NumOperands == 1) {
+      auto Op = MI.getOperand(0);
+      auto Reg = Op.isUndef() ? TVMFunctionInfo::UnusedReg : Op.getReg();
+      return StackFixup::DiffForReturn(TheStack, Reg);
+    }
     else {
       SmallVector<unsigned, 16> RetRegs;
       RetRegs.reserve(NumOperands);

@@ -83,8 +83,9 @@ for func in data['functions']:
         wrapper.append ("    build_external_output_common_message_header ();")
         #function_id and abi_version are serialized only in ABI v1 and later
         if int(abi_version) > 0:
-            wrapper.append ("    Serialize_Unsigned_Impl(%s /*ABI version*/, 8);" % (abi_version))
-            wrapper.append ("    Serialize_Unsigned_Impl((unsigned int)&%s, 32);" % (name))
+            #highest bit of answer id should be set to 1 
+            wrapper.append ("    unsigned int answer_id = (unsigned int)%s | 0x80000000;" % (name))
+            wrapper.append ("    Serialize_Unsigned_Impl(&answer_id, 32);")
         wrapper.append ("    Serialize_%s_Impl (res, %s);" % (outputs_command[0], outputs_command[1]))
         wrapper.append ("    send_raw_message (0);")
     else:

@@ -5,16 +5,7 @@
     .internal-alias :parse_msg,         3
 
     .internal-alias :init_fstack,       4
-    .internal-alias :term_fstack,       10
-    .internal-alias :enter,             5
-    .internal-alias :leave,             6
-    .internal-alias :load,              7
-    .internal-alias :store,             8
-    .internal-alias :frameidx,          9
-
-    .internal-alias :load_work_slice,  13
-    .internal-alias :store_work_slice, 14
-    .internal-alias :encode_grams,     15
+    .internal-alias :store_work_slice_int,  5
 
     .persistent-base 100
     .global-base 1000000
@@ -27,23 +18,19 @@
     ; s0 - func_id
     ; s1.. - other data
     SETCP0
-    PUSHREFSLICE        ; dictionary of methods in first reference
-    PLDDICT
-    OVER
-    NEQINT 1
-    PUSHCONT {          ; if func_id negative or zero - direct call to method
-        PUSHINT 32
-        DICTIGETJMP     ; execute method and return
-    }
-    PUSHCONT {          ; get dictionary with methods
-        PUSHINT 32
-		DICTIGETREF
-		THROWIFNOT 52   ; no dictionary of methods
-		PUSHINT 32
-		PRINTSTR selector_jmp
-		DICTUGETJMP     ; execute method and return
-		THROW 51
-    }
+	DUP
+    EQINT 1
+	DICTPUSHCONST 32
+    ROT
+	PUSHCONT {
+	  DICTIGETJMP
+	}
+	IFNOTJMP
+    PUSHREFCONT
+	POPCTR c3
+	ROT 
+    DROP
+	DICTIGETJMP
     IFELSE
 
     .internal   :authenticate
@@ -114,12 +101,12 @@ tvm_sender_pubkey:
 
     SWAP
     LDU 32      ;load func id
-    LDU 64 NIP
+    LDU 64 NIP  ;load timestamp and drop (TODO: use for replay protection)
     DUP
-    CALL $:store_work_slice$
+    CALL $:store_work_slice_int$
     SWAP
     CALL 1      ;public method call
-    JMP $:term_fstack$
+    CALL $:term_fstack$
 
     .internal   :main_internal
     RET         ;contract ignores internal msgs by default 
@@ -141,7 +128,9 @@ tvm_sender_pubkey:
 ; GLOB 5          -- BP (frame pointer)
 ; GLOB 6          -- Writing builder cell
 
-    .internal   :encode_grams
+    .globl  :encode_grams
+    .type   :encode_grams, @function
+:encode_grams:
     ;s0 - value: integer (u64)
     ;s1 - builder
     DUP
@@ -206,7 +195,7 @@ tvm_sender_pubkey:
     SWAP        
     EXPLODE 2   ;unpack remaining_balance tuple
     DROP DROP   ;drop count and other currency cell
-    CALL $:encode_grams$
+    STGRAMS
     STSLICECONST 0
     STSLICE     ;store myself:MsgAddressInt
     ENDC
@@ -237,7 +226,9 @@ tvm_sender_pubkey:
     ; are initialized on demand
     RET
 
-    .internal	:term_fstack
+    .globl	:term_fstack
+    .type :term_fstack, @function
+:term_fstack:
     ; Terminate stack -- copy values back from C7
     ; 
     ; Before termination: 
@@ -251,18 +242,24 @@ tvm_sender_pubkey:
     SINGLE                     ; ( [sci] )
     POP c7                     ; Set c7 to sci singleton
 
-    .internal   :enter
+    .globl  :enter
+    .type   :enter, @function
+:enter:
     GETGLOB 5
     SWAP
     SUB
     SETGLOB 5
 
-    .internal   :leave
+    .globl   :leave
+    .type :leave, @function
+:leave:
     GETGLOB 5
     ADD
     SETGLOB 5
 
-    .internal   :load
+    .globl  :load
+    .type   :load, @function
+:load:
     ; ( addr -- value )
     ; If addr < 100000 --- persistent address
     DUP
@@ -279,7 +276,9 @@ tvm_sender_pubkey:
     PUSHINT 257 LDIX 
     ENDS
 
-    .internal   :store
+    .globl  :store
+    .type   :store, @function
+:store:
     ; (addr val -- )
     NEWC 
     PUSHINT 257 STIX 
@@ -307,7 +306,9 @@ tvm_sender_pubkey:
     }
     IFELSE
 
-    .internal   :frameidx
+    .globl  :frameidx
+    .type   :frameidx, @function
+:frameidx:
     GETGLOB 5
     ADD
 
@@ -319,7 +320,9 @@ tvm_sender_pubkey:
     ; Get writing builder
     ; ( -- cell-of-builder )
     ;
-    .internal	:load_work_slice
+    .globl  load_work_slice
+    .type   load_work_slice, @function
+load_work_slice:
     GETGLOB 6
     ENDC
 
@@ -327,7 +330,7 @@ tvm_sender_pubkey:
     ; Set reading builder cell (internal call)
     ; ( builder-cell -- )
     ;
-    .internal	:store_work_slice
+    .internal	:store_work_slice_int
     SETGLOB 3
 
     ;
@@ -453,8 +456,8 @@ memcpy:                  ; { dst | src | size | - }
     ROLLREV 2            ; { dst | dst | src | size | - }
     PUSHCONT {         ; { dst | dst' | src' | - }
         DUP2             ; { dst | dst' | src' | dst' | src' | - }
-        CALL $:load$     ; { dst | dst' | src' | dst' | value | - }
-        CALL $:store$    ; { dst | dst' | src' | - }
+        CALL $:load$  ; { dst | dst' | src' | dst' | value | - }
+        CALL $:store$ ; { dst | dst' | src' | - }
         
         INC              ; { dst | dst' | src'++ | - }
         SWAP             ; { dst | src' | dst' | - }

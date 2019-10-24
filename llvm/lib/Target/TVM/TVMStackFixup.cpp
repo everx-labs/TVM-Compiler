@@ -255,9 +255,18 @@ StackFixup StackFixup::DiffForReturn(const Stack &from,
   Stack curStack(from);
   auto numPops = llvm::size(from);
   if (Preserved) {
-    --numPops;
-    size_t i = from.position(StackVreg(*Preserved));
     size_t j = llvm::size(from) - 1;
+    size_t i = j;
+    if (*Preserved == TVMFunctionInfo::UnusedReg) {
+      if (!numPops) {
+        rv(curStack += rv(pushUndef()));
+      }
+    } else {
+      i = from.position(StackVreg(*Preserved));
+    }
+
+    if (numPops)
+      --numPops;
     if (i != j) {
       if (i == 0) {
         rv(curStack += rv(xchgTop(j)));
@@ -367,7 +376,8 @@ StackFixup StackFixup::DiffForArgs(const Stack &From, const MIArgs &Args,
 
   if (Ar.size() == 1) {
     StackVreg Vreg(Ar[0].Vreg);
-    unsigned Pos = Vreg.VirtReg == TVMFunctionInfo::UnusedReg ?
+    unsigned Pos =
+        (ArgInfo[0].Push && Vreg.VirtReg == TVMFunctionInfo::UnusedReg) ?
           0 : CurStack.position(Vreg);
     if (ArgInfo[0].Push)
       rv(CurStack += rv(pushI(Pos)));

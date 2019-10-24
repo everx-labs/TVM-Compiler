@@ -62,9 +62,9 @@ parser.add_argument('--stdlib', help='path to standard library directory')
 
 args = parser.parse_args()
 
-tvm_llvm_bin = get_path(args.llvm_bin, '--llvm-bin', 'TVM_LLVM_BIN')
+tvm_llvm_bin = get_path(args.llvm_bin, '--llvm-bin', 'TVM_LLVM_BINARY_DIR')
 tvm_linker = get_path(args.linker, '--linker', 'TVM_LINKER')
-tvm_stdlib = get_path(args.stdlib, '--stdlib', 'TVM_STDLIB')
+tvm_stdlib = get_path(args.stdlib, '--stdlib', 'TVM_LIBRARY_PATH')
 
 input_c   = []
 input_cpp = []
@@ -76,7 +76,7 @@ for filename in args.inputs:
   _, ext = os.path.splitext(filename)
   if ext == '.c':
     input_c += [filename]
-  elif ext == '.cpp' or ext == '.cxx':
+  elif ext in ['.cc', '.cpp', '.cxx']:
     input_cpp += [filename]
   elif ext == '.ll':
     input_ll += [filename]

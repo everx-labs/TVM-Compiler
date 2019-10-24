@@ -258,7 +258,7 @@ pipeline {
                                     def params = [
                                       [$class: 'StringParameterValue', name: 'dockerimage_ton_compiler', value: "${G_dockerimage}"]
                                     ]
-                                    build job : "Infrastructure/compilers/master", parameters : params
+                                    build job : "infrastructure/compilers/master", parameters : params
                                 }
                             }
                             post {

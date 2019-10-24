@@ -316,6 +316,131 @@ tvm_sender_pubkey:
     }
     IFELSE
 
+    .globl  :load_slice
+    .type   :load_slice, @function
+:load_slice:
+    DUP
+    PUSHINT 100000
+    LESS
+    PUSHCONT { PUSH c4 CTOS PLDDICT }
+    PUSHCONT { GETGLOB 1 }
+    IFELSE
+    PUSHINT 64
+    DICTIGET
+    THROWIFNOT 61
+
+    .globl  :store_slice
+    .type   :store_slice, @function
+:store_slice:
+    XCHG s0, s1
+    DUP
+    PUSHINT 100000
+    LESS
+    PUSHCONT {
+        PUSH c4
+        CTOS
+        PLDDICT
+        PUSHINT 64
+        DICTISET
+        NEWC
+        STDICT
+        ENDC
+        POP c4
+    }
+    PUSHCONT {
+        GETGLOB 1
+        PUSHINT 64
+        DICTISET
+        SETGLOB 1
+    }
+    IFELSE
+
+    .globl  :load_builder
+    .type   :load_builder, @function
+:load_builder:
+    DUP
+    PUSHINT 100000
+    LESS
+    PUSHCONT { PUSH c4 CTOS PLDDICT }
+    PUSHCONT { GETGLOB 1 }
+    IFELSE
+    PUSHINT 64
+    DICTIGET
+    THROWIFNOT 62
+    NEWC
+    STSLICE
+
+    .globl  :store_builder
+    .type   :store_builder, @function
+:store_builder:
+    ENDC
+    CTOS
+    XCHG s0, s1
+    DUP
+    PUSHINT 100000
+    LESS
+    PUSHCONT {
+        PUSH c4
+        CTOS
+        PLDDICT
+        PUSHINT 64
+        DICTISET
+        NEWC
+        STDICT
+        ENDC
+        POP c4
+    }
+    PUSHCONT {
+        GETGLOB 1
+        PUSHINT 64
+        DICTISET
+        SETGLOB 1
+    }
+    IFELSE
+
+    .globl  :load_cell
+    .type   :load_cell, @function
+:load_cell:
+    DUP
+    PUSHINT 100000
+    LESS
+    PUSHCONT { PUSH c4 CTOS PLDDICT }
+    PUSHCONT { GETGLOB 1 }
+    IFELSE
+    PUSHINT 64
+    DICTIGET
+    THROWIFNOT 63
+    NEWC
+    STSLICE
+    ENDC
+
+    .globl  :store_cell
+    .type   :store_cell, @function
+:store_cell:
+    CTOS
+    XCHG s0, s1
+    DUP
+    PUSHINT 100000
+    LESS
+    PUSHCONT {
+        PUSH c4
+        CTOS
+        PLDDICT
+        PUSHINT 64
+        DICTISET
+        NEWC
+        STDICT
+        ENDC
+        POP c4
+    }
+    PUSHCONT {
+        GETGLOB 1
+        PUSHINT 64
+        DICTISET
+        SETGLOB 1
+    }
+    IFELSE
+
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ; User-level functions and constants ;
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

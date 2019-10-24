@@ -166,30 +166,33 @@ defm THROWIFNOT : I<(outs), (ins I257:$cond, uimm11:$exception),
                     "THROWIFNOT\t$exception", 0xf2a>;
 
 // Load and store subroutine calls
-multiclass CALL_LOAD<TVMRegClass RegClass> :
+multiclass CALL_LOAD<TVMRegClass RegClass, string suffix> :
     I<(outs RegClass : $value), (ins I257 : $addr),
       (outs), (ins),
-      [], "CALL_LOAD\t$addr", "CALL\t$$:load$$", 0xF0>;
+      [], "CALL_LOAD\t$addr", "CALL\t$$:load" # suffix # "$$", 0xF0>;
 
-defm CALL_LOAD_INT     : CALL_LOAD<I257>;
-defm CALL_LOAD_BUILDER : CALL_LOAD<Builder>;
-defm CALL_LOAD_SLICE   : CALL_LOAD<Slice>;
+defm CALL_LOAD_INT     : CALL_LOAD<I257, "">;
+defm CALL_LOAD_BUILDER : CALL_LOAD<Builder, "_builder">;
+defm CALL_LOAD_SLICE   : CALL_LOAD<Slice, "_slice">;
+defm CALL_LOAD_CELL    : CALL_LOAD<Cell, "_cell">;
 
 def : Pat<(load I257 : $addr), (CALL_LOAD_INT I257 : $addr)>;
 def : Pat<(load I257 : $addr), (CALL_LOAD_BUILDER I257 : $addr)>;
 def : Pat<(load I257 : $addr), (CALL_LOAD_SLICE I257 : $addr)>;
+def : Pat<(load I257 : $addr), (CALL_LOAD_CELL I257 : $addr)>;
 
 def : Pat<(zextload I257 : $addr), (CALL_LOAD_INT I257 : $addr)>;
 def : Pat<(sextload I257 : $addr), (CALL_LOAD_INT I257 : $addr)>;
 
-multiclass CALL_STORE<TVMRegClass RegClass> :
+multiclass CALL_STORE<TVMRegClass RegClass, string suffix> :
     I<(outs), (ins I257 : $addr, RegClass : $value),
       (outs), (ins),
-      [], "CALL_STORE\t$addr, $value", "CALL\t$$:store$$", 0xF0>;
+      [], "CALL_STORE\t$addr, $value", "CALL\t$$:store" # suffix # "$$", 0xF0>;
 
-defm CALL_STORE_INT     : CALL_STORE<I257>;
-defm CALL_STORE_BUILDER : CALL_STORE<Builder>;
-defm CALL_STORE_SLICE   : CALL_STORE<Slice>;
+defm CALL_STORE_INT     : CALL_STORE<I257, "">;
+defm CALL_STORE_BUILDER : CALL_STORE<Builder, "_builder">;
+defm CALL_STORE_SLICE   : CALL_STORE<Slice, "_slice">;
+defm CALL_STORE_CELL    : CALL_STORE<Cell, "_cell">;
 
 def : Pat<(store I257 : $value, I257 : $addr),
           (CALL_STORE_INT I257 : $addr, I257 : $value)>;
@@ -197,6 +200,8 @@ def : Pat<(store Builder : $value, I257 : $addr),
           (CALL_STORE_BUILDER I257 : $addr, Builder : $value)>;
 def : Pat<(store Slice : $value, I257 : $addr),
           (CALL_STORE_SLICE I257 : $addr, Slice : $value)>;
+def : Pat<(store Cell : $value, I257 : $addr),
+          (CALL_STORE_CELL I257 : $addr, Cell : $value)>;
 
 def : Pat<(truncstore I257 : $value, I257 : $addr),
           (CALL_STORE_INT I257 : $addr, I257 : $value)>;

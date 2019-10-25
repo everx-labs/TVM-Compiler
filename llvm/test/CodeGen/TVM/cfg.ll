@@ -30,13 +30,11 @@ define void @diamond(i1 %par) nounwind {
 entry:
 ; CHECK: PUSHCONT
 ; CHECK: {
-; CHECK:   PUSHINT $bar$
-; CHECK:   CALL
+; CHECK:   CALL $bar$
 ; CHECK: }
 ; CHECK: PUSHCONT
 ; CHECK: {
-; CHECK:   PUSHINT $foo$
-; CHECK:   CALL
+; CHECK:   CALL $foo$
 ; CHECK: }
 ; CHECK: IFELSE
   br i1 %par, label %bb1, label %bb2
@@ -56,15 +54,15 @@ entry:
   switch i257 %par, label %bb3 [ i257 0, label %bb1
                                 i257 1, label %bb2 ]
 bb1:
-; CHECK-DAG: PUSHINT $foo$
+; CHECK-DAG: CALL $foo$
   call void @foo()
   br label %exit
 bb2:
-; CHECK-DAG: PUSHINT $bar$
+; CHECK-DAG: CALL $bar$
   call void @bar()
   br label %exit
 bb3:
-; CHECK-DAG: PUSHINT $bazz$
+; CHECK-DAG: CALL $bazz$
   call void @bazz()
   br label %exit
 exit:

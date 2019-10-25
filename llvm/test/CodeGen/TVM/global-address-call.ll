@@ -18,9 +18,8 @@ entry:
 ; Function Attrs: noinline nounwind optnone
 ; CHECK-LABEL: main
 define dso_local i257 @main() #0 {
-; CHECK: PUSHINT $sum$
 ; CHECK: PUSHINT 0
-; CHECK: CALL 1
+; CHECK: CALL $sum$
   %retval = alloca i257, align 1
   %x = alloca i257*, align 1
   store i257 0, i257* %retval, align 1

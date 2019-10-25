@@ -56,12 +56,17 @@ let isTerminator = 1, hasCtrlDep = 1 in {
 // "short" library variant, so that some common functions would not get
 // long call: "PUSHINT x; CALL 1", but a short one: "CALL x"
 let isCall = 1, hasCtrlDep = 1 in {
-  defm CALL_VOID : NRI<(outs), (ins variable_ops, i257imm:$callee),
-                       [(TVMcall0 i257:$callee)], "CALL\t1", 0xF0>;
+  defm CALL_VOID : I<(outs), (ins function_op:$callee, variable_ops),
+                     (outs), (ins function_op:$callee),
+                     [(TVMcall0 (TVMGlobalAddressWrapper(tglobaladdr:$callee)))],
+                     "CALL\t$callee", "CALL\t$callee", 0xF0>;
 
   multiclass CALL_1<TVMRegClass OutReg> :
-    NRI<(outs OutReg:$dst), (ins variable_ops), [(set OutReg:$dst, (TVMcall1))],
-    "CALL\t1", 0xF0>;
+    I<(outs OutReg:$dst), (ins function_op:$callee, variable_ops),
+      (outs), (ins function_op:$callee),
+      [(set OutReg:$dst, (TVMcall1 (TVMGlobalAddressWrapper(tglobaladdr:$callee))))],
+      "CALL\t$callee", "CALL\t$callee", 0xF0>;
+
   defm CALL_1_INT : CALL_1<I257>;
   defm CALL_1_SLICE : CALL_1<Slice>;
   defm CALL_1_BUILDER : CALL_1<Builder>;
@@ -69,11 +74,25 @@ let isCall = 1, hasCtrlDep = 1 in {
   defm CALL_1_TUPLE : CALL_1<Tuple>;
 
   defm CALL_N : I<(outs reglist:$regs, variable_ops),
-                  (ins variable_ops, i257imm:$callee),
-                  (outs), (ins),
+                  (ins function_op:$callee, variable_ops),
+                  (outs), (ins function_op:$callee),
                   [],
-                  "CALL\t1, $callee", "CALL\t1", 0xF0>;
+                  "CALL\t$callee", "CALL\t$callee", 0xF0>;
 }
+
+// Patterns for matching a direct call to an external symbol.
+def : Pat<(i257 (TVMcall1 (TVMGlobalAddressWrapper texternalsym:$callee))),
+          (CALL_1_INT texternalsym:$callee)>;
+def : Pat<(TVMSlice (TVMcall1 (TVMGlobalAddressWrapper texternalsym:$callee))),
+          (CALL_1_SLICE texternalsym:$callee)>;
+def : Pat<(TVMBuilder (TVMcall1 (TVMGlobalAddressWrapper texternalsym:$callee))),
+          (CALL_1_BUILDER texternalsym:$callee)>;
+def : Pat<(TVMCell (TVMcall1 (TVMGlobalAddressWrapper texternalsym:$callee))),
+          (CALL_1_CELL texternalsym:$callee)>;
+def : Pat<(TVMTuple (TVMcall1 (TVMGlobalAddressWrapper texternalsym:$callee))),
+          (CALL_1_TUPLE texternalsym:$callee)>;
+def : Pat<(TVMcall0 (TVMGlobalAddressWrapper texternalsym:$callee)),
+          (CALL_VOID texternalsym:$callee)>;
 
 let isMoveImm = 1, isAsCheapAsAMove = 1, isReMaterializable = 1 in {
 defm CONST_I257 : I<(outs I257:$res), (ins i257imm:$imm),

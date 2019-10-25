@@ -665,7 +665,6 @@ void TVMStackModel::rewriteToSForm(MachineInstr &MI, std::string &PreTermStackSt
     if (NewOpcode != TVM::PUSH_GLOBAL_ADDRESS_S) {
       for (unsigned I = 0; I < NumGlobals; I++) {
         const auto &Op = MI.getOperand(NumDefs + I);
-        assert(Op.isGlobal() && "Expected GlobalAddress");
         MIB->addOperand(Op);
       }
     }

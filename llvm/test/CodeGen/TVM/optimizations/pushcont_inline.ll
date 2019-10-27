@@ -9,7 +9,8 @@ define void @g(i257 %x) {
 ; CHECK-NEXT: {
 ; CHECK-NEXT: ; %bb.1: ; %if.then
 ; CHECK-NEXT: ; {{.*}}
-; CHECK-NEXT: ; fallthrough return
+; CHECK-NEXT:   JMPX
+; CHECK-NEXT: }
   %x.addr = alloca i257, align 1
   store i257 %x, i257* %x.addr, align 1
   %tobool = icmp ne i257 %x, 0
@@ -28,54 +29,3 @@ return:
 }
 
 declare dso_local i257 @f(i257) #1
-
-; CHECK-LABEL: k
-define dso_local void @k(i257 %x) #0 {
-; CHECK: PUSHCONT ; >%4 =
-; CHECK-NEXT: ; {{.*}}
-; CHECK-NEXT: {
-; CHECK-NEXT: ; %bb.2: ; %if.else
-; CHECK: ; fallthrough return
-; CHECK: PUSHCONT ; >%5 =
-; CHECK-NEXT: ; {{.*}}
-; CHECK-NEXT: {
-; CHECK-NEXT: ; %bb.1: ; %if.then
-; CHECK: ; fallthrough return
-; CHECK: }
-; CHECK: IFELSE
-entry:
-  %x.addr = alloca i257, align 1
-  %y = alloca i257, align 1
-  store i257 %x, i257* %x.addr, align 1
-  store i257 0, i257* %y, align 1
-  %0 = load i257, i257* %x.addr, align 1
-  %tobool = icmp ne i257 %0, 0
-  br i1 %tobool, label %if.then, label %if.else
-
-if.then:                                          ; preds = %entry
-  %1 = load i257, i257* %x.addr, align 1
-  %call = call i257 @f1(i257 %1)
-  %2 = load i257, i257* %x.addr, align 1
-  %call1 = call i257 @f1(i257 %2)
-  %mul = mul nsw i257 %call, %call1
-  store i257 %mul, i257* %y, align 1
-  br label %if.end
-
-if.else:                                          ; preds = %entry
-  %3 = load i257, i257* %x.addr, align 1
-  %call2 = call i257 @f2(i257 %3)
-  %4 = load i257, i257* %x.addr, align 1
-  %call3 = call i257 @f2(i257 %4)
-  %add = add nsw i257 %call2, %call3
-  store i257 %add, i257* %y, align 1
-  br label %if.end
-
-if.end:                                           ; preds = %if.else, %if.then
-  %5 = load i257, i257* %y, align 1
-  %call4 = call i257 @f3(i257 %5)
-  ret void
-}
-
-declare dso_local i257 @f1(i257) #1
-declare dso_local i257 @f2(i257) #1
-declare dso_local i257 @f3(i257) #1

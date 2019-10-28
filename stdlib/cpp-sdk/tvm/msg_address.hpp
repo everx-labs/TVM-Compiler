@@ -1,5 +1,8 @@
 #pragma once
 
+#include <tvm/tuple.hpp>
+#include <tvm/schema/message.hpp>
+
 namespace tvm {
 
 // LDMSGADDR support
@@ -82,6 +85,8 @@ public:
   };
 
   explicit msg_address(__tvm_tuple tup) : tup_(tup) {}
+  int kind() const { return __builtin_tvm_index(tup_, 0); }
+  inline schema::MsgAddress unpack() const;
 private:
   __tvm_tuple tup_;
 };

@@ -1,7 +1,9 @@
 #pragma once
 
+#include <tvm/error_code.hpp>
 #include <tvm/parser.hpp>
 #include <tvm/schema/basics.hpp>
+#include <tvm/schema/message.hpp>
 #include <tvm/schema/parser/struct_parser.hpp>
 #include <tvm/schema/parser/variant_parser.hpp>
 #include <tvm/schema/parser/dynamic_field_parser.hpp>
@@ -142,6 +144,17 @@ struct make_parser_impl<MsgAddressSlice> {
 };
 
 template<>
+struct make_parser_impl<MsgAddress> {
+  using value_type = MsgAddress;
+  template<class _Ctx>
+  inline static std::tuple<optional<value_type>, parser, _Ctx> parse(parser p, _Ctx ctx) {
+    auto parsed = p.parsemsgaddr();
+    auto rv = parsed.unpack();
+    return std::tuple(rv, p, ctx);
+  }
+};
+
+template<>
 struct make_parser_impl<empty> {
   using value_type = empty;
   template<class _Ctx>
@@ -189,13 +202,20 @@ inline auto parse_continue(parser p) {
 }
 
 template<class _Tp>
-inline auto parse(parser p, unsigned err_code, bool full = false) {
+inline auto parse(parser p, unsigned err_code = error_code::custom_data_parse_error,
+    bool full = false) {
   ParseContext<empty, std::tuple<>> ctx;
   auto [opt_val, new_p, new_ctx] = make_parser<_Tp>::parse(p, ctx);
   if (!opt_val)
       __builtin_tvm_throw(err_code);
   if (full) new_p.ends();
   return *opt_val;
+}
+
+template<class _Tp>
+inline auto parse(slice sl, unsigned err_code = error_code::custom_data_parse_error,
+    bool full = false) {
+  return parse<_Tp>(parser(sl));
 }
 
 }} // namespace tvm::schema

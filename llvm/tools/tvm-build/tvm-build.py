@@ -97,7 +97,7 @@ for filename in args.inputs:
     print('Supported extensions: ' + ', '.join(extensions))
     os.sys.exit(1)
 
-cxxflags = ['-O1']
+cxxflags = ['-O3']
 if args.cxxflags:
   cxxflags += args.cxxflags.split()
 

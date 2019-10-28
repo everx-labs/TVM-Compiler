@@ -2461,8 +2461,8 @@ private:
     // lowering. To handle this case, we just zero extend the extracted
     // integer.
     // TVM local begin
-    assert(cast<IntegerType>(LI.getType())->getBitWidth() >=
-           SliceSize * ByteSizeInBits &&
+    assert((cast<IntegerType>(LI.getType())->getBitWidth() >=
+           SliceSize * ByteSizeInBits) &&
            "Can only handle an extract for an overly wide load");
     if (cast<IntegerType>(LI.getType())->getBitWidth() >
         SliceSize * ByteSizeInBits)

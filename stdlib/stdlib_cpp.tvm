@@ -1,6 +1,8 @@
+    .internal-alias :main_merge,        -4
+    .internal-alias :main_split,        -3
+    .internal-alias :main_ticktock,     -2
     .internal-alias :main_external,     -1
     .internal-alias :main_internal,     0
-    .internal-alias :general_purpose,   1
 
 ; ======================================================
 ; Part 1. Initialization and termination of the contract
@@ -10,24 +12,19 @@
     ; s0 - func_id
     ; s1.. - other data
     SETCP0
-    PUSHREFSLICE        ; dictionary of methods in first reference
-    PLDDICT
-    OVER
-    NEQINT 1
-    PUSHCONT {          ; if func_id negative or zero - direct call to method
-        PUSHINT 32
-        DICTIGETJMP     ; execute method and return
+    DUP
+    ISNPOS
+    DICTPUSHCONST 32
+    ROT
+    PUSHCONT {
+      DICTIGETJMP
     }
-    PUSHCONT {          ; get dictionary with methods
-        PUSHINT 32
-        DICTIGET
-        THROWIFNOT 52   ; no dictionary of methods
-        PLDDICT
-        PUSHINT 32
-        DICTUGETJMP     ; execute method and return
-        THROW 51
-    }
-    IFELSE
+    IFJMP
+    BLKDROP 2
+    PUSHREFCONT
+    DUP
+    POPCTR c3
+    JMPX
 
 ; ==========================================
 ; Part 2. C-specific functionality (runtime)

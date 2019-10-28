@@ -46,6 +46,13 @@ void TVMTargetInfo::fillValidCPUList(SmallVectorImpl<StringRef> &Values) const {
 void TVMTargetInfo::getTargetDefines(const LangOptions &Opts,
                                      MacroBuilder &Builder) const {
   defineCPUMacros(Builder, "tvm", /*Tuning=*/false);
+  Builder.defineMacro("__ELF__");
+  Builder.defineMacro("_LIBCPP_OBJECT_FORMAT_ELF");
+  Builder.defineMacro("_LIBCPP_NO_RTTI");
+  Builder.defineMacro("_LIBCPP_HAS_NO_THREADS");
+  Builder.defineMacro("_LIBCPP_NO_EXCEPTIONS");
+  // TODO: Temporary, until target-specific stdlib files re-work
+  Builder.defineMacro("__x86_64__");
 }
 
 bool TVMTargetInfo::handleTargetFeatures(std::vector<std::string> &Features,

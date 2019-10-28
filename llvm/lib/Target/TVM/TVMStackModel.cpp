@@ -569,6 +569,7 @@ StackFixup TVMStackModel::prepareStackFor(MachineInstr &MI,
     //  dst road pattern plus required arguments
     auto AfterTermStack = BBInfo[MBB].fixedEnd();
     auto NeedStack = AfterTermStack.withArgs(MIArgs(MI, *LIS, Index));
+    NeedStack.filterByImpDefs(TheStack);
     auto Fix = NeedStack - TheStack;
     if (DebugMessage)
       *DebugMessage = NeedStack.toString();
@@ -581,6 +582,8 @@ StackFixup TVMStackModel::prepareStackFor(MachineInstr &MI,
 
 void TVMStackModel::modelInstructionExecution(MachineInstr &MI,
                                               Stack &StackBefore) {
+  if (MI.isImplicitDef())
+    return;
   size_t NumDefs = MI.getNumDefs();
   size_t NumStackOperands = llvm::count_if(MI.uses(), [](const MachineOperand& MO) { return MO.isReg(); });
   unsigned NumToConsume = NumStackOperands;

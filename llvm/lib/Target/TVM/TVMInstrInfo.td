@@ -29,7 +29,6 @@ def SDT_TVMCtos         : SDTypeProfile<1, 1, [SDTCisVT<1, TVMCell>]>;
 def SDT_TVMStSlice      : SDTypeProfile<1, 2, []>;
 def SDT_TVMNewc         : SDTypeProfile<1, 0, []>;
 def SDT_TVMEndc         : SDTypeProfile<1, 1, [SDTCisVT<1, TVMBuilder>]>;
-def SDT_TVMPushRoot     : SDTypeProfile<1, 0, []>;
 def SDT_TVMDictGet      : SDTypeProfile<2, 3, []>;
 def SDT_TVMDictSt       : SDTypeProfile<1, 3, []>;
 def SDT_TVMDictLd       : SDTypeProfile<2, 2, []>;
@@ -81,7 +80,6 @@ def TVMcall1 : SDNode<"TVMISD::CALL1", SDT_TVMCall1,
 def TVMctos     : SDNode<"TVMISD::CTOS", SDT_TVMCtos>;
 def TVMstslice  : SDNode<"TVMISD::STSLICE", SDT_TVMStSlice>;
 def TVMendc     : SDNode<"TVMISD::ENDC", SDT_TVMEndc>;
-def TVMpushroot : SDNode<"TVMISD::PUSHROOT", SDT_TVMPushRoot, []>;
 def TVMdictuget : SDNode<"TVMISD::DICTUGET", SDT_TVMDictGet, [SDNPHasChain]>;
 def TVMsti      : SDNode<"TVMISD::STI", SDT_TVMDictSt, []>;
 def TVMstu      : SDNode<"TVMISD::STU", SDT_TVMDictSt, []>;
@@ -277,6 +275,16 @@ defm FROM_CELL_COPY    : I<(outs I257:$dst), (ins Cell:$src), (outs), (ins),
   [(set I257:$dst, (int_tvm_cast_from_cell Cell:$src))]>;
 }
 
+def : Pat<(TVMTuple (bitconvert I257:$src)), (TO_TUPLE_COPY $src)>;
+def : Pat<(TVMSlice (bitconvert I257:$src)), (TO_SLICE_COPY $src)>;
+def : Pat<(TVMBuilder (bitconvert I257:$src)), (TO_BUILDER_COPY $src)>;
+def : Pat<(TVMCell (bitconvert I257:$src)), (TO_CELL_COPY $src)>;
+
+def : Pat<(i257 (bitconvert Tuple:$src)), (FROM_TUPLE_COPY $src)>;
+def : Pat<(i257 (bitconvert Slice:$src)), (FROM_SLICE_COPY $src)>;
+def : Pat<(i257 (bitconvert Builder:$src)), (FROM_BUILDER_COPY $src)>;
+def : Pat<(i257 (bitconvert Cell:$src)), (FROM_CELL_COPY $src)>;
+
 //===----------------------------------------------------------------------===//
 // Arithmetic instructions
 //===----------------------------------------------------------------------===//
@@ -417,18 +425,31 @@ defm ISZERO : I<(outs I257:$dst), (ins I257:$src), (outs), (ins),
                  [(set I257:$dst, (setcc I257:$src, 0, SETEQ))],
                  "ISZERO\t$dst, $src", "ISZERO", 0xc000>;
 
-defm CONDSEL : I<(outs I257:$dst), (ins I257:$lhs, I257:$rhs, I257:$cond),
-                 (outs), (ins),
-                 [(set I257:$dst, (select I257:$cond, I257:$lhs, I257:$rhs))],
-                 "COND\t$dst, $lhs, $rhs, $cond", "CONDSEL", 0xe304>;
+multiclass CONDSEL_TEMPLATE<TVMRegClass RC> :
+  I<(outs RC:$dst), (ins I257:$cond, RC:$lhs, RC:$rhs), (outs), (ins),
+    [(set RC:$dst, (select I257:$cond, RC:$lhs, RC:$rhs))],
+    "COND\t$dst, $cond, $lhs, $rhs", "CONDSEL", 0xe304>;
+
+defm CONDSEL_I : CONDSEL_TEMPLATE<I257>;
+defm CONDSEL_T : CONDSEL_TEMPLATE<Tuple>;
+defm CONDSEL_S : CONDSEL_TEMPLATE<Slice>;
+defm CONDSEL_B : CONDSEL_TEMPLATE<Builder>;
+defm CONDSEL_C : CONDSEL_TEMPLATE<Cell>;
 
 // ISD::SELECT requires its operand to conform to getBooleanContents, but
 // TVM's CONDSEL interprets any non-zero value as true, so we can fold
 // a setne and seteq with 0 into a select.
-def : Pat<(select (i257 (seteq I257:$cond, 0)), I257:$lhs, I257:$rhs),
-          (CONDSEL I257:$lhs, I257:$rhs, I257:$cond)>;
-def : Pat<(select (i257 (setne I257:$cond, 0)), I257:$lhs, I257:$rhs),
-          (CONDSEL I257:$rhs, I257:$lhs, I257:$cond)>;
+multiclass CONDSEL_PATTERNS<ValueType VT, TVMRegClass RC, NI CS> {
+def : Pat<(select (VT (seteq I257:$cond, 0)), RC:$lhs, RC:$rhs),
+          (CS RC:$lhs, RC:$rhs, I257:$cond)>;
+def : Pat<(select (VT (setne I257:$cond, 0)), RC:$lhs, RC:$rhs),
+          (CS RC:$rhs, RC:$lhs, I257:$cond)>;
+}
+defm : CONDSEL_PATTERNS<i257, I257, CONDSEL_I>;
+defm : CONDSEL_PATTERNS<TVMTuple, Tuple, CONDSEL_T>;
+defm : CONDSEL_PATTERNS<TVMSlice, Slice, CONDSEL_S>;
+defm : CONDSEL_PATTERNS<TVMBuilder, Builder, CONDSEL_B>;
+defm : CONDSEL_PATTERNS<TVMCell, Cell, CONDSEL_C>;
 
 include "TVMTupleInstrInfo.td"
 include "TVMLiteralInstrInfo.td"

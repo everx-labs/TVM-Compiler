@@ -1014,6 +1014,13 @@ template <class _Tp> struct _LIBCPP_TEMPLATE_VIS is_scalar
 
 template <> struct _LIBCPP_TEMPLATE_VIS is_scalar<nullptr_t> : public true_type {};
 
+// TVM local begin
+template <> struct _LIBCPP_TEMPLATE_VIS is_scalar<__tvm_slice> : public true_type {};
+template <> struct _LIBCPP_TEMPLATE_VIS is_scalar<__tvm_cell> : public true_type {};
+template <> struct _LIBCPP_TEMPLATE_VIS is_scalar<__tvm_builder> : public true_type {};
+template <> struct _LIBCPP_TEMPLATE_VIS is_scalar<__tvm_tuple> : public true_type {};
+// TVM local end
+
 #if _LIBCPP_STD_VER > 14 && !defined(_LIBCPP_HAS_NO_VARIABLE_TEMPLATES)
 template <class _Tp>
 _LIBCPP_INLINE_VAR _LIBCPP_CONSTEXPR bool is_scalar_v
@@ -2233,6 +2240,21 @@ struct is_destructible<_Tp[]>
 template <>
 struct is_destructible<void>
     : public _VSTD::false_type {};
+
+// TVM local begin
+template <>
+struct is_destructible<__tvm_slice>
+    : public _VSTD::true_type {};
+template <>
+struct is_destructible<__tvm_builder>
+    : public _VSTD::true_type {};
+template <>
+struct is_destructible<__tvm_cell>
+    : public _VSTD::true_type {};
+template <>
+struct is_destructible<__tvm_tuple>
+    : public _VSTD::true_type {};
+// TVM local end
 
 #if _LIBCPP_STD_VER > 14 && !defined(_LIBCPP_HAS_NO_VARIABLE_TEMPLATES)
 template <class _Tp>

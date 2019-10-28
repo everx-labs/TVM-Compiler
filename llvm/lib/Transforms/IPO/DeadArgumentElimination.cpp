@@ -1020,8 +1020,10 @@ bool DeadArgumentEliminationPass::RemoveDeadStuffFromFunction(Function *F) {
     } else {
       // If this argument is dead, replace any uses of it with null constants
       // (these are guaranteed to become unused later on).
-      if (!I->getType()->isX86_MMXTy())
+      // TVM local begin
+      if (!I->getType()->isX86_MMXTy() && !I->getType()->isTVMBuiltinTy())
         I->replaceAllUsesWith(Constant::getNullValue(I->getType()));
+      // TVM local end
     }
 
   // If we change the return value of the function we must rewrite any return

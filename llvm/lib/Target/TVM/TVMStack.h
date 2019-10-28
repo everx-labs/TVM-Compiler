@@ -88,6 +88,9 @@ public:
 
   void filterByDeadDefs(MachineInstr &MI);
 
+  /// Replace regs, absent in TheStack, by UnusedReg (for undefs)
+  void filterByImpDefs(const Stack &TheStack);
+
   /// Occupy unused space in stack (filled with unused registers) with \par
   /// Regs.
   void fillUnusedRegs(SmallVector<StackVreg, 16> &Regs);

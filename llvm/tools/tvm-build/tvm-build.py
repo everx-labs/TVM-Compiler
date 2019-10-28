@@ -59,7 +59,7 @@ parser.add_argument('--inline-loads-stores', action='store_true', default=False,
 
 parser.add_argument('--llvm-bin', help='path to LLVM binaries directory')
 parser.add_argument('--linker', help='path to TVM linker executable')
-parser.add_argument('--stdlib', help='path to standard library directory')
+parser.add_argument('--stdlib', help='path to standard library')
 
 args = parser.parse_args()
 
@@ -90,7 +90,7 @@ for filename in args.inputs:
     print('Supported extensions: ' + ', '.join(extensions))
     os.sys.exit(1)
 
-cxxflags = ['-O1']
+cxxflags = ['-O3']
 if args.cxxflags:
   cxxflags += args.cxxflags.split()
 
@@ -120,7 +120,7 @@ _, bitcode = tempfile.mkstemp()
 execute([os.path.join(tvm_llvm_bin, 'llvm-link')] + input_bc +
   ['-o', bitcode], args.verbose)
 
-entry_points = []
+entry_points = [ "main_external", "main_internal", "main_ticktock", "main_split", "main_merge" ]
 with open(args.abi) as abi_file:
   abi_data = json.load(abi_file)
   for func in abi_data['functions']:
@@ -187,8 +187,8 @@ if args.verbose:
   print('cd ' + tmpdir)
 
 with cd(tmpdir):
-  execute([tvm_linker, 'compile', asm, '--lib', os.path.join(tvm_stdlib,
-    'stdlib_c.tvm'), '--abi-json', abi_path], args.verbose)
+  execute([tvm_linker, 'compile', asm, '--lib', tvm_stdlib, '--abi-json',
+    abi_path], args.verbose)
   for tvc in glob.glob('*.tvc'):
     if args.verbose:
       print('cp ' + tvc + ' ' + output)

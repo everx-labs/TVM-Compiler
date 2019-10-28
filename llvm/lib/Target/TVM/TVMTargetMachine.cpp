@@ -74,6 +74,7 @@ TVMTargetMachine::TVMTargetMachine(const Target &T, const Triple &TT,
                         getEffectiveCodeModel(CM), OL),
       TLOF(make_unique<TargetLoweringObjectFileELF>()),
       Subtarget(TT, CPU, FS, *this) {
+  setRequiresStructuredCFG(true);
   initAsmInfo();
 }
 

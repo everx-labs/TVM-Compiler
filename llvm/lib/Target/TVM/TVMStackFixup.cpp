@@ -695,7 +695,8 @@ operator()(const std::pair<Change, std::string> &pair) const {
                        .addImm(v.sz)
                        .getInstr();
         } else {
-          BuildMI(*MBB, InsertPt, DL, TII->get(TVM::CONST_U257_S)).addImm(v.sz);
+          BuildMI(*MBB, InsertPt, DL, TII->get(TVM::CONST_U257_S))
+                  .addImm(v.sz);
           MI = BuildMI(*MBB, InsertPt, DL, TII->get(TVM::DROPX)).getInstr();
         }
       },

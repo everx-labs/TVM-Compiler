@@ -61,6 +61,7 @@ add_clang_library(clangDriver
   ToolChains/Solaris.cpp
   ToolChains/TCE.cpp
   ToolChains/WebAssembly.cpp
+  ToolChains/TVM.cpp
   ToolChains/XCore.cpp
   Types.cpp
   XRayArgs.cpp

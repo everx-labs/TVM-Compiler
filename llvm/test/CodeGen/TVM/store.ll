@@ -15,7 +15,6 @@ entry:
   %builder.1 = call builder @llvm.tvm.sti(i257 %v, builder %builder, i257 257)
   %cell = call cell @llvm.tvm.endc(builder %builder.1)
   %slice = call slice @llvm.tvm.ctos(cell %cell)
-  %slice.i = call i257 @llvm.tvm.cast.from.slice(slice %slice)
 
 ; CHECK-NEXT:   GETGLOB 1
 ; CHECK-NEXT:   PUSHINT 64
@@ -27,7 +26,7 @@ entry:
 ; CHECK-NEXT:   SETGLOB 1
   %c7 = call i257 @llvm.tvm.getglobal(i257 1)
   %c7.dict = call cell @llvm.tvm.cast.to.cell(i257 %c7)
-  %c7.dict.new = call cell @llvm.tvm.dictiset(i257 %slice.i, i257 %address, cell %c7.dict, i257 64)
+  %c7.dict.new = call cell @llvm.tvm.dictiset(slice %slice, i257 %address, cell %c7.dict, i257 64)
   %c7.dict.new.i = call i257 @llvm.tvm.cast.from.cell(cell %c7.dict.new)
   call void @llvm.tvm.setglobal(i257 1, i257 %c7.dict.new.i)
   ret void
@@ -46,7 +45,6 @@ entry:
   %builder.1 = call builder @llvm.tvm.sti(i257 %v, builder %builder, i257 257)
   %cell = call cell @llvm.tvm.endc(builder %builder.1)
   %slice = call slice @llvm.tvm.ctos(cell %cell)
-  %slice.i = call i257 @llvm.tvm.cast.from.slice(slice %slice)
 
 ; CHECK-NEXT:   PUSH    c4
 ; CHECK-NEXT:   CTOS
@@ -65,7 +63,7 @@ entry:
   %c4.cell = call cell @llvm.tvm.cast.to.cell(i257 %c4)
   %c4.slice = call slice @llvm.tvm.ctos(cell %c4.cell)
   %c4.dict = call cell @llvm.tvm.plddict(slice %c4.slice)
-  %c4.dict.1 = call cell @llvm.tvm.dictiset(i257 %slice.i, i257 %address, cell %c4.dict, i257 64)
+  %c4.dict.1 = call cell @llvm.tvm.dictiset(slice %slice, i257 %address, cell %c4.dict, i257 64)
   %builder.2 = call builder @llvm.tvm.newc()
   %builder.3 = call builder @llvm.tvm.stdict(cell %c4.dict.1, builder %builder.2)
   %cell.1 = call cell @llvm.tvm.endc(builder %builder.3)
@@ -106,4 +104,4 @@ declare builder @llvm.tvm.newc()
 declare cell @llvm.tvm.endc(builder %b)
 declare builder @llvm.tvm.sti(i257 %value, builder %builder, i257 %size)
 declare builder @llvm.tvm.stdict(cell %dict, builder %builder)
-declare cell @llvm.tvm.dictiset(i257 %value, i257 %key, cell %dict, i257 %precision)
+declare cell @llvm.tvm.dictiset(slice %value, i257 %key, cell %dict, i257 %precision)

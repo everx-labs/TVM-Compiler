@@ -164,7 +164,9 @@ static unsigned ProcessCharEscape(const char *ThisTokBegin,
     }
 
     // See if any bits will be truncated when evaluated as a character.
-    if (CharWidth != 32 && (ResultChar >> CharWidth) != 0) {
+    // TVM local begin
+    if (CharWidth < 32 && ((ResultChar >> CharWidth) != 0)) {
+    // TVM local end
       Overflow = true;
       ResultChar &= ~0U >> (32-CharWidth);
     }

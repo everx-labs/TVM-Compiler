@@ -71,8 +71,8 @@ protected:
   unsigned short ShortWidth, ShortAlign;
   unsigned short IntWidth, IntAlign;
   unsigned char HalfWidth, HalfAlign;
-  unsigned char FloatWidth, FloatAlign;
-  unsigned char DoubleWidth, DoubleAlign;
+  unsigned short FloatWidth, FloatAlign;
+  unsigned short DoubleWidth, DoubleAlign;
   unsigned short LongDoubleWidth, LongDoubleAlign, Float128Align;
   unsigned short LargeArrayMinWidth, LargeArrayAlign;
   unsigned short LongWidth, LongAlign;

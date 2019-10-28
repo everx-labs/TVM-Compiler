@@ -1198,6 +1198,17 @@ __murmur2_or_cityhash<_Size, 64>::operator()(const void* __key, _Size __len)
       __hash_len_16(__v.second, __w.second) + __x);
 }
 
+// TVM local begin
+template <class _Size>
+struct __murmur2_or_cityhash<_Size, 257>
+{
+    inline _Size operator()(const void* __key, _Size __len)  _LIBCPP_DISABLE_UBSAN_UNSIGNED_INTEGER_CHECK {
+        // TODO: implement hash function for TVM
+        return reinterpret_cast<_Size>(__key);
+    }
+};
+// TVM local end
+
 template <class _Tp, size_t = sizeof(_Tp) / sizeof(size_t)>
 struct __scalar_hash;
 

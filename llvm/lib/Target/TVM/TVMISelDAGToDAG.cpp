@@ -120,13 +120,10 @@ void TVMDAGToDAGISel::Select(SDNode *Node) {
     SmallVector<SDValue, 16> Ops(std::next(Node->op_begin()), Node->op_end());
     assert(Ops[0].getOpcode() == TVMISD::GLOBAL_ADDRESS_WRAPPER);
     Ops[0] = Ops[0].getOperand(0); // unwrap the address
-    auto SzVal = Ops.back();
-    unsigned Sz = cast<ConstantSDNode>(SzVal)->getZExtValue();
     Ops.pop_back();
     auto Chain = Node->getOperand(0);
     Ops.push_back(Chain); // Chain to the end
-    SmallVector<EVT, 16> VTs(Sz, MVT::i257);
-    VTs.push_back(MVT::Other);
+    SmallVector<EVT, 16> VTs(Node->value_begin(), Node->value_end());
     SDNode *Res =
         CurDAG->getMachineNode(TVM::CALL_N, dl, CurDAG->getVTList(VTs), Ops);
     ReplaceNode(Node, Res);

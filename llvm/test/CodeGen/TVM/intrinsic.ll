@@ -189,10 +189,10 @@ define cell @ldref(slice %slice) nounwind {
   ret cell %2
 }
 
-; CHECK-LABEL: ldslicex
-define slice @ldslicex(slice %slice, i257 %size) nounwind {
+; CHECK-LABEL: ldslice
+define slice @ldslice(slice %slice, i257 %size) nounwind {
 ; CHECK: LDSLICEX
-  %1 = call {slice, slice} @llvm.tvm.ldslicex(slice %slice, i257 %size)
+  %1 = call {slice, slice} @llvm.tvm.ldslice(slice %slice, i257 %size)
   %2 = extractvalue {slice, slice} %1, 0
   ret slice %2
 }
@@ -316,9 +316,9 @@ define i257 @hashcu(cell %cell) {
 }
 
 ; CHECK-LABEL: hashsu
-define i257 @hashsu(cell %cell) {
+define i257 @hashsu(slice %sl) {
 ; CHECK: HASHSU
-  %result = call i257 @llvm.tvm.hashsu(cell %cell)
+  %result = call i257 @llvm.tvm.hashsu(slice %sl)
   ret i257 %result
 }
 
@@ -359,7 +359,7 @@ declare void @llvm.tvm.set.persistent.data(cell %root) nounwind
 declare slice @llvm.tvm.inttoslice(i257 %val) nounwind
 declare builder @llvm.tvm.stslice(slice %slice, builder %builder) nounwind
 declare cell @llvm.tvm.stoc(slice %slice) nounwind
-declare {slice, slice} @llvm.tvm.ldslicex(slice %slice, i257 %size) nounwind
+declare {slice, slice} @llvm.tvm.ldslice(slice %slice, i257 %size) nounwind
 declare {cell, slice} @llvm.tvm.ldref(slice %slice) nounwind
 declare cell @llvm.tvm.plddict(slice %dict)
 declare builder @llvm.tvm.stdict(cell %dict, builder %builder)
@@ -370,7 +370,7 @@ declare void @llvm.tvm.throw(i257 %exception)
 declare void @llvm.tvm.accept()
 declare i257 @llvm.tvm.chksignu(i257 %hash, slice %signature, i257 %key)
 declare i257 @llvm.tvm.hashcu(cell %cell)
-declare i257 @llvm.tvm.hashsu(cell %cell)
+declare i257 @llvm.tvm.hashsu(slice %sl)
 declare void @llvm.tvm.setcp(i257 %codepage)
 declare void @llvm.tvm.dump(i257 %slot)
 declare void @llvm.tvm.dump.value(i257 %slot)

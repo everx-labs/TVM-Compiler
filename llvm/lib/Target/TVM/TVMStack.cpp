@@ -118,6 +118,13 @@ void Stack::filterByDeadDefs(MachineInstr &MI) {
   }
 }
 
+void Stack::filterByImpDefs(const Stack &TheStack) {
+  for (auto &Vreg : Data) {
+    if (Vreg.VirtReg != TVMFunctionInfo::UnusedReg && !TheStack.exist(Vreg))
+      Vreg.VirtReg = TVMFunctionInfo::UnusedReg;
+  }
+}
+
 void Stack::fillUnusedRegs(SmallVector<StackVreg, 16> &Regs) {
   for (StackVreg &VR : Data) {
     if (Regs.empty())

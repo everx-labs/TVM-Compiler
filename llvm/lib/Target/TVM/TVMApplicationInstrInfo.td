@@ -20,8 +20,8 @@ defm HASHCU   : I0<(outs I257 : $result), (ins Cell : $cell),
                    [(set I257 : $result, (int_tvm_hashcu Cell : $cell))],
                    "HASHCU", 0xf900>;
 
-defm HASHSU   : I0<(outs I257 : $result), (ins Cell : $cell),
-                   [(set I257 : $result, (int_tvm_hashsu Cell : $cell))],
+defm HASHSU   : I0<(outs I257 : $result), (ins Slice : $slice),
+                   [(set I257 : $result, (int_tvm_hashsu Slice : $slice))],
                    "HASHSU", 0xf901>;
 
 defm CHKSIGNU : I0<(outs I257 : $result),

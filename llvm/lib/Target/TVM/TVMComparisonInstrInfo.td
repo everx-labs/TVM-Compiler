@@ -93,3 +93,9 @@ def : Pat<(int_tvm_isnull_cell Cell:$cell),
           (ISNULL (FROM_CELL_COPY Cell:$cell))>;
 def : Pat<(int_tvm_isnull_tuple Tuple:$tp),
           (ISNULL (FROM_TUPLE_COPY Tuple:$tp))>;
+
+defm PUSHNULL_CELL : I<(outs Cell:$res), (ins), (outs), (ins),
+                       [(set Cell:$res, 0)],
+                       "PUSHNULL $res", "PUSHNULL", 0x6d>;
+
+def : Pat<(TVMCell (int_tvm_cast_to_cell 0)), (PUSHNULL_CELL)>;

@@ -11,6 +11,7 @@ G_Wbuildstatus = "NotSet"
 G_Wclangstatus = "NotSet"
 G_Wllvmstatus = "NotSet"
 G_Wteststatus = "NotSet"
+G_compilerkitteststatus = "NotSet"
 G_workdir = "/opt/work"
 G_ramdir = "/media/ramdisk/toolchain"
 C_PROJECT = "NotSet"
@@ -264,10 +265,10 @@ pipeline {
                             post {
                                 success {
                                     script{
-                                        G_buildstatus = "success"
+                                        G_compilerkitteststatus = "success"
                                     }
                                 }
-                                failure {script{G_buildstatus = "failure"}}
+                                failure {script{G_compilerkitteststatus = "failure"}}
                             }
                         }
                     }
@@ -303,6 +304,7 @@ pipeline {
                     DiscordTitle = "Job ${JOB_NAME} from GitHub " + C_PROJECT
                     DiscordDescription = C_COMMITER + " pushed commit " + C_HASH + " by " + C_AUTHOR + " with a message '" + C_TEXT + "'" + "\n" \
                     + "Build number ${BUILD_NUMBER}" + "\n" \
+                    + "Compiler-kit tests: **" + G_compilerkitteststatus + "**" + "\n" \
                     + "__**Linux**__\n" \
                     + "Configure: **" + G_buildstatus + "**" + "\n" \
                     + "Clang: **" + G_clangstatus + "**" + "\n" \

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "tuple.hpp"
+#include <tvm/tuple.hpp>
 
 namespace tvm {
 
@@ -8,6 +8,16 @@ class __attribute__((tvm_tuple)) smart_contract_info {
 public:
   static inline tuple<smart_contract_info> get();
   
+  static inline int magic() {
+    return __builtin_tvm_index(smart_contract_info::get().get(), 0);
+  }
+  static inline int actions() {
+    return __builtin_tvm_index(smart_contract_info::get().get(), 1);
+  }
+  static inline int msgs_sent() {
+    return __builtin_tvm_index(smart_contract_info::get().get(), 2);
+  }
+
   static inline int now() {
     return __builtin_tvm_now();
   }
@@ -16,6 +26,13 @@ public:
   }
   static inline int ltime() {
     return __builtin_tvm_ltime();
+  }
+  static inline int rand_seed() {
+    return __builtin_tvm_index(smart_contract_info::get().get(), 6);
+  }
+  static inline int balance_remaining() {
+    auto balance_tup = (__tvm_tuple)__builtin_tvm_index(smart_contract_info::get().get(), 7);
+    return __builtin_tvm_index(balance_tup, 0);
   }
   static inline __tvm_slice myaddr() {
     return __builtin_tvm_myaddr();
@@ -26,24 +43,28 @@ public:
   static inline auto /*{ __tvm_cell, int keylen }*/ configdict() {
     return __builtin_tvm_configdict();
   }
-  inline auto get_now() { return now_; }
-  inline auto get_blocklt() { return blocklt_; }
-  inline auto get_ltime() { return ltime_; }
-  inline auto get_myaddr() { return myaddr_; }
-  inline auto get_configroot() { return configroot_; }
+  inline auto get_magic() const { return magic_; }
+  inline auto get_actions() const { return actions_; }
+  inline auto get_msgs_sent() const { return msgs_sent_; }
+  inline auto get_now() const { return now_; }
+  inline auto get_blocklt() const { return blocklt_; }
+  inline auto get_ltime() const { return ltime_; }
+  inline auto get_rand_seed() const { return rand_seed_; }
+  inline auto get_balance_remaining() const { return balance_remaining_; }
+  inline auto get_myaddr() const { return myaddr_; }
+  inline auto get_configroot() const { return configroot_; }
 private:
-  int v0;
-  int v1;
-  int v2;
+  int magic_;
+  int actions_;
+  int msgs_sent_;
   // Returns the current Unix time as an Integer.
   int now_;
   // Returns the starting logical time of the current block.
   int blocklt_;
   // Returns the logical time of the current transaction.
   int ltime_;
-  
-  int v6;
-  int v7;
+  int rand_seed_;
+  int balance_remaining_;
   // Returns the internal address of the current smart contract
   //  as a Slice with a MsgAddressInt. If necessary, it can be parsed further
   //  using primitives such as PARSESTDADDR or REWRITESTDADDR.

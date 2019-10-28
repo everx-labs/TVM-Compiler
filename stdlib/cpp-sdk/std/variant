@@ -236,6 +236,9 @@ void __throw_bad_variant_access() {
 #ifndef _LIBCPP_NO_EXCEPTIONS
         throw bad_variant_access();
 #else
+        // TVM local begin
+        __builtin_tvm_throw(99);
+        // TVM local end
         _VSTD::abort();
 #endif
 }
@@ -439,6 +442,15 @@ struct __base {
     constexpr auto __fdiagonal =
         __make_fdiagonal<_Visitor&&,
                          decltype(_VSTD::forward<_Vs>(__vs).__as_base())...>();
+    // TVM local begin
+    constexpr size_t __sz = ((remove_reference_t<_Vs>::__variant_size), ...);
+    static_assert(
+        __all<__sz == remove_reference_t<_Vs>::__variant_size...>::value,
+        "__visit_alt_at for different sized variants.");
+    return __unroll_fdiagonal_case<__sz>::unroll(
+        __fdiagonal, __index, _VSTD::forward<_Visitor>(__visitor),
+        _VSTD::forward<_Vs>(__vs)...);
+    // TVM local end
     return __fdiagonal[__index](_VSTD::forward<_Visitor>(__visitor),
                                 _VSTD::forward<_Vs>(__vs).__as_base()...);
   }
@@ -450,12 +462,154 @@ struct __base {
     constexpr auto __fmatrix =
         __make_fmatrix<_Visitor&&,
                        decltype(_VSTD::forward<_Vs>(__vs).__as_base())...>();
+    // TVM local begin
+    return __unroller<sizeof...(__vs)>::unroll(
+        __fmatrix, __vs.index()..., _VSTD::forward<_Visitor>(__visitor),
+        _VSTD::forward<_Vs>(__vs)...);
+    // TVM local end
+
     return __at(__fmatrix, __vs.index()...)(
         _VSTD::forward<_Visitor>(__visitor),
         _VSTD::forward<_Vs>(__vs).__as_base()...);
   }
 
 private:
+  // TVM local begin
+  // Linear diagonal unroll
+  template<size_t _UnrollIdx>
+  struct __unroll_fdiagonal_case {
+    template<class _Fdiagonal, class _Visitor, class... _Vs>
+    static decltype(auto) unroll(_Fdiagonal __fdiagonal, size_t __index,
+                                 _Visitor&& __visitor, _Vs&&... __vs) {
+      if (__index == _UnrollIdx)
+        return __fdiagonal[_UnrollIdx](_VSTD::forward<_Visitor>(__visitor),
+                                       _VSTD::forward<_Vs>(__vs).__as_base()...);
+      return __unroll_fdiagonal_case<_UnrollIdx - 1>::unroll(
+          __fdiagonal, __index,
+          _VSTD::forward<_Visitor>(__visitor),
+          _VSTD::forward<_Vs>(__vs)...);
+    }
+  };
+  template<>
+  struct __unroll_fdiagonal_case<0> {
+    template<class _Fdiagonal, class _Visitor, class... _Vs>
+    static decltype(auto) unroll(_Fdiagonal __fdiagonal, size_t __index,
+                                 _Visitor&& __visitor, _Vs&&... __vs) {
+      // assert(__index == 0)
+      return __fdiagonal[0](_VSTD::forward<_Visitor>(__visitor),
+                            _VSTD::forward<_Vs>(__vs).__as_base()...);
+    }
+  };
+  // Linear unroll
+  template<size_t _UnrollIdx>
+  struct __unroll_fmatrix1_case {
+    template<class _Fmatrix, class _Visitor, class _Vs>
+    static decltype(auto) unroll(_Fmatrix __fmatrix, size_t __index,
+                                 _Visitor&& __visitor, _Vs&& __vs) {
+      if (__index == _UnrollIdx)
+        return __base::__at(__fmatrix, _UnrollIdx)(
+            _VSTD::forward<_Visitor>(__visitor),
+            _VSTD::forward<_Vs>(__vs).__as_base());
+      return __unroll_fmatrix1_case<_UnrollIdx - 1>::unroll(
+          __fmatrix, __index,
+          _VSTD::forward<_Visitor>(__visitor),
+          _VSTD::forward<_Vs>(__vs));
+    }
+  };
+  template<>
+  struct __unroll_fmatrix1_case<0> {
+    template<class _Fmatrix, class _Visitor, class _Vs>
+    static decltype(auto) unroll(_Fmatrix __fmatrix, size_t __index,
+                                 _Visitor&& __visitor, _Vs&& __vs) {
+      // assert(dyn_index == 0)
+      return __base::__at(__fmatrix, 0)(_VSTD::forward<_Visitor>(__visitor),
+                                        _VSTD::forward<_Vs>(__vs).__as_base());
+    }
+  };
+  // Square unroll
+  template<size_t _UnrollIdx0, size_t _UnrollIdx1>
+  struct __unroll_fmatrix2_1_case {
+    template<class _Fmatrix, class _Visitor, class _Vs0, class _Vs1>
+    static decltype(auto) unroll(_Fmatrix __fmatrix, size_t __index1,
+                                 _Visitor&& __visitor,
+                                 _Vs0&& __vs0, _Vs1&& __vs1) {
+      if (__index1 == _UnrollIdx1)
+        return __base::__at(__fmatrix, _UnrollIdx0, _UnrollIdx1)(
+            _VSTD::forward<_Visitor>(__visitor),
+            _VSTD::forward<_Vs0>(__vs0).__as_base(),
+            _VSTD::forward<_Vs1>(__vs1).__as_base());
+      return __unroll_fmatrix2_1_case<_UnrollIdx0, _UnrollIdx1 - 1>(
+          __fmatrix, __index1, _VSTD::forward<_Visitor>(__visitor),
+          _VSTD::forward<_Vs0>(__vs0), _VSTD::forward<_Vs1>(__vs1));
+    }
+  };
+  template<size_t _UnrollIdx0>
+  struct __unroll_fmatrix2_1_case<_UnrollIdx0, 0> {
+    template<class _Fmatrix, class _Visitor, class _Vs0, class _Vs1>
+    static auto unroll(_Fmatrix __fmatrix, size_t __index1,
+                       _Visitor&& __visitor,
+                       _Vs0&& __vs0, _Vs1&& __vs1) {
+      // assert(__index1 == 0)
+      return __base::__at(__fmatrix, _UnrollIdx0, 0)(
+          _VSTD::forward<_Visitor>(__visitor),
+          _VSTD::forward<_Vs0>(__vs0).__as_base(),
+          _VSTD::forward<_Vs1>(__vs1).__as_base());
+    }
+  };
+  template<size_t _UnrollIdx0, size_t _UnrollIdx1>
+  struct __unroll_fmatrix2_case {
+    template<class _Fmatrix, class _Visitor, class _Vs0, class _Vs1>
+    static auto unroll(_Fmatrix __fmatrix, size_t __index0, size_t __index1,
+                       _Visitor&& __visitor, _Vs0&& __vs0, _Vs1&& __vs1) {
+      if (__index0 == _UnrollIdx0)
+        return __unroll_fmatrix2_1_case<_UnrollIdx0, _UnrollIdx1>::unroll(
+            __fmatrix, __index1, _VSTD::forward<_Visitor>(__visitor),
+            _VSTD::forward<_Vs0>(__vs0), _VSTD::forward<_Vs1>(__vs1));
+      return __unroll_fmatrix2_case<_UnrollIdx0 - 1, _UnrollIdx1>::unroll(
+          __index0, __index1, _VSTD::forward<_Visitor>(__visitor),
+          _VSTD::forward<_Vs0>(__vs0), _VSTD::forward<_Vs1>(__vs1));
+    }
+  };
+  template<size_t _UnrollIdx1>
+  struct __unroll_fmatrix2_case<0, _UnrollIdx1> {
+    template<class _Fmatrix, class _Visitor, class _Vs0, class _Vs1>
+    static auto unroll(_Fmatrix __fmatrix, size_t __index0, size_t __index1,
+                       _Visitor&& __visitor, _Vs0&& __vs0, _Vs1&& __vs1) {
+      // assert(__index0 == 0)
+      return __unroll_fmatrix2_1_case<0, _UnrollIdx1>::unroll(
+          __fmatrix, __index1, _VSTD::forward<_Visitor>(__visitor),
+          _VSTD::forward<_Vs0>(__vs0), _VSTD::forward<_Vs1>(__vs1));
+    }
+  };
+
+  template<unsigned _VisitArgsSz>
+  struct __unroller {};
+  template<>
+  struct __unroller<1> {
+    template<class _Fmatrix, class _Visitor, class _Vs>
+    static auto unroll(_Fmatrix __fmatrix, size_t __index,
+                       _Visitor&& __visitor, _Vs&& __vs) {
+      constexpr size_t __sz = remove_reference_t<_Vs>::__variant_size;
+      return __unroll_fmatrix1_case<__sz - 1>::unroll(
+          __fmatrix, __index, _VSTD::forward<_Visitor>(__visitor),
+          _VSTD::forward<_Vs>(__vs));
+    }
+  };
+  template<>
+  struct __unroller<2> {
+    template<class _Fmatrix, class _Visitor, class _Vs0, class _Vs1>
+    static auto unroll(_Fmatrix __fmatrix, size_t __index0, size_t __index1,
+                       _Visitor&& __visitor, _Vs0&& __vs0, _Vs1&& __vs1) {
+      constexpr size_t __sz0 = remove_reference_t<_Vs0>::__variant_size;
+      constexpr size_t __sz1 = remove_reference_t<_Vs1>::__variant_size;
+      return __unroll_fmatrix2_case<__sz0 - 1, __sz1 - 1>
+          ::unroll(__fmatrix, __index0, __index1,
+                   _VSTD::forward<_Visitor>(__visitor),
+                   _VSTD::forward<_Vs0>(__vs0), _VSTD::forward<_Vs1>(__vs1));
+    }
+  };
+
+  // TVM local end
   template <class _Tp>
   inline _LIBCPP_INLINE_VISIBILITY
   static constexpr const _Tp& __at(const _Tp& __elem) { return __elem; }
@@ -1032,6 +1186,9 @@ class _LIBCPP_TEMPLATE_VIS __impl
   using __base_type = __copy_assignment<__traits<_Types...>>;
 
 public:
+  // TVM local begin
+  static constexpr size_t __variant_size = sizeof...(_Types);
+  // TVM local end
   using __base_type::__base_type;
   using __base_type::operator=;
 

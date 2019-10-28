@@ -478,17 +478,17 @@ bool TVMStackModel::runOnMachineFunction(MachineFunction &MF) {
   fillBlocksBeginEndPatterns(MF);
 
   MachineBasicBlock &FirstBB = MF.front();
-  assert(!FirstBB.empty());
+  if (!FirstBB.empty()) {
+    auto &ANI = FirstBB.front();
 
-  auto &ANI = FirstBB.front();
-
-  // Process ARGUMENT_NUM instruction to adjust arguments number on stack.
-  if (TVM::isArgumentNum(ANI)) {
-    int args = ANI.getOperand(0).getImm();
-    for (int i = 0; i < args; i++)
-      MFI->addParam(MVT::i64);
-    ANI.eraseFromParent();
-    Changed = true;
+    // Process ARGUMENT_NUM instruction to adjust arguments number on stack.
+    if (TVM::isArgumentNum(ANI)) {
+      int args = ANI.getOperand(0).getImm();
+      for (int i = 0; i < args; i++)
+        MFI->addParam(MVT::i64);
+      ANI.eraseFromParent();
+      Changed = true;
+    }
   }
 
   size_t NumArgs = MFI->numParams();

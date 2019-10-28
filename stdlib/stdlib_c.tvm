@@ -37,12 +37,12 @@
     }
     PUSHCONT {          ; get dictionary with methods
         PUSHINT 32
-        DICTIGET
-        THROWIFNOT 52   ; no dictionary of methods
-        PLDDICT
-        PUSHINT 32
-        DICTUGETJMP     ; execute method and return
-        THROW 51
+		DICTIGETREF
+		THROWIFNOT 52   ; no dictionary of methods
+		PUSHINT 32
+		PRINTSTR selector_jmp
+		DICTUGETJMP     ; execute method and return
+		THROW 51
     }
     IFELSE
 
@@ -113,11 +113,8 @@ tvm_sender_pubkey:
     CALL $:init_fstack$
 
     SWAP
-    ;parse ABI version (1 byte) and load function id (4 bytes)
-    LDU 8       ;load ABI version
-    SWAP  
-    THROWIF 55  ; only version 0 is supported now
     LDU 32      ;load func id
+    LDU 64 NIP
     DUP
     CALL $:store_work_slice$
     SWAP

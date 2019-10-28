@@ -80,11 +80,17 @@ MaybeOptimizeReturn(MachineInstr &MI, const TargetInstrInfo& TII) {
 
 bool TVMPeephole::runImplicitReturnOptimization(MachineBasicBlock &MBB,
                                                 const TargetInstrInfo &TII) {
+  if (MBB.empty())
+    return false;
+
   auto &MI = MBB.back();
   return MI.isReturn() && MaybeOptimizeReturn(MI, TII);
 }
 
 bool TVMPeephole::runMbbInlineOptimization(MachineBasicBlock &MBB) {
+  if (MBB.empty())
+    return false;
+
   auto InstrIter = MBB.instr_rbegin();
   auto &JmpX = *InstrIter;
 

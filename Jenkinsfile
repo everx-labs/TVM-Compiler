@@ -11,7 +11,7 @@ G_Wbuildstatus = "NotSet"
 G_Wclangstatus = "NotSet"
 G_Wllvmstatus = "NotSet"
 G_Wteststatus = "NotSet"
-G_workdir = "/opt/work/${GIT_COMMIT}.${BUILD_NUMBER}"
+G_workdir = "/opt/work"
 G_ramdir = "/media/ramdisk/toolchain"
 C_PROJECT = "NotSet"
 C_COMMITER = "NotSet"
@@ -35,7 +35,7 @@ pipeline {
         disableConcurrentBuilds()
         }
     environment {
-        WORKDIR = getVar(G_workdir)
+        WORKDIR = getVar(G_workdir) + "/${GIT_COMMIT}.${BUILD_NUMBER}"
         RAMDIR = getVar(G_ramdir)
     }
     stages {

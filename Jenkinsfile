@@ -35,7 +35,7 @@ pipeline {
         disableConcurrentBuilds()
         }
     environment {
-        WORKDIR = "${G_workdir}/${GIT_COMMIT}.${BUILD_NUMBER}"
+        WORKDIR = "${G_workdir}/${env.GIT_COMMIT}.${env.BUILD_NUMBER}"
         RAMDIR = getVar(G_ramdir)
     }
     stages {

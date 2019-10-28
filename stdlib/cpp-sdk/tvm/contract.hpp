@@ -102,25 +102,6 @@ public:
     assert(sig_check.verified(), err);
     return sig_check.public_key();
   }
-  template<int offset, class Data>
-  class persistent {
-  public:
-    persistent& operator=(Data val) {
-      contract::set_persistent<Data>(offset, val);
-      return *this;
-    }
-    Data get() const {
-      return contract::get_persistent<Data>(offset);
-    }
-    operator Data() const {
-      return get();
-    }
-    template<class Format>
-    Format get_as() const {
-      return contract::get_persistent<Format>(offset);
-    }
-    bool initialized() const { return contract::get_persistent_opt<Data>(offset).has_value(); }
-  };
   // Prepare and send empty message with nanograms as transfer value.
   // Only internal destination address allowed.
   static void tvm_transfer(schema::MsgAddressInt dest, unsigned nanograms, bool bounce) {

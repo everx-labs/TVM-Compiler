@@ -6,7 +6,7 @@ namespace tvm {
 
 class __attribute__((tvm_tuple)) cell {
 public:
-  cell() : cl_((__tvm_cell)0) {}
+  cell() : cl_((__tvm_cell)__builtin_tvm_pushnull()) {}
   cell(__tvm_cell cl) : cl_(cl) {}
   slice ctos() const { return __builtin_tvm_ctos(cl_); }
   bool isnull() const { return __builtin_tvm_isnull_cell(cl_); }

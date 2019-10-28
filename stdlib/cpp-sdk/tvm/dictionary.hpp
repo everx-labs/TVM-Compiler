@@ -9,6 +9,7 @@ namespace tvm {
 
 class dictionary {
 public:
+  dictionary() {}
   explicit dictionary(cell dict) : dict_(dict) {}
 
   static dictionary get_persistent() { 
@@ -17,7 +18,7 @@ public:
   }
 
   static void set_persistent(dictionary dict) {
-    __builtin_tvm_set_persistent_data(tvm::builder().stdict(dict.get()).endc());
+    __builtin_tvm_set_persistent_data(builder().stdict(dict.get()).endc());
   }
 
   std::tuple<slice, bool> dictget(slice key, unsigned key_len) const {

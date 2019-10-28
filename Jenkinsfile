@@ -11,7 +11,7 @@ G_Wbuildstatus = "NotSet"
 G_Wclangstatus = "NotSet"
 G_Wllvmstatus = "NotSet"
 G_Wteststatus = "NotSet"
-G_workdir = "/opt/work"
+G_workdir = "/opt/work/${GIT_COMMIT}.${BUILD_NUMBER}"
 G_ramdir = "/media/ramdisk/toolchain"
 C_PROJECT = "NotSet"
 C_COMMITER = "NotSet"
@@ -33,7 +33,6 @@ pipeline {
     options {
         buildDiscarder logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '20')
         disableConcurrentBuilds()
-        lock('RamDrive')
         }
     environment {
         WORKDIR = getVar(G_workdir)
@@ -142,6 +141,11 @@ pipeline {
             }
             stage('On Windows'){
                 agent { label 'Win01' }
+                when {
+                    expression {
+                        return false
+                    }
+                }
                 stages{
                     stage('Configure'){
                         steps {

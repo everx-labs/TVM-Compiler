@@ -60,15 +60,15 @@ defm CONFIGOPTPARAM : I<(outs Cell:$param), (ins I257:$idx), (outs), (ins),
                         0xf833>;
 
 // A.11.5. Global variable primitives.
-defm GETGLOB : I<(outs I257:$rv), (ins uimm1_31:$idx), (outs), (ins),
+defm GETGLOB : I<(outs I257:$rv), (ins uimm1_31:$idx), (outs), (ins uimm1_31:$idx),
                  [(set I257:$rv, (int_tvm_getglobal uimm1_31:$idx))],
-                 "GETGLOB\t$rv, $idx", "GETGLOB", 0xf850>;
+                 "GETGLOB\t$rv, $idx", "GETGLOB\t$idx", 0xf8500>;
 defm GETGLOBVAR : I<(outs I257:$rv), (ins I257:$idx), (outs), (ins),
                     [(set I257:$rv, (int_tvm_getglobal I257:$idx))],
                     "GETGLOBVAR\t$rv, $idx", "GETGLOBVAR", 0xf840>;
-defm SETGLOB : I<(outs), (ins I257:$val, uimm1_31:$idx), (outs), (ins),
+defm SETGLOB : I<(outs), (ins I257:$val, uimm1_31:$idx), (outs), (ins uimm1_31:$idx),
                  [(int_tvm_setglobal uimm1_31:$idx, I257:$val)],
-                 "SETGLOB\t$idx, $val", "SETGLOB", 0xf870>;
+                 "SETGLOB\t$idx, $val", "SETGLOB\t$idx", 0xf8700>;
 defm SETGLOBVAR : I<(outs), (ins I257:$val, I257:$idx), (outs), (ins),
                     [(int_tvm_setglobal I257:$idx, I257:$val)],
                     "SETGLOBVAR\t$idx, $val", "SETGLOBVAR", 0xf860>;

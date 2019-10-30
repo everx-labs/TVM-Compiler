@@ -118,6 +118,8 @@ void TVMDAGToDAGISel::Select(SDNode *Node) {
   }
   case TVMISD::CALLN: {
     SmallVector<SDValue, 16> Ops(std::next(Node->op_begin()), Node->op_end());
+    assert(Ops[0].getOpcode() == TVMISD::GLOBAL_ADDRESS_WRAPPER);
+    Ops[0] = Ops[0].getOperand(0); // unwrap the address
     auto SzVal = Ops.back();
     unsigned Sz = cast<ConstantSDNode>(SzVal)->getZExtValue();
     Ops.pop_back();

@@ -101,10 +101,10 @@ define slice @ldi(slice %slice, i257 %size) {
 
 ; =================================== A.X =====================================
 ; CHECK-LABEL: newdict
-define slice @newdict() nounwind {
+define cell @newdict() nounwind {
 ; CHECK: NEWDICT
-  %1 = call slice @llvm.tvm.newdict()
-  ret slice %1
+  %1 = call cell @llvm.tvm.newdict()
+  ret cell %1
 }
 
 ; CHECK-LABEL: newc
@@ -350,7 +350,7 @@ declare slice @llvm.tvm.ctos(cell %cell)
 declare builder @llvm.tvm.sti(i257 %value, builder %builder, i257 %size)
 declare builder @llvm.tvm.stu(i257 %value, builder %builder, i257 %size)
 declare {i257, slice} @llvm.tvm.ldi(slice %slice, i257 %size)
-declare slice @llvm.tvm.newdict() nounwind
+declare cell @llvm.tvm.newdict() nounwind
 declare builder @llvm.tvm.newc() nounwind
 declare cell @llvm.tvm.get.persistent.data() nounwind
 declare i257 @llvm.tvm.getreg(i257 %regno) nounwind

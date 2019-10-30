@@ -107,34 +107,37 @@ let TargetPrefix = "tvm" in {
 
   // A.10 Dictionary manipulation primitives
   def int_tvm_newdict : GCCBuiltin<"__builtin_tvm_newdict">,
-                        Intrinsic<[llvm_TVMSlice_ty /* Dictionary */], []>;
+                        Intrinsic<[llvm_TVMCell_ty /* Dictionary */], []>;
   def int_tvm_dictuget :
     GCCBuiltin<"__builtin_tvm_dictuget">,
-    Intrinsic<[llvm_TVMSlice_ty /* Dictionary */, llvm_i257_ty],
-              [llvm_i257_ty, llvm_TVMSlice_ty /* Dictionary */, llvm_i257_ty]>;
+    Intrinsic<[llvm_TVMSlice_ty /* Value */, llvm_i257_ty],
+              [llvm_i257_ty, llvm_TVMCell_ty /* Dictionary */, llvm_i257_ty]>;
   def int_tvm_dictiget :
     GCCBuiltin<"__builtin_tvm_dictiget">,
-    Intrinsic<[llvm_TVMSlice_ty /* Dictionary */, llvm_i257_ty],
-              [llvm_i257_ty, llvm_TVMSlice_ty /* Dictionary */, llvm_i257_ty]>;
+    Intrinsic<[llvm_TVMSlice_ty /* Value */, llvm_i257_ty],
+              [llvm_i257_ty, llvm_TVMCell_ty /* Dictionary */, llvm_i257_ty]>;
   def int_tvm_dictuset :
     GCCBuiltin<"__builtin_tvm_dictuset">,
-    Intrinsic<[llvm_TVMSlice_ty],
-              [llvm_i257_ty, llvm_i257_ty, llvm_TVMSlice_ty /* Dictionary */, llvm_i257_ty]>;
+    Intrinsic<[llvm_TVMCell_ty] /* Dictionary */,
+              [llvm_i257_ty, llvm_i257_ty, llvm_TVMCell_ty /* Dictionary */,
+              llvm_i257_ty]>;
   def int_tvm_dictiset :
     GCCBuiltin<"__builtin_tvm_dictiset">,
-    Intrinsic<[llvm_TVMSlice_ty],
-              [llvm_i257_ty, llvm_i257_ty, llvm_TVMSlice_ty /* Dictionary */, llvm_i257_ty]>;
+    Intrinsic<[llvm_TVMCell_ty] /* Dictionary */,
+              [llvm_i257_ty, llvm_i257_ty, llvm_TVMCell_ty /* Dictionary */,
+              llvm_i257_ty]>;
   def int_tvm_plddict :
     GCCBuiltin<"__builtin_tvm_plddict">,
-    Intrinsic<[llvm_TVMCell_ty], [llvm_TVMSlice_ty /* Dictionary */], [IntrNoMem]>;
+    Intrinsic<[llvm_TVMCell_ty], [llvm_TVMSlice_ty /* Dictionary-as-Slice */],
+              [IntrNoMem]>;
   def int_tvm_stdicts :
     GCCBuiltin<"__builtin_tvm_stdicts">,
     Intrinsic<[llvm_TVMBuilder_ty], [llvm_TVMSlice_ty, llvm_TVMBuilder_ty],
               [IntrNoMem, Throws]>;
   def int_tvm_stdict :
     GCCBuiltin<"__builtin_tvm_stdict">,
-    Intrinsic<[llvm_TVMBuilder_ty], [llvm_TVMCell_ty /* Dictionary */, llvm_TVMBuilder_ty],
-              [IntrNoMem, Throws]>;
+    Intrinsic<[llvm_TVMBuilder_ty], [llvm_TVMCell_ty /* Dictionary-as-Slice */,
+              llvm_TVMBuilder_ty], [IntrNoMem, Throws]>;
 
   // A.11 Application-specific primitives
   def int_tvm_accept :

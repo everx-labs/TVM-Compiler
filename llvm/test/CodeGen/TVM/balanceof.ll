@@ -6,16 +6,15 @@ target triple = "tvm"
 define i257 @balanceof(i257 %owner) nounwind {
 entry:
    %root_cell = call cell @llvm.tvm.get.persistent.data()
-   %root = call slice @llvm.tvm.ctos(cell %root_cell)
-   %bal_raw = call {slice, i257} @llvm.tvm.dictuget(i257 0, slice %root, i257 256)
+   %bal_raw = call {slice, i257} @llvm.tvm.dictuget(i257 0, cell %root_cell, i257 256)
    %bal_ref = extractvalue {slice, i257} %bal_raw, 0
    %bal_ref_stat = extractvalue {slice, i257} %bal_raw, 1
    %cond = icmp ne i257 %bal_ref_stat, 0
    br i1 %cond, label %get_owner_dict, label %retres
 get_owner_dict:
-   %bal_dict_ext = call {slice, slice} @llvm.tvm.ldrefrtos(slice %bal_ref) nounwind
-   %bal_dict = extractvalue {slice, slice} %bal_dict_ext, 0
-   %bal_owner_raw = call {slice, i257} @llvm.tvm.dictuget(i257 %owner, slice %bal_dict, i257 256)
+   %bal_dict_ext = call {cell, slice} @llvm.tvm.ldref(slice %bal_ref) nounwind
+   %bal_dict = extractvalue {cell, slice} %bal_dict_ext, 0
+   %bal_owner_raw = call {slice, i257} @llvm.tvm.dictuget(i257 %owner, cell %bal_dict, i257 256)
    %bal_owner_ref = extractvalue {slice, i257} %bal_owner_raw, 0
    %bal_owner_ref_stat = extractvalue {slice, i257} %bal_owner_raw, 1
    %cond1 = icmp ne i257 %bal_owner_ref_stat, 0
@@ -31,6 +30,6 @@ retres:
 
 declare cell @llvm.tvm.get.persistent.data() nounwind
 declare slice @llvm.tvm.ctos(cell %cell) nounwind
-declare {slice, i257} @llvm.tvm.dictuget(i257 %key, slice %dict_id, i257 %keylen)
-declare {slice, slice} @llvm.tvm.ldrefrtos(slice %slice) nounwind
+declare {slice, i257} @llvm.tvm.dictuget(i257 %key, cell %dict_id, i257 %keylen)
+declare {cell, slice} @llvm.tvm.ldref(slice %slice) nounwind
 declare {i257, slice} @llvm.tvm.ldu(slice %slice, i257 %precision) nounwind

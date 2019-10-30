@@ -132,11 +132,11 @@ let TargetPrefix = "tvm" in {
               [IntrNoMem]>;
   def int_tvm_stdicts :
     GCCBuiltin<"__builtin_tvm_stdicts">,
-    Intrinsic<[llvm_TVMBuilder_ty], [llvm_TVMSlice_ty, llvm_TVMBuilder_ty],
-              [IntrNoMem, Throws]>;
+    Intrinsic<[llvm_TVMBuilder_ty], [llvm_TVMSlice_ty /* Dictionary-as-Slice */,
+              llvm_TVMBuilder_ty], [IntrNoMem, Throws]>;
   def int_tvm_stdict :
     GCCBuiltin<"__builtin_tvm_stdict">,
-    Intrinsic<[llvm_TVMBuilder_ty], [llvm_TVMCell_ty /* Dictionary-as-Slice */,
+    Intrinsic<[llvm_TVMBuilder_ty], [llvm_TVMCell_ty /* Dictionary */,
               llvm_TVMBuilder_ty], [IntrNoMem, Throws]>;
 
   // A.11 Application-specific primitives

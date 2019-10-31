@@ -28,6 +28,11 @@ pipeline {
             description: 'Promote image built to be used as latest',
             name : 'FORCE_PROMOTE_LATEST'
         )
+        booleanParam (
+            defaultValue: false,
+            description: 'Build LLVM on windows agent',
+            name : 'BUILD_ON_WINDOWS'
+        )
     }
     agent none
     options {
@@ -142,6 +147,11 @@ pipeline {
             }
             stage('On Windows'){
                 agent { label 'Win01' }
+                when {
+                    expression {
+                        return params.BUILD_ON_WINDOWS
+                    }
+                }
                 stages{
                     stage('Configure'){
                         steps {

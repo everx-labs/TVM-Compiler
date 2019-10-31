@@ -1190,6 +1190,30 @@ static QualType ConvertDeclSpecToType(TypeProcessingState &state) {
 
   ASTContext &Context = S.Context;
 
+  if (S.Context.getTargetInfo().getTriple().getArch() == llvm::Triple::tvm) {
+    switch (DS.getTypeSpecType()) {
+    default: break;
+    case DeclSpec::TST_char8:
+    case DeclSpec::TST_char16:
+    case DeclSpec::TST_char32:
+    case DeclSpec::TST_accum:
+    case DeclSpec::TST_fract:
+    case DeclSpec::TST_int128:
+    case DeclSpec::TST_float16:
+    case DeclSpec::TST_half:
+    case DeclSpec::TST_float:
+    case DeclSpec::TST_double:
+    case DeclSpec::TST_float128:
+    case DeclSpec::TST_decimal32:
+    case DeclSpec::TST_decimal64:
+    case DeclSpec::TST_decimal128:
+      S.Diag(DS.getTypeSpecTypeLoc(), diag::err_type_unsupported)
+        << DS.getSpecifierName(DS.getTypeSpecType(),
+                               Context.getPrintingPolicy());
+      break;
+    }
+  }
+
   QualType Result;
   switch (DS.getTypeSpecType()) {
   case DeclSpec::TST_void:

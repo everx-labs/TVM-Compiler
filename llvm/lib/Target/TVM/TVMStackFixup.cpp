@@ -388,6 +388,11 @@ StackFixup StackFixup::DiffForArgs(const Stack &From, const MIArgs &Args,
     auto Pos1 = ArgInfo[1].SrcPos;
     auto Push0 = ArgInfo[0].Push;
     auto Push1 = ArgInfo[1].Push;
+
+    if (Push0 && Ar[0].Vreg.VirtReg == TVMFunctionInfo::UnusedReg &&
+        Push1 && Ar[1].Vreg.VirtReg == TVMFunctionInfo::UnusedReg)
+      rv(CurStack += rv(pushUndef()));
+
     if (Push0 && Push1) {
       StackPatterns::pattern2_pp(rv, Pos0, Pos1);
     } else if (!Push0 && !Push1) {
@@ -406,6 +411,11 @@ StackFixup StackFixup::DiffForArgs(const Stack &From, const MIArgs &Args,
     auto Push0 = ArgInfo[0].Push;
     auto Push1 = ArgInfo[1].Push;
     auto Push2 = ArgInfo[2].Push;
+
+    if (Push0 && Ar[0].Vreg.VirtReg == TVMFunctionInfo::UnusedReg &&
+        Push1 && Ar[1].Vreg.VirtReg == TVMFunctionInfo::UnusedReg &&
+        Push2 && Ar[2].Vreg.VirtReg == TVMFunctionInfo::UnusedReg)
+      rv(CurStack += rv(pushUndef()));
 
     if (!Push0 && !Push1 && !Push2)
       StackPatterns::pattern3_xxx(rv, Pos0, Pos1, Pos2);

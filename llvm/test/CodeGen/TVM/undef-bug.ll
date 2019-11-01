@@ -24,3 +24,61 @@ define i257 @baz() {
 entry:
   ret i257 undef
 }
+
+define void @two1() {
+  call void @two(i257 12345, i257 undef)
+  ret void
+}
+define void @two2() {
+  call void @two(i257 undef, i257 12345)
+  ret void
+}
+define void @two3() {
+  call void @two(i257 undef, i257 undef)
+  ret void
+}
+declare void @two(i257, i257)
+
+define void @three1() {
+  call void @three(i257 12345, i257 12345, i257 undef)
+  ret void
+}
+define void @three2() {
+  call void @three(i257 12345, i257 undef, i257 12345)
+  ret void
+}
+define void @three3() {
+  call void @three(i257 12345, i257 undef, i257 undef)
+  ret void
+}
+define void @three4() {
+  call void @three(i257 undef, i257 12345, i257 12345)
+  ret void
+}
+define void @three5() {
+  call void @three(i257 undef, i257 12345, i257 undef)
+  ret void
+}
+define void @three6() {
+  call void @three(i257 undef, i257 undef, i257 12345)
+  ret void
+}
+define void @three7() {
+  call void @three(i257 undef, i257 undef, i257 undef)
+  ret void
+}
+declare void @three(i257, i257, i257)
+
+define void @four1() {
+  call void @four(i257 undef, i257 undef, i257 undef, i257 undef)
+  ret void
+}
+define void @four2() {
+  call void @four(i257 undef, i257 12345, i257 12345, i257 12345)
+  ret void
+}
+define void @four3() {
+  call void @four(i257 12345, i257 12345, i257 12345, i257 undef)
+  ret void
+}
+declare void @four(i257, i257, i257, i257)

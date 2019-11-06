@@ -199,10 +199,13 @@ Value *LibCallSimplifier::optimizeStrNCat(CallInst *CI, IRBuilder<> &B) {
   uint64_t Len;
 
   // We don't do anything if length is not constant.
-  if (ConstantInt *LengthArg = dyn_cast<ConstantInt>(CI->getArgOperand(2)))
-    Len = LengthArg->getZExtValue();
-  else
+  ConstantInt *LengthArg = dyn_cast<ConstantInt>(CI->getArgOperand(2));
+  if (!LengthArg)
     return nullptr;
+  if (!LengthArg->getValue().isIntN(64))
+    return nullptr;
+
+  Len = LengthArg->getZExtValue();
 
   // See if we can get the length of the input string.
   uint64_t SrcLen = GetStringLength(Src);

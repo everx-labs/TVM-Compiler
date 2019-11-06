@@ -4196,6 +4196,8 @@ SDValue SelectionDAG::FoldSymbolOffset(unsigned Opcode, EVT VT,
   const ConstantSDNode *Cst2 = dyn_cast<ConstantSDNode>(N2);
   if (!Cst2)
     return SDValue();
+  if (!Cst2->getAPIntValue().isSignedIntN(64))
+    return SDValue();
   int64_t Offset = Cst2->getSExtValue();
   switch (Opcode) {
   case ISD::ADD: break;
@@ -5725,11 +5727,13 @@ SDValue SelectionDAG::getMemcpy(SDValue Chain, const SDLoc &dl, SDValue Dst,
     if (ConstantSize->isNullValue())
       return Chain;
 
-    SDValue Result = getMemcpyLoadsAndStores(*this, dl, Chain, Dst, Src,
-                                             ConstantSize->getZExtValue(),Align,
-                                isVol, false, DstPtrInfo, SrcPtrInfo);
-    if (Result.getNode())
-      return Result;
+    if (ConstantSize->getAPIntValue().isIntN(64)) {
+      SDValue Result = getMemcpyLoadsAndStores(*this, dl, Chain, Dst, Src,
+                                               ConstantSize->getZExtValue(),Align,
+                                  isVol, false, DstPtrInfo, SrcPtrInfo);
+      if (Result.getNode())
+        return Result;
+    }
   }
 
   // Then check to see if we should lower the memcpy with target-specific
@@ -5839,12 +5843,14 @@ SDValue SelectionDAG::getMemmove(SDValue Chain, const SDLoc &dl, SDValue Dst,
     if (ConstantSize->isNullValue())
       return Chain;
 
-    SDValue Result =
-      getMemmoveLoadsAndStores(*this, dl, Chain, Dst, Src,
-                               ConstantSize->getZExtValue(), Align, isVol,
-                               false, DstPtrInfo, SrcPtrInfo);
-    if (Result.getNode())
-      return Result;
+    if (ConstantSize->getAPIntValue().isIntN(64)) {
+      SDValue Result =
+        getMemmoveLoadsAndStores(*this, dl, Chain, Dst, Src,
+                                 ConstantSize->getZExtValue(), Align, isVol,
+                                 false, DstPtrInfo, SrcPtrInfo);
+      if (Result.getNode())
+        return Result;
+    }
   }
 
   // Then check to see if we should lower the memmove with target-specific
@@ -5940,12 +5946,14 @@ SDValue SelectionDAG::getMemset(SDValue Chain, const SDLoc &dl, SDValue Dst,
     if (ConstantSize->isNullValue())
       return Chain;
 
-    SDValue Result =
-      getMemsetStores(*this, dl, Chain, Dst, Src, ConstantSize->getZExtValue(),
-                      Align, isVol, DstPtrInfo);
+    if (ConstantSize->getAPIntValue().isIntN(64)) {
+      SDValue Result =
+        getMemsetStores(*this, dl, Chain, Dst, Src, ConstantSize->getZExtValue(),
+                        Align, isVol, DstPtrInfo);
 
-    if (Result.getNode())
-      return Result;
+      if (Result.getNode())
+        return Result;
+    }
   }
 
   // Then check to see if we should lower the memset with target-specific
@@ -8479,6 +8487,8 @@ unsigned SelectionDAG::InferPtrAlignment(SDValue Ptr) const {
              isa<FrameIndexSDNode>(Ptr.getOperand(0))) {
     // Handle FI+Cst
     FrameIdx = cast<FrameIndexSDNode>(Ptr.getOperand(0))->getIndex();
+    if (!cast<ConstantSDNode>(Ptr.getOperand(1))->getAPIntValue().isIntN(64))
+      return 0;
     FrameOffset = Ptr.getConstantOperandVal(1);
   }
 

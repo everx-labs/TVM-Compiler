@@ -262,8 +262,12 @@ public:
   }
 
   void addMemSet(int64_t OffsetFromFirst, MemSetInst *MSI) {
-    int64_t Size = cast<ConstantInt>(MSI->getLength())->getZExtValue();
-    addRange(OffsetFromFirst, Size, MSI->getDest(), MSI->getDestAlignment(), MSI);
+    auto C = cast<ConstantInt>(MSI->getLength());
+    if (C->getValue().isIntN(64)) {
+      int64_t Size = C->getZExtValue();
+      addRange(OffsetFromFirst, Size,
+               MSI->getDest(), MSI->getDestAlignment(), MSI);
+    }
   }
 
   void addRange(int64_t Start, int64_t Size, Value *Ptr,

@@ -1889,7 +1889,7 @@ Instruction *InstCombiner::visitCallInst(CallInst &CI) {
         return eraseInstFromFunction(CI);
 
       if (ConstantInt *CI = dyn_cast<ConstantInt>(NumBytes))
-        if (CI->getZExtValue() == 1) {
+        if (CI->getValue().isIntN(64) && CI->getZExtValue() == 1) {
           // Replace the instruction with just byte operations.  We would
           // transform other cases to loads/stores, but we don't know if
           // alignment is sufficient.

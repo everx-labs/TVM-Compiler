@@ -502,7 +502,7 @@ bool BasicAAResult::DecomposeGEPExpression(const Value *V,
 
       // For an array/pointer, add the element offset, explicitly scaled.
       if (const ConstantInt *CIdx = dyn_cast<ConstantInt>(Index)) {
-        if (CIdx->isZero())
+        if (CIdx->isZero() || !CIdx->getValue().isSignedIntN(64))
           continue;
         Decomposed.OtherOffset +=
           DL.getTypeAllocSize(GTI.getIndexedType()) * CIdx->getSExtValue();

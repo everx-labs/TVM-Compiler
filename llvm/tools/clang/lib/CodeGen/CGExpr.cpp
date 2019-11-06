@@ -3285,13 +3285,14 @@ static CharUnits getArrayElementAlign(CharUnits arrayAlign,
   // If we have a constant index, we can use the exact offset of the
   // element we're accessing.
   if (auto constantIdx = dyn_cast<llvm::ConstantInt>(idx)) {
-    CharUnits offset = constantIdx->getZExtValue() * eltSize;
-    return arrayAlign.alignmentAtOffset(offset);
+    if (constantIdx->getValue().isIntN(64)) {
+      CharUnits offset = constantIdx->getZExtValue() * eltSize;
+      return arrayAlign.alignmentAtOffset(offset);
+    }
+  }
 
   // Otherwise, use the worst-case alignment for any element.
-  } else {
-    return arrayAlign.alignmentOfArrayElement(eltSize);
-  }
+  return arrayAlign.alignmentOfArrayElement(eltSize);
 }
 
 static QualType getFixedSizeElementType(const ASTContext &ctx,

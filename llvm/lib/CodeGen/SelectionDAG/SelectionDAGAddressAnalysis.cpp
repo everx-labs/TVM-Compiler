@@ -112,9 +112,11 @@ BaseIndexOffset BaseIndexOffset::match(LSBaseSDNode *N,
       break;
     case ISD::ADD:
       if (auto *C = dyn_cast<ConstantSDNode>(Base->getOperand(1))) {
-        Offset += C->getSExtValue();
-        Base = Base->getOperand(0);
-        continue;
+        if (C->getAPIntValue().isSignedIntN(64)) {
+          Offset += C->getSExtValue();
+          Base = Base->getOperand(0);
+          continue;
+        }
       }
       break;
     case ISD::LOAD:
@@ -123,14 +125,16 @@ BaseIndexOffset BaseIndexOffset::match(LSBaseSDNode *N,
       unsigned int IndexResNo = (Base->getOpcode() == ISD::LOAD) ? 1 : 0;
       if (LSBase->isIndexed() && Base.getResNo() == IndexResNo)
         if (auto *C = dyn_cast<ConstantSDNode>(LSBase->getOffset())) {
-          auto Off = C->getSExtValue();
-          if (LSBase->getAddressingMode() == ISD::PRE_DEC ||
-              LSBase->getAddressingMode() == ISD::POST_DEC)
-            Offset -= Off;
-          else
-            Offset += Off;
-          Base = LSBase->getBasePtr();
-          continue;
+          if (C->getAPIntValue().isSignedIntN(64)) {
+            auto Off = C->getSExtValue();
+            if (LSBase->getAddressingMode() == ISD::PRE_DEC ||
+                LSBase->getAddressingMode() == ISD::POST_DEC)
+              Offset -= Off;
+            else
+              Offset += Off;
+            Base = LSBase->getBasePtr();
+            continue;
+          }
         }
       break;
     }

@@ -3178,6 +3178,10 @@ Value *llvm::GetPointerBaseWithConstantOffset(Value *Ptr, int64_t &Offset,
       if (!GEP->accumulateConstantOffset(DL, GEPOffset))
         break;
 
+      if (!GEPOffset.isSignedIntN(64)) {
+        Offset = -1;
+        return nullptr;
+      }
       ByteOffset += GEPOffset.getSExtValue();
 
       Ptr = GEP->getPointerOperand();
@@ -3192,6 +3196,12 @@ Value *llvm::GetPointerBaseWithConstantOffset(Value *Ptr, int64_t &Offset,
       break;
     }
   }
+
+  if (!ByteOffset.isSignedIntN(64)) {
+    Offset = -1;
+    return nullptr;
+  }
+
   Offset = ByteOffset.getSExtValue();
   return Ptr;
 }

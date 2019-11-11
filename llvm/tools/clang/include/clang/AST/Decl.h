@@ -3047,8 +3047,8 @@ private:
 
 protected:
   // These are used by (and only defined for) EnumDecl.
-  unsigned NumPositiveBits : 8;
-  unsigned NumNegativeBits : 8;
+  unsigned NumPositiveBits : 9;
+  unsigned NumNegativeBits : 9;
 
   /// True if this tag declaration is a scoped enumeration. Only
   /// possible in C++11 mode.

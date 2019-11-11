@@ -1844,7 +1844,7 @@ CodeGenFunction::EmitNullInitialization(Address DestPtr, QualType Ty) {
   // Otherwise, just memset the whole thing to zero.  This is legal
   // because in LLVM, all default initializers (other than the ones we just
   // handled above) are guaranteed to have a bit pattern of all zeros.
-  Builder.CreateMemSet(DestPtr, Builder.getInt8(0), SizeVal, false);
+  Builder.CreateMemSet(DestPtr, Builder.getByte(0), SizeVal, false);
 }
 
 llvm::BlockAddress *CodeGenFunction::GetAddrOfLabel(const LabelDecl *L) {

@@ -183,7 +183,7 @@ Value *LibCallSimplifier::emitStrLenMemCpy(Value *Src, Value *Dst, uint64_t Len,
   // Now that we have the destination's length, we must index into the
   // destination's pointer to get the actual memcpy destination (end of
   // the string .. we're concatenating).
-  Value *CpyDst = B.CreateGEP(B.getInt8Ty(), Dst, DstLen, "endptr");
+  Value *CpyDst = B.CreateGEP(B.getByteTy(), Dst, DstLen, "endptr");
 
   // We have enough information to now generate the memcpy call to do the
   // concatenation for us.  Make a memcpy to copy the nul byte with align = 1.
@@ -251,7 +251,7 @@ Value *LibCallSimplifier::optimizeStrChr(CallInst *CI, IRBuilder<> &B) {
   StringRef Str;
   if (!getConstantStringInfo(SrcStr, Str)) {
     if (CharC->isZero()) // strchr(p, 0) -> p + strlen(p)
-      return B.CreateGEP(B.getInt8Ty(), SrcStr, emitStrLen(SrcStr, B, DL, TLI),
+      return B.CreateGEP(B.getByteTy(), SrcStr, emitStrLen(SrcStr, B, DL, TLI),
                          "strchr");
     return nullptr;
   }
@@ -265,7 +265,7 @@ Value *LibCallSimplifier::optimizeStrChr(CallInst *CI, IRBuilder<> &B) {
     return Constant::getNullValue(CI->getType());
 
   // strchr(s+n,c)  -> gep(s+n+i,c)
-  return B.CreateGEP(B.getInt8Ty(), SrcStr, B.getInt64(I), "strchr");
+  return B.CreateGEP(B.getByteTy(), SrcStr, B.getInt64(I), "strchr");
 }
 
 Value *LibCallSimplifier::optimizeStrRChr(CallInst *CI, IRBuilder<> &B) {
@@ -292,7 +292,7 @@ Value *LibCallSimplifier::optimizeStrRChr(CallInst *CI, IRBuilder<> &B) {
     return Constant::getNullValue(CI->getType());
 
   // strrchr(s+n,c) -> gep(s+n+i,c)
-  return B.CreateGEP(B.getInt8Ty(), SrcStr, B.getInt64(I), "strrchr");
+  return B.CreateGEP(B.getByteTy(), SrcStr, B.getInt64(I), "strrchr");
 }
 
 Value *LibCallSimplifier::optimizeStrCmp(CallInst *CI, IRBuilder<> &B) {
@@ -389,7 +389,7 @@ Value *LibCallSimplifier::optimizeStpCpy(CallInst *CI, IRBuilder<> &B) {
   Value *Dst = CI->getArgOperand(0), *Src = CI->getArgOperand(1);
   if (Dst == Src) { // stpcpy(x,x)  -> x+strlen(x)
     Value *StrLen = emitStrLen(Src, B, DL, TLI);
-    return StrLen ? B.CreateInBoundsGEP(B.getInt8Ty(), Dst, StrLen) : nullptr;
+    return StrLen ? B.CreateInBoundsGEP(B.getByteTy(), Dst, StrLen) : nullptr;
   }
 
   // See if we can get the length of the input string.
@@ -399,7 +399,7 @@ Value *LibCallSimplifier::optimizeStpCpy(CallInst *CI, IRBuilder<> &B) {
 
   Type *PT = Callee->getFunctionType()->getParamType(0);
   Value *LenV = ConstantInt::get(DL.getIntPtrType(PT), Len);
-  Value *DstEnd = B.CreateGEP(B.getInt8Ty(), Dst,
+  Value *DstEnd = B.CreateGEP(B.getByteTy(), Dst,
                               ConstantInt::get(DL.getIntPtrType(PT), Len - 1));
 
   // We have enough information to now generate the memcpy call to do the
@@ -422,7 +422,7 @@ Value *LibCallSimplifier::optimizeStrNCpy(CallInst *CI, IRBuilder<> &B) {
 
   if (SrcLen == 0) {
     // strncpy(x, "", y) -> memset(align 1 x, '\0', y)
-    B.CreateMemSet(Dst, B.getInt8('\0'), LenOp, 1);
+    B.CreateMemSet(Dst, B.getByte('\0'), LenOp, 1);
     return Dst;
   }
 
@@ -566,7 +566,7 @@ Value *LibCallSimplifier::optimizeStrPBrk(CallInst *CI, IRBuilder<> &B) {
     if (I == StringRef::npos) // No match.
       return Constant::getNullValue(CI->getType());
 
-    return B.CreateGEP(B.getInt8Ty(), CI->getArgOperand(0), B.getInt64(I),
+    return B.CreateGEP(B.getByteTy(), CI->getArgOperand(0), B.getInt64(I),
                        "strpbrk");
   }
 
@@ -762,7 +762,7 @@ Value *LibCallSimplifier::optimizeMemChr(CallInst *CI, IRBuilder<> &B) {
     return Constant::getNullValue(CI->getType());
 
   // memchr(s+n,c,l) -> gep(s+n+i,c)
-  return B.CreateGEP(B.getInt8Ty(), SrcStr, B.getInt64(I), "memchr");
+  return B.CreateGEP(B.getByteTy(), SrcStr, B.getInt64(I), "memchr");
 }
 
 Value *LibCallSimplifier::optimizeMemCmp(CallInst *CI, IRBuilder<> &B) {
@@ -914,7 +914,7 @@ Value *LibCallSimplifier::optimizeMemSet(CallInst *CI, IRBuilder<> &B) {
     return Calloc;
 
   // memset(p, v, n) -> llvm.memset(align 1 p, v, n)
-  Value *Val = B.CreateIntCast(CI->getArgOperand(1), B.getInt8Ty(), false);
+  Value *Val = B.CreateIntCast(CI->getArgOperand(1), B.getByteTy(), false);
   B.CreateMemSet(CI->getArgOperand(0), Val, CI->getArgOperand(2), 1);
   return CI->getArgOperand(0);
 }
@@ -1888,11 +1888,11 @@ Value *LibCallSimplifier::optimizeSPrintFString(CallInst *CI, IRBuilder<> &B) {
     // sprintf(dst, "%c", chr) --> *(i8*)dst = chr; *((i8*)dst+1) = 0
     if (!CI->getArgOperand(2)->getType()->isIntegerTy())
       return nullptr;
-    Value *V = B.CreateTrunc(CI->getArgOperand(2), B.getInt8Ty(), "char");
+    Value *V = B.CreateTrunc(CI->getArgOperand(2), B.getByteTy(), "char");
     Value *Ptr = castToCStr(CI->getArgOperand(0), B);
     B.CreateStore(V, Ptr);
-    Ptr = B.CreateGEP(B.getInt8Ty(), Ptr, B.getInt32(1), "nul");
-    B.CreateStore(B.getInt8(0), Ptr);
+    Ptr = B.CreateGEP(B.getByteTy(), Ptr, B.getInt32(1), "nul");
+    B.CreateStore(B.getByte(0), Ptr);
 
     return ConstantInt::get(CI->getType(), 1);
   }
@@ -1985,11 +1985,11 @@ Value *LibCallSimplifier::optimizeSnPrintFString(CallInst *CI, IRBuilder<> &B) {
       // snprintf(dst, size, "%c", chr) --> *(i8*)dst = chr; *((i8*)dst+1) = 0
       if (!CI->getArgOperand(3)->getType()->isIntegerTy())
         return nullptr;
-      Value *V = B.CreateTrunc(CI->getArgOperand(3), B.getInt8Ty(), "char");
+      Value *V = B.CreateTrunc(CI->getArgOperand(3), B.getByteTy(), "char");
       Value *Ptr = castToCStr(CI->getArgOperand(0), B);
       B.CreateStore(V, Ptr);
-      Ptr = B.CreateGEP(B.getInt8Ty(), Ptr, B.getInt32(1), "nul");
-      B.CreateStore(B.getInt8(0), Ptr);
+      Ptr = B.CreateGEP(B.getByteTy(), Ptr, B.getInt32(1), "nul");
+      B.CreateStore(B.getByte(0), Ptr);
 
       return ConstantInt::get(CI->getType(), 1);
     }
@@ -2603,7 +2603,7 @@ Value *FortifiedLibCallSimplifier::optimizeMemSetChk(CallInst *CI,
   // TODO: Try foldMallocMemset() here.
 
   if (isFortifiedCallFoldable(CI, 3, 2, false)) {
-    Value *Val = B.CreateIntCast(CI->getArgOperand(1), B.getInt8Ty(), false);
+    Value *Val = B.CreateIntCast(CI->getArgOperand(1), B.getByteTy(), false);
     B.CreateMemSet(CI->getArgOperand(0), Val, CI->getArgOperand(2), 1);
     return CI->getArgOperand(0);
   }
@@ -2622,7 +2622,7 @@ Value *FortifiedLibCallSimplifier::optimizeStrpCpyChk(CallInst *CI,
   // __stpcpy_chk(x,x,...)  -> x+strlen(x)
   if (Func == LibFunc_stpcpy_chk && !OnlyLowerUnknownSize && Dst == Src) {
     Value *StrLen = emitStrLen(Src, B, DL, TLI);
-    return StrLen ? B.CreateInBoundsGEP(B.getInt8Ty(), Dst, StrLen) : nullptr;
+    return StrLen ? B.CreateInBoundsGEP(B.getByteTy(), Dst, StrLen) : nullptr;
   }
 
   // If a) we don't have any length information, or b) we know this will
@@ -2647,7 +2647,7 @@ Value *FortifiedLibCallSimplifier::optimizeStrpCpyChk(CallInst *CI,
   // If the function was an __stpcpy_chk, and we were able to fold it into
   // a __memcpy_chk, we still need to return the correct end pointer.
   if (Ret && Func == LibFunc_stpcpy_chk)
-    return B.CreateGEP(B.getInt8Ty(), Dst, ConstantInt::get(SizeTTy, Len - 1));
+    return B.CreateGEP(B.getByteTy(), Dst, ConstantInt::get(SizeTTy, Len - 1));
   return Ret;
 }
 

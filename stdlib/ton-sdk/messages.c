@@ -14,35 +14,40 @@ MsgAddressInt build_msg_address_int (int workchain, unsigned account) {
 }
 
 void build_internal_message (MsgAddressInt* dest, unsigned value) {
-    Grams val_grams;
+  build_internal_message_bounce(dest, value, 0);
+}
 
-    val_grams.amount.len = tonstdlib_ubytesize (value);
-    val_grams.amount.value = value;
+void build_internal_message_bounce(MsgAddressInt *dest, unsigned value,
+                                   unsigned bounce) {
+  Grams val_grams;
 
-    CurrencyCollection val;
-    val.grams = val_grams;
-    val.other = 0;
+  val_grams.amount.len = tonstdlib_ubytesize(value);
+  val_grams.amount.value = value;
 
-    Grams zero_grams;
-    zero_grams.amount.len = 0;
-    zero_grams.amount.value = 0;
-    EmptyMessage msg;
+  CurrencyCollection val;
+  val.grams = val_grams;
+  val.other = 0;
 
-    msg.info.zero = 0;
-    msg.info.ihr_disabled = 0;
-    msg.info.bounce = 0;
-    msg.info.bounced = 0;
-    msg.info.src = *dest; // will be rewirtten by Node
-    msg.info.dst = *dest;
-    msg.info.value = val;
-    msg.info.ihr_fee = zero_grams;
-    msg.info.fwd_fee = zero_grams;
-    msg.info.created_lt = 0; // will be rewirtten by Node
-    msg.info.created_at = 0; // will be rewirtten by Node
-    msg.init = 0;
-    msg.info.amount = 0;
+  Grams zero_grams;
+  zero_grams.amount.len = 0;
+  zero_grams.amount.value = 0;
+  EmptyMessage msg;
 
-    Serialize_EmptyMessage (&msg);
+  msg.info.zero = 0;
+  msg.info.ihr_disabled = 0;
+  msg.info.bounce = bounce;
+  msg.info.bounced = 0;
+  msg.info.src = *dest; // will be rewritten by Node
+  msg.info.dst = *dest;
+  msg.info.value = val;
+  msg.info.ihr_fee = zero_grams;
+  msg.info.fwd_fee = zero_grams;
+  msg.info.created_lt = 0; // will be rewritten by Node
+  msg.info.created_at = 0; // will be rewritten by Node
+  msg.init = 0;
+  msg.info.amount = 0;
+
+  Serialize_EmptyMessage(&msg);
 }
 
 void build_external_output_int256_message (int value) {

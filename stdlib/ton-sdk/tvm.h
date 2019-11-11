@@ -18,6 +18,7 @@ unsigned tonstdlib_work_slice_load_uint (unsigned width);
 void tonstdlib_work_slice_store_int (int value, unsigned width);
 void tonstdlib_work_slice_store_uint (unsigned value, unsigned width);
 void tonstdlib_send_work_slice_as_rawmsg (int flags);
+unsigned tvm_sender_pubkey (void);
 
 #define tvm_assert(condition,exc) (__builtin_tvm_throwif(!(condition),(exc)))
 

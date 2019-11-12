@@ -51,7 +51,7 @@ for func in data['functions']:
             errors.append ('Function %s may have 0 or 1 return values' % name)
 
     inputs = func['inputs']
-    signed = func['signed']
+    signed = func['signed'] if 'signed' in func else False
 
     if name [-11:] == "_authorized":
         if signed != True:

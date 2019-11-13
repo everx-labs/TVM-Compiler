@@ -98,20 +98,29 @@ void TVMMCInstLower::lower(const MachineInstr *MI, MCInst &OutMI) {
         assert(GV && "LOGSTR_S/PRINTSTR_S operand must be GlobalValue");
 
         StringRef DataString;
+        static constexpr size_t MaxStringLength = 15;
 
         if (const auto *GlobalVar = dyn_cast<GlobalVariable>(GV)) {
           const auto *Data =
-              dyn_cast<ConstantDataArray>(GlobalVar->getInitializer());
+              dyn_cast<ConstantArray>(GlobalVar->getInitializer());
           assert(Data &&
                  "Only constant static strings are supported for "
                  "LOGSTR_S/PRINTSTR_S for now");
 
-          DataString = Data->getAsString().drop_back(1);
+          auto Str = new (Ctx) SmallString<MaxStringLength>();
+          unsigned Length = Data->getNumOperands() - 1;
+          if (Length > MaxStringLength)
+            Length = MaxStringLength;
+          Str->resize(Length);
+          for (unsigned i = 0; i != Length; ++i) {
+            auto C = dyn_cast<ConstantInt>(Data->getOperand(i));
+            assert(C->getValue().isIntN(8) && "Invalid character");
+            (*Str)[i] = (char)C->getZExtValue();
+          }
+          DataString = *Str;
         } else if (const auto *Fn = dyn_cast<Function>(GV)) {
           DataString = Fn->getName();
         }
-
-        static constexpr size_t MaxStringLength = 15;
 
         if (DataString.size() > MaxStringLength)
           DataString = DataString.substr(0, MaxStringLength);

@@ -25,6 +25,16 @@ entry:
   ret i257 undef
 }
 
+define void @phi() {
+; CHECK-LABEL: phi
+entry:
+  br label %loop
+loop:
+  %0 = phi i257* [ undef, %entry ], [ %1, %loop ]
+  %1 = getelementptr i257, i257* %0, i257 3
+  br label %loop
+}
+
 define void @two1() {
   call void @two(i257 12345, i257 undef)
   ret void

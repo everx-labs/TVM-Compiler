@@ -622,7 +622,7 @@ void TVMStackModel::rewriteToSForm(MachineInstr &MI, std::string &PreTermStackSt
                                    Stack &TheStack) {
   size_t NumDefs = MI.getNumDefs();
   size_t NumOperands = MI.getNumOperands();
-  unsigned NewOpcode = TVM::RegForm2SForm[MI.getOpcode()];
+  int NewOpcode = TVM::RegForm2SForm[MI.getOpcode()];
 
   size_t NumGlobals = llvm::count_if(MI.uses(), [](const MachineOperand& MO) { return MO.isGlobal() || MO.isSymbol(); });
   size_t NumImms = llvm::count_if(MI.uses(), [](const MachineOperand& MO) { return MO.isImm() || MO.isCImm(); });
@@ -695,7 +695,7 @@ void TVMStackModel::rewriteToSForm(MachineInstr &MI, std::string &PreTermStackSt
                                 PreTermStackString + " => " + TheStack.toString());
     else
       MFI->addStackModelComment(MIB.getInstr(), TheStack.toString());
-
-    MI.removeFromParent();
   }
+
+  MI.removeFromParent();
 }

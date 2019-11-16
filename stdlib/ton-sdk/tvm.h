@@ -18,7 +18,11 @@ void tonstdlib_work_slice_store_int (int value, unsigned width);
 void tonstdlib_work_slice_store_uint (unsigned value, unsigned width);
 void tonstdlib_send_work_slice_as_rawmsg (int flags);
 
+#ifndef NDEBUG
 #define tvm_assert(condition,exc) (__builtin_tvm_throwif(!(condition),(exc)))
+#else
+#define tvm_assert(condition,exc)
+#endif
 
 void Serialize_Unsigned_Impl (unsigned width, unsigned int);
 void Serialize_Signed_Impl (unsigned width, signed int);

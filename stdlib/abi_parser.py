@@ -17,6 +17,9 @@ def convert_type (abi_type):
     if abi_type == 'void':
         return ('void', ('',''))
 
+    if abi_type == 'address':
+        return ('MsgAddressInt', ('MsgAddressInt',''))
+
     errors.append ("Type %s is not supported yet\n" % abi_type)
     return ("int", ("Signed", 256))
 
@@ -76,6 +79,7 @@ for func in data['functions']:
 
     main_arguments = []
     for inp in inputs:
+        (inputs_type, _) = convert_type (inp['type'])
         main_arguments.append("%s_Deserialized" % inp['name'])
 
     if (outputs_type != 'void'):
@@ -83,7 +87,7 @@ for func in data['functions']:
         wrapper.append ("    build_external_output_common_message_header ();")
         #function_id and abi_version are serialized only in ABI v1 and later
         if int(abi_version) > 0:
-            #highest bit of answer id should be set to 1 
+            #highest bit of answer id should be set to 1
             wrapper.append ("    unsigned int answer_id = (unsigned int)%s | 0x80000000;" % (name))
             wrapper.append ("    Serialize_Unsigned_Impl(answer_id, 32);")
         wrapper.append ("    Serialize_%s_Impl (res, %s);" % (outputs_command[0], outputs_command[1]))

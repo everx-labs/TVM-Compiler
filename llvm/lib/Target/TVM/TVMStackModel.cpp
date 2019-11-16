@@ -620,6 +620,10 @@ void TVMStackModel::modelInstructionExecution(MachineInstr &MI,
 
 void TVMStackModel::rewriteToSForm(MachineInstr &MI, std::string &PreTermStackString,
                                    Stack &TheStack) {
+  if (MI.isImplicitDef()) {
+    MI.eraseFromParent();
+    return;
+  }
   size_t NumDefs = MI.getNumDefs();
   size_t NumOperands = MI.getNumOperands();
   int NewOpcode = TVM::RegForm2SForm[MI.getOpcode()];

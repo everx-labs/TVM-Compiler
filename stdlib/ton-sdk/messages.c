@@ -1,12 +1,33 @@
 #include "messages.h"
 
 #define HEADER_OR_C "define-ton-struct-c.inc"
+#include "datatype.inc"
+
+MsgAddressInt Deserialize_MsgAddressInt_Impl() {
+  MsgAddressInt value;
+  // Address kind + anycast flag.
+  unsigned selector = Deserialize_Unsigned_Impl(3);
+  tvm_assert(selector == 4u, 58);
+  // TODO: Deserialize 0b110 if these addresses appear.
+  value.workchain_id = Deserialize_Unsigned_Impl(8);
+  value.address = Deserialize_Unsigned_Impl(256);
+  return value;
+}
+
+void Serialize_MsgAddressInt_Impl(MsgAddressInt* value) {
+  // Address kind + anycast flag.
+  Serialize_Unsigned_Impl(4u, 3);
+  // TODO: Serialize 0b110 if we need it.
+  Serialize_Unsigned_Impl(value->workchain_id, 8);
+  Serialize_Unsigned_Impl(value->address, 256);
+}
+
 #include "messages.inc"
+#undef HEADER_OR_C
 
 MsgAddressInt build_msg_address_int (int workchain, unsigned account) {
     MsgAddressInt addr;
 
-    addr.anycast = 0;
     addr.workchain_id = workchain;
     addr.address = account;
 
@@ -49,7 +70,6 @@ void build_external_output_int256_message (int value) {
     Message_ExtOut_int256 msg;
     msg.info.one_one = 3;
 
-    msg.info.src.anycast = 0;
     msg.info.src.workchain_id = -1;
     msg.info.src.address = 1;
     msg.info.dst.zero_zero = 0;
@@ -66,7 +86,6 @@ void build_external_output_common_message_header () {
     Message_ExtOut_common msg;
     msg.info.one_one = 3;
 
-    msg.info.src.anycast = 0;
     msg.info.src.workchain_id = 0;
     msg.info.src.address = 1;
     msg.info.dst.zero_zero = 0;

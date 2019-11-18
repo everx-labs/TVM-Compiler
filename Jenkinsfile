@@ -15,6 +15,7 @@ G_workdir = "/opt/work"
 G_ramdir = "/media/ramdisk/toolchain"
 C_PROJECT = "NotSet"
 C_COMMITER = "NotSet"
+C_AUTHOR = "NotSet"
 C_HASH = "NotSet"
 C_TEXT = "NotSet"
 def getVar(Gvar) {return Gvar}
@@ -27,11 +28,6 @@ pipeline {
             defaultValue: false,
             description: 'Promote image built to be used as latest',
             name : 'FORCE_PROMOTE_LATEST'
-        )
-        booleanParam (
-            defaultValue: false,
-            description: 'Build LLVM on windows agent',
-            name : 'BUILD_ON_WINDOWS'
         )
     }
     agent none
@@ -47,7 +43,7 @@ pipeline {
     stages {
         stage('Processing...') {
         parallel {
-            stage('On Linux') {
+            stage('Linux x86') {
                 agent {
                     docker {
                         image G_container
@@ -55,7 +51,7 @@ pipeline {
                     }
                 }
                 stages {
-                    stage('Initialise') {
+                    stage('Initialize') {
                         steps {
                             script {
                                 G_gitproject = G_giturl.substring(0,G_giturl.length()-4)
@@ -102,12 +98,14 @@ pipeline {
                                 sh 'rm -rf ${WORKDIR}/llvm/*'
                                 sh 'cp -R llvm/* ${WORKDIR}/llvm'
                                 sh 'mkdir ${WORKDIR}/llvm/build'
-                                sh 'cd ${WORKDIR}/llvm/build && cmake -G "Ninja" \
+                                sh 'cd ${WORKDIR}/llvm/build && cmake -G Ninja \
                                 -DCMAKE_C_COMPILER=clang \
                                 -DCMAKE_CXX_COMPILER=clang++ \
                                 -DLLVM_TARGETS_TO_BUILD="X86" \
-                                -DBUILD_SHARED_LIBS=On \
-                                -DLLVM_OPTIMIZED_TABLEGEN=On \
+                                -DBUILD_SHARED_LIBS=1 \
+                                -DCLANG_BUILD_TOOLS=0 \
+                                -DCLANG_ENABLE_STATIC_ANALYZER=0 \
+                                -DCLANG_ENABLE_ARCMT=0 \
                                 -DLLVM_USE_LINKER=lld ..'
                             }
                         }
@@ -116,27 +114,9 @@ pipeline {
                             failure {script{G_buildstatus = "failure"}}
                         }
                     }
-                    stage('Build clang') {
+                    stage('Build & run tests') {
                         steps{
-                            sh 'cd ${WORKDIR}/llvm/build && cmake --build . --target clang'
-                        }
-                        post {
-                            success {script{G_clangstatus = "success"}}
-                            failure {script{G_clangstatus = "failure"}}
-                        }
-                    }
-                    stage('Build llc') {
-                        steps{
-                            sh 'cd ${WORKDIR}/llvm/build && cmake --build . --target llc'
-                        }
-                        post {
-                            success {script{G_llvmstatus = "success"}}
-                            failure {script{G_llvmstatus = "failure"}}
-                        }
-                    }
-                    stage('Tests') {
-                        steps{
-                            sh 'cd ${WORKDIR}/llvm/build && cmake --build . --target check-all'
+                            sh 'cd ${WORKDIR}/llvm/build && ninja check-all'
                         }
                         post {
                             success {script{G_teststatus = "success"}}
@@ -145,84 +125,7 @@ pipeline {
                     }
                 }
             }
-            stage('On Windows'){
-                agent { label 'Win01' }
-                when {
-                    expression {
-                        return params.BUILD_ON_WINDOWS
-                    }
-                }
-                stages{
-                    stage('Configure'){
-                        steps {
-                            script {
-                                dir('llvm/build'){
-                                    deleteDir()
-                                    bat label: 'Configure', script: '''
-                                    "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\BuildTools\\VC\\Auxiliary\\Build\\vcvars64.bat" && cmake -G "Ninja" ^
-                                    -DLLVM_TARGETS_TO_BUILD="X86" ^
-                                    -DLLVM_EXPERIMENTAL_TARGETS_TO_BUILD="TVM" ^
-                                    -DLLVM_OPTIMIZED_TABLEGEN=On ..
-                                    '''
-                                }
-                            }
-                        }
-                        post {
-                            success {script{G_Wbuildstatus = "success"}}
-                            failure {script{G_Wbuildstatus = "failure"}}
-                        }
-                    }
-                    stage('Build clang') {
-                        steps{
-                            dir('llvm/build'){
-                                bat label: 'Clang', script: '''
-                                "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\BuildTools\\VC\\Auxiliary\\Build\\vcvars64.bat" && cmake^
-                                --build . --target clang
-                                '''
-                            }
-                        }
-                        post {
-                            success {script{G_Wclangstatus = "success"}}
-                            failure {script{G_Wclangstatus = "failure"}}
-                        }
-                    }
-                    stage('Build llc') {
-                        steps{
-                            dir('llvm/build'){
-                                bat label: 'LLC', script: '''
-                                "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\BuildTools\\VC\\Auxiliary\\Build\\vcvars64.bat" && cmake^
-                                --build . --target llc
-                                '''
-                            }
-                        }
-                        post {
-                            success {script{G_Wllvmstatus = "success"}}
-                            failure {script{G_Wllvmstatus = "failure"}}
-                        }
-                    }
-                    stage('Tests') {
-                        when {
-                            expression {
-                                GIT_BRANCH = "origin/${BRANCH_NAME}"
-                                return GIT_BRANCH == G_promoted_branch || params.FORCE_PROMOTE_LATEST
-                            }
-                        }
-                        steps{
-                            dir('llvm/build'){
-                                bat label: 'Tests', script: '''
-                                "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\BuildTools\\VC\\Auxiliary\\Build\\vcvars64.bat" && cmake^
-                                --build . --target check-llvm-unit
-                                '''
-                            }
-                        }
-                        post {
-                            success {script{G_Wteststatus = "success"}}
-                            failure {script{G_Wteststatus = "failure"}}
-                        }
-                    }
-                }
-            }
-            stage('Build docker-image') {
+            stage('TVM') {
                     agent {
                         node {label 'master'}
                     }
@@ -238,15 +141,15 @@ pipeline {
                                 }
                             }
                         }
-                        stage('Test') { 
+                        stage('Test') {
                             steps {
                                 script {
                                     G_dockerimage = "tonlabs/ton_compiler:${GIT_COMMIT}"
                                     docker.image(G_dockerimage).inside("-u root") {
-					    sh 'sh /app/install.sh'
-					    sh 'clang-7 --version'
-					    sh 'clang --version'
-				    }
+                                        sh 'sh /app/install.sh'
+                                        sh 'clang-7 --version'
+                                        sh 'clang --version'
+                                    }
                                 }
                             }
                         }
@@ -284,7 +187,7 @@ pipeline {
                 }
         }
         }
-	stage ('Tag as latest') {
+        stage ('Tag as latest') {
             when {
                 expression {
                     GIT_BRANCH = "origin/${BRANCH_NAME}"
@@ -336,4 +239,3 @@ pipeline {
         }
     }
 }
-

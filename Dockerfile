@@ -1,43 +1,49 @@
 FROM alpine as build-ton-compiler
 
-RUN apk add --no-cache \
-    && apk add --virtual build-dependencies \
-        build-base \
-        binutils-gold \
-        python2 \
-        gcc \
-        wget \
-        git \
-        ninja \
-        cmake \
-    && apk add \
-        bash
-
-# Same as in Eclipse CHE image
-RUN addgroup -S user && adduser -S -G user user 
+RUN apk add binutils-gold musl-dev gcc g++ python2 git ninja cmake wget bash
+RUN addgroup -S user && adduser -S -G user user
 
 WORKDIR /home/user
 COPY . TON-Compiler
 
-RUN mkdir -p /home/user/TON-Compiler/llvm/build
+WORKDIR /home/user/TON-Compiler/build
+RUN cmake -G Ninja \
+-DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=gold" \
+-DCMAKE_BUILD_TYPE=Release \
+-DLLVM_ENABLE_ASSERTIONS=1 \
+-DLLVM_BUILD_TOOLS=0 \
+-DLLVM_TARGETS_TO_BUILD="" \
+-DLLVM_EXPERIMENTAL_TARGETS_TO_BUILD=TVM \
+-DLLVM_BYTE_SIZE_IN_BITS=257 \
+-DCLANG_ENABLE_STATIC_ANALYZER=0 \
+-DCLANG_ENABLE_ARCMT=0 \
+../llvm
 
-RUN cd /home/user/TON-Compiler/llvm/build && cmake -DCMAKE_BUILD_TYPE=MinSizeRel -DLLVM_BUILD_TOOLS=OFF -DCMAKE_EXE_LINKER_FLAGS=-fuse-ld=gold -DCMAKE_INSTALL_PREFIX=/home/user/LLVM -DLLVM_EXPERIMENTAL_TARGETS_TO_BUILD=TVM -DLLVM_TARGETS_TO_BUILD=X86 -DLLVM_BYTE_SIZE_IN_BITS=257 -GNinja ..
+RUN ninja clang llc FileCheck count not llvm-config
+RUN bin/llvm-lit ../llvm/test/CodeGen/TVM
 
-RUN cd /home/user/TON-Compiler/llvm/build && ninja clang llc FileCheck count not llvm-config
-RUN cd /home/user/TON-Compiler/llvm/build && ninja check-llvm-codegen-tvm
-RUN cd /home/user/TON-Compiler/llvm/build && ninja install
-
-RUN cp -v /home/user/TON-Compiler/llvm/build/bin/llc /home/user/LLVM/bin
-RUN cp -v /home/user/TON-Compiler/llvm/build/bin/FileCheck /home/user/LLVM/bin
-RUN cp -v /home/user/TON-Compiler/llvm/build/bin/llvm-config /home/user/LLVM/bin
-RUN cp -v /home/user/TON-Compiler/llvm/build/bin/count /home/user/LLVM/bin
-RUN cp -v /home/user/TON-Compiler/llvm/build/bin/not /home/user/LLVM/bin
-RUN find /home/user/LLVM -name "*.a" -type f -delete
-RUN find /home/user/LLVM -type f -not -name 'clang' -not -name 'clang++' -not -name 'clang-cl'  -not -name 'clang-cpp'   -not -name 'clang-7' -not -name 'llc' -not -name 'FileCheck' -not -name 'count' -not -name 'not' -not -name 'llvm-config' -delete
 
 FROM alpine
-COPY --from=build-ton-compiler /home/user/TON-Compiler/stdlib /app
-COPY --from=build-ton-compiler /home/user/LLVM /usr/bin/LLVM
-COPY --from=build-ton-compiler /home/user/LLVM/bin/clang /usr/bin/
-COPY --from=build-ton-compiler /home/user/LLVM/bin/clang-7 /usr/bin/
-COPY --from=build-ton-compiler /home/user/TON-Compiler/install.sh /app/install.sh
+
+RUN apk add libgcc libstdc++ python2
+
+COPY --from=build-ton-compiler /home/user/TON-Compiler/stdlib/ton-sdk        /usr/include/
+COPY --from=build-ton-compiler /home/user/TON-Compiler/stdlib/cpp-sdk        /usr/include/
+COPY --from=build-ton-compiler /home/user/TON-Compiler/stdlib/abi_parser.py  /usr/bin/
+
+COPY --from=build-ton-compiler /home/user/TON-Compiler/build/bin/clang       /usr/bin/
+COPY --from=build-ton-compiler /home/user/TON-Compiler/build/bin/llc         /usr/bin/
+COPY --from=build-ton-compiler /home/user/TON-Compiler/build/bin/count       /usr/bin/
+COPY --from=build-ton-compiler /home/user/TON-Compiler/build/bin/not         /usr/bin/
+COPY --from=build-ton-compiler /home/user/TON-Compiler/build/bin/FileCheck   /usr/bin/
+COPY --from=build-ton-compiler /home/user/TON-Compiler/build/bin/llvm-config /usr/bin/
+
+# TODO Remove these after fixing TON-Infrastructure/pipelines/compilers/Dockerfile
+COPY --from=build-ton-compiler /home/user/TON-Compiler/build/bin/clang-7     /usr/bin/
+COPY --from=build-ton-compiler /home/user/TON-Compiler/build/bin/llc         /usr/bin/LLVM/bin/
+COPY --from=build-ton-compiler /home/user/TON-Compiler/build/bin/count       /usr/bin/LLVM/bin/
+COPY --from=build-ton-compiler /home/user/TON-Compiler/build/bin/not         /usr/bin/LLVM/bin/
+COPY --from=build-ton-compiler /home/user/TON-Compiler/build/bin/FileCheck   /usr/bin/LLVM/bin/
+COPY --from=build-ton-compiler /home/user/TON-Compiler/build/bin/llvm-config /usr/bin/LLVM/bin/
+COPY --from=build-ton-compiler /home/user/TON-Compiler/stdlib                /app
+COPY --from=build-ton-compiler /home/user/TON-Compiler/install.sh            /app/

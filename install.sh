@@ -1,15 +1,4 @@
-apk add --no-cache \
-    && apk add --virtual build-dependencies \
-        build-base \
-        binutils-gold \
-        python2 \
-        gcc \
-        wget \
-        git \
-        ninja \
-        cmake \
-    && apk add \
-        bash && \
+apk add libgcc libstdc++ python2
 cp -r /app/ton-sdk /usr/include && \
 cp -r /app/cpp-sdk /usr/include && \
 cp /app/abi_parser.py /usr/bin  && \

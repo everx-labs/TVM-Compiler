@@ -2697,7 +2697,9 @@ CheckInteger(const unsigned char *MatcherTable, unsigned &MatcherIndex,
     Val = GetVBR(Val, MatcherTable, MatcherIndex);
 
   ConstantSDNode *C = dyn_cast<ConstantSDNode>(N);
+  // TVM local begin: 64-bit check
   return C && C->getAPIntValue().isSignedIntN(64) && C->getSExtValue() == Val;
+  // TVM local end
 }
 
 LLVM_ATTRIBUTE_ALWAYS_INLINE static inline bool

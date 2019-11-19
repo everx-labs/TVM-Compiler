@@ -75,8 +75,10 @@ MemoryLocation MemoryLocation::getForSource(const AtomicMemTransferInst *MTI) {
 MemoryLocation MemoryLocation::getForSource(const AnyMemTransferInst *MTI) {
   uint64_t Size = UnknownSize;
   if (ConstantInt *C = dyn_cast<ConstantInt>(MTI->getLength()))
+    // TVM local begin: 64-bit check
     if (C->getValue().isIntN(64))
       Size = C->getValue().getZExtValue();
+    // TVM local end
 
   // memcpy/memmove can have AA tags. For memcpy, they apply
   // to both the source and the destination.
@@ -97,8 +99,10 @@ MemoryLocation MemoryLocation::getForDest(const AtomicMemIntrinsic *MI) {
 MemoryLocation MemoryLocation::getForDest(const AnyMemIntrinsic *MI) {
   uint64_t Size = UnknownSize;
   if (ConstantInt *C = dyn_cast<ConstantInt>(MI->getLength()))
+    // TVM local begin: 64-bit check
     if (C->getValue().isIntN(64))
       Size = C->getValue().getZExtValue();
+    // TVM local end
 
   // memcpy/memmove can have AA tags. For memcpy, they apply
   // to both the source and the destination.
@@ -128,8 +132,10 @@ MemoryLocation MemoryLocation::getForArgument(ImmutableCallSite CS,
       assert((ArgIdx == 0 || ArgIdx == 1) &&
              "Invalid argument index for memory intrinsic");
       if (ConstantInt *LenCI = dyn_cast<ConstantInt>(II->getArgOperand(2)))
+        // TVM local begin: 64-bit check
         if (LenCI->getValue().isIntN(64))
           return MemoryLocation(Arg, LenCI->getZExtValue(), AATags);
+        // TVM local end
       break;
 
     case Intrinsic::lifetime_start:

@@ -805,8 +805,10 @@ int64_t DataLayout::getIndexedOffsetInType(Type *ElemTy,
       // Add in the offset, as calculated by the structure layout info...
       Result += Layout->getElementOffset(FieldNo);
     } else {
+      // TVM local begin: 64-bit check
       if (!cast<ConstantInt>(Idx)->getValue().isSignedIntN(64))
         continue;
+      // TVM local end
       // Get the array index and the size of each array element.
       if (int64_t arrayIdx = cast<ConstantInt>(Idx)->getSExtValue())
         Result += arrayIdx * getTypeAllocSize(GTI.getIndexedType());

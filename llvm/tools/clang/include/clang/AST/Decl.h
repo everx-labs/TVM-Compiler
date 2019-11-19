@@ -3047,8 +3047,10 @@ private:
 
 protected:
   // These are used by (and only defined for) EnumDecl.
+  // TVM local begin: 8 -> 9
   unsigned NumPositiveBits : 9;
   unsigned NumNegativeBits : 9;
+  // TVM local end
 
   /// True if this tag declaration is a scoped enumeration. Only
   /// possible in C++11 mode.

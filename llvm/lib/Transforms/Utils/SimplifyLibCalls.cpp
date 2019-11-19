@@ -887,8 +887,11 @@ static Value *foldMallocMemset(CallInst *Memset, IRBuilder<> &B,
                                const TargetLibraryInfo &TLI) {
   // This has to be a memset of zeros (bzero).
   auto *FillValue = dyn_cast<ConstantInt>(Memset->getArgOperand(1));
-  if (!FillValue || FillValue->getZExtValue() != 0)
+  // TVM local begin: 64-bit check
+  if (!FillValue || !FillValue->getValue().isIntN(64) ||
+      FillValue->getZExtValue() != 0)
     return nullptr;
+  // TVM local end
 
   // TODO: We should handle the case where the malloc has more than one use.
   // This is necessary to optimize common patterns such as when the result of

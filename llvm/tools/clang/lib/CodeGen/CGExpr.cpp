@@ -3282,6 +3282,7 @@ static llvm::Value *emitArraySubscriptGEP(CodeGenFunction &CGF,
 static CharUnits getArrayElementAlign(CharUnits arrayAlign,
                                       llvm::Value *idx,
                                       CharUnits eltSize) {
+  // TVM local begin: 64-bit check
   // If we have a constant index, we can use the exact offset of the
   // element we're accessing.
   if (auto constantIdx = dyn_cast<llvm::ConstantInt>(idx)) {
@@ -3293,6 +3294,7 @@ static CharUnits getArrayElementAlign(CharUnits arrayAlign,
 
   // Otherwise, use the worst-case alignment for any element.
   return arrayAlign.alignmentOfArrayElement(eltSize);
+  // TVM local end
 }
 
 static QualType getFixedSizeElementType(const ASTContext &ctx,

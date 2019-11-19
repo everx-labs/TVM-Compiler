@@ -2832,17 +2832,21 @@ bool TargetLowering::isGAPlusOffset(SDNode *N, const GlobalValue *&GA,
     SDValue N2 = N->getOperand(1);
     if (isGAPlusOffset(N1.getNode(), GA, Offset)) {
       if (auto *V = dyn_cast<ConstantSDNode>(N2)) {
+        // TVM local begin: 64-bit check
         if (V->getAPIntValue().isSignedIntN(64)) {
           Offset += V->getSExtValue();
           return true;
         }
+        // TVM local end
       }
     } else if (isGAPlusOffset(N2.getNode(), GA, Offset)) {
       if (auto *V = dyn_cast<ConstantSDNode>(N1)) {
+        // TVM local begin: 64-bit check
         if (V->getAPIntValue().isSignedIntN(64)) {
           Offset += V->getSExtValue();
           return true;
         }
+        // TVM local end
       }
     }
   }

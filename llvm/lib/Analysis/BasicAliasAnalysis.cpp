@@ -502,8 +502,10 @@ bool BasicAAResult::DecomposeGEPExpression(const Value *V,
 
       // For an array/pointer, add the element offset, explicitly scaled.
       if (const ConstantInt *CIdx = dyn_cast<ConstantInt>(Index)) {
+        // TVM local begin: 64-bit check
         if (CIdx->isZero() || !CIdx->getValue().isSignedIntN(64))
           continue;
+        // TVM local end
         Decomposed.OtherOffset +=
           DL.getTypeAllocSize(GTI.getIndexedType()) * CIdx->getSExtValue();
         continue;

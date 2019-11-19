@@ -263,11 +263,13 @@ public:
 
   void addMemSet(int64_t OffsetFromFirst, MemSetInst *MSI) {
     auto C = cast<ConstantInt>(MSI->getLength());
+    // TVM local begin: 64-bit check
     if (C->getValue().isIntN(64)) {
       int64_t Size = C->getZExtValue();
       addRange(OffsetFromFirst, Size,
                MSI->getDest(), MSI->getDestAlignment(), MSI);
     }
+    // TVM local end
   }
 
   void addRange(int64_t Start, int64_t Size, Value *Ptr,

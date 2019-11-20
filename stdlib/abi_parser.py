@@ -85,7 +85,7 @@ for func in data['functions']:
         if int(abi_version) > 0:
             #highest bit of answer id should be set to 1 
             wrapper.append ("    unsigned int answer_id = (unsigned int)%s | 0x80000000;" % (name))
-            wrapper.append ("    Serialize_Unsigned_Impl(&answer_id, 32);")
+            wrapper.append ("    Serialize_Unsigned_Impl(answer_id, 32);")
         wrapper.append ("    Serialize_%s_Impl (res, %s);" % (outputs_command[0], outputs_command[1]))
         wrapper.append ("    send_raw_message (0);")
     else:

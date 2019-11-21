@@ -129,6 +129,13 @@ unsigned Type::getPrimitiveSizeInBits() const {
   case Type::X86_MMXTyID: return 64;
   case Type::IntegerTyID: return cast<IntegerType>(this)->getBitWidth();
   case Type::VectorTyID:  return cast<VectorType>(this)->getBitWidth();
+  // TVM local begin
+  case Type::TVMSliceID:
+  case Type::TVMBuilderID:
+  case Type::TVMCellID:
+  case Type::TVMTupleID:
+    return 257;
+  // TVM local end
   default: return 0;
   }
 }

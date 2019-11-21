@@ -1644,11 +1644,13 @@ static Value *getAdjustedPtr(IRBuilderTy &IRB, const DataLayout &DL, Value *Ptr,
       Int8PtrOffset = Offset;
     }
 
+    // TVM local begin
     OffsetPtr = Int8PtrOffset == 0
                     ? Int8Ptr
-                    : IRB.CreateInBoundsGEP(IRB.getInt8Ty(), Int8Ptr,
+                    : IRB.CreateInBoundsGEP(IRB.getByteTy(), Int8Ptr,
                                             IRB.getInt(Int8PtrOffset),
                                             NamePrefix + "sroa_raw_idx");
+    // TVM local end
   }
   Ptr = OffsetPtr;
 
@@ -2447,7 +2449,10 @@ private:
     assert(NewBeginOffset >= NewAllocaBeginOffset && "Out of bounds offset");
     uint64_t Offset = NewBeginOffset - NewAllocaBeginOffset;
     if (Offset > 0 || NewEndOffset < NewAllocaEndOffset) {
-      IntegerType *ExtractTy = Type::getIntNTy(LI.getContext(), SliceSize * 8);
+      // TVM local begin
+      IntegerType *ExtractTy = Type::getIntNTy(
+          LI.getContext(), static_cast<unsigned>(SliceSize) * ByteSizeInBits);
+      // TVM local end
       V = extractInteger(DL, IRB, V, ExtractTy, Offset, "extract");
     }
     // It is possible that the extracted type is not the load type. This
@@ -2455,10 +2460,14 @@ private:
     // a consequence the slice is narrower but still a candidate for integer
     // lowering. To handle this case, we just zero extend the extracted
     // integer.
-    assert(cast<IntegerType>(LI.getType())->getBitWidth() >= SliceSize * 8 &&
+    // TVM local begin
+    assert(cast<IntegerType>(LI.getType())->getBitWidth() >=
+           SliceSize * ByteSizeInBits &&
            "Can only handle an extract for an overly wide load");
-    if (cast<IntegerType>(LI.getType())->getBitWidth() > SliceSize * 8)
+    if (cast<IntegerType>(LI.getType())->getBitWidth() >
+        SliceSize * ByteSizeInBits)
       V = IRB.CreateZExt(V, LI.getType());
+    // TVM local end
     return V;
   }
 
@@ -2472,8 +2481,12 @@ private:
 
     unsigned AS = LI.getPointerAddressSpace();
 
-    Type *TargetTy = IsSplit ? Type::getIntNTy(LI.getContext(), SliceSize * 8)
-                             : LI.getType();
+    // TVM local begin
+    Type *TargetTy = IsSplit ?
+        Type::getIntNTy(LI.getContext(),
+                        static_cast<unsigned>(SliceSize) * ByteSizeInBits)
+        : LI.getType();
+    // TVM local end
     const bool IsLoadPastEnd = DL.getTypeStoreSize(TargetTy) > SliceSize;
     bool IsPtrAdjusted = false;
     Value *V;
@@ -2638,7 +2651,10 @@ private:
       assert(V->getType()->getIntegerBitWidth() ==
                  DL.getTypeStoreSizeInBits(V->getType()) &&
              "Non-byte-multiple bit width");
-      IntegerType *NarrowTy = Type::getIntNTy(SI.getContext(), SliceSize * 8);
+      // TVM local begin
+      IntegerType *NarrowTy = Type::getIntNTy(
+          SI.getContext(), static_cast<unsigned>(SliceSize) * ByteSizeInBits);
+      // TVM local end
       V = extractInteger(DL, IRB, V, NarrowTy, NewBeginOffset - BeginOffset,
                          "extract");
     }

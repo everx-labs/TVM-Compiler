@@ -129,6 +129,15 @@ unsigned Type::getPrimitiveSizeInBits() const {
   case Type::X86_MMXTyID: return 64;
   case Type::IntegerTyID: return cast<IntegerType>(this)->getBitWidth();
   case Type::VectorTyID:  return cast<VectorType>(this)->getBitWidth();
+  // TVM local begin
+  // We don't model slice/builder/cell/tuple internal data.
+  // Just keep them as "handles", bitcast'able to i257, so bit size is 257.
+  case Type::TVMSliceID:
+  case Type::TVMBuilderID:
+  case Type::TVMCellID:
+  case Type::TVMTupleID:
+    return 257;
+  // TVM local end
   default: return 0;
   }
 }

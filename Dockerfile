@@ -25,8 +25,6 @@ RUN bin/llvm-lit ../llvm/test/CodeGen/TVM
 
 FROM alpine
 
-RUN apk add libgcc libstdc++ python2
-
 COPY --from=build-ton-compiler /home/user/TON-Compiler/stdlib/ton-sdk        /usr/include/
 COPY --from=build-ton-compiler /home/user/TON-Compiler/stdlib/cpp-sdk        /usr/include/
 COPY --from=build-ton-compiler /home/user/TON-Compiler/stdlib/abi_parser.py  /usr/bin/

@@ -28,16 +28,16 @@
 	IFNOTJMP
     PUSHREFCONT
 	POPCTR c3
-	ROT 
+	ROT
     DROP
 	DICTIGETJMP
     IFELSE
 
     .internal   :authenticate
     ;ref0 must contains auth dictionary
-    ;args: 
+    ;args:
     ;   s0 - body slice
-    ;ret: 
+    ;ret:
     ;   s0 - body slice (modified: without ref0)
     ;   s1 - sender pubkey: integer
     ;throws exception if signature cell is missing
@@ -47,7 +47,7 @@
     SWAP
     DUP
     SREMPTY         ;body must have reference, if not - throw exception
-    THROWIF 40      ;signature cell not found 
+    THROWIF 40      ;signature cell not found
     LDREFRTOS       ;detach signature slice
     DUP
     SEMPTY
@@ -72,7 +72,7 @@
 
     .globl  tvm_sender_pubkey
     .type   tvm_sender_pubkey, @function
-tvm_sender_pubkey:    
+tvm_sender_pubkey:
     PUSH c7
     INDEX 2
 
@@ -93,7 +93,8 @@ tvm_sender_pubkey:
 
     ;call msg parser
     PUSH s2     ;push msg cell on top
-    CALL $:parse_msg$    ;assume thar parser returns slice - dictionary with msg fields
+    CTOS        ;assume thar parser returns slice - dictionary with msg fields
+                ;TODO: use parse_msg
     ;stack: msg_slice body sender_pubkey
     ROT
     ; Initialize C stack
@@ -109,7 +110,31 @@ tvm_sender_pubkey:
     CALL $:term_fstack$
 
     .internal   :main_internal
-    RET         ;contract ignores internal msgs by default 
+    ; s0 - msg body: slice
+    ; s1 - msg: cell
+    ; s2 - gram balance of msg: int
+    ; s3 - gram balance of contract: int
+
+    ;check whether the message body is empty
+    DUP
+    SDEMPTY
+    IFRET       ;return if body is empty: that is an initialization message
+
+    ;call msg parser
+    PUSH s1     ;push msg cell on top
+    CTOS        ;assume thar parser returns slice - dictionary with msg fields
+                ;TODO: use parse_msg
+    ZERO
+    ; Initialize C stack
+    CALL $:init_fstack$
+
+    SWAP
+    LDU 32      ;load func id
+    DUP
+    CALL $:store_work_slice_int$
+    SWAP
+    CALL 1      ;public method call
+    CALL $:term_fstack$
 
     .internal   :parse_msg
     CTOS        ;TODO: use parser from contract_api library
@@ -159,18 +184,18 @@ tvm_sender_pubkey:
     ; s0 - pubkey
     ;
     ; Initialize stack
-    ; At initialization: 
+    ; At initialization:
     ; 1) C4 contains persistent_data
     ; 2) Dict in C4 at persistent_base + 8 contains dictionary of global data
     ; 3) C7 contains tuple with smart_contract_info as first item
-    ; 
+    ;
     ; Result:
     ; 1) C7 contains initialized global memory (see spec above)
 
     ;
     ; Step 1. Put public key to third (2) global variable
     ; [* _ . _ _ _ _]
-    ; 
+    ;
     SETGLOB 2
 
     ;
@@ -192,7 +217,7 @@ tvm_sender_pubkey:
     STU 64      ;block_lt
     STU 64      ;trans_lt
     STU 256     ;rand_seed
-    SWAP        
+    SWAP
     EXPLODE 2   ;unpack remaining_balance tuple
     DROP DROP   ;drop count and other currency cell
     STGRAMS
@@ -222,7 +247,7 @@ tvm_sender_pubkey:
     PUSHINT 1000000000         ; ( new_stack_base_pointer )
     SETGLOB 5
 
-    ; Work slices (fourth (idx 3) and seventh (idx 6) elements of c7) 
+    ; Work slices (fourth (idx 3) and seventh (idx 6) elements of c7)
     ; are initialized on demand
     RET
 
@@ -230,10 +255,10 @@ tvm_sender_pubkey:
     .type :term_fstack, @function
 :term_fstack:
     ; Terminate stack -- copy values back from C7
-    ; 
-    ; Before termination: 
+    ;
+    ; Before termination:
     ; 1) C7 contains a tuple (smart_contract_info, memory dictionary, other data)
-    ; 
+    ;
     ; Result:
     ; 1) C7 contains singleton (smart_contract_info);
     ; todo: update
@@ -258,15 +283,15 @@ tvm_sender_pubkey:
     DICTIGET ; (addr dict key-width -- value-slice flag)
 
     THROWIFNOT 60
-    PUSHINT 257 LDIX 
+    PUSHINT 257 LDIX
     ENDS
 
     .globl  :store
     .type   :store, @function
 :store:
     ; (addr val -- )
-    NEWC 
-    PUSHINT 257 STIX 
+    NEWC
+    PUSHINT 257 STIX
     ENDC
     CTOS         ; (addr val-slice)
     XCHG s0, s1  ; (val-slice addr)
@@ -274,7 +299,7 @@ tvm_sender_pubkey:
     DUP          ; (val-slice addr addr)
     PUSHINT 100000
     LESS         ; (val-slice addr persistent?)
-    PUSHCONT { 
+    PUSHCONT {
         PUSH c4
         CTOS     ; (val-slice addr dict-slice)
         PLDDICT  ; (val-slice addr dict)
@@ -397,7 +422,7 @@ tonstdlib_work_slice_load_uint:
     SETGLOB 3
 
     ;
-    ; Get builder cell 
+    ; Get builder cell
     ; ( -- builder-cell )
     ;
     .globl	tonstdlib_get_work_slice
@@ -437,7 +462,7 @@ memcpy:                  ; { dst | src | size | - }
         DUP2             ; { dst | dst' | src' | dst' | src' | - }
         CALL $:load$  ; { dst | dst' | src' | dst' | value | - }
         CALL $:store$ ; { dst | dst' | src' | - }
-        
+
         INC              ; { dst | dst' | src'++ | - }
         SWAP             ; { dst | src' | dst' | - }
         INC              ; { dst | src' | dst'++ | - }

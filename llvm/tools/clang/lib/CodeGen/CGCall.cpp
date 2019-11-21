@@ -845,6 +845,10 @@ struct TypeExpansion {
     // Record fields are expanded recursively (but if record is a union, only
     // the field with the largest size is expanded).
     TEK_Record,
+    // TVM local begin
+    // TVM union expansion into { i257, i257, ..., i257 } to avoid i1 cast problem
+    TEK_TVMUnion,
+    // TVM local end
     // For complex types, real and imaginary parts are expanded recursively.
     TEK_Complex,
     // All other types are not expandable.
@@ -882,6 +886,15 @@ struct RecordExpansion : TypeExpansion {
   }
 };
 
+// TVM local begin
+struct TVMUnionExpansion : TypeExpansion {
+  TVMUnionExpansion() : TypeExpansion(TEK_TVMUnion) {}
+  static bool classof(const TypeExpansion *TE) {
+    return TE->Kind == TEK_TVMUnion;
+  }
+};
+// TVM local end
+
 struct ComplexExpansion : TypeExpansion {
   QualType EltTy;
 
@@ -912,6 +925,9 @@ getTypeExpansion(QualType Ty, const ASTContext &Context) {
     assert(!RD->hasFlexibleArrayMember() &&
            "Cannot expand structure with flexible array.");
     if (RD->isUnion()) {
+      // TVM local begin
+      return llvm::make_unique<TVMUnionExpansion>();
+      // TVM local end
       // Unions can be here only in degenerative cases - all the fields are same
       // after flattening. Thus we have to use the "largest" field.
       const FieldDecl *LargestFD = nullptr;
@@ -968,6 +984,11 @@ static int getExpansionSize(QualType Ty, const ASTContext &Context) {
       Res += getExpansionSize(FD->getType(), Context);
     return Res;
   }
+  // TVM local begin
+  if (isa<TVMUnionExpansion>(Exp.get())) {
+    return static_cast<int>(Context.getTypeSizeInChars(Ty).getQuantity());
+  }
+  // TVM local end
   if (isa<ComplexExpansion>(Exp.get()))
     return 2;
   assert(isa<NoExpansion>(Exp.get()));
@@ -987,6 +1008,12 @@ CodeGenTypes::getExpandedTypes(QualType Ty,
       getExpandedTypes(BS->getType(), TI);
     for (auto FD : RExp->Fields)
       getExpandedTypes(FD->getType(), TI);
+  // TVM local begin
+  } else if (isa<TVMUnionExpansion>(Exp.get())) {
+    int64_t Size = Context.getTypeSizeInChars(Ty).getQuantity();
+    for (int64_t i = 0; i < Size; ++i)
+      *TI++ = llvm::Type::getInt257Ty(getLLVMContext());
+  // TVM local end
   } else if (auto CExp = dyn_cast<ComplexExpansion>(Exp.get())) {
     llvm::Type *EltTy = ConvertType(CExp->EltTy);
     *TI++ = EltTy;
@@ -1041,6 +1068,19 @@ void CodeGenFunction::ExpandTypeFromArgs(
       LValue SubLV = EmitLValueForFieldInitialization(LV, FD);
       ExpandTypeFromArgs(FD->getType(), SubLV, AI);
     }
+  // TVM local begin
+  } else if (isa<TVMUnionExpansion>(Exp.get())) {
+    Address This = LV.getAddress();
+    int64_t Size = getContext().getTypeSizeInChars(Ty).getQuantity();
+    auto TupTy = getContext().getTVMTuple(static_cast<unsigned>(Size));
+    auto *llvmTupTy = CGM.getTypes().ConvertType(TupTy);
+
+    This = Address(Builder.CreateBitCast(This.getPointer(), llvmTupTy->getPointerTo()),
+                   This.getAlignment());
+
+    LValue SubLV = MakeAddrLValue(This, TupTy);
+    ExpandTypeFromArgs(TupTy, SubLV, AI);
+  // TVM local end
   } else if (isa<ComplexExpansion>(Exp.get())) {
     auto realValue = *AI++;
     auto imagValue = *AI++;
@@ -1088,6 +1128,20 @@ void CodeGenFunction::ExpandTypeToArgs(
       ExpandTypeToArgs(FD->getType(), FldArg, IRFuncTy, IRCallArgs,
                        IRCallArgPos);
     }
+  // TVM local begin
+  } else if (isa<TVMUnionExpansion>(Exp.get())) {
+    Address This = Arg.hasLValue() ? Arg.getKnownLValue().getAddress()
+                                   : Arg.getKnownRValue().getAggregateAddress();
+    int64_t Size = getContext().getTypeSizeInChars(Ty).getQuantity();
+    auto TupTy = getContext().getTVMTuple(static_cast<unsigned>(Size));
+    auto *llvmTupTy = CGM.getTypes().ConvertType(TupTy)->getPointerTo();
+
+    This = Address(Builder.CreateBitCast(This.getPointer(), llvmTupTy),
+                   This.getAlignment());
+
+    CallArg TupleThis = CallArg(RValue::getAggregate(This), TupTy);
+    ExpandTypeToArgs(TupTy, TupleThis, IRFuncTy, IRCallArgs, IRCallArgPos);
+  // TVM local end
   } else if (isa<ComplexExpansion>(Exp.get())) {
     ComplexPairTy CV = Arg.getKnownRValue().getComplexVal();
     IRCallArgs[IRCallArgPos++] = CV.first;

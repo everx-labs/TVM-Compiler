@@ -33,6 +33,7 @@ pipeline {
   }
   stages {
     stage('Processing') {
+    when { expression { return !(env.BRANCH_NAME ==~ /^PR-\d+$/) } }
     parallel {
       stage('Linux') {
         agent {

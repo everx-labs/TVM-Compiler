@@ -45,3 +45,8 @@ COPY --from=build-ton-compiler /home/user/TON-Compiler/build/bin/FileCheck   /us
 COPY --from=build-ton-compiler /home/user/TON-Compiler/build/bin/llvm-config /usr/bin/LLVM/bin/
 COPY --from=build-ton-compiler /home/user/TON-Compiler/stdlib                /app
 COPY --from=build-ton-compiler /home/user/TON-Compiler/install.sh            /app/
+
+COPY --from=build-ton-compiler /home/user/TON-Compiler/build/bin/opt         /app/
+COPY --from=build-ton-compiler /home/user/TON-Compiler/build/bin/llvm-link   /app/
+COPY --from=build-ton-compiler /home/user/TON-Compiler/build/bin/llvm-as     /app/
+COPY --from=build-ton-compiler /home/user/TON-Compiler/llvm/tools/tvm-build/tvm-build.py /app/

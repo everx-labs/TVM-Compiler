@@ -19,7 +19,7 @@ RUN cmake -G Ninja \
 -DCLANG_ENABLE_ARCMT=0 \
 ../llvm
 
-RUN ninja clang llc FileCheck count not llvm-config
+RUN ninja clang llc FileCheck count not llvm-config llvm-as llvm-link opt
 RUN bin/llvm-lit ../llvm/test/CodeGen/TVM
 
 

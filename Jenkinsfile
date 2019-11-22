@@ -3,10 +3,6 @@ G_gitcred = "LaninSSHgit"
 G_container = "alanin/container-llvm:latest"
 G_promoted_branch = "origin/master"
 G_dockerimage = "NotSet"
-G_buildstatus = "NotSet"
-G_clangstatus = "NotSet"
-G_llvmstatus = "NotSet"
-G_teststatus = "NotSet"
 G_workdir = "/opt/work"
 G_ramdir = "/media/ramdisk/toolchain"
 
@@ -74,18 +70,10 @@ pipeline {
                 ..'
               }
             }
-            post {
-              success { script { G_buildstatus = "success" } }
-              failure { script { G_buildstatus = "failure" } }
-            }
           }
           stage('Build & Run Tests') {
-            steps{
+            steps {
               sh 'cd ${WORKDIR}/llvm/build && ninja check-all'
-            }
-            post {
-              success { script { G_teststatus = "success" } }
-              failure { script { G_teststatus = "failure" } }
             }
           }
         }
@@ -125,9 +113,6 @@ pipeline {
                 }
               }
             }
-            post {
-              failure { script { G_buildstatus = "failure" } }
-            }
           }
           stage('Test in compiler-kit') {
             steps {
@@ -140,14 +125,6 @@ pipeline {
                 build job : "infrastructure/compilers/master",
                       parameters : params
               }
-            }
-            post {
-              success {
-                script{
-                  G_buildstatus = "success"
-                }
-              }
-              failure { script { G_buildstatus = "failure" } }
             }
           }
         }

@@ -75,6 +75,11 @@ TVMTargetMachine::TVMTargetMachine(const Target &T, const Triple &TT,
       TLOF(make_unique<TargetLoweringObjectFileELF>()),
       Subtarget(TT, CPU, FS, *this) {
   initAsmInfo();
+
+  // TVM doesn't support .bss sections, everything is either .text or .data.
+  // Adjust TargetLoweringObjectFile::getKindForGlobal() behavior by overriding
+  // the corresponding target option.
+  this->Options.NoZerosInBSS = true;
 }
 
 void TVMTargetMachine::adjustPassManager(PassManagerBuilder &Builder) {

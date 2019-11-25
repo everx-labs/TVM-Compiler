@@ -107,17 +107,15 @@ void TVMMCInstLower::lower(const MachineInstr *MI, MCInst &OutMI) {
                  "Only constant static strings are supported for "
                  "LOGSTR_S/PRINTSTR_S for now");
 
-          auto Str = new (Ctx) SmallString<MaxStringLength>();
-          unsigned Length = Data->getNumOperands() - 1;
-          if (Length > MaxStringLength)
-            Length = MaxStringLength;
-          Str->resize(Length);
+          auto Str = new (Ctx) std::array<char, MaxStringLength>();
+          unsigned Length = std::min((unsigned)MaxStringLength,
+              Data->getNumOperands() - 1);
           for (unsigned i = 0; i != Length; ++i) {
             auto C = dyn_cast<ConstantInt>(Data->getOperand(i));
             assert(C->getValue().isIntN(8) && "Invalid character");
             (*Str)[i] = (char)C->getZExtValue();
           }
-          DataString = *Str;
+          DataString = StringRef(Str->data(), Length);
         } else if (const auto *Fn = dyn_cast<Function>(GV)) {
           DataString = Fn->getName();
         }

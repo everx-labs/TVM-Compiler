@@ -180,25 +180,72 @@ bool TVMPeephole::runMbbInlineOptimization(MachineBasicBlock &MBB,
 bool TVMPeephole::runIfElseInlining(
     MachineBasicBlock::instr_iterator &InstrIter, MachineBasicBlock &MBB,
     const TargetInstrInfo &TII) {
-  MachineInstrMatcher Matcher(InstrIter, MBB.instr_end());
-
   MachineInstr *PushContA = nullptr;
   MachineInstr *PushContB = nullptr;
   MachineInstr *PushContC = nullptr;
-  MachineInstr *Roll = nullptr;
-  MachineInstr *Blkswap = nullptr;
-  MachineInstr *Swap = nullptr;
   MachineInstr *Ifelse = nullptr;
 
-  if (!Matcher.match(PushContA, TVM::PUSHCONT_MBB_S) ||
-      !Matcher.match(PushContB, TVM::PUSHCONT_MBB_S) ||
-      !Matcher.match(PushContC, TVM::PUSHCONT_MBB_S) ||
-      !Matcher.match(Roll, TVM::ROLL, 3) ||
-      !Matcher.match(Blkswap, TVM::BLKSWAP, 2, 2) ||
-      !Matcher.match(Swap, TVM::SWAP) ||
-      !Matcher.match(Ifelse, TVM::IFELSE_S)) {
-    return false;
+  static constexpr int MaxInstructionsToRemove = 10;
+  std::array<MachineInstr *, MaxInstructionsToRemove> InstrToRemove;
+  int NumInstrToRemove = 0;
+
+  MachineInstrMatcher Matcher;
+  bool MatchFound = false;
+  bool NeedInsertSwapBeforePostDominator = false;
+
+  if (!MatchFound) {
+    Matcher = MachineInstrMatcher(InstrIter, MBB.instr_end());
+
+    MachineInstr *Roll = nullptr;
+    MachineInstr *Blkswap = nullptr;
+    MachineInstr *Swap = nullptr;
+
+    if (Matcher.match(PushContA, TVM::PUSHCONT_MBB_S) &&
+        Matcher.match(PushContB, TVM::PUSHCONT_MBB_S) &&
+        Matcher.match(PushContC, TVM::PUSHCONT_MBB_S) &&
+        Matcher.match(Roll, TVM::ROLL, 3) &&
+        Matcher.match(Blkswap, TVM::BLKSWAP, 2, 2) &&
+        Matcher.match(Swap, TVM::SWAP) &&
+        Matcher.match(Ifelse, TVM::IFELSE_S)) {
+      MatchFound = true;
+      InstrToRemove[NumInstrToRemove++] = Roll;
+      InstrToRemove[NumInstrToRemove++] = Blkswap;
+      InstrToRemove[NumInstrToRemove++] = Swap;
+    }
   }
+
+  if (!MatchFound) {
+    Matcher = MachineInstrMatcher(InstrIter, MBB.instr_end());
+
+    MachineInstr *Blkswap1 = nullptr;
+    MachineInstr *Swap1 = nullptr;
+    MachineInstr *Roll1 = nullptr;
+    MachineInstr *Roll2 = nullptr;
+    MachineInstr *Blkswap2 = nullptr;
+    MachineInstr *Swap2 = nullptr;
+
+    if (Matcher.match(PushContA, TVM::PUSHCONT_MBB_S) &&
+        Matcher.match(PushContB, TVM::PUSHCONT_MBB_S) &&
+        Matcher.match(PushContC, TVM::PUSHCONT_MBB_S) &&
+        Matcher.match(Blkswap1, TVM::BLKSWAP, 2, 4) &&
+        Matcher.match(Swap1, TVM::SWAP) && Matcher.match(Roll1, TVM::ROLL, 2) &&
+        Matcher.match(Roll2, TVM::ROLL, 5) &&
+        Matcher.match(Blkswap2, TVM::BLKSWAP, 2, 4) &&
+        Matcher.match(Swap2, TVM::SWAP) &&
+        Matcher.match(Ifelse, TVM::IFELSE_S)) {
+      MatchFound = true;
+      NeedInsertSwapBeforePostDominator = true;
+      InstrToRemove[NumInstrToRemove++] = Blkswap1;
+      InstrToRemove[NumInstrToRemove++] = Swap1;
+      InstrToRemove[NumInstrToRemove++] = Roll1;
+      InstrToRemove[NumInstrToRemove++] = Roll2;
+      InstrToRemove[NumInstrToRemove++] = Blkswap2;
+      InstrToRemove[NumInstrToRemove++] = Swap2;
+    }
+  }
+
+  if (!MatchFound)
+    return false;
 
   MachineBasicBlock *ContA = PushContA->getOperand(0).getMBB();
   MachineBasicBlock *ContB = PushContB->getOperand(0).getMBB();
@@ -254,6 +301,12 @@ bool TVMPeephole::runIfElseInlining(
   MFI->clearIntermediateData(
       BuildMI(MBB, InsertionIter, DL, TII.get(TVM::DROP)));
 
+  // Insert swap for case #2
+  if (NeedInsertSwapBeforePostDominator) {
+    MFI->clearIntermediateData(
+        BuildMI(MBB, InsertionIter, DL, TII.get(TVM::SWAP)));
+  }
+
   // Copy post-dominator commands after IFELSE
   for (auto &MI : *ContC) {
     MachineInstr &NewMI = MF->CloneMachineInstrBundle(MBB, InsertionIter, MI);
@@ -270,9 +323,9 @@ bool TVMPeephole::runIfElseInlining(
   --InstrIter;
 
   PushContC->eraseFromParent();
-  Roll->eraseFromParent();
-  Blkswap->eraseFromParent();
-  Swap->eraseFromParent();
+
+  for (int i = 0; i < NumInstrToRemove; i++)
+    InstrToRemove[i]->eraseFromParent();
 
   ContAJmpX.eraseFromParent();
   ContBJmpX.eraseFromParent();

@@ -17,6 +17,8 @@ namespace llvm {
 /// Implements MI matcher with several immediate arguments
 class MachineInstrMatcher {
 public:
+  MachineInstrMatcher() : It(), End() {}
+
   MachineInstrMatcher(MachineBasicBlock::instr_iterator It,
                       MachineBasicBlock::instr_iterator End)
       : It(It), End(End) {}
@@ -97,6 +99,6 @@ private:
   MachineBasicBlock::instr_iterator End;
 };
 
-}
+} // namespace llvm
 
 #endif

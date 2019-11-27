@@ -51,14 +51,8 @@ for func in data['functions']:
             errors.append ('Function %s may have 0 or 1 return values' % name)
 
     inputs = func['inputs']
-    signed = func['signed']
-
-    if name [-11:] == "_authorized":
-        if signed != True:
-            errors.append ('Function %s ends with _authorized, so attribute "signed" must be set to true')
-    else:
-        if signed != False:
-            errors.append ('Function %s does not end with _authorized, so attribute "signed" must be set to false')
+    if 'signed' in func:
+        errors.append ('"Signed" attribute is not supported in ABI since ver. 1')
 
     header_inputs = [];
     for inp in inputs:

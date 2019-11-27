@@ -59,7 +59,7 @@ TVM target is currently only supports assembly emission, so `clang` invocation w
 * TVM doesn't have float point arithmetic, so float point operations results in an error.
 * Contrary to the C specification, unsigned integers overflow can be expected resulting in an exception.
 * TVM has stack, but it doesn't have memory. The runtime currently emulates it via dictionaries. Accessing dictionaries incurs high gas costs, so we strongly discourage the use of globals and getting variable addresses.
-* TVM uses 257-bits wide numbers. All numberic types are 257-bit wide, and 1 byte = 257 bit. So we encourage to not to make assumption about behavior of implementation-defined features of C and C++.
+* TVM uses 257-bits wide numbers and 1 byte = 257 bit. So we encourage to not to make assumption about behavior of implementation-defined features of C and C++.
 
 ## Unsupported features
 * C and C++ standard libraries (partial support is planned).

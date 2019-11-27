@@ -189,7 +189,7 @@ let TargetPrefix = "tvm" in {
   // A.11.5. Global variable primitives.
   def int_tvm_getglobal :
     GCCBuiltin<"__builtin_tvm_getglobal">,
-    Intrinsic<[llvm_i257_ty], [llvm_i257_ty], [IntrNoMem]>;
+    Intrinsic<[llvm_i257_ty], [llvm_i257_ty], []>;
   def int_tvm_setglobal :
     GCCBuiltin<"__builtin_tvm_setglobal">,
     Intrinsic<[], [llvm_i257_ty, llvm_i257_ty], []>;

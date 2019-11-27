@@ -104,11 +104,11 @@ defm LDUX : I0<(outs I257 : $x, Slice : $sliceo),
 
 defm STIXR : I0<(outs Builder : $builder),
                 (ins Builder : $builderi, I257 : $val, I257 : $precision), [],
-                "LDIXR", 0xcf02>;
+                "STIXR", 0xcf02>;
 
 defm STUXR : I0<(outs Builder : $builder),
                 (ins Builder : $builderi, I257 : $val, I257 : $precision), [],
-                "LDUXR", 0xcf03>;
+                "STUXR", 0xcf03>;
 }
 
 /// TODO: It should be a pipehole optimization for LDREF; SWAP; CTOS

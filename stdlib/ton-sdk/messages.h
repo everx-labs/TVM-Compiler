@@ -15,11 +15,28 @@ typedef struct MsgAddressInt {
   unsigned address;
 } MsgAddressInt;
 
+typedef struct CommonMsgInfo {
+  unsigned ihr_disabled;
+  unsigned bounce;
+  unsigned bounced;
+  MsgAddressInt src;
+  MsgAddressInt dst;
+  CurrencyCollection value;
+  Grams ihr_fee;
+  Grams fwd_fee;
+  unsigned created_lt;
+  unsigned created_at;
+  unsigned amount;
+} CommonMsgInfo;
+
 #include "messages.inc"
 #undef HEADER_OR_C
 
 MsgAddressInt Deserialize_MsgAddressInt_Impl();
 void Serialize_MsgAddressInt_Impl(MsgAddressInt* value);
+
+CommonMsgInfo Deserialize_CommonMsgInfo_Impl();
+void Serialize_CommonMsgInfo_Impl(CommonMsgInfo* value);
 
 MsgAddressInt build_msg_address_int (int workchain, unsigned account);
 

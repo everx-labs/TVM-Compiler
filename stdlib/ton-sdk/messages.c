@@ -22,6 +22,38 @@ void Serialize_MsgAddressInt_Impl(MsgAddressInt* value) {
   Serialize_Unsigned_Impl(value->address, 256);
 }
 
+CommonMsgInfo Deserialize_CommonMsgInfo_Impl() {
+  CommonMsgInfo value;
+  Deserialize_Unsigned_Impl(1);
+  value.ihr_disabled = Deserialize_Unsigned_Impl(1);
+  value.bounce = Deserialize_Unsigned_Impl(1);
+  value.bounced = Deserialize_Unsigned_Impl(1);
+  value.src = Deserialize_MsgAddressInt_Impl();
+  value.dst = Deserialize_MsgAddressInt_Impl();
+  value.value = Deserialize_CurrencyCollection_Impl();
+  value.ihr_fee = Deserialize_Grams_Impl();
+  value.fwd_fee = Deserialize_Grams_Impl();
+  value.created_lt = Deserialize_Unsigned_Impl(64);
+  value.created_at = Deserialize_Unsigned_Impl(32);
+  value.amount = Deserialize_Unsigned_Impl(16);
+  return value;
+}
+
+void Serialize_CommonMsgInfo_Impl(CommonMsgInfo* info) {
+  Serialize_Unsigned_Impl(0, 1);
+  Serialize_Unsigned_Impl(info->ihr_disabled, 1);
+  Serialize_Unsigned_Impl(info->bounce, 1);
+  Serialize_Unsigned_Impl(info->bounced, 1);
+  Serialize_MsgAddressInt_Impl(&info->src);
+  Serialize_MsgAddressInt_Impl(&info->dst);
+  Serialize_CurrencyCollection_Impl(&info->value);
+  Serialize_Grams_Impl(&info->ihr_fee);
+  Serialize_Grams_Impl(&info->fwd_fee);
+  Serialize_Unsigned_Impl(info->created_lt, 64);
+  Serialize_Unsigned_Impl(info->created_at, 32);
+  Serialize_Unsigned_Impl(info->amount, 16);
+}
+
 #include "messages.inc"
 #undef HEADER_OR_C
 
@@ -49,7 +81,6 @@ void build_internal_message (MsgAddressInt* dest, unsigned value) {
     zero_grams.amount.value = 0;
     EmptyMessage msg;
 
-    msg.info.zero = 0;
     msg.info.ihr_disabled = 0;
     msg.info.bounce = 0;
     msg.info.bounced = 0;

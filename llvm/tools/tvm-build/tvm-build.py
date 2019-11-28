@@ -106,7 +106,7 @@ if args.cflags:
 
 for filename in input_c:
   _, tmp_file = tempfile.mkstemp()
-  execute([os.path.join(tvm_llvm_bin, 'clang'), '-target', 'tvm'] +
+  execute([os.path.join(tvm_llvm_bin, 'clang'), '-target', 'tvm', '-isystem', tvm_stdlib] +
     cflags + ['-c', '-emit-llvm', filename, '-o', tmp_file], args.verbose)
   input_bc += [tmp_file]
 

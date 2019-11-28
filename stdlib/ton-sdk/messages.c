@@ -36,6 +36,8 @@ CommonMsgInfo Deserialize_CommonMsgInfo_Impl() {
   value.created_lt = Deserialize_Unsigned_Impl(64);
   value.created_at = Deserialize_Unsigned_Impl(32);
   value.amount = Deserialize_Unsigned_Impl(16);
+  __builtin_tvm_setglobal(7, value.src.workchain_id);
+  __builtin_tvm_setglobal(8, value.src.address);
   return value;
 }
 
@@ -130,4 +132,12 @@ void build_external_output_common_message_header () {
 
 void send_raw_message (int flags) {
     tonstdlib_send_work_slice_as_rawmsg (flags);
+}
+
+unsigned sender_workchain_id() {
+  return __builtin_tvm_getglobal(7);
+}
+
+unsigned sender_address() {
+  return __builtin_tvm_getglobal(8);
 }

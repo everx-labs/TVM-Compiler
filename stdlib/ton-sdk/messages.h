@@ -42,7 +42,11 @@ MsgAddressInt build_msg_address_int (int workchain, unsigned account);
 
 void build_internal_message (MsgAddressInt* dest, unsigned value);
 void send_raw_message (int flags);
+
 void build_external_output_int256_message (int value);
 void build_external_output_common_message_header ();
+
+unsigned sender_workchain_id();
+unsigned sender_address();
 
 #endif

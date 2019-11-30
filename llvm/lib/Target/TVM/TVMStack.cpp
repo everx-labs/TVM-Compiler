@@ -147,6 +147,7 @@ Stack& Stack::operator += (const StackFixup::Change &change) {
         std::swap(Data[v.i], Data[v.j]);
       },
       [this](StackFixup::pushI v){ Data.push_front(Data[v.i]); },
+      [    ](StackFixup::pushHidden v){ },
       [this](StackFixup::pushUndef){
         Data.push_front(StackVreg(TVMFunctionInfo::UnusedReg));
       },

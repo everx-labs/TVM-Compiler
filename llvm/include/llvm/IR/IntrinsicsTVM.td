@@ -244,7 +244,7 @@ let TargetPrefix = "tvm" in {
     GCCBuiltin<"__builtin_tvm_div">,
     Intrinsic<[llvm_i257_ty], [llvm_i257_ty, llvm_i257_ty],
               [IntrNoMem]>;
-  
+
   def int_tvm_mod :
     GCCBuiltin<"__builtin_tvm_mod">,
     Intrinsic<[llvm_i257_ty], [llvm_i257_ty, llvm_i257_ty],
@@ -481,4 +481,8 @@ let TargetPrefix = "tvm" in {
   foreach i = 1-255 in
   def int_tvm_unpackfirst#i : GCCBuiltin<"__builtin_tvm_unpackfirst"#i>,
     Intrinsic<!listsplat(llvm_i257_ty, i), [llvm_TVMTuple_ty], [IntrNoMem]>;
+
+  def int_tvm_hiddenstack :
+    GCCBuiltin<"__builtin_tvm_hiddenstack">,
+    Intrinsic<[llvm_i257_ty], [llvm_i257_ty], [IntrNoMem]>;
 }

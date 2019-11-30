@@ -453,6 +453,14 @@ StackFixup StackFixup::DiffForArgs(const Stack &From, const MIArgs &Args,
   return rv;
 }
 
+StackFixup StackFixup::DiffForHiddenStack(const Stack &Src, size_t Element,
+                                          unsigned OutRegister) {
+  Stack CurrentStack(Src);
+  StackFixup rv;
+  rv(CurrentStack += rv(pushHidden(Src.size() + Element, OutRegister)));
+  return rv;
+}
+
 void StackFixup::apply(Stack &stack) const {
   for (auto p : Changes)
     stack += p.first;
@@ -587,6 +595,7 @@ void StackFixup::printElem(raw_ostream &OS, const Change &change) const {
           [&](xchgTop v) { OS << "xchg s(" << v.i << ")"; },
           [&](xchg v) { OS << "xchg s(" << v.i << "), s(" << v.j << ")"; },
           [&](pushI v) { OS << "push s(" << v.i << ")"; },
+          [&](pushHidden v) { OS << "push s(" << v.i << ")"; },
           [&](pushUndef) { OS << "zero"; },
           [&](blkswap v) { OS << "blkswap " << v.deepSz << ", " << v.topSz; },
           [&](roll v) {

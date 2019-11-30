@@ -11,4 +11,7 @@ void tonstdlib_get_smart_contract_info();
 
 SmartContractInfo get_SmartContractInfo ();
 
+unsigned contract_balance();
+unsigned message_balance();
+
 #endif

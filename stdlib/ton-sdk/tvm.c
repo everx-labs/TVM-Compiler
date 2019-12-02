@@ -9,6 +9,10 @@ unsigned tonstdlib_log_8 (unsigned value) {
     return result;
 }
 
+unsigned tonstdlib_ubytesize (unsigned value) {
+  return (__builtin_tvm_ubitsize(value) + 7) >> 3;
+}
+
 void Serialize_Unsigned_Impl (unsigned width, unsigned val) {
 	tonstdlib_work_slice_store_uint(width,val);
 }

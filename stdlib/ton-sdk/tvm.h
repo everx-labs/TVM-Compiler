@@ -10,6 +10,7 @@
 #define ACCEPT() __builtin_tvm_accept()
 
 unsigned tonstdlib_log_8 (unsigned value);
+unsigned tonstdlib_ubytesize (unsigned value);
 
 void tonstdlib_create_empty_work_slice (void);
 int tonstdlib_work_slice_load_int (unsigned width);

@@ -16,7 +16,7 @@ MsgAddressInt build_msg_address_int (int workchain, unsigned account) {
 void build_internal_message (MsgAddressInt* dest, unsigned value) {
     Grams val_grams;
 
-    val_grams.amount.len = tonstdlib_log_8 (value);
+    val_grams.amount.len = tonstdlib_ubytesize (value);
     val_grams.amount.value = value;
 
     CurrencyCollection val;

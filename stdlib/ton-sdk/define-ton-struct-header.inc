@@ -21,9 +21,8 @@ typedef struct TON_STRUCT_NAME {
     TON_STRUCT
 } TON_STRUCT_NAME;
 
-void XJOIN3(Serialize_,TON_STRUCT_NAME,_Impl) (TON_STRUCT_NAME* value);
-
-void XJOIN(Serialize_,TON_STRUCT_NAME) (TON_STRUCT_NAME* value);
+void XJOIN3(Serialize_, TON_STRUCT_NAME, _Impl)(__tvm_builder* builder, TON_STRUCT_NAME* value);
+void XJOIN(Serialize_, TON_STRUCT_NAME)(TON_STRUCT_NAME* value);
 
 #undef FIELD_CONSTANT_UNSIGNED
 #undef FIELD_UNSIGNED
@@ -34,8 +33,8 @@ void XJOIN(Serialize_,TON_STRUCT_NAME) (TON_STRUCT_NAME* value);
 #undef FIELD_MAYBE
 #undef FIELD_ARRAY
 
-TON_STRUCT_NAME XJOIN3(Deserialize_,TON_STRUCT_NAME,_Impl) ();
-TON_STRUCT_NAME XJOIN(Deserialize_,TON_STRUCT_NAME) ();
+TON_STRUCT_NAME XJOIN3(Deserialize_, TON_STRUCT_NAME, _Impl)(__tvm_slice* slice);
+TON_STRUCT_NAME XJOIN(Deserialize_, TON_STRUCT_NAME)();
 
 #undef TON_STRUCT_NAME
 #undef TON_STRUCT

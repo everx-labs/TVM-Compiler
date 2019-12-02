@@ -4,11 +4,10 @@ target triple = "tvm"
 
 ; CHECK-LABEL: g
 define void @g(i257 %x) {
-; CHECK: PUSHCONT ; >%4 =
-; CHECK-NEXT: ; {{.*}}
+; CHECK: PUSHCONT
+; CHECK: ; {{.*}}
 ; CHECK-NEXT: {
-; CHECK-NEXT: ; %bb.2: ; %if.end
-; CHECK: IFNOT
+; CHECK: IFJMP
   %x.addr = alloca i257, align 1
   store i257 %x, i257* %x.addr, align 1
   %tobool = icmp ne i257 %x, 0
@@ -30,18 +29,17 @@ declare dso_local i257 @f(i257) #1
 
 ; CHECK-LABEL: k
 define dso_local void @k(i257 %x) #0 {
-; CHECK: PUSHCONT ; >%5 =
+; CHECK: PUSHCONT ; {{.*}}
 ; CHECK-NEXT: ; {{.*}}
 ; CHECK-NEXT: {
-; CHECK-NEXT: ; %bb.1: ; %if.then
-; CHECK: ; fallthrough return
-; CHECK: PUSHCONT ; >%4 =
+; CHECK-NEXT: ; %bb.3: ; %if.end
+; CHECK: }
+; CHECK: PUSHCONT ; {{.*}}
 ; CHECK-NEXT: ; {{.*}}
 ; CHECK-NEXT: {
 ; CHECK-NEXT: ; %bb.2: ; %if.else
-; CHECK: ; fallthrough return
 ; CHECK: }
-; CHECK: IFELSE
+; CHECK: IFNOTJMP
 entry:
   %x.addr = alloca i257, align 1
   %y = alloca i257, align 1

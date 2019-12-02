@@ -533,8 +533,10 @@ void MachineBasicBlock::updateTerminator() {
     if (TBB) {
       // The block has an unconditional branch. If its successor is now its
       // layout successor, delete the branch.
-      if (isLayoutSuccessor(TBB))
+      // TVM local begin
+      if (isFallthroughSuccessor(TBB))
         TII->removeBranch(*this);
+      // TVM local end
     } else {
       // The block has an unconditional fallthrough. If its successor is not its
       // layout successor, insert a branch. First we have to locate the only
@@ -553,8 +555,10 @@ void MachineBasicBlock::updateTerminator() {
 
       // Finally update the unconditional successor to be reached via a branch
       // if it would not be reached by fallthrough.
-      if (!isLayoutSuccessor(TBB))
+      // TVM local begin
+      if (!isFallthroughSuccessor(TBB))
         TII->insertBranch(*this, TBB, nullptr, Cond, DL);
+      // TVM local end
     }
     return;
   }
@@ -563,12 +567,16 @@ void MachineBasicBlock::updateTerminator() {
     // The block has a non-fallthrough conditional branch. If one of its
     // successors is its layout successor, rewrite it to a fallthrough
     // conditional branch.
-    if (isLayoutSuccessor(TBB)) {
+    // TVM local begin
+    if (isFallthroughSuccessor(TBB)) {
+    // TVM local end
       if (TII->reverseBranchCondition(Cond))
         return;
       TII->removeBranch(*this);
       TII->insertBranch(*this, FBB, nullptr, Cond, DL);
-    } else if (isLayoutSuccessor(FBB)) {
+    // TVM local begin
+    } else if (isFallthroughSuccessor(FBB)) {
+    // TVM local end
       TII->removeBranch(*this);
       TII->insertBranch(*this, TBB, nullptr, Cond, DL);
     }
@@ -596,8 +604,10 @@ void MachineBasicBlock::updateTerminator() {
 
       // Finally update the unconditional successor to be reached via a branch if
       // it would not be reached by fallthrough.
-      if (!isLayoutSuccessor(TBB))
+      // TVM local begin
+      if (!isFallthroughSuccessor(TBB))
         TII->insertBranch(*this, TBB, nullptr, Cond, DL);
+      // TVM local end
       return;
     }
 
@@ -611,7 +621,9 @@ void MachineBasicBlock::updateTerminator() {
   }
 
   // The block has a fallthrough conditional branch.
-  if (isLayoutSuccessor(TBB)) {
+  // TVM local begin
+  if (isFallthroughSuccessor(TBB)) {
+  // TVM local end
     if (TII->reverseBranchCondition(Cond)) {
       // We can't reverse the condition, add an unconditional branch.
       Cond.clear();
@@ -620,7 +632,9 @@ void MachineBasicBlock::updateTerminator() {
     }
     TII->removeBranch(*this);
     TII->insertBranch(*this, FallthroughBB, nullptr, Cond, DL);
-  } else if (!isLayoutSuccessor(FallthroughBB)) {
+  // TVM local begin
+  } else if (!isFallthroughSuccessor(FallthroughBB)) {
+  // TVM local end
     TII->removeBranch(*this);
     TII->insertBranch(*this, TBB, FallthroughBB, Cond, DL);
   }
@@ -816,6 +830,14 @@ bool MachineBasicBlock::isLayoutSuccessor(const MachineBasicBlock *MBB) const {
   return std::next(I) == MachineFunction::const_iterator(MBB);
 }
 
+// TVM local begin
+bool
+MachineBasicBlock::isFallthroughSuccessor(const MachineBasicBlock *MBB) const {
+  return isLayoutSuccessor(MBB) &&
+      const_cast<MachineBasicBlock *>(this)->canFallThrough();
+}
+// TVM local end
+
 MachineBasicBlock *MachineBasicBlock::getFallThrough() {
   MachineFunction::iterator Fallthrough = getIterator();
   ++Fallthrough;
@@ -831,6 +853,11 @@ MachineBasicBlock *MachineBasicBlock::getFallThrough() {
   MachineBasicBlock *TBB = nullptr, *FBB = nullptr;
   SmallVector<MachineOperand, 4> Cond;
   const TargetInstrInfo *TII = getParent()->getSubtarget().getInstrInfo();
+  // TVM local begin
+  if (!TII->canFallthrough(*this, *Fallthrough))
+    return nullptr;
+  // TVM local end
+
   if (TII->analyzeBranch(*this, TBB, FBB, Cond)) {
     // If we couldn't analyze the branch, examine the last instruction.
     // If the block doesn't end in a known control barrier, assume fallthrough

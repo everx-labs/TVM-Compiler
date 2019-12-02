@@ -200,16 +200,25 @@ define slice @ldslice(slice %slice, i257 %size) nounwind {
 ; CHECK-LABEL: throws
 define void @throws(i257 %cond) {
 ; CHECK: THROWIF 42
-  call void @llvm.tvm.throwif(i257 %cond, i257 42)
+  %flag = trunc i257 %cond to i1
+  br i1 %flag, label %do_throw, label %ok
+ok:
   ret void
+do_throw:
+  call void @llvm.tvm.throw(i257 42)
+  unreachable
 }
 
 ; CHECK-LABEL: throws_neg
 define void @throws_neg(i257 %cond) {
 ; CHECK: THROWIFNOT 42
-  %1 = xor i257 %cond, -1
-  call void @llvm.tvm.throwif(i257 %1, i257 42)
+  %flag = trunc i257 %cond to i1
+  br i1 %flag, label %ok, label %do_throw
+ok:
   ret void
+do_throw:
+  call void @llvm.tvm.throw(i257 42)
+  unreachable
 }
 
 ; CHECK-LABEL: throws_uncond
@@ -365,8 +374,7 @@ declare cell @llvm.tvm.plddict(slice %dict)
 declare builder @llvm.tvm.stdict(cell %dict, builder %builder)
 declare builder @llvm.tvm.stdicts(slice %slice, builder %builder)
 declare builder @llvm.tvm.stref(cell %cell, builder %builder) nounwind
-declare void @llvm.tvm.throwif(i257 %cond, i257 %exception)
-declare void @llvm.tvm.throw(i257 %exception)
+declare void @llvm.tvm.throw(i257 %exception) noreturn
 declare void @llvm.tvm.accept()
 declare i257 @llvm.tvm.chksignu(i257 %hash, slice %signature, i257 %key)
 declare i257 @llvm.tvm.hashcu(cell %cell)

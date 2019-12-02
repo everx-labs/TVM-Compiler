@@ -6,8 +6,8 @@ target triple = "tvm"
 define i257 @__tvm_load_global(i257* nocapture readonly %p) {
 entry:
 ; CHECK:        GETGLOB    1
-; CHECK-NEXT:   PUSHINT    64
-; CHECK-NEXT:   DICTIGET
+; CHECK:        PUSHINT    64
+; CHECK:        DICTIGET NULLSWAPIFNOT
 ; CHECK-NEXT:   THROWIFNOT 60
 ; CHECK-NEXT:   PUSHINT    257
 ; CHECK-NEXT:   LDIX
@@ -21,25 +21,28 @@ entry:
   %flag = extractvalue {slice, i257} %dictiget, 1
   %slice = extractvalue {slice, i257} %dictiget, 0
 
-  %flagneg = xor i257 %flag, -1
-  call void @llvm.tvm.throwif(i257 %flagneg, i257 60)
-
+  %flag1 = trunc i257 %flag to i1
+  br i1 %flag1, label %ok, label %do_throw
+ok:
   %ldi = call {i257, slice} @llvm.tvm.ldi(slice %slice, i257 257)
   %slice_rem = extractvalue {i257, slice} %ldi, 1
   %value = extractvalue {i257, slice} %ldi, 0
 
   call void @llvm.tvm.ends(slice %slice_rem)
   ret i257 %value
+do_throw:
+  call void @llvm.tvm.throw(i257 60)
+  unreachable
 }
 
 ; CHECK-LABEL: __tvm_load_persistent
 define i257 @__tvm_load_persistent(i257* nocapture readonly %p) {
 entry:
 ; CHECK:        PUSH       c4
-; CHECK-NEXT:   CTOS
+; CHECK:        CTOS
 ; CHECK-NEXT:   PLDDICT
-; CHECK-NEXT:   PUSHINT    64
-; CHECK-NEXT:   DICTIGET
+; CHECK:        PUSHINT    64
+; CHECK:        DICTIGET NULLSWAPIFNOT
 ; CHECK-NEXT:   THROWIFNOT 60
 ; CHECK-NEXT:   PUSHINT    257
 ; CHECK-NEXT:   LDIX
@@ -55,15 +58,18 @@ entry:
   %flag = extractvalue {slice, i257} %dictiget, 1
   %slice = extractvalue {slice, i257} %dictiget, 0
 
-  %flagneg = xor i257 %flag, -1
-  call void @llvm.tvm.throwif(i257 %flagneg, i257 60)
-
+  %flag1 = trunc i257 %flag to i1
+  br i1 %flag1, label %ok, label %do_throw
+ok:
   %ldi = call {i257, slice} @llvm.tvm.ldi(slice %slice, i257 257)
   %slice_rem = extractvalue {i257, slice} %ldi, 1
   %value = extractvalue {i257, slice} %ldi, 0
 
   call void @llvm.tvm.ends(slice %slice_rem)
   ret i257 %value
+do_throw:
+  call void @llvm.tvm.throw(i257 60)
+  unreachable
 }
 
 define i257 @__tvm_load(i257* nocapture readonly %p) {
@@ -87,6 +93,6 @@ declare slice @llvm.tvm.cast.to.slice(i257 %v)
 declare slice @llvm.tvm.ctos(cell %cell)
 declare void @llvm.tvm.ends(slice %slice)
 declare {slice, i257} @llvm.tvm.dictiget(i257 %address, cell %dict, i257 %precision)
-declare void @llvm.tvm.throwif(i257 %flag, i257 %errcode)
+declare void @llvm.tvm.throw(i257 %errcode) noreturn
 declare {i257, slice} @llvm.tvm.ldi(slice %slice, i257 %precision)
 declare cell @llvm.tvm.plddict(slice %dict)

@@ -20,7 +20,7 @@ void tonstdlib_work_slice_store_uint (unsigned value, unsigned width);
 void tonstdlib_send_work_slice_as_rawmsg (int flags);
 unsigned tvm_sender_pubkey (void);
 
-#define tvm_assert(condition,exc) (__builtin_tvm_throwif(!(condition),(exc)))
+#define tvm_assert(condition,exc) if (!(condition)) __builtin_tvm_throw((exc))
 
 void Serialize_Unsigned_Impl (unsigned width, unsigned int);
 void Serialize_Signed_Impl (unsigned width, signed int);

@@ -12,16 +12,9 @@ entry:
 
 ; CHECK-LABEL: main
 define i257 @main() {
-; CHECK: EQUAL ; >%5 =
-; CHECK: NULL
-; CHECK: SWAP
-; CHECK-NEXT: PUSHCONT ; >%6 =
-; CHECK: ; fallthrough return
-; CHECK: }
-; CHECK-NEXT: IFNOT
-; CHECK-NEXT: DROP
-; CHECK-NEXT: SWAP
-; CHECK-NEXT: POP c0
+; CHECK: EQUAL
+; CHECK: PUSHCONT
+; CHECK: IFJMP
 entry:
   %call = tail call i257 @double_push(i257 10, i257 20)
   %cmp = icmp eq i257 %call, 170

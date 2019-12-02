@@ -9,11 +9,8 @@ entry:
 ; CHECK: {
 ; CHECK:   PUSHINT 77
 ; CHECK: }
-; CHECK: PUSHCONT
-; CHECK: {
-; CHECK:   PUSHINT 42
-; CHECK: }
-; CHECK: IFELSE
+; CHECK: IFNOTJMP
+; CHECK: PUSHINT 42
   br i1 %par, label %exit1, label %exit2
 exit1:
   ret i257 42
@@ -32,11 +29,8 @@ entry:
 ; CHECK: {
 ; CHECK:   CALL $bar$
 ; CHECK: }
-; CHECK: PUSHCONT
-; CHECK: {
-; CHECK:   CALL $foo$
-; CHECK: }
-; CHECK: IFELSE
+; CHECK: IFNOTJMP
+; CHECK: CALL $foo$
   br i1 %par, label %bb1, label %bb2
 bb1:
   call void @foo()
@@ -76,7 +70,7 @@ entry:
 ; CHECK: DEC
 ; CHECK: PUSHCONT
 ; CHECK: INC
-; CHECK: IFELSE
+; CHECK: IFNOTJMP
   br i1 %par, label %bb1, label %bb2
 bb1:
 

@@ -15,8 +15,7 @@ define i257 @f(i257 %N) nounwind {
 ; CHECK: SWAP
 ; CHECK: POP	c0
 ; CHECK: }
-; CHECK: PUSHCONT
-; CHECK: IFELSE
+; CHECK: IFNOTJMP
 
   %status = icmp sgt i257 %N, 0
   br i1 %status, label %then, label %else
@@ -34,11 +33,16 @@ then:
 define void @test() nounwind {
   %1 = call i257 @f(i257 0)
   %2 = sub i257 %1, 2
-  call void @llvm.tvm.throwif(i257 %2, i257 13)
+  %flag = trunc i257 %2 to i1
+  br i1 %flag, label %do_throw, label %ok
+ok:
   ret void
+do_throw:
+  call void @llvm.tvm.throw(i257 13)
+  unreachable
 }
 
-declare void @llvm.tvm.throwif(i257 %cond, i257 %exception)
+declare void @llvm.tvm.throw(i257 %exception) noreturn
 
 declare i257 @undefined_f(i257)
 
@@ -47,21 +51,14 @@ define i257 @l(i257 %x) {
 ; CHECK: PUSH c0
 ; CHECK: PUSHCONT
 ; CHECK: {
-; CHECK:   PUSHCONT
-; CHECK:   {
-; CHECK:     POP c0
-; CHECK:   }
-; CHECK:   PUSHCONT
-; CHECK:   {
-; CHECK:     POP c0
-; CHECK:   }
-; CHECK:   IFELSE
+; CHECK:   POP c0
 ; CHECK: }
+; CHECK: IFJMP
 ; CHECK: PUSHCONT
 ; CHECK: {
 ; CHECK:   POP c0
 ; CHECK: }
-; CHECK: IFELSE
+; CHECK: IFNOTJMP
 entry:
   %0 = icmp eq i257 %x, 0
   br i1 %0, label %if.else, label %if.then

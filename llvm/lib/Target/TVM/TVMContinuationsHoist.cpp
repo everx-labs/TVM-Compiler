@@ -53,6 +53,7 @@ namespace {
       SmallVector<MachineInstr *, 4> Instructions;
     };
     std::map<MachineBasicBlock *, OccuranciesInfo> Info;
+    SmallSet<MachineInstr *, 8> DeleteMIs;
 
     void collectInstr(MachineInstr &MI);
     void collect(MachineFunction &MF);
@@ -70,6 +71,7 @@ char TVMContinuationsHoist::ID = 0;
 
 void TVMContinuationsHoist::collect(MachineFunction &MF) {
   Info.clear();
+  DeleteMIs.clear();
   for (MachineBasicBlock &MBB : MF)
     for (MachineInstr &MI : MBB)
       collectInstr(MI);
@@ -77,6 +79,10 @@ void TVMContinuationsHoist::collect(MachineFunction &MF) {
 
 bool TVMContinuationsHoist::optimize() {
   bool Changed = false;
+  for (auto *MI : DeleteMIs) {
+    LLVM_DEBUG(dbgs() << "Erasing unused: " << *MI << "\n");
+    MI->eraseFromParent();
+  }
   for (const auto &Pair : Info) {
     auto TargetMBB = Pair.first;
     const auto &Instrs = Pair.second.Instructions;
@@ -129,6 +135,10 @@ bool TVMContinuationsHoist::optimize() {
 
 void TVMContinuationsHoist::collectInstr(MachineInstr &MI) {
   if (MI.getOpcode() == TVM::PUSHCONT_MBB) {
+    if (MRI->use_nodbg_empty(MI.getOperand(0).getReg())) {
+      DeleteMIs.insert(&MI);
+      return;
+    }
     auto BB = MI.getOperand(1);
     assert(BB.isMBB() && "PUSHCONT_MBB operand 1 is not MBB");
     auto MBB = BB.getMBB();

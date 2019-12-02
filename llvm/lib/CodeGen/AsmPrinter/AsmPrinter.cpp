@@ -1129,9 +1129,8 @@ void AsmPrinter::EmitFunctionBody() {
 
     EmitBasicBlockEnd(MBB);
     // TVM local begin
-    if (MF->getTarget().getTargetTriple().getArch() == Triple::tvm) {
+    if (!ShouldPrintNextBlock(MBB))
       break;
-    }
     // TVM local end
   }
 

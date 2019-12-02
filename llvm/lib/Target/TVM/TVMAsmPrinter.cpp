@@ -49,6 +49,7 @@ public:
   void printOperand(const MachineInstr *MI, int OpNum, raw_ostream &O,
                     const char *Modifier = nullptr);
   void EmitInstruction(const MachineInstr *MI) override;
+  bool ShouldPrintNextBlock(const MachineBasicBlock &CurMBB) const override;
   std::string regToString(const MachineOperand &MO);
   void EmitBasicBlockStart(const MachineBasicBlock &MBB) const override;
 
@@ -147,12 +148,19 @@ void TVMAsmPrinter::EmitInstruction(const MachineInstr *MI) {
     OutStreamer->GetOS() << "\t";
     EmitToStreamer(*OutStreamer, TmpInst);
     if (TmpInst.getOpcode() == TVM::PUSHCONT_MBB_S) {
-      if (MI->getParent() == &MF->front())
-        EmitSubBlockForPushcont(MCInstLowering, TmpInst, 0);
-      else
-        OutStreamer->EmitRawText("\t{ }\n");
+      EmitSubBlockForPushcont(MCInstLowering, TmpInst, 0);
     }
   }
+}
+
+bool TVMAsmPrinter::ShouldPrintNextBlock(const MachineBasicBlock &CurMBB) const {
+  auto Term = CurMBB.terminators();
+  // Continue if no terminators or fallthrough terminator
+  if (Term.begin() == Term.end() ||
+      Term.begin()->getOpcode() == TVM::IFJMP_S ||
+      Term.begin()->getOpcode() == TVM::IFNOTJMP_S)
+    return true;
+  return false;
 }
 
 void TVMAsmPrinter::EmitBBEntry(const MachineBasicBlock &MBB) const {

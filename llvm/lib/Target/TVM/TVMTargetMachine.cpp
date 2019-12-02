@@ -101,6 +101,7 @@ public:
 
   void addIRPasses() override;
   bool addInstSelector() override;
+  bool addILPOpts() override;
   void addPreEmitPass() override;
   void addPreRegAlloc() override;
   void addPostRegAlloc() override;
@@ -133,8 +134,15 @@ bool TVMPassConfig::addInstSelector() {
   return false;
 }
 
+bool TVMPassConfig::addILPOpts() {
+  addPass(createTVMIfConversionTerm());
+  return true;
+}
+
 void TVMPassConfig::addPreEmitPass() {
   TargetPassConfig::addPreEmitPass();
+
+  addPass(createTVMContinuationsHoist());
 
   // Now that we have a prologue and epilogue and all frame indices are
   // rewritten, eliminate SP and FP. This allows them to be stackified,

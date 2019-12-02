@@ -33,6 +33,10 @@ let isTerminator = 1, hasCtrlDep = 1 in {
                    [(TVMifjmp I257:$cond, I257:$dst)],
                     "IFJMP\t$dst, $cond", "IFJMP", 0xe0>;
 
+    defm IFNOTJMP : I<(outs), (ins I257:$cond, I257:$dst),
+                      (outs), (ins), [],
+                      "IFNOTJMP\t$dst, $cond", "IFNOTJMP", 0xe1>;
+
     let isBarrier = 1 in {
     defm IFELSE : I<(outs), (ins I257:$cond, I257:$branch1, I257:$branch2),
                    (outs), (ins),
@@ -140,21 +144,25 @@ defm POPROOT : I<(outs), (ins Cell:$root),
                  [(int_tvm_set_persistent_data Cell:$root)],
                  "POPROOT\t$root", "POPROOT", 0xed54>;
 
+let isPredicable = 1, isTerminator = 1, isBarrier = 1, hasCtrlDep = 1,
+    hasSideEffects = 1 in
 defm THROW : I<(outs), (ins uimm11:$exception),
                (outs), (ins uimm11:$exception),
                [(int_tvm_throw uimm11:$exception)],
                "THROW\t$exception", "THROW\t$exception", 0xf22>;
 
+let hasCtrlDep = 1, hasSideEffects = 1 in {
 defm THROWIF : I<(outs), (ins I257:$cond, uimm11:$exception),
                  (outs), (ins uimm11:$exception),
-                 [(int_tvm_throwif I257:$cond, uimm11:$exception)],
+                 [],
                  "THROWIF\t$exception, $cond", "THROWIF\t$exception", 0xf26>;
 
 defm THROWIFNOT : I<(outs), (ins I257:$cond, uimm11:$exception),
                     (outs), (ins uimm11:$exception),
-                    [(int_tvm_throwif (not I257:$cond), uimm11:$exception)],
+                    [],
                     "THROWIFNOT\t$exception, $cond",
                     "THROWIFNOT\t$exception", 0xf2a>;
+}
 
 // Load and store subroutine calls
 defm CALL_LOAD : I<(outs I257 : $value), (ins I257 : $addr),

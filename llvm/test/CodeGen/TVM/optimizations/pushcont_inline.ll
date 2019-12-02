@@ -4,13 +4,11 @@ target triple = "tvm"
 
 ; CHECK-LABEL: g
 define void @g(i257 %x) {
-; CHECK: PUSHCONT ; >%5 =
-; CHECK-NEXT: ; {{.*}}
-; CHECK-NEXT: {
-; CHECK-NEXT: ; %bb.1: ; %if.then
-; CHECK-NEXT: ; {{.*}}
-; CHECK-NEXT:   JMPX
-; CHECK-NEXT: }
+; CHECK: PUSHCONT
+; CHECK: {
+; CHECK: }
+; CHECK: IFJMP
+; CHECK: JMPX
   %x.addr = alloca i257, align 1
   store i257 %x, i257* %x.addr, align 1
   %tobool = icmp ne i257 %x, 0

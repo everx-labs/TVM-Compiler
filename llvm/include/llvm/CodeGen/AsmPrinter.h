@@ -407,6 +407,12 @@ public:
     llvm_unreachable("EmitInstruction not implemented");
   }
 
+  // TVM local begin
+  virtual bool ShouldPrintNextBlock(const MachineBasicBlock &CurMBB) const {
+    return true;
+  }
+  // TVM local end
+
   /// Return the symbol for the specified constant pool entry.
   virtual MCSymbol *GetCPISymbol(unsigned CPID) const;
 

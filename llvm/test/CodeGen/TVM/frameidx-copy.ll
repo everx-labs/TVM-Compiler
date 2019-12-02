@@ -40,9 +40,14 @@ entry:
   call void @f(i257* nonnull %var)
   %rv = load i257, i257* %var, align 1
   %not_eq = sub i257 %rv, 1
-  call void @llvm.tvm.throwif(i257 %not_eq, i257 13)
+  %bad_flag = trunc i257 %not_eq to i1
+  br i1 %bad_flag, label %do_throw, label %ok
+ok:
   ret i257 %rv
+do_throw:
+  call void @llvm.tvm.throw(i257 13)
+  unreachable
 }
 
-declare void @llvm.tvm.throwif(i257 %cond, i257 %exception)
+declare void @llvm.tvm.throw(i257 %exception) noreturn
 

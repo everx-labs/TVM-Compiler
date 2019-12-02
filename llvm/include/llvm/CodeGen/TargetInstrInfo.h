@@ -651,6 +651,18 @@ public:
                         BytesAdded);
   }
 
+  // TVM local begin
+  virtual void ReplaceUsesOfBlockWith(MachineBasicBlock *Pred,
+                                      MachineBasicBlock *Old,
+                                      MachineBasicBlock *New) const {
+    Pred->ReplaceUsesOfBlockWith(Old, New);
+  }
+  virtual bool canFallthrough(MachineBasicBlock &From,
+                              MachineBasicBlock &To) const {
+    return true;
+  }
+  // TVM local end
+
   /// Analyze the loop code, return true if it cannot be understoo. Upon
   /// success, this function returns false and returns information about the
   /// induction variable and compare instruction used at the end.

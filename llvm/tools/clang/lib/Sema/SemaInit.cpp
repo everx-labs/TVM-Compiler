@@ -5466,6 +5466,25 @@ void InitializationSequence::InitializeFrom(Sema &S,
   bool allowObjCWritebackConversion = S.getLangOpts().ObjCAutoRefCount &&
          Entity.isParameterKind();
 
+  // TVM local begin
+  if (DestType->isRecordType()) {
+    if (!SourceType.isNull() && DestType->isTVMTupleStructType()) {
+      if (SourceType->isRecordType()) {
+        const RecordType *RecordTy = SourceType->getAs<RecordType>();
+        if (RecordTy->getDecl()->isLiteral() &&
+            !SourceType->isTVMTupleStructType()) {
+          unsigned SrcSz = Context.getTypeSizeInChars(SourceType).getQuantity();
+          unsigned DstSz = Context.getTypeSizeInChars(DestType).getQuantity();
+          if (SrcSz == DstSz) {
+            AddQualificationConversionStep(DestType, VK_RValue);
+            return;
+          }
+        }
+      }
+    }
+  }
+  // TVM local end
+
   // We're at the end of the line for C: it's either a write-back conversion
   // or it's a C assignment. There's no need to check anything else.
   if (!S.getLangOpts().CPlusPlus) {
@@ -5494,22 +5513,6 @@ void InitializationSequence::InitializeFrom(Sema &S,
 
   //     - If the destination type is a (possibly cv-qualified) class type:
   if (DestType->isRecordType()) {
-    // TVM local begin
-    if (!SourceType.isNull() && DestType->isTVMTupleStructType()) {
-      if (SourceType->isRecordType()) {
-        const RecordType *RecordTy = SourceType->getAs<RecordType>();
-        if (RecordTy->getDecl()->isLiteral() &&
-            !SourceType->isTVMTupleStructType()) {
-          unsigned SrcSz = Context.getTypeSizeInChars(SourceType).getQuantity();
-          unsigned DstSz = Context.getTypeSizeInChars(DestType).getQuantity();
-          if (SrcSz == DstSz) {
-            AddQualificationConversionStep(DestType, VK_RValue);
-            return;
-          }
-        }
-      }
-    }
-    // TVM local end
     //     - If the initialization is direct-initialization, or if it is
     //       copy-initialization where the cv-unqualified version of the
     //       source type is the same class as, or a derived class of, the

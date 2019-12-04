@@ -95,7 +95,9 @@ namespace {
 class TVMPassConfig : public TargetPassConfig {
 public:
   TVMPassConfig(TVMTargetMachine &TM, PassManagerBase &PM)
-      : TargetPassConfig(TM, PM) {}
+      : TargetPassConfig(TM, PM) {
+    EnableTailMerge = false;
+  }
 
   TVMTargetMachine &getTVMTargetMachine() const {
     return getTM<TVMTargetMachine>();

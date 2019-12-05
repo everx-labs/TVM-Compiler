@@ -167,21 +167,40 @@ defm THROWIFNOT : I<(outs), (ins I257:$cond, uimm11:$exception),
                     "THROWIFNOT\t$exception", 0xf2a>;
 
 // Load and store subroutine calls
-defm CALL_LOAD : I<(outs I257 : $value), (ins I257 : $addr),
-                   (outs), (ins),
-                   [], "CALL_LOAD\t$addr", "CALL\t$$:load$$", 0xF0>;
-def : Pat<(load I257 : $addr), (CALL_LOAD I257 : $addr)>;
-def : Pat<(zextload I257 : $addr), (CALL_LOAD I257 : $addr)>;
-def : Pat<(sextload I257 : $addr), (CALL_LOAD I257 : $addr)>;
+multiclass CALL_LOAD<TVMRegClass RegClass> :
+    I<(outs RegClass : $value), (ins I257 : $addr),
+      (outs), (ins),
+      [], "CALL_LOAD\t$addr", "CALL\t$$:load$$", 0xF0>;
 
-defm CALL_STORE : I<(outs), (ins I257 : $addr, I257 : $value),
-                    (outs), (ins),
-                    [], "CALL_STORE\t$addr, $value", "CALL\t$$:store$$", 0xF0>;
+defm CALL_LOAD_INT     : CALL_LOAD<I257>;
+defm CALL_LOAD_BUILDER : CALL_LOAD<Builder>;
+defm CALL_LOAD_SLICE   : CALL_LOAD<Slice>;
+
+def : Pat<(load I257 : $addr), (CALL_LOAD_INT I257 : $addr)>;
+def : Pat<(load I257 : $addr), (CALL_LOAD_BUILDER I257 : $addr)>;
+def : Pat<(load I257 : $addr), (CALL_LOAD_SLICE I257 : $addr)>;
+
+def : Pat<(zextload I257 : $addr), (CALL_LOAD_INT I257 : $addr)>;
+def : Pat<(sextload I257 : $addr), (CALL_LOAD_INT I257 : $addr)>;
+
+multiclass CALL_STORE<TVMRegClass RegClass> :
+    I<(outs), (ins I257 : $addr, RegClass : $value),
+      (outs), (ins),
+      [], "CALL_STORE\t$addr, $value", "CALL\t$$:store$$", 0xF0>;
+
+defm CALL_STORE_INT     : CALL_STORE<I257>;
+defm CALL_STORE_BUILDER : CALL_STORE<Builder>;
+defm CALL_STORE_SLICE   : CALL_STORE<Slice>;
+
 def : Pat<(store I257 : $value, I257 : $addr),
-          (CALL_STORE I257 : $addr, I257 : $value)>;
+          (CALL_STORE_INT I257 : $addr, I257 : $value)>;
+def : Pat<(store Builder : $value, I257 : $addr),
+          (CALL_STORE_BUILDER I257 : $addr, Builder : $value)>;
+def : Pat<(store Slice : $value, I257 : $addr),
+          (CALL_STORE_SLICE I257 : $addr, Slice : $value)>;
 
 def : Pat<(truncstore I257 : $value, I257 : $addr),
-          (CALL_STORE I257 : $addr, I257 : $value)>;
+          (CALL_STORE_INT I257 : $addr, I257 : $value)>;
 
 defm PUSH_GLOBAL_ADDRESS : I<(outs I257 : $res), (ins I257 : $in),
                              (outs), (ins I257 : $in),

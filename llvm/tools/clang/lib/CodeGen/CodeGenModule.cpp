@@ -4214,7 +4214,8 @@ CodeGenModule::GetConstantArrayFromStringLiteral(const StringLiteral *E) {
     Array.reserve(NumElements);
     for (unsigned i = 0, e = E->getLength(); i != e; ++i)
       Array.push_back(llvm::ConstantInt::get(ETy, E->getCodeUnit(i)));
-    Array.push_back(llvm::ConstantInt::get(ETy, 0));
+    if (NumElements > E->getLength())
+      Array.append(NumElements - E->getLength(), llvm::ConstantInt::get(ETy, 0));
     Array.resize(NumElements);
 
     return llvm::ConstantArray::get(ATy, Array);

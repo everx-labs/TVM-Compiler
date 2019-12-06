@@ -108,9 +108,8 @@ private:
 
   /// Rewrite an instruction in Reg-form to S-form.
   /// \see TVMInstructionInfo.td to learn more.
-  void rewriteToSForm(MachineInstr &MI, std::string& PreTermStackString,
+  void rewriteToSForm(MachineInstr &MI, std::string &PreTermStackString,
                       Stack &TheStack);
-
 
   /// Append \par MMB live-ins to \par vregs
   void gatherBlockLiveIns(MachineBasicBlock &MBB, std::set<unsigned> &vregs);
@@ -553,13 +552,12 @@ StackFixup TVMStackModel::prepareStackFor(MachineInstr &MI,
       auto Op = MI.getOperand(0);
       auto Reg = Op.isUndef() ? TVMFunctionInfo::UnusedReg : Op.getReg();
       return StackFixup::DiffForReturn(TheStack, Reg);
-    }
-    else {
+    } else {
       SmallVector<unsigned, 16> RetRegs;
       RetRegs.reserve(NumOperands);
       for (const auto &Op : MI.operands())
-        RetRegs.push_back(Op.isUndef() ? TVMFunctionInfo::UnusedReg :
-                                         Op.getReg());
+        RetRegs.push_back(Op.isUndef() ? TVMFunctionInfo::UnusedReg
+                                       : Op.getReg());
       return StackFixup::DiffForReturnMulti(TheStack, RetRegs);
     }
   }
@@ -582,7 +580,8 @@ StackFixup TVMStackModel::prepareStackFor(MachineInstr &MI,
 void TVMStackModel::modelInstructionExecution(MachineInstr &MI,
                                               Stack &StackBefore) {
   size_t NumDefs = MI.getNumDefs();
-  size_t NumStackOperands = llvm::count_if(MI.uses(), [](const MachineOperand& MO) { return MO.isReg(); });
+  size_t NumStackOperands = llvm::count_if(
+      MI.uses(), [](const MachineOperand &MO) { return MO.isReg(); });
   unsigned NumToConsume = NumStackOperands;
 #ifndef NDEBUG
   // Let's ensure that consumed registers are used in instruction
@@ -618,14 +617,19 @@ void TVMStackModel::modelInstructionExecution(MachineInstr &MI,
   }
 }
 
-void TVMStackModel::rewriteToSForm(MachineInstr &MI, std::string &PreTermStackString,
+void TVMStackModel::rewriteToSForm(MachineInstr &MI,
+                                   std::string &PreTermStackString,
                                    Stack &TheStack) {
   size_t NumDefs = MI.getNumDefs();
   size_t NumOperands = MI.getNumOperands();
   int NewOpcode = TVM::RegForm2SForm[MI.getOpcode()];
 
-  size_t NumGlobals = llvm::count_if(MI.uses(), [](const MachineOperand& MO) { return MO.isGlobal() || MO.isSymbol(); });
-  size_t NumImms = llvm::count_if(MI.uses(), [](const MachineOperand& MO) { return MO.isImm() || MO.isCImm(); });
+  size_t NumGlobals = llvm::count_if(MI.uses(), [](const MachineOperand &MO) {
+    return MO.isGlobal() || MO.isSymbol();
+  });
+  size_t NumImms = llvm::count_if(MI.uses(), [](const MachineOperand &MO) {
+    return MO.isImm() || MO.isCImm();
+  });
 
   if (NewOpcode >= 0) {
     // Global operands and external symbols are represented using GlobalAddress
@@ -700,8 +704,8 @@ void TVMStackModel::rewriteToSForm(MachineInstr &MI, std::string &PreTermStackSt
       MFI->addStackModelComment(MIB.getInstr(), prepareInstructionComment(MI));
 
     if (MI.isTerminator())
-      MFI->addStackModelComment(MIB.getInstr(),
-                                PreTermStackString + " => " + TheStack.toString());
+      MFI->addStackModelComment(MIB.getInstr(), PreTermStackString + " => " +
+                                                    TheStack.toString());
     else
       MFI->addStackModelComment(MIB.getInstr(), TheStack.toString());
   }

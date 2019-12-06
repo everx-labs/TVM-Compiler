@@ -30,17 +30,11 @@ struct StackVreg {
   const DILocalVariable *DbgVar = nullptr;
 
   explicit StackVreg(unsigned VirtReg, const DILocalVariable *DbgVar = nullptr)
-    : VirtReg(VirtReg), DbgVar(DbgVar) {}
+      : VirtReg(VirtReg), DbgVar(DbgVar) {}
 
-  bool operator < (const StackVreg &R) const {
-    return VirtReg < R.VirtReg;
-  }
-  bool operator == (const StackVreg &R) const {
-    return VirtReg == R.VirtReg;
-  }
-  bool operator != (const StackVreg &R) const {
-    return VirtReg != R.VirtReg;
-  }
+  bool operator<(const StackVreg &R) const { return VirtReg < R.VirtReg; }
+  bool operator==(const StackVreg &R) const { return VirtReg == R.VirtReg; }
+  bool operator!=(const StackVreg &R) const { return VirtReg != R.VirtReg; }
   void print(const Stack &S) const;
   bool operator==(unsigned R) const { return VirtReg == R; }
 };

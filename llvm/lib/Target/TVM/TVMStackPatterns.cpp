@@ -67,7 +67,7 @@ bool is_cb(unsigned a, unsigned b, unsigned c) {
 
 } // namespace
 
-void pattern_x(StackFixup& Rv, unsigned i, unsigned Dst0) {
+void pattern_x(StackFixup &Rv, unsigned i, unsigned Dst0) {
   if (i == Dst0)
     return;
   if (Dst0 == 0)
@@ -78,13 +78,13 @@ void pattern_x(StackFixup& Rv, unsigned i, unsigned Dst0) {
     Rv(StackFixup::xchg(i, Dst0));
 }
 
-void pattern2_pp(StackFixup& Rv, unsigned i, unsigned j) {
+void pattern2_pp(StackFixup &Rv, unsigned i, unsigned j) {
   // No problems for two pushes
   // { a | x | x | b || - } => { a | x | x | b || a | b | - }
   Rv(StackFixup::push2(i, j));
 }
 
-void pattern2_xp(StackFixup& Rv, unsigned i, unsigned j) {
+void pattern2_xp(StackFixup &Rv, unsigned i, unsigned j) {
   if (i == 0) { // no exchange, just push
     Rv(StackFixup::pushI(j));
   } else {
@@ -96,7 +96,7 @@ void pattern2_xp(StackFixup& Rv, unsigned i, unsigned j) {
   }
 }
 
-void pattern2_px(StackFixup& Rv, unsigned i, unsigned j) {
+void pattern2_px(StackFixup &Rv, unsigned i, unsigned j) {
   // push + swap + exchange (puxc)
   if (j == 0) {
     // If xchg value is already in place s(0), we need to do push + swap
@@ -130,8 +130,8 @@ void pattern2_xx(StackFixup &Rv, unsigned i, unsigned j) {
   }
 }
 
-void pattern2_xx(StackFixup& Rv, unsigned i, unsigned j,
-                 unsigned Dst0, unsigned Dst1) {
+void pattern2_xx(StackFixup &Rv, unsigned i, unsigned j, unsigned Dst0,
+                 unsigned Dst1) {
   assert(Dst0 != Dst1 && i != j);
 
   if (i == Dst0 && j == Dst1)
@@ -152,12 +152,12 @@ void pattern2_xx(StackFixup& Rv, unsigned i, unsigned j,
   pattern_x(Rv, j, Dst1);
 }
 
-void pattern3_xxx(StackFixup& Rv, unsigned i, unsigned j, unsigned k) {
+void pattern3_xxx(StackFixup &Rv, unsigned i, unsigned j, unsigned k) {
   // xchg i <-> 2; xchg j <-> 1; xchg k <-> 0
   if (i < 3 && j < 3 && k < 3) {
     // All vals in [2:0] range, it is just some reorder of 3 values
-    if (i == 2 && j == 1 && k == 0) // { |abc } => { |abc }
-      return; // No changes required
+    if (i == 2 && j == 1 && k == 0)      // { |abc } => { |abc }
+      return;                            // No changes required
     else if (i == 2 && j == 0 && k == 1) // { |acb } => { |abc }
       Rv(StackFixup::swap());
     else if (i == 1 && j == 2 && k == 0) // { |bac } => { |abc }
@@ -184,7 +184,7 @@ void pattern3_xxx(StackFixup& Rv, unsigned i, unsigned j, unsigned k) {
   }
 }
 
-void pattern3_xxp(StackFixup& Rv, unsigned i, unsigned j, unsigned k) {
+void pattern3_xxp(StackFixup &Rv, unsigned i, unsigned j, unsigned k) {
   // xchg i <-> 1; xchg j <-> 0; push k
   // { abc|xx } => { xbc|ax } => { xxc|ab } => { xxc|abc }
   // { xbc|xa } => { xbc|ax } => { xxc|ab } => { xxc|abc } - OK
@@ -215,7 +215,7 @@ void pattern3_xxp(StackFixup& Rv, unsigned i, unsigned j, unsigned k) {
   Rv(StackFixup::xc2pu(i, j, k));
 }
 
-void pattern3_xpx(StackFixup& Rv, unsigned i, unsigned j, unsigned k) {
+void pattern3_xpx(StackFixup &Rv, unsigned i, unsigned j, unsigned k) {
   // xchg i <-> 1; push j & swap; xchg k+1 <-> 0
   // xcpuxc: { bx|ac } => { bx|ac } => { bx|acb } => { bx|abc } => error k+1=0
   if (i == 1 && k == 0) { // { bx|ac } => { bx|acb } => { bx|abc }
@@ -250,7 +250,7 @@ void pattern3_xpx(StackFixup& Rv, unsigned i, unsigned j, unsigned k) {
   }
 }
 
-void pattern3_xpp(StackFixup& Rv, unsigned i, unsigned j, unsigned k) {
+void pattern3_xpp(StackFixup &Rv, unsigned i, unsigned j, unsigned k) {
   // xchg i <-> 0; push j; push k + 1
   if (i == 0)
     return pattern2_pp(Rv, j, k);
@@ -259,11 +259,11 @@ void pattern3_xpp(StackFixup& Rv, unsigned i, unsigned j, unsigned k) {
   Rv(StackFixup::xcpu2(i, j, k));
 }
 
-void impl_pxx(StackFixup& Rv, unsigned i, unsigned j, unsigned k) {
+void impl_pxx(StackFixup &Rv, unsigned i, unsigned j, unsigned k) {
   Rv(StackFixup::puxc2(i, j, k));
 }
 
-void pattern3_pxx(StackFixup& Rv, unsigned i, unsigned j, unsigned k) {
+void pattern3_pxx(StackFixup &Rv, unsigned i, unsigned j, unsigned k) {
   // push i; xchg 0<->2; xchg j+1<->1; xchg k+1<->0
   // { abc|xx } => { abc|xxa } => { abc|axx } => { axc|abx } => { axx|abc }
   if (is_xx(i, j, k))
@@ -272,23 +272,23 @@ void pattern3_pxx(StackFixup& Rv, unsigned i, unsigned j, unsigned k) {
   // { abx|xc } => { abx|xca } => { abx|acx } => { acx|abx } => { axx|abc } k=j
   // { xbx|ac } => { xbx|aca } => { xbx|aca } => { xcx|aba } => { xax|abc } k=j
   if (is_xc(i, j, k) || is_ac(i, j, k))
-    return impl_pxx(Rv, i, j, k=j);
+    return impl_pxx(Rv, i, j, k = j);
 
   // { axc|bx } => { axc|bxa } => { axc|axb } => error j+1=0,j=?
   if (is_bc(i, j, k)) {
-    Rv(StackFixup::xcpu(k, i)); // { axx|bc }, { axx|bca }
+    Rv(StackFixup::xcpu(k, i));     // { axx|bc }, { axx|bca }
     Rv(StackFixup::makeRollRev(2)); // { axx|abc }
     return;
   }
   // { xxc|ba } => { xxc|baa } => { xxc|aab } => error j+1=0,j=?
   if (is_ba(i, j, k)) {
-    Rv(StackFixup::xcpu(k, k)); // { xxa|bc }, { axx|bca }
+    Rv(StackFixup::xcpu(k, k));     // { xxa|bc }, { axx|bca }
     Rv(StackFixup::makeRollRev(2)); // { axx|abc }
     return;
   }
   // { axx|bc } => { axx|bca } => { axx|acb } => error j+1=0,j=?
   if (is_bc(i, j, k)) {
-    Rv(StackFixup::pushI(i)); // { axx|bca }
+    Rv(StackFixup::pushI(i));       // { axx|bca }
     Rv(StackFixup::makeRollRev(2)); // { axx|abc }
     return;
   }
@@ -307,7 +307,7 @@ void pattern3_pxx(StackFixup& Rv, unsigned i, unsigned j, unsigned k) {
   }
   // { axx|cb } => { axx|cba } => { axx|abc } => { axx|abc } => error k+1=0,k=?
   if (is_cb(i, j, k)) {
-    Rv(StackFixup::pushI(i)); // { axx|cba }
+    Rv(StackFixup::pushI(i));   // { axx|cba }
     Rv(StackFixup::xchgTop(2)); // { axx|abc }
     return;
   }
@@ -320,11 +320,11 @@ void pattern3_pxx(StackFixup& Rv, unsigned i, unsigned j, unsigned k) {
   return impl_pxx(Rv, i, j, k);
 }
 
-void impl_pxp(StackFixup& Rv, unsigned i, unsigned j, unsigned k) {
+void impl_pxp(StackFixup &Rv, unsigned i, unsigned j, unsigned k) {
   Rv(StackFixup::puxcpu(i, j, k));
 }
 
-void pattern3_pxp(StackFixup& Rv, unsigned i, unsigned j, unsigned k) {
+void pattern3_pxp(StackFixup &Rv, unsigned i, unsigned j, unsigned k) {
   // push i; swap; xchg j+1<->0; push k+1
   // { abc|x } => { abc|xa } => { abc|ax } => { axc|ab } => { axc|abc }
 
@@ -336,29 +336,29 @@ void pattern3_pxp(StackFixup& Rv, unsigned i, unsigned j, unsigned k) {
   }
   // { abx|c } => { abx|ca } => { abx|ac } => { acx|ab } => { acx|abc } k=j
   if (k == 0)
-    return impl_pxp(Rv, i, j, k=j);
+    return impl_pxp(Rv, i, j, k = j);
 
   // { xbc|a } => { xbc|aa } => { xbc|aa } => { xac|ab } => { xac|abc } - OK
   return impl_pxp(Rv, i, j, k);
 }
 
-void pattern3_ppx(StackFixup& Rv, unsigned i, unsigned j, unsigned k) {
+void pattern3_ppx(StackFixup &Rv, unsigned i, unsigned j, unsigned k) {
   // push i; swap; push j + 1; swap; xchg k+2<->0
   // { abc|x } => { abc|xa } => { abc|ax } => { abc|axb } => { abc|abx }
   //  => { abx|abc }
 
   // { abx|c } => { abx|ca } => { abx|ac } => { abx|acb } => { abx|abc }
   //  => error k+2=0,k=?
-  if (k == 0) {              // { abx|c }
-    pattern2_pp(Rv, i, j);   // { abx|ca }; { abx|cab }
+  if (k == 0) {                  // { abx|c }
+    pattern2_pp(Rv, i, j);       // { abx|ca }; { abx|cab }
     Rv(StackFixup::makeRoll(2)); // { abx|abc }
     return;
   }
 
   // { axc|b } => { axc|ba } => { axc|ab } => error j+1=0,j=?
-  if (j == 0) {                // { axc|b }
-    pattern3_xpp(Rv, k, i, k); // { axb|c } => { axb|ca } => { axb|cab }
-    Rv(StackFixup::makeRoll(2));   // { axb|abc }
+  if (j == 0) {                  // { axc|b }
+    pattern3_xpp(Rv, k, i, k);   // { axb|c } => { axb|ca } => { axb|cab }
+    Rv(StackFixup::makeRoll(2)); // { axb|abc }
     return;
   }
 
@@ -367,7 +367,7 @@ void pattern3_ppx(StackFixup& Rv, unsigned i, unsigned j, unsigned k) {
   Rv(StackFixup::pu2xc(i, j, k));
 }
 
-void pattern3_ppp(StackFixup& Rv, unsigned i, unsigned j, unsigned k) {
+void pattern3_ppp(StackFixup &Rv, unsigned i, unsigned j, unsigned k) {
   // No problems for three pushes
   // { abc| } => { abc|abc }
   Rv(StackFixup::push3(i, j, k));

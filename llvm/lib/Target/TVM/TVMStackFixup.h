@@ -11,9 +11,9 @@
 #define LLVM_LIB_TARGET_TVM_TVMSTACKFIXUP_H
 
 #include <deque>
-#include <variant>
 #include <optional>
 #include <sstream>
+#include <variant>
 
 #include "llvm/CodeGen/MachineInstrBuilder.h"
 
@@ -42,8 +42,9 @@ public:
   /// Prepare diff for return (clean this function's stack, keep only ret val).
   /// \par Src - current stack.
   /// \par Preserved - Vreg for return value.
-  static StackFixup DiffForReturn(const Stack &Src,
-      std::optional<unsigned> Preserved = std::optional<unsigned>());
+  static StackFixup
+  DiffForReturn(const Stack &Src,
+                std::optional<unsigned> Preserved = std::optional<unsigned>());
   /// Prepare diff for return with many values
   ///  (clean this function's stack, keep only return values).
   /// \par Src - current stack.
@@ -74,12 +75,12 @@ public:
   struct drop {};
   struct nip {};
   struct xchgTop {
-    explicit xchgTop(unsigned i, bool checkLimits = true) : i (i) {
+    explicit xchgTop(unsigned i, bool checkLimits = true) : i(i) {
       if (checkLimits) {
         assert(i <= XchgDeepLimit && "Unimplemented");
       }
     }
-    bool operator == (const xchgTop &v) const { return i == v.i; }
+    bool operator==(const xchgTop &v) const { return i == v.i; }
     unsigned i;
   };
   struct swap : xchgTop {
@@ -87,19 +88,18 @@ public:
   };
   struct xchg {
     xchg(unsigned i, unsigned j, bool checkLimits = true)
-      : i(std::min(i, j))
-      , j(std::max(i, j)) {
+        : i(std::min(i, j)), j(std::max(i, j)) {
       if (checkLimits) {
         assert(i <= XchgLimit && "Unimplemented");
         assert(j <= XchgLimit && "Unimplemented");
       }
     }
-    bool operator == (const xchg &v) const { return i == v.i && j == v.j; }
+    bool operator==(const xchg &v) const { return i == v.i && j == v.j; }
     unsigned i;
     unsigned j;
   };
   struct pushI {
-    explicit pushI(unsigned i, bool checkLimits = true) : i (i) {
+    explicit pushI(unsigned i, bool checkLimits = true) : i(i) {
       if (checkLimits) {
         assert(i <= PushLimit && "Unimplemented");
       }
@@ -128,17 +128,14 @@ public:
     rot() : blkswap(1, 2) {}
   };
   struct roll {
-    explicit roll(int i) : i(i) {
-      assert(i != 0 && "Roll for top elem");
-    }
+    explicit roll(int i) : i(i) { assert(i != 0 && "Roll for top elem"); }
     bool isImmRoll() const {
       return static_cast<unsigned>(std::abs(i)) <= RollImmLimit + 1;
     }
     int i;
   };
   struct reverse {
-    reverse(unsigned deepSz, unsigned topIdx)
-        : deepSz(deepSz), topIdx(topIdx) {
+    reverse(unsigned deepSz, unsigned topIdx) : deepSz(deepSz), topIdx(topIdx) {
       assert(deepSz >= 2 && "Wrong size in reverse");
     }
     bool isImm() const {
@@ -151,24 +148,18 @@ public:
     explicit blkdrop(unsigned sz) : sz(sz) {
       assert(sz >= 0 && "blkdrop for null size");
     }
-    bool isImm() const {
-      return sz <= BlkdropImmLimit;
-    }
+    bool isImm() const { return sz <= BlkdropImmLimit; }
     unsigned sz;
   };
   struct doubleChange {
     // true - push, false - xchg
     doubleChange(bool p1, bool p2, unsigned i, unsigned j)
-      : p{ p1, p2 }, args{ i, j } {
-    }
+        : p{p1, p2}, args{i, j} {}
     bool isXchg(unsigned i) const { return !p[i]; }
     bool isPush(unsigned i) const { return p[i]; }
     unsigned countXchgs() const { return llvm::count(p, false); }
     unsigned countPushes() const { return llvm::count(p, true); }
-    unsigned code() const {
-      return ((p[0] ? 1 : 0) << 1) |
-              (p[1] ? 1 : 0);
-    }
+    unsigned code() const { return ((p[0] ? 1 : 0) << 1) | (p[1] ? 1 : 0); }
     std::string codeName() const {
       std::ostringstream Oss;
       for (bool IsPush : p)
@@ -193,16 +184,13 @@ public:
   struct tripleChange {
     // true - push, false - xchg
     tripleChange(bool p1, bool p2, bool p3, unsigned i, unsigned j, unsigned k)
-      : p{ p1, p2, p3 }, args{ i, j, k } {
-    }
+        : p{p1, p2, p3}, args{i, j, k} {}
     bool isXchg(unsigned i) const { return !p[i]; }
     bool isPush(unsigned i) const { return p[i]; }
     unsigned countXchgs() const { return llvm::count(p, false); }
     unsigned countPushes() const { return llvm::count(p, true); }
     unsigned code() const {
-      return ((p[0] ? 1 : 0) << 2) |
-             ((p[1] ? 1 : 0) << 1) |
-              (p[2] ? 1 : 0);
+      return ((p[0] ? 1 : 0) << 2) | ((p[1] ? 1 : 0) << 1) | (p[2] ? 1 : 0);
     }
     std::string codeName() const {
       std::ostringstream Oss;
@@ -216,52 +204,53 @@ public:
   // xxx
   struct xchg3 : tripleChange {
     xchg3(unsigned i, unsigned j, unsigned k)
-      : tripleChange(false, false, false, i, j, k) {}
+        : tripleChange(false, false, false, i, j, k) {}
   };
   // ppp
   struct push3 : tripleChange {
     push3(unsigned i, unsigned j, unsigned k)
-      : tripleChange(true, true, true, i, j, k) {}
+        : tripleChange(true, true, true, i, j, k) {}
   };
   // xxp
   struct xc2pu : tripleChange {
     xc2pu(unsigned i, unsigned j, unsigned k)
-      : tripleChange(false, false, true, i, j, k) {}
+        : tripleChange(false, false, true, i, j, k) {}
   };
   // xpx
   struct xcpuxc : tripleChange {
     xcpuxc(unsigned i, unsigned j, unsigned k)
-      : tripleChange(false, true, false, i, j, k) {}
+        : tripleChange(false, true, false, i, j, k) {}
   };
   // xpp
   struct xcpu2 : tripleChange {
     xcpu2(unsigned i, unsigned j, unsigned k)
-      : tripleChange(false, true, true, i, j, k) {}
+        : tripleChange(false, true, true, i, j, k) {}
   };
   // pxx
   struct puxc2 : tripleChange {
     puxc2(unsigned i, unsigned j, unsigned k)
-      : tripleChange(true, false, false, i, j, k) {}
+        : tripleChange(true, false, false, i, j, k) {}
   };
   // pxp
   struct puxcpu : tripleChange {
     puxcpu(unsigned i, unsigned j, unsigned k)
-      : tripleChange(true, false, true, i, j, k) {}
+        : tripleChange(true, false, true, i, j, k) {}
   };
   // ppx
   struct pu2xc : tripleChange {
     pu2xc(unsigned i, unsigned j, unsigned k)
-      : tripleChange(true, true, false, i, j, k) {}
+        : tripleChange(true, true, false, i, j, k) {}
   };
-  using Change = std::variant<drop, nip, xchgTop, xchg, pushI, pushUndef,
-      blkswap, blkdrop, roll, reverse, doubleChange, tripleChange>;
+  using Change =
+      std::variant<drop, nip, xchgTop, xchg, pushI, pushUndef, blkswap, blkdrop,
+                   roll, reverse, doubleChange, tripleChange>;
   using ChangesVec = std::vector<std::pair<Change, std::string>>;
 
 #if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
   void dump() const;
   void print(raw_ostream &OS) const;
   void printElem(raw_ostream &OS, const Change &change) const;
-  friend raw_ostream& operator<<(raw_ostream &OS, const StackFixup &V) {
+  friend raw_ostream &operator<<(raw_ostream &OS, const StackFixup &V) {
     V.print(OS);
     return OS;
   }
@@ -284,13 +273,14 @@ public:
     InstructionGenerator(const TargetInstrInfo *TII, TVMFunctionInfo *MFI,
                          MachineBasicBlock *MBB,
                          MachineBasicBlock::iterator InsertPt)
-      : TII(TII), MFI(MFI), MBB(MBB), InsertPt(InsertPt) {
+        : TII(TII), MFI(MFI), MBB(MBB), InsertPt(InsertPt) {
       if (InsertPt != MBB->end())
         DL = InsertPt->getDebugLoc();
     }
     MachineInstr *operator()(const std::pair<Change, std::string> &v) const;
 
     void operator()(const StackFixup &v) const;
+
   private:
     const TargetInstrInfo *TII;
     TVMFunctionInfo *MFI;
@@ -299,9 +289,7 @@ public:
     DebugLoc DL;
   };
 
-  const ChangesVec &getChanges() const {
-    return Changes;
-  }
+  const ChangesVec &getChanges() const { return Changes; }
   Change operator()(const Change &change) {
     Changes.push_back(make_pair(change, std::string()));
     return change;
@@ -314,6 +302,7 @@ public:
   static Change makeBlkSwap(unsigned deepElems, unsigned topElems);
   static Change makeReverse(unsigned Sz);
   static Change makeBlkdrop(unsigned Sz);
+
 private:
   void optimizeEqualXchgs();
   void optimize(bool IsCommutative = false);

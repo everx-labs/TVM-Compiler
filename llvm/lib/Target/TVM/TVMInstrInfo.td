@@ -239,6 +239,9 @@ defm PU2XC : SI<(ins stack_op:$i, stack_op:$j, stack_op:$k),
 defm PUSH3 : SI<(ins stack_op:$i, stack_op:$j, stack_op:$k),
                 "PUSH3\t$i, $j, $k", 0x547>;
 
+let isPseudo=1 in
+def HIDDENSTACK : NI<(outs I257:$dst), (ins uimm8:$src), [(set I257:$dst, (int_tvm_hiddenstack uimm8:$src))], 1>;
+
 defm POP  : SI<(ins stack_op:$dst), "POP\t$dst", 0x30>;
 defm DROP : SI<(ins), "DROP", 0x30>;
 defm BLKDROP : SI<(ins uimm8:$sz), "BLKDROP\t$sz", 0x5F0>;
@@ -341,7 +344,6 @@ def : IntDivPat<srem, MOD>;
 //===----------------------------------------------------------------------===//
 def chkbool : PatFrag<(ops node:$in), (int_tvm_fitsx node:$in, 1)>;
 def chkbit  : PatFrag<(ops node:$in), (int_tvm_ufitsx node:$in, 1)>;
-
 let hasSideEffects = 1 in {
   defm FITSX   : BinaryRR<int_tvm_fitsx, "FITSX", 0xb600>;
   defm UFITSX  : BinaryRR<int_tvm_ufitsx, "UFITSX", 0xb601>;

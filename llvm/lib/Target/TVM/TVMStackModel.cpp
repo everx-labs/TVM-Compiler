@@ -523,6 +523,15 @@ StackFixup TVMStackModel::prepareStackFor(MachineInstr &MI,
   if (MI.isImplicitDef())
     return {};
 
+  if (MI.getOpcode() == TVM::HIDDENSTACK) {
+    auto Result = MI.getOperand(0);
+    auto Operand = MI.getOperand(1);
+    assert(Result.isReg() && Operand.isCImm() && "Unexpected instruction format");
+    return StackFixup::DiffForHiddenStack(StackBefore,
+                                          Operand.getCImm()->getZExtValue(),
+                                          Result.getReg());
+  }
+
   auto *MBB = MI.getParent();
 
 #ifndef NDEBUG

@@ -7,3 +7,11 @@ SmartContractInfo get_SmartContractInfo () {
 
 #define HEADER_OR_C "define-ton-struct-c.inc"
 #include "smart-contract-info.inc"
+
+unsigned contract_balance() {
+  return __builtin_tvm_hiddenstack(0);
+}
+
+unsigned message_balance() {
+  return __builtin_tvm_hiddenstack(1);
+}

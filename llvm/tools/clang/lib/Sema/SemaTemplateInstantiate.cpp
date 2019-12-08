@@ -760,6 +760,12 @@ namespace {
                                                        NumExpansions);
     }
 
+    // TVM local begin
+    unsigned calcFieldCountForTrickySizeof(NamedDecl *Param) {
+      return getSema().calcFieldCountForTrickySizeof(Param, TemplateArgs);
+    }
+    // TVM local end
+
     void ExpandingFunctionParameterPack(ParmVarDecl *Pack) {
       SemaRef.CurrentInstantiationScope->MakeInstantiatedLocalArgPack(Pack);
     }

@@ -6844,6 +6844,11 @@ public:
   Optional<unsigned> getNumArgumentsInExpansion(QualType T,
       const MultiLevelTemplateArgumentList &TemplateArgs);
 
+  // TVM local begin
+  unsigned calcFieldCountForTrickySizeof(NamedDecl *Param,
+      const MultiLevelTemplateArgumentList &TemplateArgs);
+  // TVM local end
+
   /// Determine whether the given declarator contains any unexpanded
   /// parameter packs.
   ///

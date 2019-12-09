@@ -428,18 +428,31 @@ defm ISZERO : I<(outs I257:$dst), (ins I257:$src), (outs), (ins),
                  [(set I257:$dst, (setcc I257:$src, 0, SETEQ))],
                  "ISZERO\t$dst, $src", "ISZERO", 0xc000>;
 
-defm CONDSEL : I<(outs I257:$dst), (ins I257:$lhs, I257:$rhs, I257:$cond),
-                 (outs), (ins),
-                 [(set I257:$dst, (select I257:$cond, I257:$lhs, I257:$rhs))],
-                 "COND\t$dst, $lhs, $rhs, $cond", "CONDSEL", 0xe304>;
+multiclass CONDSEL_TEMPLATE<TVMRegClass RC> :
+  I<(outs RC:$dst), (ins I257:$cond, RC:$lhs, RC:$rhs), (outs), (ins),
+    [(set RC:$dst, (select I257:$cond, RC:$lhs, RC:$rhs))],
+    "COND\t$dst, $cond, $lhs, $rhs", "CONDSEL", 0xe304>;
+
+defm CONDSEL_I : CONDSEL_TEMPLATE<I257>;
+defm CONDSEL_T : CONDSEL_TEMPLATE<Tuple>;
+defm CONDSEL_S : CONDSEL_TEMPLATE<Slice>;
+defm CONDSEL_B : CONDSEL_TEMPLATE<Builder>;
+defm CONDSEL_C : CONDSEL_TEMPLATE<Cell>;
 
 // ISD::SELECT requires its operand to conform to getBooleanContents, but
 // TVM's CONDSEL interprets any non-zero value as true, so we can fold
 // a setne and seteq with 0 into a select.
-def : Pat<(select (i257 (seteq I257:$cond, 0)), I257:$lhs, I257:$rhs),
-          (CONDSEL I257:$lhs, I257:$rhs, I257:$cond)>;
-def : Pat<(select (i257 (setne I257:$cond, 0)), I257:$lhs, I257:$rhs),
-          (CONDSEL I257:$rhs, I257:$lhs, I257:$cond)>;
+multiclass CONDSEL_PATTERNS<ValueType VT, TVMRegClass RC, NI CS> {
+def : Pat<(select (i257 (seteq I257:$cond, (i257 0))), RC:$lhs, RC:$rhs),
+          (CS I257:$cond, RC:$rhs, RC:$lhs)>;
+def : Pat<(select (i257 (setne I257:$cond, (i257 0))), RC:$lhs, RC:$rhs),
+          (CS I257:$cond, RC:$lhs, RC:$rhs)>;
+}
+defm : CONDSEL_PATTERNS<i257, I257, CONDSEL_I>;
+defm : CONDSEL_PATTERNS<TVMTuple, Tuple, CONDSEL_T>;
+defm : CONDSEL_PATTERNS<TVMSlice, Slice, CONDSEL_S>;
+defm : CONDSEL_PATTERNS<TVMBuilder, Builder, CONDSEL_B>;
+defm : CONDSEL_PATTERNS<TVMCell, Cell, CONDSEL_C>;
 
 include "TVMTupleInstrInfo.td"
 include "TVMLiteralInstrInfo.td"

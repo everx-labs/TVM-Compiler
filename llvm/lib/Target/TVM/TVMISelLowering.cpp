@@ -121,8 +121,13 @@ TVMTargetLowering::TVMTargetLowering(const TargetMachine &TM,
   setTargetDAGCombine(ISD::ANY_EXTEND);
 
   // Expand these forms; we pattern-match the forms that we can handle in isel.
-  for (auto Op : {ISD::BR_CC, ISD::SELECT_CC})
+  for (auto Op : {ISD::BR_CC, ISD::SELECT_CC}) {
     setOperationAction(Op, MVT::i257, Expand);
+    setOperationAction(Op, MVT::TVMTuple, Expand);
+    setOperationAction(Op, MVT::TVMSlice, Expand);
+    setOperationAction(Op, MVT::TVMBuilder, Expand);
+    setOperationAction(Op, MVT::TVMCell, Expand);
+  }
 }
 
 //===----------------------------------------------------------------------===//

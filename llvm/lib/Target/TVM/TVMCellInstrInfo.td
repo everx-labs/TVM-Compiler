@@ -102,6 +102,71 @@ defm LDUX : I0<(outs I257 : $x, Slice : $sliceo),
                  (int_tvm_ldu Slice : $slicei, I257 : $precision))],
                "LDUX", 0xd701>;
 
+defm LDVARUINT16 : I0<(outs I257:$x, Slice:$sliceo), (ins Slice:$slicei),
+                      [(set I257:$x, Slice:$sliceo,
+                        (int_tvm_ldvaruint16 Slice:$slicei))],
+                      "LDVARUINT16", 0xfa00>;
+
+defm LDVARINT16 : I0<(outs I257:$x, Slice:$sliceo), (ins Slice:$slicei),
+                     [(set I257:$x, Slice:$sliceo,
+                       (int_tvm_ldvarint16 Slice:$slicei))],
+                     "LDVARINT16", 0xfa01>;
+
+defm STVARUINT16 : I0<(outs Builder:$new_b), (ins Builder:$b, I257:$x),
+                      [(set Builder:$new_b,
+                        (int_tvm_stvaruint16 Builder:$b, I257:$x))],
+                      "STVARUINT16", 0xfa02>;
+
+defm STVARINT16 : I0<(outs Builder:$new_b), (ins Builder:$b, I257:$x),
+                     [(set Builder:$new_b,
+                       (int_tvm_stvarint16 Builder:$b, I257:$x))],
+                     "STVARINT16", 0xfa03>;
+
+
+defm LDVARUINT32 : I0<(outs I257:$x, Slice:$sliceo), (ins Slice:$slicei),
+                      [(set I257:$x, Slice:$sliceo,
+                        (int_tvm_ldvaruint32 Slice:$slicei))],
+                      "LDVARUINT32", 0xfa04>;
+
+defm LDVARINT32 : I0<(outs I257:$x, Slice:$sliceo), (ins Slice:$slicei),
+                     [(set I257:$x, Slice:$sliceo,
+                       (int_tvm_ldvarint32 Slice:$slicei))],
+                     "LDVARINT32", 0xfa05>;
+
+defm STVARUINT32 : I0<(outs Builder:$new_b), (ins Builder:$b, I257:$x),
+                      [(set Builder:$new_b,
+                        (int_tvm_stvaruint32 Builder:$b, I257:$x))],
+                      "STVARUINT32", 0xfa06>;
+
+defm STVARINT32 : I0<(outs Builder:$new_b), (ins Builder:$b, I257:$x),
+                     [(set Builder:$new_b,
+                       (int_tvm_stvarint32 Builder:$b, I257:$x))],
+                     "STVARINT32", 0xfa07>;
+
+defm PLDI : I<(outs I257:$x),
+              (ins Slice:$slicei, uimm1_256:$precision),
+              (outs), (ins uimm1_256:$precision),
+              [(set I257:$x,
+                (int_tvm_pldi Slice:$slicei, uimm1_256:$precision))],
+              "PLDI\t $precision, $slicei, $x",
+              "PLDI\t $precision", 0xd70a00>;
+
+defm PLDU : I<(outs I257:$x),
+              (ins Slice:$slicei, uimm1_256:$precision),
+              (outs), (ins uimm1_256:$precision),
+              [(set I257:$x,
+                (int_tvm_pldu Slice:$slicei, uimm1_256:$precision))],
+              "PLDU\t $precision, $slicei, $x",
+              "PLDU\t $precision", 0xd70b00>;
+
+defm PLDIX : I0<(outs I257:$x), (ins Slice:$slicei, I257:$precision),
+                [(set I257:$x, (int_tvm_pldu Slice:$slicei, I257:$precision))],
+                "PLDIX", 0xd702>;
+
+defm PLDUX : I0<(outs I257:$x), (ins Slice:$slicei, I257:$precision),
+                [(set I257:$x, (int_tvm_pldu Slice:$slicei, I257:$precision))],
+                "PLDUX", 0xd703>;
+
 defm STIXR : I0<(outs Builder : $builder),
                 (ins Builder : $builderi, I257 : $val, I257 : $precision), [],
                 "STIXR", 0xcf02>;
@@ -125,12 +190,37 @@ defm LDREF : I<(outs Cell:$ocell, Slice:$oslice), (ins Slice:$islice),
 def : Pat<(int_tvm_ldref Slice:$islice), (LDREF Slice:$islice)>;
 
 let hasSideEffects = 1 in
-defm LDSLICEX : I<(outs Slice:$result, Slice:$remainder), (ins Slice:$slice, I257:$size),
+defm LDSLICE : I<(outs Slice:$result, Slice:$remainder),
+                 (ins Slice:$slice, uimm1_256:$size),
+                 (outs), (ins uimm1_256:$size),
+                 [(set Slice:$result, Slice:$remainder,
+                   (int_tvm_ldslice Slice:$slice, uimm1_256:$size))],
+                 "LDSLICE\t$result, $remainder, $slice, $size",
+                 "LDSLICE\t$size", 0xd600>;
+
+defm SBITS : I<(outs I257:$result), (ins Slice:$slice), (outs), (ins),
+               [(set I257:$result, (int_tvm_sbits Slice:$slice))],
+               "SBITS\t$result, $slice", "SBITS", 0xd749>;
+
+defm SREFS : I<(outs I257:$result), (ins Slice:$slice), (outs), (ins),
+               [(set I257:$result, (int_tvm_srefs Slice:$slice))],
+               "SREFS\t$result, $slice", "SREFS", 0xd74a>;
+
+defm SBITREFS : I<(outs I257:$bits, I257:$refs), (ins Slice:$slice),
+                  (outs), (ins),
+                  [(set I257:$bits, I257:$refs,
+                    (int_tvm_sbitrefs Slice:$slice))],
+                  "SBITREFS\t$bits, $refs, $slice", "SBITREFS", 0xd74b>;
+
+let hasSideEffects = 1 in
+defm LDSLICEX : I<(outs Slice:$result, Slice:$remainder),
+                  (ins Slice:$slice, I257:$size),
                   (outs), (ins),
                   [(set Slice:$result, Slice:$remainder,
-                      (TVMldslicex Slice:$slice, I257:$size))],
-                  "LDSLICEX\t$result, $remainder, $slice, $size", "LDSLICEX", 0xd718>;
-def : Pat<(int_tvm_ldslicex Slice:$slice, I257:$size),
+                    (TVMldslicex Slice:$slice, I257:$size))],
+                  "LDSLICEX\t$result, $remainder, $slice, $size",
+                  "LDSLICEX", 0xd718>;
+def : Pat<(int_tvm_ldslice Slice:$slice, I257:$size),
           (LDSLICEX Slice:$slice, I257:$size)>;
 
 /// TODO: If to remove the following line Pat doesn't work. Investigate why.

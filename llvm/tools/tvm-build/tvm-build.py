@@ -51,6 +51,7 @@ parser.add_argument('-v', '--verbose', action='store_true', default=False,
 parser.add_argument('-o', '--output', help='bag-of-cells output file name')
 parser.add_argument('--cflags', help='flags and options for C frontend')
 parser.add_argument('--cxxflags', help='flags and options for C++ frontend')
+parser.add_argument('--linkerflags', help='flags for tvm_linker')
 parser.add_argument('--opt-flags', help='flags and options for LLVM optimizer')
 parser.add_argument('-S', '--asm-only', action='store_true', default=False,
                     help='produce assembler output')
@@ -187,8 +188,11 @@ if args.verbose:
   print('cd ' + tmpdir)
 
 with cd(tmpdir):
+  linkerflags = []
+  if args.linkerflags:
+    linkerflags = args.linkerflags.split()
   execute([tvm_linker, 'compile', asm, '--lib', os.path.join(tvm_stdlib,
-    'stdlib_c.tvm'), '--abi-json', abi_path], args.verbose)
+    'stdlib_c.tvm'), '--abi-json', abi_path] + linkerflags, args.verbose)
   for tvc in glob.glob('*.tvc'):
     if args.verbose:
       print('cp ' + tvc + ' ' + output)

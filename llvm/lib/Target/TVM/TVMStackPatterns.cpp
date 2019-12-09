@@ -356,9 +356,15 @@ void pattern3_ppx(StackFixup &Rv, unsigned i, unsigned j, unsigned k) {
   }
 
   // { axc|b } => { axc|ba } => { axc|ab } => error j+1=0,j=?
-  if (j == 0) {                  // { axc|b }
+  if (j == 0 && k != 1) {                  // { axc|b }
     pattern3_xpp(Rv, k, i, k);   // { axb|c } => { axb|ca } => { axb|cab }
     Rv(StackFixup::makeRoll(2)); // { axb|abc }
+    return;
+  }
+  // { ab|cx }
+  if (k == 1) {
+    pattern2_pp(Rv, i, j);       // { ab|cxab }
+    Rv(StackFixup::makeRoll(3)); // { ab|cxab }
     return;
   }
 

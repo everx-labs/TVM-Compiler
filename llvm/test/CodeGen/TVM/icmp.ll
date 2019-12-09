@@ -14,10 +14,11 @@ define i257 @icmpeq(i257 %par1, i257 %par2) nounwind {
 }
 
 ; CHECK-LABEL: icmpeq0
+; (par == 0) ? 42 : 77  => (!par) ? 42 : 77 => par ? 77 : 42
 define i257 @icmpeq0(i257 %par1) nounwind {
 ; CHECK-NOT: EQUAL
-; CHECK: PUSHINT 42
-; CHECK-NEXT: PUSHINT 77
+; CHECK: PUSHINT 77
+; CHECK-NEXT: PUSHINT 42
 ; CHECK: CONDSEL
   %1 = icmp eq i257 %par1, 0
   %2 = select i1 %1, i257 42, i257 77
@@ -33,10 +34,11 @@ define i257 @icmpneq(i257 %par1, i257 %par2) nounwind {
 }
 
 ; CHECK-LABEL: icmpneq0
+; (par != 0) ? 42 : 77  => (par) ? 42 : 77
 define i257 @icmpneq0(i257 %par1) nounwind {
 ; CHECK-NOT: NEQ
-; CHECK: PUSHINT 77
-; CHECK-NEXT: PUSHINT 42
+; CHECK: PUSHINT 42
+; CHECK-NEXT: PUSHINT 77
 ; CHECK: CONDSEL
   %1 = icmp ne i257 %par1, 0
   %2 = select i1 %1, i257 42, i257 77

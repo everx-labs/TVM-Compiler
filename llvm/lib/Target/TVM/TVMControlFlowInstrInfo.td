@@ -134,10 +134,9 @@ defm PUSHC : I<(outs I257 : $root), (ins uimm8 : $regno),
                [(set I257 : $root, (int_tvm_getreg uimm8 : $regno))],
                "PUSH\tc$regno", "PUSH\tc$regno", 0xed4>;
 
-defm PUSHROOT : I<(outs Cell:$root), (ins),
-               (outs), (ins),
-               [(set Cell:$root, (TVMpushroot))],
-               "PUSHROOT", "PUSHROOT", 0xed44>;
+defm PUSHROOT : I<(outs Cell:$root), (ins), (outs), (ins),
+                  [(set Cell:$root, (int_tvm_get_persistent_data))],
+                  "PUSHROOT", "PUSHROOT", 0xed44>;
 
 defm POPC : I<(outs), (ins I257 : $root, uimm8 : $regno),
               (outs), (ins uimm8 : $regno),

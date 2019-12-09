@@ -669,11 +669,6 @@ SDValue TVMTargetLowering::LowerINTRINSIC_W_CHAIN(SDValue Op,
   switch (IntNo) {
   default:
     break;
-  /// Instrinsic operands are {chain, ID, parameters...} tuple.
-  case Intrinsic::tvm_get_persistent_data: {
-    SDValue Result = DAG.getNode(TVMISD::PUSHROOT, DL, MVT::TVMCell, Chain);
-    return DAG.getMergeValues({Result.getValue(0), Chain}, DL);
-  }
   case Intrinsic::tvm_inttoslice: {
     SDValue Precision = DAG.getConstant(256, DL, MVT::i257);
     SDValue Result = DAG.getNode(TVMISD::NEWC, DL, MVT::TVMBuilder);

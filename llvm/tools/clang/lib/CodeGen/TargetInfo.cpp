@@ -817,6 +817,18 @@ Address WebAssemblyABIInfo::EmitVAArg(CodeGenFunction &CGF, Address VAListAddr,
 // This is a very simple ABI that relies a lot on DefaultABIInfo.
 //===----------------------------------------------------------------------===//
 
+// useFirstFieldIfTransparentUnion analog for tvm: returns { i257, i257, ... } struct
+static QualType getSplatI257IfTransparentUnion(ASTContext &Context, QualType Ty) {
+  if (const RecordType *UT = Ty->getAsUnionType()) {
+    const RecordDecl *UD = UT->getDecl();
+    if (UD->hasAttr<TransparentUnionAttr>()) {
+      CharUnits Size = Context.getTypeSizeInChars(Ty);
+      return Context.getTVMTuple(static_cast<unsigned>(Size.getQuantity()));
+    }
+  }
+  return Ty;
+}
+
 class TVMABIInfo final : public DefaultABIInfo {
 public:
   explicit TVMABIInfo(CodeGen::CodeGenTypes &CGT)
@@ -854,7 +866,7 @@ public:
 
 /// Classify argument of given type \p Ty.
 ABIArgInfo TVMABIInfo::classifyArgumentType(QualType Ty) const {
-  Ty = useFirstFieldIfTransparentUnion(Ty);
+  Ty = getSplatI257IfTransparentUnion(getContext(), Ty);
 
   if (isAggregateTypeForABI(Ty)) {
     // Records with non-trivial destructors/copy-constructors should not be

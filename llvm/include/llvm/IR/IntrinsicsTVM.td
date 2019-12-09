@@ -99,33 +99,185 @@ let TargetPrefix = "tvm" in {
     GCCBuiltin<"__builtin_tvm_ldu">,
     Intrinsic<[llvm_i257_ty, llvm_TVMSlice_ty], [llvm_TVMSlice_ty, llvm_i257_ty],
               [IntrNoMem, Throws]>;
+  def int_tvm_pldu :
+    GCCBuiltin<"__builtin_tvm_pldu">,
+    Intrinsic<[llvm_i257_ty], [llvm_TVMSlice_ty, llvm_i257_ty],
+              [IntrNoMem, Throws]>;
 
   def int_tvm_ldi :
     GCCBuiltin<"__builtin_tvm_ldi">,
     Intrinsic<[llvm_i257_ty, llvm_TVMSlice_ty], [llvm_TVMSlice_ty, llvm_i257_ty],
               [IntrNoMem, Throws]>;
+  def int_tvm_pldi :
+    GCCBuiltin<"__builtin_tvm_pldi">,
+    Intrinsic<[llvm_i257_ty], [llvm_TVMSlice_ty, llvm_i257_ty],
+              [IntrNoMem, Throws]>;
+
+  def int_tvm_ldvaruint16 :
+    GCCBuiltin<"__builtin_tvm_ldvaruint16">,
+    Intrinsic<[llvm_i257_ty, llvm_TVMSlice_ty], [llvm_TVMSlice_ty],
+              [IntrNoMem, Throws]>;
+
+  def int_tvm_ldvaruint32 :
+    GCCBuiltin<"__builtin_tvm_ldvaruint32">,
+    Intrinsic<[llvm_i257_ty, llvm_TVMSlice_ty], [llvm_TVMSlice_ty],
+              [IntrNoMem, Throws]>;
+
+  def int_tvm_ldvarint16 :
+    GCCBuiltin<"__builtin_tvm_ldvarint16">,
+    Intrinsic<[llvm_i257_ty, llvm_TVMSlice_ty], [llvm_TVMSlice_ty],
+              [IntrNoMem, Throws]>;
+
+  def int_tvm_ldvarint32 :
+    GCCBuiltin<"__builtin_tvm_ldvarint32">,
+    Intrinsic<[llvm_i257_ty, llvm_TVMSlice_ty], [llvm_TVMSlice_ty],
+              [IntrNoMem, Throws]>;
+
+  def int_tvm_stvaruint16 :
+    GCCBuiltin<"__builtin_tvm_stvaruint16">,
+    Intrinsic<[llvm_TVMBuilder_ty], [llvm_TVMBuilder_ty, llvm_i257_ty],
+              [IntrNoMem, Throws]>;
+
+  def int_tvm_stvarint16 :
+    GCCBuiltin<"__builtin_tvm_stvarint16">,
+    Intrinsic<[llvm_TVMBuilder_ty], [llvm_TVMBuilder_ty, llvm_i257_ty],
+              [IntrNoMem, Throws]>;
+
+  def int_tvm_stvaruint32 :
+    GCCBuiltin<"__builtin_tvm_stvaruint32">,
+    Intrinsic<[llvm_TVMBuilder_ty], [llvm_TVMBuilder_ty, llvm_i257_ty],
+              [IntrNoMem, Throws]>;
+
+  def int_tvm_stvarint32 :
+    GCCBuiltin<"__builtin_tvm_stvarint32">,
+    Intrinsic<[llvm_TVMBuilder_ty], [llvm_TVMBuilder_ty, llvm_i257_ty],
+              [IntrNoMem, Throws]>;
 
   // A.10 Dictionary manipulation primitives
   def int_tvm_newdict : GCCBuiltin<"__builtin_tvm_newdict">,
-                        Intrinsic<[llvm_TVMCell_ty /* Dictionary */], []>;
-  def int_tvm_dictuget :
-    GCCBuiltin<"__builtin_tvm_dictuget">,
-    Intrinsic<[llvm_TVMSlice_ty /* Value */, llvm_i257_ty],
-              [llvm_i257_ty, llvm_TVMCell_ty /* Dictionary */, llvm_i257_ty]>;
+                        Intrinsic<[llvm_TVMCell_ty /* Dict */], []>;
+  def int_tvm_dictget :
+    GCCBuiltin<"__builtin_tvm_dictget">,
+    Intrinsic<[llvm_TVMSlice_ty, llvm_i257_ty],
+              [llvm_TVMSlice_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+  def int_tvm_dictgetref :
+    GCCBuiltin<"__builtin_tvm_dictgetref">,
+    Intrinsic<[llvm_TVMCell_ty, llvm_i257_ty],
+              [llvm_TVMSlice_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
   def int_tvm_dictiget :
     GCCBuiltin<"__builtin_tvm_dictiget">,
-    Intrinsic<[llvm_TVMSlice_ty /* Value */, llvm_i257_ty],
-              [llvm_i257_ty, llvm_TVMCell_ty /* Dictionary */, llvm_i257_ty]>;
-  def int_tvm_dictuset :
-    GCCBuiltin<"__builtin_tvm_dictuset">,
-    Intrinsic<[llvm_TVMCell_ty] /* Dictionary */,
-              [llvm_i257_ty, llvm_i257_ty, llvm_TVMCell_ty /* Dictionary */,
-              llvm_i257_ty]>;
+    Intrinsic<[llvm_TVMSlice_ty, llvm_i257_ty],
+              [llvm_i257_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+  def int_tvm_dictigetref :
+    GCCBuiltin<"__builtin_tvm_dictigetref">,
+    Intrinsic<[llvm_TVMCell_ty, llvm_i257_ty],
+              [llvm_i257_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+  def int_tvm_dictuget :
+    GCCBuiltin<"__builtin_tvm_dictuget">,
+    Intrinsic<[llvm_TVMSlice_ty, llvm_i257_ty],
+              [llvm_i257_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+  def int_tvm_dictugetref :
+    GCCBuiltin<"__builtin_tvm_dictugetref">,
+    Intrinsic<[llvm_TVMCell_ty, llvm_i257_ty],
+              [llvm_i257_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+  def int_tvm_dictset :
+    GCCBuiltin<"__builtin_tvm_dictset">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */],
+              [llvm_TVMSlice_ty, llvm_TVMSlice_ty,
+               llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+  def int_tvm_dictsetref :
+    GCCBuiltin<"__builtin_tvm_dictsetref">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */],
+              [llvm_TVMCell_ty, llvm_TVMSlice_ty,
+               llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
   def int_tvm_dictiset :
     GCCBuiltin<"__builtin_tvm_dictiset">,
-    Intrinsic<[llvm_TVMCell_ty] /* Dictionary */,
-              [llvm_i257_ty, llvm_i257_ty, llvm_TVMCell_ty /* Dictionary */,
-              llvm_i257_ty]>;
+    Intrinsic<[llvm_TVMCell_ty /* Dict */],
+              [llvm_TVMSlice_ty, llvm_i257_ty,
+               llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+  def int_tvm_dictisetref :
+    GCCBuiltin<"__builtin_tvm_dictisetref">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */],
+              [llvm_TVMCell_ty, llvm_i257_ty,
+               llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+  def int_tvm_dictuset :
+    GCCBuiltin<"__builtin_tvm_dictuset">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */],
+              [llvm_TVMSlice_ty, llvm_i257_ty,
+               llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+  def int_tvm_dictusetref :
+    GCCBuiltin<"__builtin_tvm_dictusetref">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */],
+              [llvm_TVMCell_ty, llvm_i257_ty,
+               llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+  def int_tvm_dictreplace :
+    GCCBuiltin<"__builtin_tvm_dictreplace">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_i257_ty],
+              [llvm_TVMSlice_ty, llvm_TVMSlice_ty,
+               llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+  def int_tvm_dictreplaceref :
+    GCCBuiltin<"__builtin_tvm_dictreplaceref">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_i257_ty],
+              [llvm_TVMCell_ty, llvm_TVMSlice_ty,
+               llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+  def int_tvm_dictireplace :
+    GCCBuiltin<"__builtin_tvm_dictireplace">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_i257_ty],
+              [llvm_TVMSlice_ty, llvm_i257_ty,
+               llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+  def int_tvm_dictireplaceref :
+    GCCBuiltin<"__builtin_tvm_dictireplaceref">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_i257_ty],
+              [llvm_TVMCell_ty, llvm_i257_ty,
+               llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+  def int_tvm_dictureplace :
+    GCCBuiltin<"__builtin_tvm_dictureplace">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_i257_ty],
+              [llvm_TVMSlice_ty, llvm_i257_ty,
+               llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+  def int_tvm_dictureplaceref :
+    GCCBuiltin<"__builtin_tvm_dictureplaceref">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_i257_ty],
+              [llvm_TVMCell_ty, llvm_i257_ty,
+               llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+  def int_tvm_dictadd :
+    GCCBuiltin<"__builtin_tvm_dictadd">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_i257_ty],
+              [llvm_TVMSlice_ty, llvm_TVMSlice_ty,
+               llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+  def int_tvm_dictaddref :
+    GCCBuiltin<"__builtin_tvm_dictaddref">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_i257_ty],
+              [llvm_TVMCell_ty, llvm_TVMSlice_ty,
+               llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+  def int_tvm_dictiadd :
+    GCCBuiltin<"__builtin_tvm_dictiadd">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_i257_ty],
+              [llvm_TVMSlice_ty, llvm_i257_ty,
+               llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+  def int_tvm_dictiaddref :
+    GCCBuiltin<"__builtin_tvm_dictiaddref">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_i257_ty],
+              [llvm_TVMCell_ty, llvm_i257_ty,
+               llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+  def int_tvm_dictuadd :
+    GCCBuiltin<"__builtin_tvm_dictuadd">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_i257_ty],
+              [llvm_TVMSlice_ty, llvm_i257_ty,
+               llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+  def int_tvm_dictuaddref :
+    GCCBuiltin<"__builtin_tvm_dictuaddref">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_i257_ty],
+              [llvm_TVMCell_ty, llvm_i257_ty,
+               llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+  def int_tvm_lddict :
+    GCCBuiltin<"__builtin_tvm_lddict">,
+    Intrinsic<[llvm_TVMCell_ty/* Dictionary */, llvm_TVMSlice_ty],
+              [llvm_TVMSlice_ty], [IntrNoMem]>;
   def int_tvm_plddict :
     GCCBuiltin<"__builtin_tvm_plddict">,
     Intrinsic<[llvm_TVMCell_ty], [llvm_TVMSlice_ty /* Dictionary-as-Slice */],
@@ -149,7 +301,7 @@ let TargetPrefix = "tvm" in {
               [IntrNoMem, Throws]>;
   def int_tvm_hashsu :
     GCCBuiltin<"__builtin_tvm_hashsu">,
-    Intrinsic<[llvm_i257_ty], [llvm_TVMCell_ty],
+    Intrinsic<[llvm_i257_ty], [llvm_TVMSlice_ty],
               [IntrNoMem, Throws]>;
   def int_tvm_chksignu :
     GCCBuiltin<"__builtin_tvm_chksignu">,
@@ -264,14 +416,27 @@ let TargetPrefix = "tvm" in {
   def int_tvm_newc :
     GCCBuiltin<"__builtin_tvm_newc">,
     Intrinsic<[llvm_TVMBuilder_ty], []>;
+  def int_tvm_ldref :
+    GCCBuiltin<"__builtin_tvm_ldref">,
+    Intrinsic<[llvm_TVMCell_ty, llvm_TVMSlice_ty],
+              [llvm_TVMSlice_ty]>;
   def int_tvm_ldrefrtos :
     GCCBuiltin<"__builtin_tvm_ldrefrtos">,
     Intrinsic<[llvm_TVMSlice_ty, llvm_TVMSlice_ty],
               [llvm_TVMSlice_ty]>;
-  def int_tvm_ldslicex :
-    GCCBuiltin<"__builtin_tvm_ldslicex">,
+  def int_tvm_ldslice :
+    GCCBuiltin<"__builtin_tvm_ldslice">,
     Intrinsic<[llvm_TVMSlice_ty, llvm_TVMSlice_ty],
               [llvm_TVMSlice_ty, llvm_i257_ty]>;
+  def int_tvm_sbits :
+    GCCBuiltin<"__builtin_tvm_sbits">,
+    Intrinsic<[llvm_i257_ty], [llvm_TVMSlice_ty]>;
+  def int_tvm_srefs :
+    GCCBuiltin<"__builtin_tvm_srefs">,
+    Intrinsic<[llvm_i257_ty], [llvm_TVMSlice_ty]>;
+  def int_tvm_sbitrefs :
+    GCCBuiltin<"__builtin_tvm_sbitrefs">,
+    Intrinsic<[llvm_i257_ty, llvm_i257_ty], [llvm_TVMSlice_ty]>;
   def int_tvm_inttoslice :
     GCCBuiltin<"__builtin_tvm_inttoslice">,
     Intrinsic<[llvm_TVMSlice_ty], [llvm_i257_ty]>;
@@ -289,13 +454,9 @@ let TargetPrefix = "tvm" in {
     GCCBuiltin<"__builtin_tvm_stref">,
     Intrinsic<[llvm_TVMBuilder_ty],
               [llvm_TVMCell_ty, llvm_TVMBuilder_ty]>;
-  def int_tvm_ldref :
-    GCCBuiltin<"__builtin_tvm_ldref">,
-    Intrinsic<[llvm_TVMCell_ty, llvm_TVMSlice_ty],
-              [llvm_TVMSlice_ty]>;
   def int_tvm_throw :
     GCCBuiltin<"__builtin_tvm_throw">,
-    Intrinsic<[], [llvm_i257_ty]>;
+    Intrinsic<[], [llvm_i257_ty], [IntrNoReturn]>;
   def int_tvm_throwif :
     GCCBuiltin<"__builtin_tvm_throwif">,
     Intrinsic<[], [llvm_i257_ty, llvm_i257_ty]>;

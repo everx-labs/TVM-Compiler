@@ -471,6 +471,9 @@ let TargetPrefix = "tvm" in {
     GCCBuiltin<"__builtin_tvm_cast_from_cell">,
     Intrinsic<[llvm_i257_ty], [llvm_TVMCell_ty], [IntrNoMem]>;
 
+  def int_tvm_pushnull : GCCBuiltin<"__builtin_tvm_pushnull">,
+    Intrinsic<[llvm_i257_ty], [], [IntrNoMem]>;
+
   def int_tvm_tuple : GCCBuiltin<"__builtin_tvm_tuple">,
     Intrinsic<[llvm_TVMTuple_ty], [llvm_vararg_ty], [IntrNoMem]>;
 

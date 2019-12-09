@@ -94,8 +94,10 @@ static Constant *foldConstVectorToAPInt(APInt &Result, Type *DestTy,
 /// ConstantExpr if unfoldable.
 Constant *FoldBitCast(Constant *C, Type *DestTy, const DataLayout &DL) {
   // Catch the obvious splat cases.
-  if (C->isNullValue() && !DestTy->isX86_MMXTy())
+  // TVM local begin
+  if (C->isNullValue() && !DestTy->isX86_MMXTy() && !DestTy->isTVMBuiltinTy())
     return Constant::getNullValue(DestTy);
+  // TVM local end
   if (C->isAllOnesValue() && !DestTy->isX86_MMXTy() &&
       !DestTy->isPtrOrPtrVectorTy()) // Don't get ones for ptr types!
     return Constant::getAllOnesValue(DestTy);

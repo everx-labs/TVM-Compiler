@@ -281,6 +281,16 @@ defm FROM_CELL_COPY    : I<(outs I257:$dst), (ins Cell:$src), (outs), (ins),
   [(set I257:$dst, (int_tvm_cast_from_cell Cell:$src))]>;
 }
 
+def : Pat<(TVMTuple (bitconvert I257:$src)), (TO_TUPLE_COPY $src)>;
+def : Pat<(TVMSlice (bitconvert I257:$src)), (TO_SLICE_COPY $src)>;
+def : Pat<(TVMBuilder (bitconvert I257:$src)), (TO_BUILDER_COPY $src)>;
+def : Pat<(TVMCell (bitconvert I257:$src)), (TO_CELL_COPY $src)>;
+
+def : Pat<(i257 (bitconvert Tuple:$src)), (FROM_TUPLE_COPY $src)>;
+def : Pat<(i257 (bitconvert Slice:$src)), (FROM_SLICE_COPY $src)>;
+def : Pat<(i257 (bitconvert Builder:$src)), (FROM_BUILDER_COPY $src)>;
+def : Pat<(i257 (bitconvert Cell:$src)), (FROM_CELL_COPY $src)>;
+
 //===----------------------------------------------------------------------===//
 // Arithmetic instructions
 //===----------------------------------------------------------------------===//

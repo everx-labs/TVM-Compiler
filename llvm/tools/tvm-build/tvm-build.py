@@ -193,9 +193,9 @@ with cd(tmpdir):
     linkerflags = args.linkerflags.split()
   execute([tvm_linker, 'compile', asm, '--lib', os.path.join(tvm_stdlib,
     'stdlib_c.tvm'), '--abi-json', abi_path] + linkerflags, args.verbose)
-  for tvc in glob.glob('*.tvc'):
+  for filename in glob.glob('*'):
     if args.verbose:
-      print('cp ' + tvc + ' ' + output)
-    shutil.copy2(tvc, output)
+      print('cp ' + filename + ' ' + output)
+    shutil.copy2(filename, output)
 
 print('Build succeeded.')

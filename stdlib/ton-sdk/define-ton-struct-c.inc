@@ -4,8 +4,8 @@
 // - deserialization methods
 //
 // Two macroses should be specified to use this file: TON_STRUCT_NAME
-// and TON_STRUCT. The structure should be specified in TON_STRUCT macro, 
-// it may use the following macros: 
+// and TON_STRUCT. The structure should be specified in TON_STRUCT macro,
+// it may use the following macros:
 
 // Structure serialization
 #define FIELD_CONSTANT_UNSIGNED(name, value, size) { *builder = __builtin_tvm_stu(value, *builder, size); }
@@ -45,11 +45,11 @@ void XJOIN(Serialize_, TON_STRUCT_NAME)(TON_STRUCT_NAME* value) {
 #undef FIELD_ARRAY
 
 // Structure deserialization
-#define FIELD_CONSTANT_UNSIGNED(name, value, size) { int  v; *slice = __tvm_ldu(*slice, size, &v); tvm_assert (v == value, 59); }
-#define FIELD_UNSIGNED(name, size)                 { int  v; *slice = __tvm_ldu(*slice, size, &v); res.name = v; }
+#define FIELD_CONSTANT_UNSIGNED(name, value, size) { unsigned  v; *slice = __tvm_ldu(*slice, size, &v); tvm_assert (v == value, 59); }
+#define FIELD_UNSIGNED(name, size)                 { unsigned  v; *slice = __tvm_ldu(*slice, size, &v); res.name = v; }
 #define FIELD_SIGNED(name, size)                   { int  v; *slice = __tvm_ldi(*slice, size, &v); res.name = v; }
-#define FIELD_VAR_UNSIGNED(name, size)             { int v1; *slice = __tvm_ldu(*slice, size, &v1); res.name.len = v1; \
-                                                     int v2; *slice = __tvm_ldu(*slice, res.name.len * 8, &v2); res.name.value = v2; }
+#define FIELD_VAR_UNSIGNED(name, size)             { unsigned v1; *slice = __tvm_ldu(*slice, size, &v1); res.name.len = v1; \
+                                                     unsigned v2; *slice = __tvm_ldu(*slice, res.name.len * 8, &v2); res.name.value = v2; }
 #define FIELD_VAR_SIGNED(name, size)               { int v1; *slice = __tvm_ldu(*slice, size, &v1); res.name.len = v1; \
                                                      int v2; *slice = __tvm_ldi(*slice, res.name.len * 8, &v2); res.name.value = v2; }
 #define FIELD_COMPLEX(name, type)                  { res.name = Deserialize_##type##_Impl(slice); }

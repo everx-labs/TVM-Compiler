@@ -49,7 +49,7 @@ int Deserialize_Signed (unsigned width) {
 
 struct __attribute__((tvm_tuple)) S { int v; __tvm_slice s; };
 
-__tvm_slice __tvm_ldu(__tvm_slice slice, int width, int *value) {
+__tvm_slice __tvm_ldu(__tvm_slice slice, int width, unsigned *value) {
   struct S s = __builtin_tvm_ldu(slice, width);
   *value = s.v;
   return s.s;

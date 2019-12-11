@@ -949,16 +949,20 @@ bool DeadArgumentEliminationPass::RemoveDeadStuffFromFunction(Function *F) {
     ArgAttrVec.clear();
 
     Instruction *New = NewCS.getInstruction();
-    if (!Call->use_empty()) {
+    // TVM local begin: from 2474ce586227b5c11bc50994841281dbaff129d8 upstream
+    if (!Call->use_empty()|| Call->isUsedByMetadata()) {
+    // TVM local end
       if (New->getType() == Call->getType()) {
         // Return type not changed? Just replace users then.
         Call->replaceAllUsesWith(New);
         New->takeName(Call);
       } else if (New->getType()->isVoidTy()) {
-        // Our return value has uses, but they will get removed later on.
-        // Replace by null for now.
+        // TVM local begin: from 2474ce586227b5c11bc50994841281dbaff129d8 upstream
+        // If the return value is dead, replace any uses of it with undef
+        // (any non-debug value uses will get removed later on).
         if (!Call->getType()->isX86_MMXTy())
-          Call->replaceAllUsesWith(Constant::getNullValue(Call->getType()));
+          Call->replaceAllUsesWith(UndefValue::get(Call->getType()));
+        // TVM local end
       } else {
         assert((RetTy->isStructTy() || RetTy->isArrayTy()) &&
                "Return type changed, but not into a void. The old return type"
@@ -1018,10 +1022,12 @@ bool DeadArgumentEliminationPass::RemoveDeadStuffFromFunction(Function *F) {
       I2->takeName(&*I);
       ++I2;
     } else {
-      // If this argument is dead, replace any uses of it with null constants
-      // (these are guaranteed to become unused later on).
+      // TVM local begin: from 2474ce586227b5c11bc50994841281dbaff129d8 upstream
+      // If this argument is dead, replace any uses of it with undef
+      // (any non-debug value uses will get removed later on).
       if (!I->getType()->isX86_MMXTy())
-        I->replaceAllUsesWith(Constant::getNullValue(I->getType()));
+        I->replaceAllUsesWith(UndefValue::get(I->getType()));
+      // TVM local end
     }
 
   // If we change the return value of the function we must rewrite any return

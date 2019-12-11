@@ -31,6 +31,8 @@ public:
       : TargetInfo(T) {
     NoAsmVariants = true;
     SuitableAlign = 257;
+    FloatAlign = 257;
+    DoubleAlign = 257;
     LongDoubleAlign = 257;
     LargeArrayAlign = 257;
     SimdDefaultAlign = 257;
@@ -45,7 +47,9 @@ public:
     LargeArrayMinWidth = 128;
     SigAtomicType = SignedLong;
 
-    LongDoubleWidth = 256;
+    FloatWidth = 257;
+    DoubleWidth = 257;
+    LongDoubleWidth = 257;
     LongDoubleFormat = &llvm::APFloat::IEEEquad();
 
     MaxAtomicPromoteWidth = MaxAtomicInlineWidth = 257;
@@ -60,6 +64,9 @@ public:
     SizeType = UnsignedLong;
     PtrDiffType = SignedLong;
     IntPtrType = SignedLong;
+    WCharType = UnsignedLong;
+    Char16Type = UnsignedLong;
+    Char32Type = UnsignedLong;
     resetDataLayout("E-S257-i1:257:257-i8:257:257-i16:257:257-i32:257:257-"
                     "i64:257:257-i257:257:257-p:257:257-a:257:257");
   }
@@ -103,7 +110,8 @@ private:
 
   bool isCLZForZeroUndef() const final { return false; }
 
-  bool hasInt128Type() const final { return true; }
+  // TODO: support int128 as int257 type
+  bool hasInt128Type() const final { return false; }
 
   IntType getIntTypeByWidth(unsigned BitWidth, bool IsSigned) const final {
     return BitWidth == IsSigned ? SignedLongLong : UnsignedLongLong;

@@ -17,7 +17,7 @@
 namespace clang {
 namespace driver {
 namespace tools {
-namespace wasm {
+namespace tvm {
 
 class LLVM_LIBRARY_VISIBILITY Linker : public GnuTool {
 public:
@@ -30,7 +30,7 @@ public:
                     const char *LinkingOutput) const override;
 };
 
-} // end namespace wasm
+} // end namespace tvm
 } // end namespace tools
 
 namespace toolchains {

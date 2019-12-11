@@ -1844,7 +1844,8 @@ CodeGenFunction::EmitNullInitialization(Address DestPtr, QualType Ty) {
   // Otherwise, just memset the whole thing to zero.  This is legal
   // because in LLVM, all default initializers (other than the ones we just
   // handled above) are guaranteed to have a bit pattern of all zeros.
-  // TVM local bgin: Byte instead of Int8
+
+  // TVM local begin
   Builder.CreateMemSet(DestPtr, Builder.getByte(0), SizeVal, false);
   // TVM local end
 }

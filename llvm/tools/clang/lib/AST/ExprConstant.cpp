@@ -8967,10 +8967,13 @@ EvaluateComparisonBinaryOperator(EvalInfo &Info, const BinaryOperator *E,
     unsigned PtrSize = Info.Ctx.getTypeSize(LHSTy);
     uint64_t CompareLHS = LHSOffset.getQuantity();
     uint64_t CompareRHS = RHSOffset.getQuantity();
-    assert(PtrSize <= 64 && "Unexpected pointer width");
-    uint64_t Mask = ~0ULL >> (64 - PtrSize);
-    CompareLHS &= Mask;
-    CompareRHS &= Mask;
+    // TVM local begin
+    if (PtrSize <= 64) {
+      uint64_t Mask = ~0ULL >> (64 - PtrSize);
+      CompareLHS &= Mask;
+      CompareRHS &= Mask;
+    }
+    // TVM local end
 
     // If there is a base and this is a relational operator, we can only
     // compare pointers within the object in question; otherwise, the result

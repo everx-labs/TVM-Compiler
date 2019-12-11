@@ -91,7 +91,7 @@ bool TVM::isPIEDefault() const { return false; }
 
 bool TVM::isPICDefaultForced() const { return false; }
 
-bool TVM::IsIntegratedAssemblerDefault() const { return true; }
+bool TVM::IsIntegratedAssemblerDefault() const { return false; }
 
 bool TVM::hasBlocksRuntime() const { return false; }
 
@@ -112,28 +112,33 @@ ToolChain::RuntimeLibType TVM::GetDefaultRuntimeLibType() const {
   return ToolChain::RLT_CompilerRT;
 }
 
-ToolChain::CXXStdlibType TVM::GetCXXStdlibType(const ArgList &Args) const {
-  if (Arg *A = Args.getLastArg(options::OPT_stdlib_EQ)) {
-    StringRef Value = A->getValue();
-    if (Value != "libc++")
-      getDriver().Diag(diag::err_drv_invalid_stdlib_name)
-          << A->getAsString(Args);
-  }
+ToolChain::CXXStdlibType TVM::GetCXXStdlibType(const ArgList &) const {
   return ToolChain::CST_Libcxx;
 }
 
 void TVM::AddClangSystemIncludeArgs(const ArgList &DriverArgs,
                                     ArgStringList &CC1Args) const {
-  if (!DriverArgs.hasArg(options::OPT_nostdinc))
-    addSystemInclude(DriverArgs, CC1Args, getDriver().SysRoot + "/include");
+  if (!DriverArgs.hasArg(options::OPT_nostdinc)) {
+    addSystemInclude(DriverArgs, CC1Args,
+                     getDriver().SysRoot + "/usr/include/cpp-sdk/std/target");
+    addSystemInclude(DriverArgs, CC1Args,
+                     getDriver().SysRoot + "/cpp-sdk/std/target");
+  }
 }
 
 void TVM::AddClangCXXStdlibIncludeArgs(const ArgList &DriverArgs,
                                        ArgStringList &CC1Args) const {
   if (!DriverArgs.hasArg(options::OPT_nostdlibinc) &&
-      !DriverArgs.hasArg(options::OPT_nostdincxx))
+      !DriverArgs.hasArg(options::OPT_nostdincxx)) {
     addSystemInclude(DriverArgs, CC1Args,
-                     getDriver().SysRoot + "/include/c++/v1");
+                     getDriver().SysRoot + "/usr/include/cpp-sdk");
+    addSystemInclude(DriverArgs, CC1Args,
+                     getDriver().SysRoot + "/usr/include/cpp-sdk/std");
+    addSystemInclude(DriverArgs, CC1Args,
+                     getDriver().SysRoot + "/cpp-sdk");
+    addSystemInclude(DriverArgs, CC1Args,
+                     getDriver().SysRoot + "/cpp-sdk/std");
+  }
 }
 
 void TVM::AddCXXStdlibLibArgs(const llvm::opt::ArgList &Args,

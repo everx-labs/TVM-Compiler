@@ -1903,6 +1903,12 @@ void CompilerInvocation::setLangDefaults(LangOptions &Opts, InputKind IK,
       break;
     case InputKind::CXX:
     case InputKind::ObjCXX:
+      // TVM local begin
+      if (T.getArch() == llvm::Triple::tvm) {
+        LangStd = LangStandard::lang_cxx17;
+        break;
+      }
+      // TVM local end
 #if defined(CLANG_DEFAULT_STD_CXX)
       LangStd = CLANG_DEFAULT_STD_CXX;
 #else

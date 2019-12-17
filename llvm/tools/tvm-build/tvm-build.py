@@ -27,12 +27,14 @@ def execute(cmdline, verbose=False):
     print(e.output)
     os.sys.exit(1)
 
-def get_path(opt, optname, varname):
+def get_path(opt, optname, varname, default):
   if opt:
     return opt
   var = os.environ.get(varname)
   if var:
     return var
+  if os.path.exists(default):
+    return default
   print('Use {} option or set {} environment variable'.format(optname,
     varname))
   os.sys.exit(1)
@@ -64,9 +66,13 @@ parser.add_argument('--stdlib', help='path to standard library directory')
 
 args = parser.parse_args()
 
-tvm_llvm_bin = get_path(args.llvm_bin, '--llvm-bin', 'TVM_LLVM_BINARY_DIR')
-tvm_linker = get_path(args.linker, '--linker', 'TVM_LINKER')
-tvm_stdlib = get_path(args.stdlib, '--stdlib', 'TVM_LIBRARY_PATH')
+bindir = os.path.dirname(os.path.realpath(__file__))
+if not os.path.exists(os.path.join(bindir, 'llvm-link')):
+  bindir = 'non-existent'
+
+tvm_llvm_bin = get_path(args.llvm_bin, '--llvm-bin', 'TVM_LLVM_BINARY_DIR', bindir)
+tvm_linker = get_path(args.linker, '--linker', 'TVM_LINKER', os.path.join(bindir, 'tvm_linker'))
+tvm_stdlib = get_path(args.stdlib, '--stdlib', 'TVM_LIBRARY_PATH', os.path.join(bindir, '../../stdlib'))
 
 input_c   = []
 input_cpp = []

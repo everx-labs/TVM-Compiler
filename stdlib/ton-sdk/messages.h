@@ -15,4 +15,6 @@ void send_raw_message (int flags);
 void build_external_output_int256_message (int value);
 void build_external_output_common_message_header ();
 
+MsgAddressInt get_sender_address ();
+
 #endif

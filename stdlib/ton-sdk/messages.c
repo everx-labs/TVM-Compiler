@@ -86,3 +86,11 @@ void build_external_output_common_message_header () {
 void send_raw_message (int flags) {
     tonstdlib_send_work_slice_as_rawmsg (flags);
 }
+
+MsgAddressInt get_sender_address() {
+    __tvm_cell c = __builtin_tvm_cast_to_cell(__builtin_tvm_getglobal(7));
+    __tvm_slice s = __builtin_tvm_ctos(c);
+    int unused;
+    s = __tvm_ldu(s, 4, &unused);
+    return Deserialize_MsgAddressInt_Impl(&s);
+}

@@ -82,6 +82,9 @@ tvm_sender_pubkey:
     ; s2 - gram balance of msg: int
     ; s3 - gram balance of contract: int
 
+    PUSH s1
+    SETGLOB 7
+
     ;check whether the message body is empty
     DUP
     SDEMPTY
@@ -114,6 +117,9 @@ tvm_sender_pubkey:
     ; s1 - msg: cell
     ; s2 - gram balance of msg: int
     ; s3 - gram balance of contract: int
+
+    PUSH s1
+    SETGLOB 7
 
     ;check whether the message body is empty
     DUP

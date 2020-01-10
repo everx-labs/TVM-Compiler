@@ -260,6 +260,9 @@ enum BuiltinTemplateKind : int {
   /// This names the __reflect_method_func_id BuiltinTemplateDecl.
   BTK__reflect_method_func_id,
 
+  /// This names the __reflect_method_ptr_func_id BuiltinTemplateDecl.
+  BTK__reflect_method_ptr_func_id,
+
   /// This names the __reflect_method_rv BuiltinTemplateDecl.
   BTK__reflect_method_rv,
 

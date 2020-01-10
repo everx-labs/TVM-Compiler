@@ -342,6 +342,8 @@ class ASTContext : public RefCountedBase<ASTContext> {
   mutable IdentifierInfo *ReflectMethodNameName = nullptr;
   /// The identifier '__reflect_method_func_id'.
   mutable IdentifierInfo *ReflectMethodFuncIdName = nullptr;
+  /// The identifier '__reflect_method_ptr_func_id'.
+  mutable IdentifierInfo *ReflectMethodPtrFuncIdName = nullptr;
   /// The identifier '__reflect_method_rv'.
   mutable IdentifierInfo *ReflectMethodRvName = nullptr;
   /// The identifier '__reflect_method_arg_struct'.
@@ -532,6 +534,7 @@ private:
   mutable BuiltinTemplateDecl *ReflectMethodsCountDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectMethodNameDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectMethodFuncIdDecl = nullptr;
+  mutable BuiltinTemplateDecl *ReflectMethodPtrFuncIdDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectMethodRvDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectMethodArgStructDecl = nullptr;
   // TVM local end
@@ -1042,6 +1045,7 @@ public:
   BuiltinTemplateDecl *getReflectMethodsCountDecl() const;
   BuiltinTemplateDecl *getReflectMethodNameDecl() const;
   BuiltinTemplateDecl *getReflectMethodFuncIdDecl() const;
+  BuiltinTemplateDecl *getReflectMethodPtrFuncIdDecl() const;
   BuiltinTemplateDecl *getReflectMethodRvDecl() const;
   BuiltinTemplateDecl *getReflectMethodArgStructDecl() const;
   // TVM local end
@@ -1815,6 +1819,12 @@ public:
     if (!ReflectMethodFuncIdName)
       ReflectMethodFuncIdName = &Idents.get("__reflect_method_func_id");
     return ReflectMethodFuncIdName;
+  }
+
+  IdentifierInfo *getReflectMethodPtrFuncIdName() const {
+    if (!ReflectMethodPtrFuncIdName)
+      ReflectMethodPtrFuncIdName = &Idents.get("__reflect_method_ptr_func_id");
+    return ReflectMethodPtrFuncIdName;
   }
 
   IdentifierInfo *getReflectMethodRvName() const {

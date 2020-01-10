@@ -12,26 +12,24 @@
 
 namespace tvm {
 
+inline void tvm_accept() {
+  __builtin_tvm_accept();
+}
+inline void tvm_sendmsg(cell msg, unsigned flags) {
+  __builtin_tvm_sendrawmsg(msg.get(), flags);
+}
+inline void tvm_assert(bool cond, unsigned exc_code) {
+  if (!cond)
+    __builtin_tvm_throw(exc_code);
+}
+inline void tvm_throw(unsigned exc_code) {
+  __builtin_tvm_throw(exc_code);
+}
+
 class contract {
 public:
-  using error_code = unsigned;
   using persistent_offset = int;
 
-  static constexpr unsigned no_persistent_data = 90;
-  static constexpr unsigned bad_incoming_msg = 91;
-
-  inline static void accept() { __builtin_tvm_accept(); }
-  inline static void sendmsg(cell msg, unsigned flags) {
-    __builtin_tvm_sendrawmsg(msg.get(), flags);
-  }
-
-  inline static void assert(bool cond, error_code exc_code) {
-    if (!cond)
-      __builtin_tvm_throw(static_cast<unsigned>(exc_code));
-  }
-  inline static void tvm_throw(error_code exc_code) {
-    __builtin_tvm_throw(static_cast<unsigned>(exc_code));
-  }
   template<class T, class V>
   inline static bool isa(V v) {
     return std::holds_alternative<T>(v);
@@ -41,17 +39,17 @@ public:
     return std::get<T>(v);
   }
 
-  static slice get_persistent(persistent_offset offset, error_code err = no_persistent_data) {
+  static slice get_persistent(persistent_offset offset, unsigned err = error_code::no_persistent_data) {
     auto dict = dictionary::get_persistent();
     auto [val_slice, succ] = dict.dictiget(static_cast<int>(offset), 64); {}
-    assert(succ, err);
+    tvm_assert(succ, err);
     return val_slice;
   }
   template<class Format>
-  static Format get_persistent(persistent_offset offset, error_code err = no_persistent_data) {
+  static Format get_persistent(persistent_offset offset, unsigned err = error_code::no_persistent_data) {
     auto dict = dictionary::get_persistent();
     auto [val_slice, succ] = dict.dictiget(static_cast<int>(offset), 64); {}
-    assert(succ, err);
+    tvm_assert(succ, err);
     return schema::parse<Format>(parser(val_slice), err, true);
   }
   static std::optional<parser> get_persistent_opt(persistent_offset offset) {
@@ -83,23 +81,23 @@ public:
   }
   inline static schema::MsgAddressExt get_incoming_ext_src(cell msg) {
     using namespace schema;
-    auto inc_msg = parse<CommonMsgInfo>(parser(msg.ctos()), bad_incoming_msg);
-    assert(isa<ext_in_msg_info>(inc_msg), bad_incoming_msg);
+    auto inc_msg = parse<CommonMsgInfo>(parser(msg.ctos()), error_code::bad_incoming_msg);
+    tvm_assert(isa<ext_in_msg_info>(inc_msg), error_code::bad_incoming_msg);
     return cast<ext_in_msg_info>(inc_msg).src;
   }
   template<class ArgsFmt>
-  static auto parse_args(slice msg_body, error_code err) {
+  static auto parse_args(slice msg_body, unsigned err) {
     parser p(msg_body);
     auto [parsed_args_opt, new_p] = schema::parse_continue<ArgsFmt>(p);
-    assert(!!parsed_args_opt, err);
+    tvm_assert(!!parsed_args_opt, err);
     // Ensures slice is now empty
     // TODO: disabled for testing
     // new_p.ends();
     return *parsed_args_opt;
   }
-  static unsigned check_signature(slice msg_body, error_code err) {
+  static unsigned check_signature(slice msg_body, unsigned err) {
     signature_checker sig_check(msg_body);
-    assert(sig_check.verified(), err);
+    tvm_assert(sig_check.verified(), err);
     return sig_check.public_key();
   }
   // Prepare and send empty message with nanograms as transfer value.
@@ -122,7 +120,7 @@ public:
     msg_info.created_at = 0;
 
     out_msg.info = msg_info;
-    sendmsg(build(out_msg).endc(), 0);
+    tvm_sendmsg(build(out_msg).endc(), 0);
   }
 };
 

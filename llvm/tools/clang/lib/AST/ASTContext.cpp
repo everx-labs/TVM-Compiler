@@ -1076,6 +1076,14 @@ ASTContext::getReflectMethodFuncIdDecl() const {
 }
 
 BuiltinTemplateDecl *
+ASTContext::getReflectMethodPtrFuncIdDecl() const {
+  if (!ReflectMethodPtrFuncIdDecl)
+    ReflectMethodPtrFuncIdDecl = buildBuiltinTemplateDecl(
+        BTK__reflect_method_ptr_func_id, getReflectMethodPtrFuncIdName());
+  return ReflectMethodPtrFuncIdDecl;
+}
+
+BuiltinTemplateDecl *
 ASTContext::getReflectMethodRvDecl() const {
   if (!ReflectMethodRvDecl)
     ReflectMethodRvDecl = buildBuiltinTemplateDecl(BTK__reflect_method_rv,

@@ -3128,6 +3128,30 @@ checkBuiltinTemplateIdType(Sema &SemaRef, BuiltinTemplateDecl *BTD,
     return SemaRef.CheckTemplateIdType(Converted[0].getAsTemplate(),
                                        TemplateLoc, SyntheticTemplateArgs);
   }
+  case BTK__reflect_method_ptr_func_id: {
+    // __reflect_method_ptr_func_id<T, IntType, Rv Interface::* MethodPtr> -
+    //   FuncID of the Interface method MethodPtr,
+    //   provided into T<IntType, FuncID>
+    assert(Converted.size() == 3 &&
+      "__reflect_method_func_id<T, IntType, Rv Interface::* MethodPtr>");
+    TemplateArgument IntType = Converted[1], MethodPtr = Converted[2];
+    const auto *Decl = MethodPtr.getAsDecl();
+    assert(Decl && "MethodPtr is not declaration");
+    assert(Decl->getAsFunction() && "MethodPtr is not a function");
+    QualType IntTy = IntType.getAsType();
+    llvm::APSInt FuncId(static_cast<uint32_t>(Context.getTypeSize(IntTy)));
+    FuncId = Decl->getAsFunction()->getTVMFuncId();
+
+    TemplateArgumentListInfo SyntheticTemplateArgs;
+    SyntheticTemplateArgs.addArgument(TemplateArgs[1]);
+    TemplateArgument FuncIdArg(Context, FuncId, IntTy);
+    SyntheticTemplateArgs.addArgument(SemaRef.getTrivialTemplateArgumentLoc(
+        FuncIdArg, IntTy, TemplateArgs[0].getLocation()));
+    // The first template argument will be reused as the template decl that
+    // our synthetic template arguments will be applied to.
+    return SemaRef.CheckTemplateIdType(Converted[0].getAsTemplate(),
+                                       TemplateLoc, SyntheticTemplateArgs);
+  }
   case BTK__reflect_method_rv: {
     // __reflect_method_rv<Interface, Index> -
     //   return value of the Interface method number #Index

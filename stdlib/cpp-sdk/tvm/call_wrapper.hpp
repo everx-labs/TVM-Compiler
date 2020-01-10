@@ -36,7 +36,7 @@ struct persistent_strategy_in_slice {
   static int __attribute__((always_inline))
   process_constructor(int (Contract::*func)(cell, slice), cell msg, slice msg_body) {
     Contract c;
-    int rv = c.init(msg, msg_body);
+    int rv = c.constructor(msg, msg_body);
     persistent_data::set(schema::build(c.p).make_cell());
     return rv;
   }

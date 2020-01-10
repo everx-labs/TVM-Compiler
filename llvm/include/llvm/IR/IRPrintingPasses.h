@@ -49,6 +49,13 @@ FunctionPass *createPrintFunctionPass(raw_ostream &OS,
 BasicBlockPass *createPrintBasicBlockPass(raw_ostream &OS,
                                           const std::string &Banner = "");
 
+// TVM local begin
+/// Create and return a pass that writes the text global constant
+/// to the specified \c raw_ostream.
+ModulePass *createPrintTextConstantPass(raw_ostream &OS,
+                                        const std::string &ConstantName = "");
+// TVM local end
+
 /// Print out a name of an LLVM value without any prefixes.
 ///
 /// The name is surrounded with ""'s and escaped if it has any special or

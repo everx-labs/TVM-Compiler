@@ -1,10 +1,18 @@
 #pragma once
 
+#include <tuple>
+
 namespace tvm {
 
 template<size_t N>
 struct to_std_tuple_impl {
   static_assert("Unsupported to_std_tuple size");
+};
+
+template<> struct to_std_tuple_impl<0> {
+  template<typename _Tp> auto operator()(_Tp&&) const {
+    return std::tuple();
+  }
 };
 
 #ifdef TO_STD_TUPLE_CASE

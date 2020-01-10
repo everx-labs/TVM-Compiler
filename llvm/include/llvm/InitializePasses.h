@@ -316,6 +316,9 @@ void initializePostRASchedulerPass(PassRegistry&);
 void initializePreISelIntrinsicLoweringLegacyPassPass(PassRegistry&);
 void initializePredicateInfoPrinterLegacyPassPass(PassRegistry&);
 void initializePrintBasicBlockPassPass(PassRegistry&);
+// TVM local begin
+void initializePrintTextConstantPassPass(PassRegistry&);
+// TVM local end
 void initializePrintFunctionPassWrapperPass(PassRegistry&);
 void initializePrintModulePassWrapperPass(PassRegistry&);
 void initializeProcessImplicitDefsPass(PassRegistry&);

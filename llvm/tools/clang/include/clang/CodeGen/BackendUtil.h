@@ -32,6 +32,9 @@ namespace clang {
     Backend_EmitAssembly,  ///< Emit native assembly files
     Backend_EmitBC,        ///< Emit LLVM bitcode files
     Backend_EmitLL,        ///< Emit human-readable LLVM assembly
+    // TVM local begin
+    Backend_EmitTextConst, ///< Emit text global constant only
+    // TVM local end
     Backend_EmitNothing,   ///< Don't emit anything (benchmarking mode)
     Backend_EmitMCNull,    ///< Run CodeGen, but don't emit anything
     Backend_EmitObj        ///< Emit native object files

@@ -624,6 +624,16 @@ def emit_ast : Flag<["-"], "emit-ast">,
   HelpText<"Emit Clang AST files for source inputs">;
 def emit_llvm : Flag<["-"], "emit-llvm">, Flags<[CC1Option]>, Group<Action_Group>,
   HelpText<"Use the LLVM representation for assembler and object files">;
+// TVM local begin
+def emit_text_const : Joined<["-"], "emit-text-const=">, Flags<[CC1Option]>, Group<Action_Group>,
+  HelpText<"Emit text global constant">;
+def export_json_abi : Flag<["-"], "export-json-abi">, Flags<[CC1Option]>, Group<Action_Group>,
+  HelpText<"Print json abi for TVM c++ contract">;
+def import_json_abi : Flag<["-"], "import-json-abi">, Flags<[CC1Option]>, Group<Action_Group>,
+  HelpText<"Import json abi for TVM contract">;
+def import_json_name : Joined<["-"], "import-json-name=">, Flags<[CC1Option]>,
+  HelpText<"Override name for imported interface structure (file name by default)">;
+// TVM local end
 def exported__symbols__list : Separate<["-"], "exported_symbols_list">;
 def e : JoinedOrSeparate<["-"], "e">, Group<Link_Group>;
 def fPIC : Flag<["-"], "fPIC">, Group<f_Group>;

@@ -250,6 +250,9 @@ types::ID types::lookupTypeForExtension(llvm::StringRef Ext) {
            .Case("c++m", TY_CXXModule)
            .Case("cppm", TY_CXXModule)
            .Case("cxxm", TY_CXXModule)
+           // TVM local begin
+           .Case("abi", TY_JsonABI)
+           // TVM local end
            .Default(TY_INVALID);
 }
 

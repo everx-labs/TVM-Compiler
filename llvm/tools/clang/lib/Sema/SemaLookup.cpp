@@ -688,7 +688,27 @@ static bool LookupBuiltin(Sema &S, LookupResult &R) {
         } else if (II == S.getASTContext().getTypePackElementName()) {
           R.addDecl(S.getASTContext().getTypePackElementDecl());
           return true;
+        // TVM local begin
+        } else if (II == S.getASTContext().getReflectFieldName()) {
+          R.addDecl(S.getASTContext().getReflectFieldDecl());
+          return true;
+        } else if (II == S.getASTContext().getReflectMethodsCountName()) {
+          R.addDecl(S.getASTContext().getReflectMethodsCountDecl());
+          return true;
+        } else if (II == S.getASTContext().getReflectMethodNameName()) {
+          R.addDecl(S.getASTContext().getReflectMethodNameDecl());
+          return true;
+        } else if (II == S.getASTContext().getReflectMethodFuncIdName()) {
+          R.addDecl(S.getASTContext().getReflectMethodFuncIdDecl());
+          return true;
+        } else if (II == S.getASTContext().getReflectMethodRvName()) {
+          R.addDecl(S.getASTContext().getReflectMethodRvDecl());
+          return true;
+        } else if (II == S.getASTContext().getReflectMethodArgStructName()) {
+          R.addDecl(S.getASTContext().getReflectMethodArgStructDecl());
+          return true;
         }
+        // TVM local end
       }
 
       // If this is a builtin on this (or all) targets, create the decl.

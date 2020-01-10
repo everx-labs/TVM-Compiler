@@ -3252,6 +3252,14 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
     } else if (JA.getType() == types::TY_LLVM_IR ||
                JA.getType() == types::TY_LTO_IR) {
       CmdArgs.push_back("-emit-llvm");
+    // TVM local begin
+    } else if (JA.getType() == types::TY_TextConst) {
+      const Arg *A = Args.getLastArg(options::OPT_emit_text_const);
+      if (A)
+        CmdArgs.push_back(Args.MakeArgString(A->getAsString(Args)));
+      else
+        CmdArgs.push_back("-emit-text-const=json_abi");
+    // TVM local end
     } else if (JA.getType() == types::TY_LLVM_BC ||
                JA.getType() == types::TY_LTO_BC) {
       CmdArgs.push_back("-emit-llvm-bc");

@@ -256,6 +256,12 @@ class ASTContext : public RefCountedBase<ASTContext> {
   llvm::DenseMap<const MaterializeTemporaryExpr *, APValue *>
     MaterializedTemporaryValues;
 
+  // TVM local begin
+  /// A cache mapping from CXXMethodDecl to its TVM arguments structure.
+  mutable llvm::DenseMap<const CXXMethodDecl*, QualType>
+    TVMMethodArgStructs;
+  // TVM local end
+
   /// Representation of a "canonical" template template parameter that
   /// is used in canonical template names.
   class CanonicalTemplateTemplateParm : public llvm::FoldingSetNode {
@@ -326,6 +332,21 @@ class ASTContext : public RefCountedBase<ASTContext> {
 
   /// The identifier '__type_pack_element'.
   mutable IdentifierInfo *TypePackElementName = nullptr;
+
+  // TVM local begin
+  /// The identifier '__reflect_field'.
+  mutable IdentifierInfo *ReflectFieldName = nullptr;
+  /// The identifier '__reflect_methods_count'.
+  mutable IdentifierInfo *ReflectMethodsCountName = nullptr;
+  /// The identifier '__reflect_method_name'.
+  mutable IdentifierInfo *ReflectMethodNameName = nullptr;
+  /// The identifier '__reflect_method_func_id'.
+  mutable IdentifierInfo *ReflectMethodFuncIdName = nullptr;
+  /// The identifier '__reflect_method_rv'.
+  mutable IdentifierInfo *ReflectMethodRvName = nullptr;
+  /// The identifier '__reflect_method_arg_struct'.
+  mutable IdentifierInfo *ReflectMethodArgStructName = nullptr;
+  // TVM local end
 
   QualType ObjCConstantStringType;
   mutable RecordDecl *CFConstantStringTagDecl = nullptr;
@@ -506,6 +527,14 @@ private:
   mutable ExternCContextDecl *ExternCContext = nullptr;
   mutable BuiltinTemplateDecl *MakeIntegerSeqDecl = nullptr;
   mutable BuiltinTemplateDecl *TypePackElementDecl = nullptr;
+  // TVM local begin
+  mutable BuiltinTemplateDecl *ReflectFieldDecl = nullptr;
+  mutable BuiltinTemplateDecl *ReflectMethodsCountDecl = nullptr;
+  mutable BuiltinTemplateDecl *ReflectMethodNameDecl = nullptr;
+  mutable BuiltinTemplateDecl *ReflectMethodFuncIdDecl = nullptr;
+  mutable BuiltinTemplateDecl *ReflectMethodRvDecl = nullptr;
+  mutable BuiltinTemplateDecl *ReflectMethodArgStructDecl = nullptr;
+  // TVM local end
 
   /// The associated SourceManager object.
   SourceManager &SourceMgr;
@@ -1008,6 +1037,14 @@ public:
   ExternCContextDecl *getExternCContextDecl() const;
   BuiltinTemplateDecl *getMakeIntegerSeqDecl() const;
   BuiltinTemplateDecl *getTypePackElementDecl() const;
+  // TVM local begin
+  BuiltinTemplateDecl *getReflectFieldDecl() const;
+  BuiltinTemplateDecl *getReflectMethodsCountDecl() const;
+  BuiltinTemplateDecl *getReflectMethodNameDecl() const;
+  BuiltinTemplateDecl *getReflectMethodFuncIdDecl() const;
+  BuiltinTemplateDecl *getReflectMethodRvDecl() const;
+  BuiltinTemplateDecl *getReflectMethodArgStructDecl() const;
+  // TVM local end
 
   // Builtin Types.
   CanQualType VoidTy;
@@ -1368,6 +1405,10 @@ public:
   ///  (for builtin functions with struct returns)
   QualType prepareTVMLiteralStructType(ArrayRef<QualType> Elems,
                                        StringRef ElemsStr) const;
+
+  /// Creating struct with combined arguments for Method (without `this`)
+  QualType prepareTVMArgumentsStructType(CXXMethodDecl *Method) const;
+  QualType getTVMArgumentsStructType(CXXMethodDecl *Method) const;
   // TVM local end
 
   /// \pre Return a non-unique reference to the type for a dependently-sized
@@ -1750,6 +1791,44 @@ public:
       TypePackElementName = &Idents.get("__type_pack_element");
     return TypePackElementName;
   }
+
+  // TVM local begin
+  IdentifierInfo *getReflectFieldName() const {
+    if (!ReflectFieldName)
+      ReflectFieldName = &Idents.get("__reflect_field");
+    return ReflectFieldName;
+  }
+
+  IdentifierInfo *getReflectMethodsCountName() const {
+    if (!ReflectMethodsCountName)
+      ReflectMethodsCountName = &Idents.get("__reflect_methods_count");
+    return ReflectMethodsCountName;
+  }
+
+  IdentifierInfo *getReflectMethodNameName() const {
+    if (!ReflectMethodNameName)
+      ReflectMethodNameName = &Idents.get("__reflect_method_name");
+    return ReflectMethodNameName;
+  }
+
+  IdentifierInfo *getReflectMethodFuncIdName() const {
+    if (!ReflectMethodFuncIdName)
+      ReflectMethodFuncIdName = &Idents.get("__reflect_method_func_id");
+    return ReflectMethodFuncIdName;
+  }
+
+  IdentifierInfo *getReflectMethodRvName() const {
+    if (!ReflectMethodRvName)
+      ReflectMethodRvName = &Idents.get("__reflect_method_rv");
+    return ReflectMethodRvName;
+  }
+
+  IdentifierInfo *getReflectMethodArgStructName() const {
+    if (!ReflectMethodArgStructName)
+      ReflectMethodArgStructName = &Idents.get("__reflect_method_arg_struct");
+    return ReflectMethodArgStructName;
+  }
+  // TVM local end
 
   /// Retrieve the Objective-C "instancetype" type, if already known;
   /// otherwise, returns a NULL type;

@@ -64,6 +64,14 @@ enum ActionKind {
   /// Emit a .ll file.
   EmitLLVM,
 
+  // TVM local begin
+  /// Emit text global constant.
+  EmitTextConst,
+
+  /// Import TVM Json Abi.
+  ImportJsonAbi,
+  // TVM local end
+
   /// Generate LLVM IR, but do not emit anything.
   EmitLLVMOnly,
 
@@ -165,6 +173,9 @@ public:
     CUDA,
     RenderScript,
     HIP,
+    // TVM local begin
+    JsonAbi
+    // TVM local end
     ///@}
   };
 
@@ -437,6 +448,11 @@ public:
 
   /// Filename to write statistics to.
   std::string StatsFile;
+
+  // TVM local begin
+  /// Name for imported interface structure
+  std::string TVMJsonAbiStructName;
+  // TVM local end
 
 public:
   FrontendOptions()

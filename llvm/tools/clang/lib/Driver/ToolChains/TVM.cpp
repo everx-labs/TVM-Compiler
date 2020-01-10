@@ -106,6 +106,10 @@ void TVM::addClangTargetOptions(const ArgList &DriverArgs,
   if (DriverArgs.hasFlag(clang::driver::options::OPT_fuse_init_array,
                          options::OPT_fno_use_init_array, true))
     CC1Args.push_back("-fuse-init-array");
+  if (auto *Arg = DriverArgs.getLastArg(options::OPT_import_json_abi))
+    Arg->render(DriverArgs, CC1Args);
+  if (auto *Arg = DriverArgs.getLastArg(options::OPT_import_json_name))
+    Arg->render(DriverArgs, CC1Args);
 }
 
 ToolChain::RuntimeLibType TVM::GetDefaultRuntimeLibType() const {

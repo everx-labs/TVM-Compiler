@@ -245,7 +245,27 @@ enum BuiltinTemplateKind : int {
   BTK__make_integer_seq,
 
   /// This names the __type_pack_element BuiltinTemplateDecl.
-  BTK__type_pack_element
+  BTK__type_pack_element,
+
+  // TVM local begin
+  /// This names the __reflect_field BuiltinTemplateDecl.
+  BTK__reflect_field,
+
+  /// This names the __reflect_methods_count BuiltinTemplateDecl.
+  BTK__reflect_methods_count,
+
+  /// This names the __reflect_method_name BuiltinTemplateDecl.
+  BTK__reflect_method_name,
+
+  /// This names the __reflect_method_func_id BuiltinTemplateDecl.
+  BTK__reflect_method_func_id,
+
+  /// This names the __reflect_method_rv BuiltinTemplateDecl.
+  BTK__reflect_method_rv,
+
+  /// This names the __reflect_method_arg_struct BuiltinTemplateDecl.
+  BTK__reflect_method_arg_struct
+  // TVM local end
 };
 
 } // end namespace clang

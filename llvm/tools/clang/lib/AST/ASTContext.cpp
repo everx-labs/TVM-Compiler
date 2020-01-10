@@ -1042,6 +1042,56 @@ ASTContext::getTypePackElementDecl() const {
   return TypePackElementDecl;
 }
 
+// TVM local begin
+BuiltinTemplateDecl *
+ASTContext::getReflectFieldDecl() const {
+  if (!ReflectFieldDecl)
+    ReflectFieldDecl = buildBuiltinTemplateDecl(BTK__reflect_field,
+                                                getReflectFieldName());
+  return ReflectFieldDecl;
+}
+
+BuiltinTemplateDecl *
+ASTContext::getReflectMethodsCountDecl() const {
+  if (!ReflectMethodsCountDecl)
+    ReflectMethodsCountDecl = buildBuiltinTemplateDecl(
+        BTK__reflect_methods_count, getReflectMethodsCountName());
+  return ReflectMethodsCountDecl;
+}
+
+BuiltinTemplateDecl *
+ASTContext::getReflectMethodNameDecl() const {
+  if (!ReflectMethodNameDecl)
+    ReflectMethodNameDecl = buildBuiltinTemplateDecl(
+        BTK__reflect_method_name, getReflectMethodNameName());
+  return ReflectMethodNameDecl;
+}
+
+BuiltinTemplateDecl *
+ASTContext::getReflectMethodFuncIdDecl() const {
+  if (!ReflectMethodFuncIdDecl)
+    ReflectMethodFuncIdDecl = buildBuiltinTemplateDecl(
+        BTK__reflect_method_func_id, getReflectMethodFuncIdName());
+  return ReflectMethodFuncIdDecl;
+}
+
+BuiltinTemplateDecl *
+ASTContext::getReflectMethodRvDecl() const {
+  if (!ReflectMethodRvDecl)
+    ReflectMethodRvDecl = buildBuiltinTemplateDecl(BTK__reflect_method_rv,
+                                                   getReflectMethodRvName());
+  return ReflectMethodRvDecl;
+}
+
+BuiltinTemplateDecl *
+ASTContext::getReflectMethodArgStructDecl() const {
+  if (!ReflectMethodArgStructDecl)
+    ReflectMethodArgStructDecl = buildBuiltinTemplateDecl(
+        BTK__reflect_method_arg_struct, getReflectMethodArgStructName());
+  return ReflectMethodArgStructDecl;
+}
+// TVM local end
+
 RecordDecl *ASTContext::buildImplicitRecord(StringRef Name,
                                             RecordDecl::TagKind TK) const {
   SourceLocation Loc;
@@ -3546,6 +3596,44 @@ QualType ASTContext::prepareTVMLiteralStructType(ArrayRef<QualType> Elems,
                                      SourceLocation(),
                                      &Idents.get(Name + std::to_string(i)),
                                      Ty, /*TInfo=*/nullptr,
+                                     /*BitWidth=*/nullptr,
+                                     /*Mutable=*/false,
+                                     ICIS_NoInit);
+    F->setAccess(AS_public);
+    RecDecl->addDecl(F);
+  }
+  RecDecl->completeDefinition();
+  TUDecl->addDecl(RecDecl);
+  auto tagType = getTagDeclType(RecDecl);
+  auto TypedefDec = buildImplicitTypedef(tagType, StructName);
+  TUDecl->addDecl(TypedefDec);
+  return getTypeDeclType(TypedefDec);
+}
+
+QualType ASTContext::getTVMArgumentsStructType(CXXMethodDecl *Method) const {
+  auto it = TVMMethodArgStructs.find(Method);
+  if (it != TVMMethodArgStructs.end())
+    return it->second;
+  auto ArgTy = prepareTVMArgumentsStructType(Method);
+  auto [It, Ok] = TVMMethodArgStructs.insert(std::make_pair(Method, ArgTy));
+  assert(Ok && "can't update TVMMethodArgStructs");
+  return ArgTy;
+}
+
+/// Creating struct with combined arguments for Method (no `this`)
+QualType
+ASTContext::prepareTVMArgumentsStructType(CXXMethodDecl *Method) const {
+  auto StructName = ("__tvm_arguments_struct_" + Method->getName()).str();
+  auto *RecDecl = buildImplicitRecord(StructName + "_Tag");
+  RecDecl->startDefinition();
+
+  for (auto Param : Method->parameters()) {
+    QualType FieldType = Param->getOriginalType();
+    FieldDecl *F = FieldDecl::Create(*this, RecDecl,
+                                     SourceLocation(),
+                                     SourceLocation(),
+                                     &Idents.get(Param->getName()),
+                                     FieldType, /*TInfo=*/nullptr,
                                      /*BitWidth=*/nullptr,
                                      /*Mutable=*/false,
                                      ICIS_NoInit);

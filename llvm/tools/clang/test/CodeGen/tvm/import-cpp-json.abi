@@ -1,0 +1,54 @@
+// RUN: tail -n +11 %s > %t1
+// RUN: %clang -target tvm -import-json-abi -import-json-name=IWallet %t1 -o - | FileCheck %s
+// REQUIRES: tvm-registered-target
+
+// CHECK: struct IWallet {
+// CHECK: void init() = 1;
+// CHECK: void set_subscription_account(MsgAddress addr) = 2;
+// CHECK: MsgAddress get_subscription_account() = 3;
+// CHECK: void send_transaction(MsgAddress dest, uint_t<128> value, bool_t bounce) = 4;
+// CHECK: }
+
+{
+  "ABI version": 1,
+  "functions": [
+  {
+    "name": "init",
+    "inputs": [
+    ],
+    "outputs": [
+    ],
+    "id": 1
+  },
+  {
+    "name": "set_subscription_account",
+    "inputs": [
+      { "name":"addr", "type":"address" }
+    ],
+    "outputs": [
+    ],
+    "id": 2
+  },
+  {
+    "name": "get_subscription_account",
+    "inputs": [
+    ],
+    "outputs": [
+      { "name":"value", "type":"address" }
+    ],
+    "id": 3
+  },
+  {
+    "name": "send_transaction",
+    "inputs": [
+      { "name":"dest", "type":"address" },
+      { "name":"value", "type":"uint128" },
+      { "name":"bounce", "type":"bool" }
+    ],
+    "outputs": [
+    ],
+    "id": 4
+  }
+  ]
+}
+

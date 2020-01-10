@@ -1793,6 +1793,10 @@ private:
   unsigned HasODRHash : 1;
   unsigned ODRHash;
 
+  // TVM local begin
+  unsigned TVMFuncId = 0;
+  // TVM local end
+
   /// End part of this FunctionDecl's source range.
   ///
   /// We could compute the full range in getSourceRange(). However, when we're
@@ -2516,6 +2520,11 @@ public:
   /// Returns cached ODRHash of the function.  This must have been previously
   /// computed and stored.
   unsigned getODRHash() const;
+
+  // TVM local begin
+  void setTVMFuncId(unsigned FuncId) { TVMFuncId = FuncId; }
+  unsigned getTVMFuncId() const { return TVMFuncId; }
+  // TVM local end
 
   // Implement isa/cast/dyncast/etc.
   static bool classof(const Decl *D) { return classofKind(D->getKind()); }

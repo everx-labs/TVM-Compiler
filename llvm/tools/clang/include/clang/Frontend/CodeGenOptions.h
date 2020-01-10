@@ -214,6 +214,11 @@ public:
   /// records.
   std::string OptRecordFile;
 
+  // TVM local begin
+  /// The name of the text global constant to print
+  std::string EmitTextConstant;
+  // TVM local end
+
   /// Regular expression to select optimizations for which we should enable
   /// optimization remarks. Transformation passes whose name matches this
   /// expression (and support this feature), will emit a diagnostic

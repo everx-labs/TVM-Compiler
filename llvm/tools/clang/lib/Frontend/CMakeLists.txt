@@ -47,6 +47,7 @@ add_clang_library(clangFrontend
   TextDiagnostic.cpp
   TextDiagnosticBuffer.cpp
   TextDiagnosticPrinter.cpp
+  TVMImportJsonAbi.cpp
   VerifyDiagnosticConsumer.cpp
 
   DEPENDS

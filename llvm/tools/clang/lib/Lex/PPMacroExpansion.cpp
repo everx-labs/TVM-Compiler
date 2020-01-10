@@ -1623,6 +1623,7 @@ void Preprocessor::ExpandBuiltinMacro(Token &Tok) {
           return llvm::StringSwitch<bool>(II->getName())
                       .Case("__make_integer_seq", LangOpts.CPlusPlus)
                       .Case("__type_pack_element", LangOpts.CPlusPlus)
+                      .Case("__reflect_field", LangOpts.CPlusPlus)
                       .Case("__builtin_available", true)
                       .Case("__is_target_arch", true)
                       .Case("__is_target_vendor", true)

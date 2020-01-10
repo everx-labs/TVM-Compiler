@@ -12,6 +12,9 @@
 //===----------------------------------------------------------------------===//
 
 #include "llvm/IR/IRPrintingPasses.h"
+// TVM local begin
+#include "llvm/IR/Constants.h"
+// TVM local end
 #include "llvm/IR/Function.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/PassManager.h"
@@ -123,6 +126,52 @@ public:
   StringRef getPassName() const override { return "Print BasicBlock IR"; }
 };
 
+// TVM local begin
+// Pass to print text global constant (specified by name).
+// Used by json-abi exporter with "-emit-text-const=json_abi"
+//  to print "json_abi" global text constant with prepared abi description.
+class PrintTextConstantPass : public ModulePass {
+  raw_ostream &Out;
+  std::string ConstantName;
+
+public:
+  static char ID;
+  PrintTextConstantPass() : ModulePass(ID), Out(dbgs()) {}
+  PrintTextConstantPass(raw_ostream &Out, const std::string &ConstantName)
+      : ModulePass(ID), Out(Out), ConstantName(ConstantName) {}
+
+  bool runOnModule(Module &M) override {
+    const auto *GV = M.getNamedGlobal(ConstantName);
+    if (!GV) return false;
+    const auto *Init = GV->getInitializer();
+    if (!Init) return false;
+    const auto *GV2 = dyn_cast<GlobalVariable>(Init->stripPointerCasts());
+    if (!GV2) return false;
+    const auto *Init2 = GV2->getInitializer();
+    if (!Init2) return false;
+    const auto *Arr = dyn_cast<ConstantArray>(Init2);
+    if (!Arr) return false;
+    for (unsigned i = 0, e = Arr->getNumOperands(); i < e; ++i) {
+      auto *cInt = dyn_cast<ConstantInt>(Arr->getOperand(i));
+      if (!cInt) return false;
+      auto Val = cInt->getValue().getZExtValue();
+      assert(Val < 256 && "Too big");
+      auto Ch = static_cast<unsigned char>(Val);
+      if (!Ch)
+        break;
+      Out << Ch;
+    }
+    return false;
+  }
+
+  void getAnalysisUsage(AnalysisUsage &AU) const override {
+    AU.setPreservesAll();
+  }
+
+  StringRef getPassName() const override { return "Print text constant"; }
+};
+
+// TVM local end
 }
 
 char PrintModulePassWrapper::ID = 0;
@@ -133,6 +182,10 @@ INITIALIZE_PASS(PrintFunctionPassWrapper, "print-function",
                 "Print function to stderr", false, true)
 char PrintBasicBlockPass::ID = 0;
 INITIALIZE_PASS(PrintBasicBlockPass, "print-bb", "Print BB to stderr", false,
+                true)
+
+char PrintTextConstantPass::ID = 0;
+INITIALIZE_PASS(PrintTextConstantPass, "print-constant", "Print text constant", false,
                 true)
 
 ModulePass *llvm::createPrintModulePass(llvm::raw_ostream &OS,
@@ -151,10 +204,20 @@ BasicBlockPass *llvm::createPrintBasicBlockPass(llvm::raw_ostream &OS,
   return new PrintBasicBlockPass(OS, Banner);
 }
 
+// TVM local begin
+ModulePass *llvm::createPrintTextConstantPass(llvm::raw_ostream &OS,
+                                              const std::string &ConstantName) {
+  return new PrintTextConstantPass(OS, ConstantName);
+}
+// TVM local end
+
 bool llvm::isIRPrintingPass(Pass *P) {
   const char *PID = (const char*)P->getPassID();
 
   return (PID == &PrintModulePassWrapper::ID)
       || (PID == &PrintFunctionPassWrapper::ID)
-      || (PID == &PrintBasicBlockPass::ID);
+      || (PID == &PrintBasicBlockPass::ID)
+      // TVM local begin
+      || (PID == &PrintTextConstantPass::ID);
+      // TVM local end
 }

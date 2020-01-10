@@ -196,6 +196,9 @@ namespace {
       (void) llvm::createPrintModulePass(os);
       (void) llvm::createPrintFunctionPass(os);
       (void) llvm::createPrintBasicBlockPass(os);
+      // TVM local begin
+      (void) llvm::createPrintTextConstantPass(os);
+      // TVM local end
       (void) llvm::createModuleDebugInfoPrinterPass();
       (void) llvm::createPartialInliningPass();
       (void) llvm::createLintPass();

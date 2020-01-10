@@ -99,6 +99,14 @@ public:
   EmitLLVMAction(llvm::LLVMContext *_VMContext = nullptr);
 };
 
+// TVM local begin
+class EmitTextConstAction : public CodeGenAction {
+  virtual void anchor();
+public:
+  EmitTextConstAction(llvm::LLVMContext *_VMContext = nullptr);
+};
+// TVM local end
+
 class EmitLLVMOnlyAction : public CodeGenAction {
   virtual void anchor();
 public:

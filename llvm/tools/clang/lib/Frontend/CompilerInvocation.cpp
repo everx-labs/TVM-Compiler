@@ -678,6 +678,9 @@ static bool ParseCodeGenArgs(CodeGenOptions &Opts, ArgList &Args, InputKind IK,
                           Args.hasArg(OPT_cl_unsafe_math_optimizations) ||
                           Args.hasArg(OPT_cl_fast_relaxed_math);
   Opts.LimitFloatPrecision = Args.getLastArgValue(OPT_mlimit_float_precision);
+  // TVM local begin
+  Opts.EmitTextConstant = Args.getLastArgValue(OPT_emit_text_const);
+  // TVM local end
   Opts.NoInfsFPMath = (Args.hasArg(OPT_menable_no_infinities) ||
                        Args.hasArg(OPT_cl_finite_math_only) ||
                        Args.hasArg(OPT_cl_fast_relaxed_math));
@@ -1417,6 +1420,16 @@ static InputKind ParseFrontendArgs(FrontendOptions &Opts, ArgList &Args,
       Opts.ProgramAction = frontend::EmitHTML; break;
     case OPT_emit_llvm:
       Opts.ProgramAction = frontend::EmitLLVM; break;
+    // TVM local begin
+    case OPT_emit_text_const:
+      Opts.ProgramAction = frontend::EmitTextConst;
+      break;
+    case OPT_import_json_abi:
+      Opts.ProgramAction = frontend::ImportJsonAbi;
+      if (auto *Arg = Args.getLastArg(options::OPT_import_json_name))
+        Opts.TVMJsonAbiStructName = Arg->getValue();
+      break;
+    // TVM local end
     case OPT_emit_llvm_only:
       Opts.ProgramAction = frontend::EmitLLVMOnly; break;
     case OPT_emit_codegen_only:
@@ -1655,6 +1668,9 @@ static InputKind ParseFrontendArgs(FrontendOptions &Opts, ArgList &Args,
                   .Cases("ast", "pcm",
                          InputKind(InputKind::Unknown, InputKind::Precompiled))
                   .Case("ir", InputKind::LLVM_IR)
+                  // TVM local begin
+                  .Case("json-abi", InputKind::JsonAbi)
+                  // TVM local end
                   .Default(InputKind::Unknown);
 
     if (DashX.isUnknown())
@@ -1873,6 +1889,11 @@ void CompilerInvocation::setLangDefaults(LangOptions &Opts, InputKind IK,
   if (LangStd == LangStandard::lang_unspecified) {
     // Based on the base language, pick one.
     switch (IK.getLanguage()) {
+    // TVM local begin
+    case InputKind::JsonAbi:
+      LangStd = LangStandard::lang_cxx17;
+      break;
+    // TVM local end
     case InputKind::Unknown:
     case InputKind::LLVM_IR:
       llvm_unreachable("Invalid input kind!");
@@ -2019,6 +2040,9 @@ static Visibility parseVisibility(Arg *arg, ArgList &args,
 static bool IsInputCompatibleWithStandard(InputKind IK,
                                           const LangStandard &S) {
   switch (IK.getLanguage()) {
+  // TVM local begin
+  case InputKind::JsonAbi:
+  // TVM local end
   case InputKind::Unknown:
   case InputKind::LLVM_IR:
     llvm_unreachable("should not parse language flags for this input");
@@ -2057,6 +2081,10 @@ static bool IsInputCompatibleWithStandard(InputKind IK,
 /// Get language name for given input kind.
 static const StringRef GetInputKindName(InputKind IK) {
   switch (IK.getLanguage()) {
+  // TVM local begin
+  case InputKind::JsonAbi:
+    return "Json ABI";
+  // TVM local end
   case InputKind::C:
     return "C";
   case InputKind::ObjC:
@@ -2802,6 +2830,9 @@ static bool isStrictlyPreprocessorAction(frontend::ActionKind Action) {
   case frontend::EmitBC:
   case frontend::EmitHTML:
   case frontend::EmitLLVM:
+  // TVM local begin
+  case frontend::EmitTextConst:
+  // TVM local end
   case frontend::EmitLLVMOnly:
   case frontend::EmitCodeGenOnly:
   case frontend::EmitObj:
@@ -2830,6 +2861,9 @@ static bool isStrictlyPreprocessorAction(frontend::ActionKind Action) {
   case frontend::PrintPreprocessedInput:
   case frontend::RewriteMacros:
   case frontend::RunPreprocessorOnly:
+  // TVM local begin
+  case frontend::ImportJsonAbi:
+  // TVM local end
     return true;
   }
   llvm_unreachable("invalid frontend action");
@@ -3042,6 +3076,10 @@ bool CompilerInvocation::CreateFromArgs(CompilerInvocation &Res,
     LangOpts.PIE = Args.hasArg(OPT_pic_is_pie);
     parseSanitizerKinds("-fsanitize=", Args.getAllArgValues(OPT_fsanitize_EQ),
                         Diags, LangOpts.Sanitize);
+  // TVM local begin
+  } else if (DashX.getLanguage() == InputKind::JsonAbi) {
+    // No args
+  // TVM local end
   } else {
     // Other LangOpts are only initialzed when the input is not AST or LLVM IR.
     // FIXME: Should we really be calling this for an InputKind::Asm input?

@@ -31,5 +31,8 @@ InputKind FrontendOptions::getInputKindForExtension(StringRef Extension) {
     .Case("cl", InputKind::OpenCL)
     .Case("cu", InputKind::CUDA)
     .Cases("ll", "bc", InputKind::LLVM_IR)
+    // TVM local begin
+    .Case("abi", InputKind::JsonAbi)
+    // TVM local end
     .Default(InputKind::Unknown);
 }

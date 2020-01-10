@@ -831,6 +831,10 @@ GetOutputStream(CompilerInstance &CI, StringRef InFile, BackendAction Action) {
     return CI.createDefaultOutputFile(false, InFile, "s");
   case Backend_EmitLL:
     return CI.createDefaultOutputFile(false, InFile, "ll");
+  // TVM local begin
+  case Backend_EmitTextConst:
+    return CI.createDefaultOutputFile(false, InFile, "txt");
+  // TVM local end
   case Backend_EmitBC:
     return CI.createDefaultOutputFile(true, InFile, "bc");
   case Backend_EmitNothing:
@@ -1057,6 +1061,12 @@ EmitBCAction::EmitBCAction(llvm::LLVMContext *_VMContext)
 void EmitLLVMAction::anchor() { }
 EmitLLVMAction::EmitLLVMAction(llvm::LLVMContext *_VMContext)
   : CodeGenAction(Backend_EmitLL, _VMContext) {}
+
+// TVM local begin
+void EmitTextConstAction::anchor() { }
+EmitTextConstAction::EmitTextConstAction(llvm::LLVMContext *_VMContext)
+  : CodeGenAction(Backend_EmitTextConst, _VMContext) {}
+// TVM local end
 
 void EmitLLVMOnlyAction::anchor() { }
 EmitLLVMOnlyAction::EmitLLVMOnlyAction(llvm::LLVMContext *_VMContext)

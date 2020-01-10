@@ -10942,6 +10942,14 @@ void Sema::AddInitializerToDecl(Decl *RealDecl, Expr *Init, bool DirectInit) {
   }
 
   if (CXXMethodDecl *Method = dyn_cast<CXXMethodDecl>(RealDecl)) {
+    // TVM local begin
+    llvm::APSInt FuncId;
+    if (Context.getTargetInfo().getTriple().getArch() == llvm::Triple::tvm &&
+        Init->isIntegerConstantExpr(FuncId, Context)) {
+      Method->setTVMFuncId(static_cast<unsigned>(FuncId.getZExtValue()));
+      return;
+    }
+    // TVM local end
     // Pure-specifiers are handled in ActOnPureSpecifier.
     Diag(Method->getLocation(), diag::err_member_function_initialization)
       << Method->getDeclName() << Init->getSourceRange();

@@ -1184,6 +1184,240 @@ createTypePackElementParameterList(const ASTContext &C, DeclContext *DC) {
                                        SourceLocation(), nullptr);
 }
 
+// TVM local begin
+// __reflect_field<T, StructT, idx> - name of field #idx of struct StructT,
+//   provided into template T as parameter pack of chars
+// T<Name[0], ..., Name[Size - 1]>
+static TemplateParameterList *
+createReflectFieldParameterList(const ASTContext &C, DeclContext *DC) {
+  // char ...Chars
+  TypeSourceInfo *TI = C.getTrivialTypeSourceInfo(C.CharTy);
+  auto *N = NonTypeTemplateParmDecl::Create(
+      C, DC, SourceLocation(), SourceLocation(), /*Depth=*/0, /*Position=*/0,
+      /*Id=*/nullptr, TI->getType(), /*ParameterPack=*/true, TI);
+  N->setImplicit(true);
+
+  // <char ...Chars>
+  NamedDecl *P[1] = {N};
+  auto *TPL = TemplateParameterList::Create(
+      C, SourceLocation(), SourceLocation(), P, SourceLocation(), nullptr);
+
+  // template <char ...Chars> class NameSeq
+  auto *TemplateTemplateParm = TemplateTemplateParmDecl::Create(
+      C, DC, SourceLocation(), /*Depth=*/0, /*Position=*/0,
+      /*ParameterPack=*/false, /*Id=*/nullptr, TPL);
+  TemplateTemplateParm->setImplicit(true);
+
+  // typename StructT
+  auto *StructT = TemplateTypeParmDecl::Create(
+      C, DC, SourceLocation(), SourceLocation(), /*Depth=*/0, /*Position=*/1,
+      /*Id=*/nullptr, /*Typename=*/true, /*ParameterPack=*/false);
+  StructT->setImplicit(true);
+
+  // std::size_t Index
+  TypeSourceInfo *TInfo = C.getTrivialTypeSourceInfo(C.getSizeType());
+  auto *Index = NonTypeTemplateParmDecl::Create(
+      C, DC, SourceLocation(), SourceLocation(), /*Depth=*/0, /*Position=*/2,
+      /*Id=*/nullptr, TInfo->getType(), /*ParameterPack=*/false, TInfo);
+  Index->setImplicit(true);
+
+  NamedDecl *Params[] = { TemplateTemplateParm, StructT, Index };
+  return TemplateParameterList::Create(C, SourceLocation(), SourceLocation(),
+                                       llvm::makeArrayRef(Params),
+                                       SourceLocation(), nullptr);
+}
+
+// __reflect_methods_count<T, IntType, Interface> -
+//   methods count of Interface, provided into template T
+//   => T<IntType, MethodsCount>
+// ex: __reflect_methods_count<std::integral_constant, unsigned, Interface>
+//   => std::integral_constant<unsigned, MethodsCount>
+static TemplateParameterList *
+createReflectMethodsCountParameterList(const ASTContext &C, DeclContext *DC) {
+  // typename IntType
+  auto *IntType = TemplateTypeParmDecl::Create(
+      C, DC, SourceLocation(), SourceLocation(), /*Depth=*/1, /*Position=*/0,
+      /*Id=*/nullptr, /*Typename=*/true, /*ParameterPack=*/false);
+  IntType->setImplicit(true);
+
+  // IntType IntVal
+  TypeSourceInfo *TI =
+      C.getTrivialTypeSourceInfo(QualType(IntType->getTypeForDecl(), 0));
+  auto *IntVal = NonTypeTemplateParmDecl::Create(
+      C, DC, SourceLocation(), SourceLocation(), /*Depth=*/0, /*Position=*/1,
+      /*Id=*/nullptr, TI->getType(), /*ParameterPack=*/false, TI);
+  IntVal->setImplicit(true);
+
+  // <typename IntType, IntType IntVal>
+  NamedDecl *P[2] = {IntType, IntVal};
+  auto *TPL = TemplateParameterList::Create(
+      C, SourceLocation(), SourceLocation(), P, SourceLocation(), nullptr);
+
+  // template <typename IntType, IntType IntVal> class integral_constant
+  auto *TemplateTemplateParm = TemplateTemplateParmDecl::Create(
+      C, DC, SourceLocation(), /*Depth=*/0, /*Position=*/0,
+      /*ParameterPack=*/false, /*Id=*/nullptr, TPL);
+  TemplateTemplateParm->setImplicit(true);
+
+  // typename IntTypeTop
+  auto *IntTypeTop = TemplateTypeParmDecl::Create(
+      C, DC, SourceLocation(), SourceLocation(), /*Depth=*/0, /*Position=*/1,
+      /*Id=*/nullptr, /*Typename=*/true, /*ParameterPack=*/false);
+  IntTypeTop->setImplicit(true);
+
+  auto *Interface = TemplateTypeParmDecl::Create(
+      C, DC, SourceLocation(), SourceLocation(), /*Depth=*/0, /*Position=*/2,
+      /*Id=*/nullptr, /*Typename=*/true, /*ParameterPack=*/false);
+  Interface->setImplicit(true);
+
+  NamedDecl *Params[] = { TemplateTemplateParm, IntTypeTop, Interface };
+  return TemplateParameterList::Create(C, SourceLocation(), SourceLocation(),
+                                       llvm::makeArrayRef(Params),
+                                       SourceLocation(), nullptr);
+}
+// __reflect_method_name<T, Interface, Index> -
+//   name of the Interface method number #Index, provided into T<char...>
+static TemplateParameterList *
+createReflectMethodNameParameterList(const ASTContext &C, DeclContext *DC) {
+  // char ...Chars
+  TypeSourceInfo *TI = C.getTrivialTypeSourceInfo(C.CharTy);
+  auto *N = NonTypeTemplateParmDecl::Create(
+      C, DC, SourceLocation(), SourceLocation(), /*Depth=*/0, /*Position=*/0,
+      /*Id=*/nullptr, TI->getType(), /*ParameterPack=*/true, TI);
+  N->setImplicit(true);
+
+  // <char ...Chars>
+  NamedDecl *P[1] = {N};
+  auto *TPL = TemplateParameterList::Create(
+      C, SourceLocation(), SourceLocation(), P, SourceLocation(), nullptr);
+
+  // template <char ...Chars> class NameSeq
+  auto *TemplateTemplateParm = TemplateTemplateParmDecl::Create(
+      C, DC, SourceLocation(), /*Depth=*/0, /*Position=*/0,
+      /*ParameterPack=*/false, /*Id=*/nullptr, TPL);
+  TemplateTemplateParm->setImplicit(true);
+
+  // typename Interface
+  auto *Interface = TemplateTypeParmDecl::Create(
+      C, DC, SourceLocation(), SourceLocation(), /*Depth=*/0, /*Position=*/1,
+      /*Id=*/nullptr, /*Typename=*/true, /*ParameterPack=*/false);
+  Interface->setImplicit(true);
+
+  // std::size_t Index
+  TypeSourceInfo *TInfo = C.getTrivialTypeSourceInfo(C.getSizeType());
+  auto *Index = NonTypeTemplateParmDecl::Create(
+      C, DC, SourceLocation(), SourceLocation(), /*Depth=*/0, /*Position=*/2,
+      /*Id=*/nullptr, TInfo->getType(), /*ParameterPack=*/false, TInfo);
+  Index->setImplicit(true);
+
+  NamedDecl *Params[] = { TemplateTemplateParm, Interface, Index };
+  return TemplateParameterList::Create(C, SourceLocation(), SourceLocation(),
+                                       llvm::makeArrayRef(Params),
+                                       SourceLocation(), nullptr);
+}
+
+// __reflect_method_func_id<T, IntType, Interface, Index> -
+//   FuncID of the Interface method number #Index, provided into T<IntType, FuncID>
+static TemplateParameterList *
+createReflectMethodFuncIdParameterList(const ASTContext &C, DeclContext *DC) {
+  // typename IntType
+  auto *IntType = TemplateTypeParmDecl::Create(
+      C, DC, SourceLocation(), SourceLocation(), /*Depth=*/1, /*Position=*/0,
+      /*Id=*/nullptr, /*Typename=*/true, /*ParameterPack=*/false);
+  IntType->setImplicit(true);
+
+  // IntType IntVal
+  TypeSourceInfo *TI =
+      C.getTrivialTypeSourceInfo(QualType(IntType->getTypeForDecl(), 0));
+  auto *IntVal = NonTypeTemplateParmDecl::Create(
+      C, DC, SourceLocation(), SourceLocation(), /*Depth=*/0, /*Position=*/1,
+      /*Id=*/nullptr, TI->getType(), /*ParameterPack=*/false, TI);
+  IntVal->setImplicit(true);
+
+  // <typename IntType, IntType IntVal>
+  NamedDecl *P[2] = {IntType, IntVal};
+  auto *TPL = TemplateParameterList::Create(
+      C, SourceLocation(), SourceLocation(), P, SourceLocation(), nullptr);
+
+  // template <typename IntType, IntType IntVal> class integral_constant
+  auto *TemplateTemplateParm = TemplateTemplateParmDecl::Create(
+      C, DC, SourceLocation(), /*Depth=*/0, /*Position=*/0,
+      /*ParameterPack=*/false, /*Id=*/nullptr, TPL);
+  TemplateTemplateParm->setImplicit(true);
+
+  // typename IntTypeTop
+  auto *IntTypeTop = TemplateTypeParmDecl::Create(
+      C, DC, SourceLocation(), SourceLocation(), /*Depth=*/0, /*Position=*/1,
+      /*Id=*/nullptr, /*Typename=*/true, /*ParameterPack=*/false);
+  IntTypeTop->setImplicit(true);
+
+  // typename Interface
+  auto *Interface = TemplateTypeParmDecl::Create(
+      C, DC, SourceLocation(), SourceLocation(), /*Depth=*/0, /*Position=*/2,
+      /*Id=*/nullptr, /*Typename=*/true, /*ParameterPack=*/false);
+  Interface->setImplicit(true);
+
+  // std::size_t Index
+  TypeSourceInfo *TInfo = C.getTrivialTypeSourceInfo(C.getSizeType());
+  auto *Index = NonTypeTemplateParmDecl::Create(
+      C, DC, SourceLocation(), SourceLocation(), /*Depth=*/0, /*Position=*/3,
+      /*Id=*/nullptr, TInfo->getType(), /*ParameterPack=*/false, TInfo);
+  Index->setImplicit(true);
+
+  NamedDecl *Params[] = { TemplateTemplateParm, IntTypeTop, Interface, Index };
+  return TemplateParameterList::Create(C, SourceLocation(), SourceLocation(),
+                                       llvm::makeArrayRef(Params),
+                                       SourceLocation(), nullptr);
+}
+
+// __reflect_method_rv<Interface, Index> -
+//   Return value of the Interface method number #Index
+static TemplateParameterList *
+createReflectMethodRvParameterList(const ASTContext &C, DeclContext *DC) {
+  // typename Interface
+  auto *Interface = TemplateTypeParmDecl::Create(
+      C, DC, SourceLocation(), SourceLocation(), /*Depth=*/0, /*Position=*/0,
+      /*Id=*/nullptr, /*Typename=*/true, /*ParameterPack=*/false);
+  Interface->setImplicit(true);
+
+  // std::size_t Index
+  TypeSourceInfo *TInfo = C.getTrivialTypeSourceInfo(C.getSizeType());
+  auto *Index = NonTypeTemplateParmDecl::Create(
+      C, DC, SourceLocation(), SourceLocation(), /*Depth=*/0, /*Position=*/1,
+      /*Id=*/nullptr, TInfo->getType(), /*ParameterPack=*/false, TInfo);
+  Index->setImplicit(true);
+
+  NamedDecl *Params[] = { Interface, Index };
+  return TemplateParameterList::Create(C, SourceLocation(), SourceLocation(),
+                                       llvm::makeArrayRef(Params),
+                                       SourceLocation(), nullptr);
+}
+
+// __reflect_method_arg_struct<Interface, Index> -
+//   Combined arguments structure of the Interface method number #Index
+static TemplateParameterList *
+createReflectMethodArgStructParameterList(const ASTContext &C, DeclContext *DC) {
+  // typename Interface
+  auto *Interface = TemplateTypeParmDecl::Create(
+      C, DC, SourceLocation(), SourceLocation(), /*Depth=*/0, /*Position=*/0,
+      /*Id=*/nullptr, /*Typename=*/true, /*ParameterPack=*/false);
+  Interface->setImplicit(true);
+
+  // std::size_t Index
+  TypeSourceInfo *TInfo = C.getTrivialTypeSourceInfo(C.getSizeType());
+  auto *Index = NonTypeTemplateParmDecl::Create(
+      C, DC, SourceLocation(), SourceLocation(), /*Depth=*/0, /*Position=*/1,
+      /*Id=*/nullptr, TInfo->getType(), /*ParameterPack=*/false, TInfo);
+  Index->setImplicit(true);
+
+  NamedDecl *Params[] = { Interface, Index };
+  return TemplateParameterList::Create(C, SourceLocation(), SourceLocation(),
+                                       llvm::makeArrayRef(Params),
+                                       SourceLocation(), nullptr);
+}
+
+// TVM local end
+
 static TemplateParameterList *createBuiltinTemplateParameterList(
     const ASTContext &C, DeclContext *DC, BuiltinTemplateKind BTK) {
   switch (BTK) {
@@ -1191,6 +1425,20 @@ static TemplateParameterList *createBuiltinTemplateParameterList(
     return createMakeIntegerSeqParameterList(C, DC);
   case BTK__type_pack_element:
     return createTypePackElementParameterList(C, DC);
+  // TVM local begin
+  case BTK__reflect_field:
+    return createReflectFieldParameterList(C, DC);
+  case BTK__reflect_methods_count:
+    return createReflectMethodsCountParameterList(C, DC);
+  case BTK__reflect_method_name:
+    return createReflectMethodNameParameterList(C, DC);
+  case BTK__reflect_method_func_id:
+    return createReflectMethodFuncIdParameterList(C, DC);
+  case BTK__reflect_method_rv:
+    return createReflectMethodRvParameterList(C, DC);
+  case BTK__reflect_method_arg_struct:
+    return createReflectMethodArgStructParameterList(C, DC);
+  // TVM local end
   }
 
   llvm_unreachable("unhandled BuiltinTemplateKind!");

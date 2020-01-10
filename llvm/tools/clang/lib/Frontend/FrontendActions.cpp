@@ -779,6 +779,9 @@ void PrintPreambleAction::ExecuteAction() {
   case InputKind::Asm:
   case InputKind::LLVM_IR:
   case InputKind::RenderScript:
+  // TVM local begin
+  case InputKind::JsonAbi:
+  // TVM local end
     // We can't do anything with these.
     return;
   }

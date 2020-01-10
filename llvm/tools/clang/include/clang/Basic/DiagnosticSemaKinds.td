@@ -2456,6 +2456,16 @@ def err_integer_sequence_integral_element_type : Error<
 def err_type_pack_element_out_of_bounds : Error<
   "a parameter pack may not be accessed at an out of bounds index">;
 
+// TVM local begin
+// __reflect_field
+def err_reflect_field_not_struct_arg : Error<
+  "field name requested from non-struct type">;
+def err_reflect_field_big_index : Error<
+  "Too big index for field name">;
+def err_reflect_method_not_struct_arg : Error<
+  "reflect method requested from non-struct type">;
+// TVM local end
+
 // Objective-C++
 def err_objc_decls_may_only_appear_in_global_scope : Error<
   "Objective-C declarations may only appear in global scope">;

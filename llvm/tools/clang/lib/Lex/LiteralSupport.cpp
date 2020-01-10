@@ -194,7 +194,9 @@ static unsigned ProcessCharEscape(const char *ThisTokBegin,
              ThisTokBuf[0] >= '0' && ThisTokBuf[0] <= '7');
 
     // Check for overflow.  Reject '\777', but not L'\777'.
-    if (CharWidth != 32 && (ResultChar >> CharWidth) != 0) {
+    // TVM local begin
+    if (CharWidth < 32 && (ResultChar >> CharWidth) != 0) {
+    // TVM local end
       if (Diags)
         Diag(Diags, Features, Loc, ThisTokBegin, EscapeBegin, ThisTokBuf,
              diag::err_escape_too_large) << 1;

@@ -88,6 +88,10 @@ TYPE("lto-ir",                   LTO_IR,       INVALID,         "s",     "")
 TYPE("lto-bc",                   LTO_BC,       INVALID,         "o",     "")
 
 // Misc.
+// TVM local begin
+TYPE("text-const",               TextConst,    INVALID,         "txt",   "u")
+TYPE("json-abi",                 JsonABI,      CXXHeader,       "abi",   "up")
+// TVM local end
 TYPE("ast",                      AST,          INVALID,         "ast",   "u")
 TYPE("pcm",                      ModuleFile,   INVALID,         "pcm",   "u")
 TYPE("plist",                    Plist,        INVALID,         "plist", "")

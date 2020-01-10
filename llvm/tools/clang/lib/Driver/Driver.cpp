@@ -250,7 +250,10 @@ phases::ID Driver::getFinalPhase(const DerivedArgList &DAL,
   if (CCCIsCPP() || (PhaseArg = DAL.getLastArg(options::OPT_E)) ||
       (PhaseArg = DAL.getLastArg(options::OPT__SLASH_EP)) ||
       (PhaseArg = DAL.getLastArg(options::OPT_M, options::OPT_MM)) ||
-      (PhaseArg = DAL.getLastArg(options::OPT__SLASH_P))) {
+      // TVM local begin
+      (PhaseArg = DAL.getLastArg(options::OPT__SLASH_P)) ||
+      (PhaseArg = DAL.getLastArg(options::OPT_import_json_abi))) {
+      // TVM local end
     FinalPhase = phases::Preprocess;
 
     // --precompile only runs up to precompilation.
@@ -270,7 +273,9 @@ phases::ID Driver::getFinalPhase(const DerivedArgList &DAL,
     FinalPhase = phases::Compile;
 
     // -S only runs up to the backend.
-  } else if ((PhaseArg = DAL.getLastArg(options::OPT_S))) {
+  } else if ((PhaseArg = DAL.getLastArg(options::OPT_S)) ||
+             (PhaseArg = DAL.getLastArg(options::OPT_export_json_abi)) ||
+             (PhaseArg = DAL.getLastArg(options::OPT_emit_text_const))) {
     FinalPhase = phases::Backend;
 
     // -c compilation only runs up to the assembler.
@@ -1943,6 +1948,12 @@ void Driver::BuildInputs(const ToolChain &TC, DerivedArgList &Args,
     // No driver mode exposes -x and /TC or /TP; we don't support mixing them.
     assert(!Args.hasArg(options::OPT_x) && "-x and /TC or /TP is not allowed");
   }
+  // TVM local begin
+  if (Arg *TCTP = Args.getLastArgNoClaim(options::OPT_import_json_abi)) {
+    InputTypeArg = TCTP;
+    InputType = types::TY_JsonABI;
+  }
+  // TVM local end
 
   for (Arg *A : Args) {
     if (A->getOption().getKind() == Option::InputClass) {
@@ -3238,6 +3249,13 @@ Action *Driver::ConstructPhaseAction(
           Args.hasArg(options::OPT_S) ? types::TY_LLVM_IR : types::TY_LLVM_BC;
       return C.MakeAction<BackendJobAction>(Input, Output);
     }
+    // TVM local begin
+    if (Args.hasArg(options::OPT_emit_text_const) ||
+        Args.hasArg(options::OPT_export_json_abi)) {
+      types::ID Output = types::TY_TextConst;
+      return C.MakeAction<BackendJobAction>(Input, Output);
+    }
+    // TVM local end
     return C.MakeAction<BackendJobAction>(Input, types::TY_PP_Asm);
   }
   case phases::Assemble:

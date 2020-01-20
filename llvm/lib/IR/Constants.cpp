@@ -296,6 +296,12 @@ Constant *Constant::getNullValue(Type *Ty) {
     return ConstantAggregateZero::get(Ty);
   case Type::TokenTyID:
     return ConstantTokenNone::get(Ty->getContext());
+  // TVM LOCAL begin
+  case Type::TVMCellID: {
+    ConstantInt *Zero = ConstantInt::get(Type::getByteTy(Ty->getContext()), 0);
+    return ConstantExpr::getBitCast(Zero, Ty);
+  }
+  // TVM LOCAL end
   default:
     // Function, Label, or Opaque type?
     llvm_unreachable("Cannot create a null constant of that type!");

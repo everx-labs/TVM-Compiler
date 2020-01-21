@@ -72,3 +72,8 @@ defm SETGLOB : I<(outs), (ins I257:$val, uimm1_31:$idx), (outs), (ins uimm1_31:$
 defm SETGLOBVAR : I<(outs), (ins I257:$val, I257:$idx), (outs), (ins),
                     [(int_tvm_setglobal I257:$idx, I257:$val)],
                     "SETGLOBVAR\t$idx, $val", "SETGLOBVAR", 0xf860>;
+
+// A.11.9 Outbound message and output action primitives.
+defm SETCODE : I<(outs), (ins Cell:$cell), (outs), (ins),
+                 [(int_tvm_setcode Cell:$cell)],
+                 "SETCODE\t$cell", "SETCODE", 0xfb04>;

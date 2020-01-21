@@ -177,6 +177,9 @@ BUILTIN(__builtin_tvm_rewritestdaddrq, "{WiWiWi}Ts", "nc")
 BUILTIN(__builtin_tvm_rewritevaraddr, "{WiTs}Ts", "c")
 BUILTIN(__builtin_tvm_rewritevaraddrq, "{WiTsWi}Ts", "nc")
 
+// A.11.9. Outbound message and output action primitives.
+BUILTIN(__builtin_tvm_setcode, "vTc", "n")
+
 // TODO: Maybe implement explode intrinsic
 BUILTIN(__builtin_tvm_tuple, "Tt.", "nc")
 // Untuple intrinsics:

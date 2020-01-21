@@ -5073,7 +5073,8 @@ Value *SwitchLookupTable::BuildLookup(Value *Index, IRBuilder<> &Builder) {
     IntegerType *IT = cast<IntegerType>(Index->getType());
     uint64_t TableSize =
         Array->getInitializer()->getType()->getArrayNumElements();
-    if (TableSize > (1ULL << (IT->getBitWidth() - 1)))
+    if (IT->getBitWidth() <= 64 && // TVM local
+        TableSize > (1ULL << (IT->getBitWidth() - 1)))
       Index = Builder.CreateZExt(
           Index, IntegerType::get(IT->getContext(), IT->getBitWidth() + 1),
           "switch.tableidx.zext");

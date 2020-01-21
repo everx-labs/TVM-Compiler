@@ -387,6 +387,11 @@ let TargetPrefix = "tvm" in {
               [llvm_TVMSlice_ty],
               [IntrNoMem]>;
 
+  // A.11.9. Outbound message and output action primitives.
+  def int_tvm_setcode :
+    GCCBuiltin<"__builtin_tvm_setcode">,
+    Intrinsic<[], [llvm_TVMCell_ty], []>;
+
   // A.13 Codepage primitives
   def int_tvm_setcp :
     GCCBuiltin<"__builtin_tvm_setcp">,

@@ -38,6 +38,10 @@ Value *EmitGEPOffset(IRBuilderTy *Builder, const DataLayout &DL, User *GEP,
 
   // Build a mask for high order bits.
   unsigned IntPtrWidth = IntPtrTy->getScalarType()->getIntegerBitWidth();
+  // TVM local begin
+  if (IntPtrWidth > 64)
+    IntPtrWidth = 64;
+  // TVM local end
   uint64_t PtrSizeMask =
       std::numeric_limits<uint64_t>::max() >> (64 - IntPtrWidth);
 

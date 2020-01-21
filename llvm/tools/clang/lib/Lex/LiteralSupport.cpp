@@ -1272,8 +1272,13 @@ CharLiteralParser::CharLiteralParser(const char *begin, const char *end,
   // by this implementation.
   uint32_t largest_character_for_kind;
   if (tok::wide_char_constant == Kind) {
-    largest_character_for_kind =
-        0xFFFFFFFFu >> (32-PP.getTargetInfo().getWCharWidth());
+    // TVM local begin
+    if (PP.getTargetInfo().getWCharWidth() > 32)
+      largest_character_for_kind = 0xFFFFFFFFu;
+    else
+      largest_character_for_kind =
+          0xFFFFFFFFu >> (32-PP.getTargetInfo().getWCharWidth());
+    // TVM local end
   } else if (tok::utf8_char_constant == Kind) {
     largest_character_for_kind = 0x7F;
   } else if (tok::utf16_char_constant == Kind) {

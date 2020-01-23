@@ -20,6 +20,9 @@ def convert_type (abi_type):
     if abi_type == 'address':
         return ('MsgAddressInt', ('MsgAddressInt',''))
 
+    if abi_type == 'cell':
+        return ('Cell', ('Cell', ''))
+
     errors.append ("Type %s is not supported yet\n" % abi_type)
     return ("int", ("Signed", 256))
 

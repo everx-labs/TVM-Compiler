@@ -1425,6 +1425,26 @@ _LIBCPP_NOEXCEPT_RETURN(
         typename __make_tuple_indices<tuple_size_v<remove_reference_t<_Tuple>>>::type{})
 )
 
+// TVM local begin
+template <auto _Fn, class _Tuple, size_t ..._Id>
+inline _LIBCPP_INLINE_VISIBILITY
+constexpr decltype(auto) __apply_tuple_impl_f(_Tuple && __t,
+                                            __tuple_indices<_Id...>)
+_LIBCPP_NOEXCEPT_RETURN(
+    _VSTD::__invoke_constexpr_f<_Fn>(
+        _VSTD::get<_Id>(_VSTD::forward<_Tuple>(__t))...)
+)
+
+template <auto _Fn, class _Tuple>
+inline _LIBCPP_INLINE_VISIBILITY
+constexpr decltype(auto) apply_f(_Tuple && __t)
+_LIBCPP_NOEXCEPT_RETURN(
+    _VSTD::__apply_tuple_impl_f<_Fn>(
+        _VSTD::forward<_Tuple>(__t),
+        typename __make_tuple_indices<tuple_size_v<remove_reference_t<_Tuple>>>::type{})
+)
+// TVM local end
+
 template <class _Tp, class _Tuple, size_t... _Idx>
 inline _LIBCPP_INLINE_VISIBILITY
 constexpr _Tp __make_from_tuple_impl(_Tuple&& __t, __tuple_indices<_Idx...>)

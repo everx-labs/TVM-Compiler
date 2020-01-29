@@ -37,7 +37,9 @@ CodeGenTypes::CodeGenTypes(CodeGenModule &cgm)
 }
 
 CodeGenTypes::~CodeGenTypes() {
-  llvm::DeleteContainerSeconds(CGRecordLayouts);
+  // TVM local begin (context-allocated)
+  //llvm::DeleteContainerSeconds(CGRecordLayouts);
+  // TVM local end
 
   for (llvm::FoldingSet<CGFunctionInfo>::iterator
        I = FunctionInfos.begin(), E = FunctionInfos.end(); I != E; )
@@ -737,8 +739,19 @@ llvm::StructType *CodeGenTypes::ConvertRecordDeclType(const RecordDecl *RD) {
   // If this is still a forward declaration, or the LLVM type is already
   // complete, there's nothing more to do.
   RD = RD->getDefinition();
-  if (!RD || !RD->isCompleteDefinition() || !Ty->isOpaque())
+  // TVM local begin
+  if (!RD || !RD->isCompleteDefinition())
     return Ty;
+  if (!Ty->isOpaque()) {
+    if ((RD->isLiteral() || RD->hasAttr<TVMTupleStructAttr>()) &&
+        !Ty->isLiteral()) {
+      Entry = Ty = llvm::StructType::get(Ty->getContext(), Ty->elements(),
+                                         Ty->isPacked());
+      CGRecordLayouts[Key]->updateToLiteralType(Ty);
+    }
+    return Ty;
+  }
+  // TVM local end
 
   // If converting this type would cause us to infinitely loop, don't do it!
   if (!isSafeToConvert(RD, *this)) {
@@ -782,9 +795,11 @@ llvm::StructType *CodeGenTypes::ConvertRecordDeclType(const RecordDecl *RD) {
 
   // TVM local begin
   // Converting into literal llvm struct
-  if (RD->isLiteral() || RD->hasAttr<TVMTupleStructAttr>())
+  if (RD->isLiteral() || RD->hasAttr<TVMTupleStructAttr>()) {
     Entry = Ty = llvm::StructType::get(Ty->getContext(), Ty->elements(),
                                        Ty->isPacked());
+    CGRecordLayouts[Key]->updateToLiteralType(Ty);
+  }
   // TVM local end
   return Ty;
 }

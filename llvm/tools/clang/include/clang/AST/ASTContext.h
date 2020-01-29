@@ -348,6 +348,10 @@ class ASTContext : public RefCountedBase<ASTContext> {
   mutable IdentifierInfo *ReflectMethodRvName = nullptr;
   /// The identifier '__reflect_method_arg_struct'.
   mutable IdentifierInfo *ReflectMethodArgStructName = nullptr;
+  /// The identifier '__reflect_smart_interface'.
+  mutable IdentifierInfo *ReflectSmartInterfaceName = nullptr;
+  /// The identifier '__reflect_method_ptr'.
+  mutable IdentifierInfo *ReflectMethodPtrName = nullptr;
   // TVM local end
 
   QualType ObjCConstantStringType;
@@ -537,6 +541,8 @@ private:
   mutable BuiltinTemplateDecl *ReflectMethodPtrFuncIdDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectMethodRvDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectMethodArgStructDecl = nullptr;
+  mutable BuiltinTemplateDecl *ReflectSmartInterfaceDecl = nullptr;
+  mutable BuiltinTemplateDecl *ReflectMethodPtrDecl = nullptr;
   // TVM local end
 
   /// The associated SourceManager object.
@@ -1048,6 +1054,8 @@ public:
   BuiltinTemplateDecl *getReflectMethodPtrFuncIdDecl() const;
   BuiltinTemplateDecl *getReflectMethodRvDecl() const;
   BuiltinTemplateDecl *getReflectMethodArgStructDecl() const;
+  BuiltinTemplateDecl *getReflectSmartInterfaceDecl() const;
+  BuiltinTemplateDecl *getReflectMethodPtrDecl() const;
   // TVM local end
 
   // Builtin Types.
@@ -1413,6 +1421,10 @@ public:
   /// Creating struct with combined arguments for Method (without `this`)
   QualType prepareTVMArgumentsStructType(CXXMethodDecl *Method) const;
   QualType getTVMArgumentsStructType(CXXMethodDecl *Method) const;
+
+  /// Creating struct with adapted smart interface for contract interface
+  QualType prepareTVMSmartInterfaceType(CXXRecordDecl *Rec) const;
+  QualType getTVMSmartInterfaceType(CXXRecordDecl *Rec) const;
   // TVM local end
 
   /// \pre Return a non-unique reference to the type for a dependently-sized
@@ -1837,6 +1849,18 @@ public:
     if (!ReflectMethodArgStructName)
       ReflectMethodArgStructName = &Idents.get("__reflect_method_arg_struct");
     return ReflectMethodArgStructName;
+  }
+
+  IdentifierInfo *getReflectSmartInterfaceName() const {
+    if (!ReflectSmartInterfaceName)
+      ReflectSmartInterfaceName = &Idents.get("__reflect_smart_interface");
+    return ReflectSmartInterfaceName;
+  }
+
+  IdentifierInfo *getReflectMethodPtrName() const {
+    if (!ReflectMethodPtrName)
+      ReflectMethodPtrName = &Idents.get("__reflect_method_ptr");
+    return ReflectMethodPtrName;
   }
   // TVM local end
 

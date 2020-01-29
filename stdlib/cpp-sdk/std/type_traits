@@ -3454,6 +3454,13 @@ auto __invoke(__any, _Args&& ...__args) -> __nat;
 template <class ..._Args>
 auto __invoke_constexpr(__any, _Args&& ...__args) -> __nat;
 
+// TVM local begin
+template <auto _Fn, class _A0, class ..._Args>
+inline _LIBCPP_INLINE_VISIBILITY
+auto __invoke_constexpr_f(_A0&& __a0, _Args&& ...__args)
+_LIBCPP_INVOKE_RETURN((_VSTD::forward<_A0>(__a0).*_Fn)(_VSTD::forward<_Args>(__args)...))
+// TVM local end
+
 // bullets 1, 2 and 3
 
 template <class _Fp, class _A0, class ..._Args,

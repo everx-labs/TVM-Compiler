@@ -156,6 +156,15 @@ public:
       IsZeroInitializable(IsZeroInitializable),
       IsZeroInitializableAsBase(IsZeroInitializableAsBase) {}
 
+  // TVM local begin
+  /// Override type after converting into literal
+  void updateToLiteralType(llvm::StructType *newTy) {
+    assert(CompleteObjectType == BaseSubobjectType || !BaseSubobjectType);
+    CompleteObjectType = newTy;
+    BaseSubobjectType = newTy;
+  }
+  // TVM local end
+
   /// Return the "complete object" LLVM type associated with
   /// this record.
   llvm::StructType *getLLVMType() const {

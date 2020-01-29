@@ -112,6 +112,16 @@ struct make_builder_impl<MsgAddressSlice> {
   }
 };
 
+template<class _Tp>
+struct make_builder_impl<lazy<_Tp>> {
+  using value_type = lazy<_Tp>;
+  inline static builder build(builder b, value_type v) {
+    if (v.is_slice())
+      return b.stslice(v.raw_slice());
+    return make_builder_impl<_Tp>::build(b, v.raw_val());
+  }
+};
+
 template<>
 struct make_builder_impl<empty> {
   using value_type = empty;

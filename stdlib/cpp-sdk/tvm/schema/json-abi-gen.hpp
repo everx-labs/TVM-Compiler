@@ -1,13 +1,7 @@
 #pragma once
 
-#define BOOST_HANA_CONFIG_ENABLE_STRING_UDL
-
-#include <boost/hana/string.hpp>
-#include <boost/hana/power.hpp>
-#include <boost/hana/value.hpp>
-#include <boost/hana/div.hpp>
-#include <boost/hana/plus.hpp>
 #include <tvm/to_std_tuple.hpp>
+#include <tvm/reflection.hpp>
 #include <tvm/schema/basics.hpp>
 #include <tvm/schema/message.hpp>
 
@@ -31,7 +25,6 @@
 
 namespace tvm { namespace schema { namespace json_abi_gen {
 
-namespace hana = boost::hana;
 using namespace hana::literals;
 
 constexpr size_t get_magnitude(size_t num) {
@@ -197,19 +190,6 @@ constexpr auto make_function_json(FuncName func_name) {
   constexpr auto id = make_function_id<FuncID>();
   return "  {\n    "_s + hdr + ",\n    "_s + inputs + ",\n    "_s + outputs + id + "\n  }"_s;
 }
-
-template<class Interface>
-using get_interface_methods_count =
-  __reflect_methods_count<std::integral_constant, unsigned, Interface>;
-template<class Interface, unsigned Index>
-using get_interface_method_name = __reflect_method_name<hana::string, Interface, Index>;
-template<class Interface, unsigned Index>
-using get_interface_method_func_id =
-  __reflect_method_func_id<std::integral_constant, unsigned, Interface, Index>;
-template<class Interface, unsigned Index>
-using get_interface_method_rv = __reflect_method_rv<Interface, Index>;
-template<class Interface, unsigned Index>
-using get_interface_method_arg_struct = __reflect_method_arg_struct<Interface, Index>;
 
 template<class Interface, unsigned CurMethod, unsigned RestMethods>
 struct make_json_abi_impl {

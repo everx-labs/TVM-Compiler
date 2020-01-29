@@ -24,9 +24,6 @@
 using namespace tvm::schema;
 using namespace tvm;
 
-template<auto MethodPtr>
-using id = __reflect_method_ptr_func_id<std::integral_constant, unsigned, MethodPtr>;
-
 class Wallet : public tvm::contract {
 public:
   struct error_code : tvm::error_code {
@@ -185,13 +182,13 @@ __attribute__((tvm_raw_func)) int main_external(__tvm_cell msg, __tvm_slice msg_
   auto func_id = msg_parser.ldu(32);
   
   switch (func_id) {
-  case id<&IWallet::constructor>::value:
+  case id_v<&IWallet::constructor>:
     return Wallet::constructor_external(msg_v, msg_body_v);
-  case id<&IWallet::set_subscription_account>::value:
+  case id_v<&IWallet::set_subscription_account>:
     return Wallet::set_subscription_account_external(msg_v, msg_body_v);
-  case id<&IWallet::get_subscription_account>::value:
+  case id_v<&IWallet::get_subscription_account>:
     return Wallet::get_subscription_account_external(msg_v, msg_body_v);
-  case id<&IWallet::send_transaction>::value:
+  case id_v<&IWallet::send_transaction>:
     return Wallet::send_transaction_external(msg_v, msg_body_v);
   }
   tvm_throw(error_code::wrong_public_call);

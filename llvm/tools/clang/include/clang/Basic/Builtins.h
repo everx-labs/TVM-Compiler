@@ -267,7 +267,13 @@ enum BuiltinTemplateKind : int {
   BTK__reflect_method_rv,
 
   /// This names the __reflect_method_arg_struct BuiltinTemplateDecl.
-  BTK__reflect_method_arg_struct
+  BTK__reflect_method_arg_struct,
+
+  /// This names the __reflect_smart_interface BuiltinTemplateDecl.
+  BTK__reflect_smart_interface,
+
+  /// This names the __reflect_method_ptr BuiltinTemplateDecl.
+  BTK__reflect_method_ptr
   // TVM local end
 };
 

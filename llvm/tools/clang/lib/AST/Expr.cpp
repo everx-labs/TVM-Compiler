@@ -1272,8 +1272,10 @@ Decl *Expr::getReferencedDeclOfCallee() {
     if (BO->isPtrMemOp())
       CEE = BO->getRHS()->IgnoreParenCasts();
   } else if (UnaryOperator *UO = dyn_cast<UnaryOperator>(CEE)) {
-    if (UO->getOpcode() == UO_Deref)
+    // TVM local begin
+    if (UO->getOpcode() == UO_Deref || UO->getOpcode() == UO_AddrOf)
       CEE = UO->getSubExpr()->IgnoreParenCasts();
+    // TVM local end
   }
   if (DeclRefExpr *DRE = dyn_cast<DeclRefExpr>(CEE))
     return DRE->getDecl();

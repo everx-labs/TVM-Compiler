@@ -1098,6 +1098,22 @@ ASTContext::getReflectMethodArgStructDecl() const {
         BTK__reflect_method_arg_struct, getReflectMethodArgStructName());
   return ReflectMethodArgStructDecl;
 }
+
+BuiltinTemplateDecl *
+ASTContext::getReflectSmartInterfaceDecl() const {
+  if (!ReflectSmartInterfaceDecl)
+    ReflectSmartInterfaceDecl = buildBuiltinTemplateDecl(
+        BTK__reflect_smart_interface, getReflectSmartInterfaceName());
+  return ReflectSmartInterfaceDecl;
+}
+
+BuiltinTemplateDecl *
+ASTContext::getReflectMethodPtrDecl() const {
+  if (!ReflectMethodPtrDecl)
+    ReflectMethodPtrDecl = buildBuiltinTemplateDecl(
+        BTK__reflect_method_ptr, getReflectMethodPtrName());
+  return ReflectMethodPtrDecl;
+}
 // TVM local end
 
 RecordDecl *ASTContext::buildImplicitRecord(StringRef Name,

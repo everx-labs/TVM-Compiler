@@ -414,8 +414,43 @@ CodeGenFunction::EmitCXXMemberPointerCallExpr(const CXXMemberCallExpr *E,
                                               ReturnValueSlot ReturnValue) {
   const BinaryOperator *BO =
       cast<BinaryOperator>(E->getCallee()->IgnoreParens());
-  const Expr *BaseExpr = BO->getLHS();
-  const Expr *MemFnExpr = BO->getRHS();
+  // TVM local begin
+  Expr *BaseExpr = BO->getLHS();
+  Expr *MemFnExpr = BO->getRHS();
+
+  // Optimization of known (Obj.(&F::method))(Args...) call
+  //  into Obj.method(Args...)
+  if (Target.getTriple().getArch() == llvm::Triple::tvm)
+    if (auto *FoundDec = MemFnExpr->getReferencedDeclOfCallee()) {
+      while (VarDecl* VD = dyn_cast<VarDecl>(FoundDec)) {
+        if (!VD->isUsableInConstantExpressions(getContext()) ||
+            !VD->checkInitIsICE())
+          break;
+        FoundDec = VD->getInit()->getReferencedDeclOfCallee();
+      }
+      if (FoundDec)
+        if (CXXMethodDecl *CalleeMeth = dyn_cast<CXXMethodDecl>(FoundDec)) {
+          DeclAccessPair FoundDecl = DeclAccessPair::make(CalleeMeth,
+                                                          AS_public);
+          DeclarationNameInfo MemberNameInfo(CalleeMeth->getDeclName(),
+                                             CalleeMeth->getLocation());
+          auto *ME =
+            MemberExpr::Create(getContext(), BaseExpr, false,
+                               BO->getOperatorLoc(),
+                               CalleeMeth->getQualifierLoc(), SourceLocation{},
+                               CalleeMeth, FoundDecl, MemberNameInfo,
+                               /* TemplateArgumentListInfo=*/ nullptr,
+                               getContext().BoundMemberTy, VK_RValue,
+                               OK_Ordinary);
+          auto OldArgs = const_cast<CXXMemberCallExpr *>(E)->arguments();
+          SmallVector<Expr*, 16> Args(OldArgs);
+          auto *Call = new (getContext())
+              CXXMemberCallExpr(getContext(), ME, Args, E->getType(),
+                                E->getValueKind(), E->getLocEnd());
+          return EmitCXXMemberCallExpr(Call, ReturnValue);
+        }
+    }
+  // TVM local end
 
   const MemberPointerType *MPT =
     MemFnExpr->getType()->castAs<MemberPointerType>();

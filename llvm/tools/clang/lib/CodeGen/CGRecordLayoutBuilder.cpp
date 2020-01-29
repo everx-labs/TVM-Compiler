@@ -750,9 +750,9 @@ CGRecordLayout *CodeGenTypes::ComputeRecordLayout(const RecordDecl *D,
   // but we may need to recursively layout D while laying D out as a base type.
   Ty->setBody(Builder.FieldTypes, Builder.Packed);
 
-  CGRecordLayout *RL =
-    new CGRecordLayout(Ty, BaseTy, Builder.IsZeroInitializable,
-                        Builder.IsZeroInitializableAsBase);
+  CGRecordLayout *RL = new (CGM.getContext())
+    CGRecordLayout(Ty, BaseTy, Builder.IsZeroInitializable,
+                   Builder.IsZeroInitializableAsBase);
 
   RL->NonVirtualBases.swap(Builder.NonVirtualBases);
   RL->CompleteObjectVirtualBases.swap(Builder.VirtualBases);

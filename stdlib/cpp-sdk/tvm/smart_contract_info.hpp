@@ -1,6 +1,7 @@
 #pragma once
 
 #include <tvm/tuple.hpp>
+#include <tvm/incoming_msg.hpp>
 
 namespace tvm {
 
@@ -86,12 +87,33 @@ public:
   static void setglob(unsigned idx, int val) { __builtin_tvm_setglobal(idx, val); }
 private:
   tuple<smart_contract_info> contract_info_;
+  tuple<incoming_msg> msg_;
 };
 
 inline tuple<smart_contract_info> smart_contract_info::get() {
   // variant: return temporary_data::get().unpackfirst().contract_info();
   return tuple<smart_contract_info>(__builtin_tvm_cast_to_tuple(
     __builtin_tvm_index(temporary_data::get().get(), 0)));
+}
+
+static inline void set_msg(cell msg) {
+  temporary_data::setglob(1, __builtin_tvm_cast_from_cell(msg.get()));
+}
+
+static tuple<incoming_msg> parse_incoming_msg(cell msg) {
+  auto parsed_v = schema::parse<schema::CommonMsgInfo>(parser(msg.ctos()),
+                                                       error_code::bad_incoming_msg);
+  return tuple<incoming_msg>::create(incoming_msg(parsed_v));
+}
+
+static inline tuple<incoming_msg> msg() {
+  auto v = temporary_data::getglob(1);
+  if (__builtin_tvm_istuple(__builtin_tvm_cast_to_tuple(v))) // already parsed into tuple
+    return tuple<incoming_msg>(__builtin_tvm_cast_to_tuple(v));
+  
+  auto tp = parse_incoming_msg(__builtin_tvm_cast_to_cell(v));
+  temporary_data::setglob(1, __builtin_tvm_cast_from_tuple(tp.get()));
+  return tp;
 }
 
 } // namespace tvm

@@ -4244,7 +4244,9 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
 
   // -fms-extensions=0 is default.
   if (Args.hasFlag(options::OPT_fms_extensions, options::OPT_fno_ms_extensions,
-                   IsWindowsMSVC))
+                   // TVM local begin
+                   IsWindowsMSVC || (getToolChain().getArch() == llvm::Triple::tvm)))
+                   // TVM local end
     CmdArgs.push_back("-fms-extensions");
 
   // -fno-use-line-directives is default.

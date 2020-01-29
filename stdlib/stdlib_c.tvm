@@ -89,6 +89,15 @@ tvm_sender_pubkey:
     PUSH s1
     SETGLOB 7
 
+    PUSHCONT {
+        CALL $load_macro$
+    }
+    SETGLOB 13
+    PUSHCONT {
+        CALL $store_macro$
+    }
+    SETGLOB 14
+
     ;check whether the message body is empty
     DUP
     SDEMPTY
@@ -124,6 +133,15 @@ tvm_sender_pubkey:
 
     PUSH s1
     SETGLOB 7
+
+    PUSHCONT {
+        CALL $load_macro$
+    }
+    SETGLOB 13
+    PUSHCONT {
+        CALL $store_macro$
+    }
+    SETGLOB 14
 
     ;check whether the message body is empty
     DUP

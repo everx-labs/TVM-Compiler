@@ -179,7 +179,10 @@ multiclass CALL_LOAD<TVMRegClass RegClass, string suffix> :
       (outs), (ins),
       [], "CALL_LOAD\t$addr", "CALL\t$$:load" # suffix # "$$", 0xF0>;
 
-defm CALL_LOAD_INT     : CALL_LOAD<I257, "">;
+defm CALL_LOAD_INT : I<(outs I257 : $value), (ins I257 : $addr),
+      (outs), (ins),
+      [], "CALL_LOAD\t$addr", "GETGLOB 13 CALLX", 0xF0>;
+
 defm CALL_LOAD_BUILDER : CALL_LOAD<Builder, "_builder">;
 defm CALL_LOAD_SLICE   : CALL_LOAD<Slice, "_slice">;
 defm CALL_LOAD_CELL    : CALL_LOAD<Cell, "_cell">;
@@ -197,7 +200,10 @@ multiclass CALL_STORE<TVMRegClass RegClass, string suffix> :
       (outs), (ins),
       [], "CALL_STORE\t$addr, $value", "CALL\t$$:store" # suffix # "$$", 0xF0>;
 
-defm CALL_STORE_INT     : CALL_STORE<I257, "">;
+defm CALL_STORE_INT : I<(outs), (ins I257 : $addr, I257 : $value),
+      (outs), (ins),
+      [], "CALL_STORE\t$addr, $value", "GETGLOB 14 CALLX", 0xF0>;
+
 defm CALL_STORE_BUILDER : CALL_STORE<Builder, "_builder">;
 defm CALL_STORE_SLICE   : CALL_STORE<Slice, "_slice">;
 defm CALL_STORE_CELL    : CALL_STORE<Cell, "_cell">;

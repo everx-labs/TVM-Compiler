@@ -6,9 +6,9 @@ target triple = "tvm"
 ; Function Attrs: noinline norecurse nounwind
 define dso_local void @f(i257* nocapture %val) local_unnamed_addr noinline norecurse nounwind {
 ; CHECK-LABEL: f:
-; CHECK:	CALL	$:load$
+; CHECK:	GETGLOB 13 CALLX
 ; CHECK:	INC
-; CHECK:	CALL	$:store$
+; CHECK:	GETGLOB 14 CALLX
 
 entry:
   %0 = load i257, i257* %val, align 1
@@ -25,11 +25,11 @@ define dso_local i257 @check_main() local_unnamed_addr nounwind {
 ; CHECK-NEXT: SETGLOB 5
 ; CHECK:	GETGLOB 5
 ; CHECK:	PUSHINT	0
-; CHECK:	CALL	$:store$
+; CHECK:	GETGLOB 14 CALLX
 ; CHECK:	GETGLOB 5
 ; CHECK:	CALL	$f$
 ; CHECK:	GETGLOB 5
-; CHECK:	CALL	$:load$
+; CHECK:	GETGLOB 13 CALLX
 ; CHECK:	GETGLOB 5
 ; CHECK-NEXT: ADDCONST 1
 ; CHECK-NEXT: SETGLOB 5

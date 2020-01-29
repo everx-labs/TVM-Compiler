@@ -7,7 +7,7 @@ target triple = "tvm"
 ; CHECK-LABEL: zext_i256_i257
 define i257 @zext_i256_i257() {
   %a = load i256, i256* @X, align 1
-;CHECK: CALL  $:load$
+; CHECK: GETGLOB 13 CALLX
   %ext = zext i256 %a to i257
   ret i257 %ext
 }

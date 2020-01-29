@@ -5,7 +5,7 @@ target triple = "tvm"
 define void @store_int(i257* %pb, i257 %b) {
 entry:
 ; CHECK-LABEL: store_int
-; CHECK: CALL $:store$
+; CHECK: GETGLOB 14 CALLX
   store i257 %b, i257* %pb
   ret void
 }
@@ -13,7 +13,7 @@ entry:
 define i257 @load_int(i257* %pb) {
 entry:
 ; CHECK-LABEL: load_int
-; CHECK: CALL $:load$
+; CHECK: GETGLOB 13 CALLX
   %b = load i257, i257* %pb
   ret i257 %b
 }

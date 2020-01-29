@@ -1367,17 +1367,23 @@ static void BuildAggStore(CodeGenFunction &CGF, llvm::Value *Val,
     const llvm::StructLayout *Layout =
       CGF.CGM.getDataLayout().getStructLayout(STy);
 
+    // TVM local begin
+    auto *STyDst = dyn_cast<llvm::StructType>(Dest.getElementType());
+    if (CGF.getTarget().getTriple().getArch() == llvm::Triple::tvm)
+      if (STyDst && STy->isLiteral() && STyDst->isLiteral()) {
+        Address Ptr = CGF.Builder.CreateBitCast(Dest,
+                                                Val->getType()->getPointerTo());
+        CGF.Builder.CreateStore(Val, Ptr, DestIsVolatile);
+        return;
+      }
+
     for (unsigned i = 0, e = STy->getNumElements(); i != e; ++i) {
       auto EltOffset = CharUnits::fromQuantity(Layout->getElementOffset(i));
       Address EltPtr = CGF.Builder.CreateStructGEP(Dest, i, EltOffset);
       llvm::Value *Elt = CGF.Builder.CreateExtractValue(Val, i);
-      // TVM local begin
-      auto *STyDst = dyn_cast<llvm::StructType>(Dest.getElementType());
-      if (STyDst && STy->isLiteral() && STyDst->isLiteral())
-        Elt = TVMImplicitCast(CGF, Elt, EltPtr.getElementType());
       CGF.Builder.CreateStore(Elt, EltPtr, DestIsVolatile);
-      // TVM local end
     }
+    // TVM local end
   } else {
     CGF.Builder.CreateStore(Val, Dest, DestIsVolatile);
   }

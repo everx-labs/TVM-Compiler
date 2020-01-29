@@ -4,6 +4,7 @@
 
 #include <tvm/cell.hpp>
 #include <tvm/slice.hpp>
+#include <tvm/builder.hpp>
 
 namespace tvm {
 

@@ -155,6 +155,34 @@ struct make_parser_impl<MsgAddress> {
 };
 
 template<>
+struct make_parser_impl<lazy<MsgAddress>> {
+  using value_type = lazy<MsgAddress>;
+  template<class _Ctx>
+  inline static std::tuple<optional<value_type>, parser, _Ctx> parse(parser p, _Ctx ctx) {
+    auto rv = value_type{ p.ldmsgaddr() };
+    return std::tuple(rv, p, ctx);
+  }
+};
+template<>
+struct make_parser_impl<lazy<MsgAddressInt>> {
+  using value_type = lazy<MsgAddressInt>;
+  template<class _Ctx>
+  inline static std::tuple<optional<value_type>, parser, _Ctx> parse(parser p, _Ctx ctx) {
+    auto rv = value_type{ p.ldmsgaddr() };
+    return std::tuple(rv, p, ctx);
+  }
+};
+template<>
+struct make_parser_impl<lazy<MsgAddressExt>> {
+  using value_type = lazy<MsgAddressExt>;
+  template<class _Ctx>
+  inline static std::tuple<optional<value_type>, parser, _Ctx> parse(parser p, _Ctx ctx) {
+    auto rv = value_type{ p.ldmsgaddr() };
+    return std::tuple(rv, p, ctx);
+  }
+};
+
+template<>
 struct make_parser_impl<empty> {
   using value_type = empty;
   template<class _Ctx>
@@ -216,6 +244,16 @@ template<class _Tp>
 inline auto parse(slice sl, unsigned err_code = error_code::custom_data_parse_error,
     bool full = false) {
   return parse<_Tp>(parser(sl));
+}
+
+template<typename _Tp>
+inline _Tp lazy<_Tp>::operator()() {
+  if (is_slice()) {
+    _Tp parsed_v = parse<_Tp>(std::get<slice>(val_), error_code::custom_data_parse_error, true);
+    val_ = parsed_v;
+    return parsed_v;
+  }
+  return std::get<_Tp>(val_);
 }
 
 }} // namespace tvm::schema

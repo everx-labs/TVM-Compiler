@@ -5,10 +5,13 @@
 #include <tvm/slice.hpp>
 #include <tvm/parser.hpp>
 #include <tvm/signature_checker.hpp>
+#include <tvm/persistent_data.hpp>
 
 #include <tvm/schema/make_parser.hpp>
 #include <tvm/schema/make_builder.hpp>
 #include <tvm/schema/message.hpp>
+#include <tvm/schema/abiv1.hpp>
+#include <tvm/schema/json-abi-gen.hpp>
 
 namespace tvm {
 
@@ -22,22 +25,61 @@ inline void tvm_assert(bool cond, unsigned exc_code) {
   if (!cond)
     __builtin_tvm_throw(exc_code);
 }
+// tvm_assert copy to match solidity name
+inline void require(bool cond, unsigned exc_code) {
+  if (!cond)
+    __builtin_tvm_throw(exc_code);
+}
 inline void tvm_throw(unsigned exc_code) {
   __builtin_tvm_throw(exc_code);
+}
+template<class T, class V>
+inline static bool isa(V v) {
+  return std::holds_alternative<T>(v);
+}
+template<class T, class V>
+inline static auto cast(V v) {
+  return std::get<T>(v);
+}
+inline static unsigned check_signature(slice msg_body, unsigned err) {
+  signature_checker sig_check(msg_body);
+  tvm_assert(sig_check.verified(), err);
+  return sig_check.public_key();
+}
+
+inline static schema::MsgAddressExt get_incoming_ext_src(cell msg) {
+  using namespace schema;
+  auto inc_msg = parse<CommonMsgInfo>(parser(msg.ctos()), error_code::bad_incoming_msg);
+  tvm_assert(isa<ext_in_msg_info>(inc_msg), error_code::bad_incoming_msg);
+  return cast<ext_in_msg_info>(inc_msg).src();
+}
+
+// Prepare and send empty message with nanograms as transfer value.
+// Only internal destination address allowed.
+static void tvm_transfer(schema::MsgAddressInt dest, unsigned nanograms, bool bounce) {
+  using namespace schema;
+
+  message_relaxed<empty> out_msg;
+  int_msg_info_relaxed msg_info;
+  msg_info.ihr_disabled = false;
+  msg_info.bounce = bounce;
+  msg_info.bounced = false;
+  msg_info.dest = dest;
+  msg_info.value.grams = nanograms;
+  msg_info.ihr_disabled = 0;
+  msg_info.src = addr_none{}; // Will be filled by vm
+  msg_info.ihr_fee = 0;
+  msg_info.fwd_fee = 0;
+  msg_info.created_lt = 0;
+  msg_info.created_at = 0;
+
+  out_msg.info = msg_info;
+  tvm_sendmsg(build(out_msg).endc(), 0);
 }
 
 class contract {
 public:
   using persistent_offset = int;
-
-  template<class T, class V>
-  inline static bool isa(V v) {
-    return std::holds_alternative<T>(v);
-  }
-  template<class T, class V>
-  inline static auto cast(V v) {
-    return std::get<T>(v);
-  }
 
   static slice get_persistent(persistent_offset offset, unsigned err = error_code::no_persistent_data) {
     auto dict = dictionary::get_persistent();
@@ -79,12 +121,6 @@ public:
     dict.dictiset(sl, static_cast<int>(offset), 64);
     dictionary::set_persistent(dict);
   }
-  inline static schema::MsgAddressExt get_incoming_ext_src(cell msg) {
-    using namespace schema;
-    auto inc_msg = parse<CommonMsgInfo>(parser(msg.ctos()), error_code::bad_incoming_msg);
-    tvm_assert(isa<ext_in_msg_info>(inc_msg), error_code::bad_incoming_msg);
-    return cast<ext_in_msg_info>(inc_msg).src;
-  }
   template<class ArgsFmt>
   static auto parse_args(slice msg_body, unsigned err) {
     parser p(msg_body);
@@ -94,33 +130,6 @@ public:
     // TODO: disabled for testing
     // new_p.ends();
     return *parsed_args_opt;
-  }
-  static unsigned check_signature(slice msg_body, unsigned err) {
-    signature_checker sig_check(msg_body);
-    tvm_assert(sig_check.verified(), err);
-    return sig_check.public_key();
-  }
-  // Prepare and send empty message with nanograms as transfer value.
-  // Only internal destination address allowed.
-  static void tvm_transfer(schema::MsgAddressInt dest, unsigned nanograms, bool bounce) {
-    using namespace schema;
-
-    message_relaxed<empty> out_msg;
-    int_msg_info_relaxed msg_info;
-    msg_info.ihr_disabled = false;
-    msg_info.bounce = bounce;
-    msg_info.bounced = false;
-    msg_info.dest = dest;
-    msg_info.value.grams = nanograms;
-    msg_info.ihr_disabled = 0;
-    msg_info.src = addr_none{}; // Will be filled by vm
-    msg_info.ihr_fee = 0;
-    msg_info.fwd_fee = 0;
-    msg_info.created_lt = 0;
-    msg_info.created_at = 0;
-
-    out_msg.info = msg_info;
-    tvm_sendmsg(build(out_msg).endc(), 0);
   }
 };
 

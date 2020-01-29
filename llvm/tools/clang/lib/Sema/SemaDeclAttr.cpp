@@ -6691,6 +6691,7 @@ void Sema::ProcessDeclAttributeDelayed(Decl *D,
           Diag(AL.getLoc(), diag::err_attribute_invalid_for_non_pod)
             << AL.getName();
         }
+        RD->setLiteral(true);
       }
       break;
     }

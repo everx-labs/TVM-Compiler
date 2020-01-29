@@ -1465,6 +1465,95 @@ createReflectMethodArgStructParameterList(const ASTContext &C, DeclContext *DC) 
                                        SourceLocation(), nullptr);
 }
 
+// __reflect_smart_interface<parsed_value, built_value, Interface> -
+//   Transformed interface struct
+static TemplateParameterList *
+createReflectSmartInterfaceParameterList(const ASTContext &C, DeclContext *DC) {
+
+  auto makeSingleMetafuncParam = [&](unsigned Position) {
+    // typename FmtType
+    auto *FmtType = TemplateTypeParmDecl::Create(
+        C, DC, SourceLocation(), SourceLocation(), /*Depth=*/1, /*Position=*/0,
+        /*Id=*/nullptr, /*Typename=*/true, /*ParameterPack=*/false);
+    FmtType->setImplicit(true);
+
+    // <typename FmtType>
+    NamedDecl *P[1] = {FmtType};
+    auto *TPL = TemplateParameterList::Create(
+        C, SourceLocation(), SourceLocation(), P, SourceLocation(), nullptr);
+
+    // template <typename FmtType> class parsed_value
+    auto *Rv = TemplateTemplateParmDecl::Create(
+        C, DC, SourceLocation(), /*Depth=*/0, Position,
+        /*ParameterPack=*/false, /*Id=*/nullptr, TPL);
+    Rv->setImplicit(true);
+    return Rv;
+  };
+
+  TemplateTemplateParmDecl *ParsedValueT = makeSingleMetafuncParam(0);
+  TemplateTemplateParmDecl *BuiltValueT = makeSingleMetafuncParam(1);
+
+  // typename Interface
+  auto *Interface = TemplateTypeParmDecl::Create(
+      C, DC, SourceLocation(), SourceLocation(), /*Depth=*/0, /*Position=*/2,
+      /*Id=*/nullptr, /*Typename=*/true, /*ParameterPack=*/false);
+  Interface->setImplicit(true);
+
+  NamedDecl *Params[] = { ParsedValueT, BuiltValueT, Interface };
+  return TemplateParameterList::Create(C, SourceLocation(), SourceLocation(),
+                                       llvm::makeArrayRef(Params),
+                                       SourceLocation(), nullptr);
+}
+
+// __reflect_method_ptr<Proxy, Contract, Interface, Index> -
+//   Proxy<&Contract::Method> for method number #Index from Interface
+static TemplateParameterList *
+createReflectMethodPtrParameterList(const ASTContext &C, DeclContext *DC) {
+  TemplateTemplateParmDecl *ProxyT; {
+    // Rv Interface::* MethodPtr
+    QualType AutoType = C.getAutoDeductType();
+    TypeSourceInfo *TInfo = C.getTrivialTypeSourceInfo(AutoType);
+    auto *MethodPtr = NonTypeTemplateParmDecl::Create(
+        C, DC, SourceLocation(), SourceLocation(), /*Depth=*/1, /*Position=*/0,
+        /*Id=*/nullptr, TInfo->getType(), /*ParameterPack=*/false, TInfo);
+    MethodPtr->setImplicit(true);
+
+    // <auto MethodPtr>
+    NamedDecl *P[1] = {MethodPtr};
+    auto *TPL = TemplateParameterList::Create(
+        C, SourceLocation(), SourceLocation(), P, SourceLocation(), nullptr);
+
+    // template <auto MethodPtr> class Proxy
+    ProxyT = TemplateTemplateParmDecl::Create(
+        C, DC, SourceLocation(), /*Depth=*/0, /*Position=*/0,
+        /*ParameterPack=*/false, /*Id=*/nullptr, TPL);
+    ProxyT->setImplicit(true);
+  }
+
+  // typename Contract
+  auto *Contract = TemplateTypeParmDecl::Create(
+      C, DC, SourceLocation(), SourceLocation(), /*Depth=*/0, /*Position=*/1,
+      /*Id=*/nullptr, /*Typename=*/true, /*ParameterPack=*/false);
+  Contract->setImplicit(true);
+
+  // typename Interface
+  auto *Interface = TemplateTypeParmDecl::Create(
+      C, DC, SourceLocation(), SourceLocation(), /*Depth=*/0, /*Position=*/2,
+      /*Id=*/nullptr, /*Typename=*/true, /*ParameterPack=*/false);
+  Interface->setImplicit(true);
+
+  // std::size_t Index
+  TypeSourceInfo *TInfo = C.getTrivialTypeSourceInfo(C.getSizeType());
+  auto *Index = NonTypeTemplateParmDecl::Create(
+      C, DC, SourceLocation(), SourceLocation(), /*Depth=*/0, /*Position=*/3,
+      /*Id=*/nullptr, TInfo->getType(), /*ParameterPack=*/false, TInfo);
+  Index->setImplicit(true);
+
+  NamedDecl *Params[] = { ProxyT, Contract, Interface, Index };
+  return TemplateParameterList::Create(C, SourceLocation(), SourceLocation(),
+                                       llvm::makeArrayRef(Params),
+                                       SourceLocation(), nullptr);
+}
 // TVM local end
 
 static TemplateParameterList *createBuiltinTemplateParameterList(
@@ -1489,6 +1578,10 @@ static TemplateParameterList *createBuiltinTemplateParameterList(
     return createReflectMethodRvParameterList(C, DC);
   case BTK__reflect_method_arg_struct:
     return createReflectMethodArgStructParameterList(C, DC);
+  case BTK__reflect_smart_interface:
+    return createReflectSmartInterfaceParameterList(C, DC);
+  case BTK__reflect_method_ptr:
+    return createReflectMethodPtrParameterList(C, DC);
   // TVM local end
   }
 

@@ -17,7 +17,7 @@ struct addr_extern {
   bitconst<2, 0b01> kind;
 
   uint_t<9> len;
-  dynamic_bitfield<fieldref<uint_t<9>, addr_extern>::make<&addr_extern::len>> external_address;
+  dynamic_bitfield<&addr_extern::len> external_address;
 
   DEFAULT_EQUAL(addr_extern)
 };
@@ -42,7 +42,7 @@ struct addr_var {
   optional<anycast_info> Anycast;
   uint_t<9> addr_len;
   int32_t workchain_id;
-  dynamic_bitfield<fieldref<uint_t<9>, addr_var>::make<&addr_var::addr_len>> address;
+  dynamic_bitfield<&addr_var::addr_len> address;
 
   DEFAULT_EQUAL(addr_var)
 };
@@ -67,8 +67,8 @@ struct int_msg_info_t {
   bool_t ihr_disabled;
   bool_t bounce;
   bool_t bounced;
-  SrcT src;
-  MsgAddressInt dest;
+  lazy<SrcT> src;
+  lazy<MsgAddressInt> dest;
   CurrencyCollection value;
   Grams ihr_fee;
   Grams fwd_fee;
@@ -81,8 +81,8 @@ using int_msg_info_relaxed = int_msg_info_t<MsgAddress>;
 struct ext_in_msg_info {
   bitconst<2, 0b10> kind;
 
-  MsgAddressExt src;
-  MsgAddressInt dest;
+  lazy<MsgAddressExt> src;
+  lazy<MsgAddressInt> dest;
   Grams import_fee;
 };
 
@@ -90,8 +90,8 @@ template<class SrcT>
 struct ext_out_msg_info_t {
   bitconst<2, 0b11> kind;
 
-  SrcT src;
-  MsgAddressExt dest;
+  lazy<SrcT> src;
+  lazy<MsgAddressExt> dest;
   uint64_t created_lt;
   uint32_t created_at;
 };

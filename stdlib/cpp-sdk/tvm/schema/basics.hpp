@@ -47,6 +47,8 @@ struct int_t {
   int operator()() const { return val_; }
   void operator()(int val) { val_ = val; }
   auto& operator=(int val) { val_ = val; return *this; }
+  auto& operator+=(int val) { val_ += val; return *this; }
+  auto& operator-=(int val) { val_ -= val; return *this; }
   operator int() const { return val_; }
   DEFAULT_EQUAL(int_t)
   int val_;
@@ -59,6 +61,8 @@ struct uint_t {
   unsigned operator()() const { return val_; }
   void operator()(unsigned val) { val_ = val; }
   auto& operator=(unsigned val) { val_ = val; return *this; }
+  auto& operator+=(unsigned val) { val_ += val; return *this; }
+  auto& operator-=(unsigned val) { val_ -= val; return *this; }
   operator unsigned() const { return val_; }
   DEFAULT_EQUAL(uint_t)
   unsigned val_;
@@ -79,7 +83,7 @@ using uint64_t = uint_t<64>;
 using uint128_t = uint_t<128>;
 using uint256_t = uint_t<256>;
 
-template<class _GetField>
+template<auto _Field>
 struct dynamic_bitfield {
   dynamic_bitfield() : bitlen_(0) {}
   dynamic_bitfield(slice sl, unsigned bitlen) : sl_(sl), bitlen_(bitlen) {}
@@ -89,8 +93,7 @@ struct dynamic_bitfield {
     sl_ = sl;
     bitlen_ = sl.sbits();
     // setting bitlen for this field into another field
-    auto field = _GetField{}();
-    auto &fieldref = (&parent)->*field;
+    auto &fieldref = (&parent)->*_Field;
     fieldref(bitlen_);
   }
   DEFAULT_EQUAL(dynamic_bitfield)
@@ -98,7 +101,7 @@ struct dynamic_bitfield {
   unsigned bitlen_;
 };
 
-template<class _GetField>
+template<auto _Field>
 struct dynamic_uint {
   dynamic_uint() : val_(0), bitlen_(0) {}
   dynamic_uint(unsigned val, unsigned bitlen) : val_(val), bitlen_(bitlen) {}
@@ -108,8 +111,7 @@ struct dynamic_uint {
     val_ = val;
     bitlen_ = bitlen;
     // setting bitlen for this field into another field
-    auto field = _GetField{}();
-    auto &fieldref = (&parent)->*field;
+    auto &fieldref = (&parent)->*_Field;
     fieldref(bitlen_);
   }
   DEFAULT_EQUAL(dynamic_uint)
@@ -117,7 +119,7 @@ struct dynamic_uint {
   unsigned bitlen_;
 };
 
-template<class _GetField>
+template<auto _Field>
 struct dynamic_int {
   dynamic_int() : val_(0), bitlen_(0) {}
   dynamic_int(int val, unsigned bitlen) : val_(val), bitlen_(bitlen) {}
@@ -127,21 +129,12 @@ struct dynamic_int {
     val_ = val;
     bitlen_ = bitlen;
     // setting bitlen for this field into another field
-    auto field = _GetField{}();
-    auto &fieldref = (&parent)->*field;
+    auto &fieldref = (&parent)->*_Field;
     fieldref(bitlen_);
   }
   DEFAULT_EQUAL(dynamic_int)
   int val_;
   unsigned bitlen_;
-};
-
-template<class T, class M>
-struct fieldref {
-  template<T M::* F>
-  struct make {
-    constexpr auto operator()() const { return F; }
-  };
 };
 
 template<unsigned _bitlen>
@@ -247,6 +240,23 @@ struct MsgAddressSlice {
   auto& operator=(slice sl) { sl_ = sl; return *this; }
   DEFAULT_EQUAL(MsgAddressSlice)
   slice sl_;
+};
+
+template<typename _Tp>
+struct lazy {
+  inline _Tp operator()(); // implemented in make_parser.hpp
+
+  void operator()(_Tp val) { val_ = val; }
+  void operator=(_Tp val) { val_ = val; }
+  void operator=(slice sl) { val_ = sl; }
+
+  bool is_slice() const { return std::holds_alternative<slice>(val_); }
+  bool is_val() const { return std::holds_alternative<_Tp>(val_); }
+  slice raw_slice() const { return std::get<slice>(val_); }
+  _Tp raw_val() const { return std::get<_Tp>(val_); }
+
+  DEFAULT_EQUAL(lazy<_Tp>)
+  std::variant<slice, _Tp> val_;
 };
 
 struct empty {};

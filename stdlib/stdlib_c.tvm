@@ -326,26 +326,23 @@ tvm_sender_pubkey:
     ; (addr val -- )
     NEWC
     PUSHINT 257 STIX
-    ENDC
-    CTOS         ; (addr val-slice)
-    XCHG s0, s1  ; (val-slice addr)
-
-    DUP          ; (val-slice addr addr)
+    SWAP          ; (val-b addr)
+    DUP           ; (val-b addr addr)
     PUSHINT 100000
-    LESS         ; (val-slice addr persistent?)
+    LESS          ; (val-b addr persistent?)
     PUSHCONT {
         PUSH c4
-        CTOS     ; (val-slice addr dict-slice)
-        PLDDICT  ; (val-slice addr dict)
+        CTOS      ; (val-b addr dict-slice)
+        PLDDICT   ; (val-b addr dict)
         PUSHINT 64
-        DICTISET ; (val-slice addr dict key-width -- dict')
+        DICTISETB ; (val-b addr dict key-width -- dict')
         NEWC STDICT ENDC
         POP c4
     }
     PUSHCONT {
-        GETGLOB 1   ; ( val-slice addr -- val-slice addr dict )
-        PUSHINT 64  ; ( val-slice addr dict key-width )
-        DICTISET    ; ( val-slice addr dict key-width -- c7 dict')
+        GETGLOB 1   ; ( val-b addr -- val-b addr dict )
+        PUSHINT 64  ; ( val-b addr dict key-width )
+        DICTISETB   ; ( val-b addr dict key-width -- c7 dict')
         SETGLOB 1
     }
     IFELSE

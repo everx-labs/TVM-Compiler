@@ -118,7 +118,9 @@ tvm_sender_pubkey:
 
     SWAP
     LDU 32      ;load func id
-    LDU 64 NIP  ;load timestamp and drop (TODO: use for replay protection)
+    LDU 64      ;load timestamp
+    SWAP
+    SETGLOB 12
     DUP
     CALL $store_work_slice_int_macro$
     SWAP

@@ -178,7 +178,7 @@ if args.asm_only:
     if args.verbose:
       print('cp ' + asm + ' ' + fname + '.s')
     shutil.copy2(asm, fname + '.s')
-  print('Build succeded.')
+  print('Build succeeded.')
   os.sys.exit(0)
 
 if not args.output:

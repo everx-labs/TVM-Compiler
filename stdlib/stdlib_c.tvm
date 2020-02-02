@@ -18,22 +18,22 @@
     ; s0 - func_id
     ; s1.. - other data
     SETCP0
-	DUP
+    DUP
     EQINT 1
-	DICTPUSHCONST 32
+    DICTPUSHCONST 32
     ROT
-	PUSHCONT {
-	  DICTIGETJMP
-	}
-	IFNOTJMP
+    PUSHCONT {
+        DICTIGETJMP
+    }
+    IFNOTJMP
     PUSHREFCONT
-	POPCTR c3
-	ROT
+    POPCTR c3
+    ROT
     DROP
-	DICTIGETJMP
+    DICTIGETJMP
     IFELSE
 
-    .internal   :authenticate
+    .macro authenticate_macro
     ;ref0 must contains auth dictionary
     ;args:
     ;   s0 - body slice
@@ -54,21 +54,25 @@
     PUSHCONT {
         DROP
     }
-    IFJMP
-    OVER
-    HASHSU
-    SWAP
-    PUSHINT 512
-    LDSLICEX
-    LDU 256
-    DROP
-    ;save sender key
-    DUP
-    POP s5
-    ;now check signature
-    CHKSIGNU
-    THROWIFNOT 40   ;access denied exception
-    RET
+    PUSHCONT {
+        OVER
+        HASHSU
+        SWAP
+        PUSHINT 512
+        LDSLICEX
+        LDU 256
+        DROP
+        ;save sender key
+        DUP
+        POP s5
+        ;now check signature
+        CHKSIGNU
+        THROWIFNOT 40   ;access denied exception
+    }
+    IFELSE
+
+    .internal   :authenticate
+    CALL $authenticate_macro$
 
     .globl  tvm_sender_pubkey
     .type   tvm_sender_pubkey, @function
@@ -85,6 +89,15 @@ tvm_sender_pubkey:
     PUSH s1
     SETGLOB 7
 
+    PUSHCONT {
+        CALL $load_macro$
+    }
+    SETGLOB 13
+    PUSHCONT {
+        CALL $store_macro$
+    }
+    SETGLOB 14
+
     ;check whether the message body is empty
     DUP
     SDEMPTY
@@ -92,7 +105,7 @@ tvm_sender_pubkey:
     ;TODO: implement better reaction on init messages
 
     ;call signature checker (can throw exception if signature is invalid)
-    CALL $:authenticate$ ;assume that function returns nothing
+    CALL $authenticate_macro$ ;assume that function returns nothing
 
     ;call msg parser
     PUSH s2     ;push msg cell on top
@@ -101,16 +114,18 @@ tvm_sender_pubkey:
     ;stack: msg_slice body sender_pubkey
     ROT
     ; Initialize C stack
-    CALL $:init_fstack$
+    CALL $init_fstack_macro$
 
     SWAP
     LDU 32      ;load func id
-    LDU 64 NIP  ;load timestamp and drop (TODO: use for replay protection)
+    LDU 64      ;load timestamp
+    SWAP
+    SETGLOB 12
     DUP
-    CALL $:store_work_slice_int$
+    CALL $store_work_slice_int_macro$
     SWAP
     CALL 1      ;public method call
-    CALL $:term_fstack$
+    CALL $term_fstack_macro$
 
     .internal   :main_internal
     ; s0 - msg body: slice
@@ -120,6 +135,15 @@ tvm_sender_pubkey:
 
     PUSH s1
     SETGLOB 7
+
+    PUSHCONT {
+        CALL $load_macro$
+    }
+    SETGLOB 13
+    PUSHCONT {
+        CALL $store_macro$
+    }
+    SETGLOB 14
 
     ;check whether the message body is empty
     DUP
@@ -132,15 +156,15 @@ tvm_sender_pubkey:
                 ;TODO: use parse_msg
     ZERO
     ; Initialize C stack
-    CALL $:init_fstack$
+    CALL $init_fstack_macro$
 
     SWAP
     LDU 32      ;load func id
     DUP
-    CALL $:store_work_slice_int$
+    CALL $store_work_slice_int_macro$
     SWAP
     CALL 1      ;public method call
-    CALL $:term_fstack$
+    CALL $term_fstack_macro$
 
     .internal   :parse_msg
     CTOS        ;TODO: use parser from contract_api library
@@ -186,7 +210,7 @@ tvm_sender_pubkey:
     }
     IFELSE
 
-    .internal   :init_fstack
+    .macro init_fstack_macro
     ; s0 - pubkey
     ;
     ; Initialize stack
@@ -255,11 +279,11 @@ tvm_sender_pubkey:
 
     ; Work slices (fourth (idx 3) and seventh (idx 6) elements of c7)
     ; are initialized on demand
-    RET
 
-    .globl	:term_fstack
-    .type :term_fstack, @function
-:term_fstack:
+    .internal   :init_fstack
+    CALL $init_fstack_macro$
+
+    .macro term_fstack_macro
     ; Terminate stack -- copy values back from C7
     ;
     ; Before termination:
@@ -273,9 +297,12 @@ tvm_sender_pubkey:
     SINGLE                     ; ( [sci] )
     POP c7                     ; Set c7 to sci singleton
 
-    .globl  :load
-    .type   :load, @function
-:load:
+    .globl	:term_fstack
+    .type :term_fstack, @function
+:term_fstack:
+    CALL $term_fstack_macro$
+
+    .macro load_macro
     ; ( addr -- value )
     ; If addr < 100000 --- persistent address
     DUP
@@ -292,35 +319,40 @@ tvm_sender_pubkey:
     PUSHINT 257 LDIX
     ENDS
 
-    .globl  :store
-    .type   :store, @function
-:store:
+    .globl  :load
+    .type   :load, @function
+:load:
+    CALL $load_macro$
+
+    .macro store_macro
     ; (addr val -- )
     NEWC
     PUSHINT 257 STIX
-    ENDC
-    CTOS         ; (addr val-slice)
-    XCHG s0, s1  ; (val-slice addr)
-
-    DUP          ; (val-slice addr addr)
+    SWAP          ; (val-b addr)
+    DUP           ; (val-b addr addr)
     PUSHINT 100000
-    LESS         ; (val-slice addr persistent?)
+    LESS          ; (val-b addr persistent?)
     PUSHCONT {
         PUSH c4
-        CTOS     ; (val-slice addr dict-slice)
-        PLDDICT  ; (val-slice addr dict)
+        CTOS      ; (val-b addr dict-slice)
+        PLDDICT   ; (val-b addr dict)
         PUSHINT 64
-        DICTISET ; (val-slice addr dict key-width -- dict')
+        DICTISETB ; (val-b addr dict key-width -- dict')
         NEWC STDICT ENDC
         POP c4
     }
     PUSHCONT {
-        GETGLOB 1   ; ( val-slice addr -- val-slice addr dict )
-        PUSHINT 64  ; ( val-slice addr dict key-width )
-        DICTISET    ; ( val-slice addr dict key-width -- c7 dict')
+        GETGLOB 1   ; ( val-b addr -- val-b addr dict )
+        PUSHINT 64  ; ( val-b addr dict key-width )
+        DICTISETB   ; ( val-b addr dict key-width -- c7 dict')
         SETGLOB 1
     }
     IFELSE
+
+    .globl  :store
+    .type   :store, @function
+:store:
+    CALL $store_macro$
 
     .globl  :load_slice
     .type   :load_slice, @function
@@ -465,8 +497,11 @@ load_work_slice:
     ; Set reading builder cell (internal call)
     ; ( builder-cell -- )
     ;
-    .internal	:store_work_slice_int
+    .macro store_work_slice_int_macro
     SETGLOB 3
+
+    .internal	:store_work_slice_int
+    CALL $store_work_slice_int_macro$
 
     ;
     ; Initialize work cell with smart contract info

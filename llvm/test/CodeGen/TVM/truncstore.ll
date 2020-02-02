@@ -7,7 +7,7 @@ target triple = "tvm"
 ; CHECK-LABEL: trucate
 define dso_local void @trucate(i257 %i, i256* nocapture %c) local_unnamed_addr #0 {
 entry:
-;CHECK: CALL  $:store$
+; CHECK: GETGLOB 14 CALLX
   %conv = trunc i257 %i to i256
   store i256 %conv, i256* %c, align 1, !tbaa !2
   ret void

@@ -8,7 +8,7 @@ target triple = "tvm"
 define void @make_store() {
 ; CHECK: PUSHINT $value2$
 ; CHECK: PUSHINT 1
-; CHECK: CALL $:store$
+; CHECK: GETGLOB 14 CALLX
   store i257 1, i257* @value2
   ret void
 }
@@ -16,7 +16,7 @@ define void @make_store() {
 ; CHECK-LABEL: make_load
 define i257 @make_load() {
 ; CHECK: PUSHINT $value1$
-; CHECK: CALL $:load$
+; CHECK: GETGLOB 13 CALLX
   %1 = load i257, i257* @value1
   ret i257 %1
 }
@@ -24,13 +24,13 @@ define i257 @make_load() {
 ; CHECK-LABEL: make_load_store
 define i257 @make_load_store() {
 ; CHECK: PUSHINT $value2$
-; CHECK: CALL $:load$
+; CHECK: GETGLOB 13 CALLX
   %1 = load i257, i257* @value2
   %2 = add i257 %1, 1
 ; CHECK: INC
 ; CHECK: PUSHINT $value1$
 ; CHECK: PUSH s1
-; CHECK-NEXT: CALL $:store$
+; CHECK-NEXT: GETGLOB 14 CALLX
   store i257 %2, i257* @value1
   ret i257 %2
 }

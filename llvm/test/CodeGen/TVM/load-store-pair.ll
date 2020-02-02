@@ -6,12 +6,12 @@ target triple = "tvm"
 ; CHECK-LABEL: mk_pair
 define void @mk_pair(%struct.Pair* noalias sret %agg.result) {
 ; CHECK: PUSHINT 11
-; CHECK: CALL $:store$
+; CHECK: GETGLOB 14 CALLX
   %left = getelementptr inbounds %struct.Pair, %struct.Pair* %agg.result, i32 0, i32 0
   store i257 11, i257* %left, align 1
 ; CHECK: INC
 ; CHECK: PUSHINT 17
-; CHECK: CALL $:store$
+; CHECK: GETGLOB 14 CALLX
   %right = getelementptr inbounds %struct.Pair, %struct.Pair* %agg.result, i32 0, i32 1
   store i257 17, i257* %right, align 1
   ret void
@@ -28,7 +28,7 @@ define i257 @test_pair() {
   %1 = load i257, i257* %left, align 1
   %right = getelementptr inbounds %struct.Pair, %struct.Pair* %p, i32 0, i32 1
 ; CHECK: INC
-; CHECK-NEXT: $:load$
+; CHECK-NEXT: GETGLOB 13 CALLX
   %2 = load i257, i257* %right, align 1
   %add = add nsw i257 %1, %2
 ; CHECK: GETGLOB 5

@@ -6,6 +6,7 @@
 
 #include <tvm/cell.hpp>
 #include <tvm/slice.hpp>
+#include <tvm/tuple.hpp>
 
 #include <tvm/to_std_tuple.hpp>
 
@@ -243,19 +244,25 @@ struct MsgAddressSlice {
 
 template<typename _Tp>
 struct lazy {
-  inline _Tp operator()(); // implemented in make_parser.hpp
+  using Tup = tvm::tuple<_Tp>;
+  __always_inline _Tp operator()(); // implemented in make_parser.hpp
 
-  void operator()(_Tp val) { val_ = val; }
-  void operator=(_Tp val) { val_ = val; }
+  void operator()(_Tp val) { val_ = Tup(val); }
+  void operator=(_Tp val) { val_ = Tup(val); }
   void operator=(slice sl) { val_ = sl; }
 
   bool is_slice() const { return std::holds_alternative<slice>(val_); }
-  bool is_val() const { return std::holds_alternative<_Tp>(val_); }
+  bool is_val() const { return std::holds_alternative<Tup>(val_); }
   slice raw_slice() const { return std::get<slice>(val_); }
-  _Tp raw_val() const { return std::get<_Tp>(val_); }
+
+  // For already parsed values (ensure is_val() before)
+  __always_inline _Tp raw_val() const { return std::get<Tup>(val_).unpack(); }
+
+  // Performs parsing if necessary (if in slice state)
+  __always_inline _Tp val() { return (*this)(); }
 
   DEFAULT_EQUAL(lazy<_Tp>)
-  std::variant<slice, _Tp> val_;
+  std::variant<slice, tvm::tuple<_Tp>> val_;
 };
 
 struct empty {};

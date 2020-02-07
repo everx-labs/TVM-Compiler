@@ -139,7 +139,15 @@ static void appendParameterTypes(const CodeGenTypes &CGT,
   if (!FPT->hasExtParameterInfos()) {
     assert(paramInfos.empty() &&
            "We have paramInfos, but the prototype doesn't?");
-    prefix.append(FPT->param_type_begin(), FPT->param_type_end());
+    // TVM local begin
+    if (CGT.getTarget().getTriple().getArch() == llvm::Triple::tvm) {
+      std::copy_if(FPT->param_type_begin(), FPT->param_type_end(),
+                   std::back_inserter(prefix),
+                   [](QualType Ty){ return !Ty->isTVMEmptyStruct(); });
+    } else {
+      prefix.append(FPT->param_type_begin(), FPT->param_type_end());
+    }
+    // TVM local end
     return;
   }
 
@@ -152,6 +160,10 @@ static void appendParameterTypes(const CodeGenTypes &CGT,
   auto ExtInfos = FPT->getExtParameterInfos();
   assert(ExtInfos.size() == FPT->getNumParams());
   for (unsigned I = 0, E = FPT->getNumParams(); I != E; ++I) {
+    // TVM local begin
+    if (FPT->getParamType(I)->getTypePtr()->isTVMEmptyStruct())
+      continue;
+    // TVM local end
     prefix.push_back(FPT->getParamType(I));
     if (ExtInfos[I].hasPassObjectSize())
       prefix.push_back(CGT.getContext().getSizeType());
@@ -957,6 +969,8 @@ getTypeExpansion(QualType Ty, const ASTContext &Context) {
       for (const auto *FD : RD->fields()) {
         if (FD->isZeroLengthBitField(Context))
           continue;
+        if (FD->getType()->isTVMEmptyStruct())
+          continue;
         assert(!FD->isBitField() &&
                "Cannot expand structure with bit-field members.");
         Fields.push_back(FD);
@@ -1719,6 +1733,11 @@ CodeGenTypes::GetFunctionType(const CGFunctionInfo &FI) {
                                      ie = it + FI.getNumRequiredArgs();
   for (; it != ie; ++it, ++ArgNo) {
     const ABIArgInfo &ArgInfo = it->info;
+
+    // TVM local begin
+    if (it->type->getTypePtr()->isTVMEmptyStruct())
+      continue;
+    // TVM local end
 
     // Insert a padding type to ensure proper alignment.
     if (IRFunctionArgs.hasPaddingArg(ArgNo))
@@ -3570,6 +3589,8 @@ void CodeGenFunction::EmitCallArgs(
   size_t CallArgsStart = Args.size();
   for (unsigned I = 0, E = ArgTypes.size(); I != E; ++I) {
     unsigned Idx = LeftToRight ? I : E - I - 1;
+    if (ArgTypes[Idx]->isTVMEmptyStruct())
+      continue;
     CallExpr::const_arg_iterator Arg = ArgRange.begin() + Idx;
     unsigned InitialArgSize = Args.size();
     // If *Arg is an ObjCIndirectCopyRestoreExpr, check that either the types of

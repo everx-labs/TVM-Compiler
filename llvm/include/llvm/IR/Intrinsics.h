@@ -19,6 +19,9 @@
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/None.h"
 #include "llvm/ADT/Optional.h"
+// TVM local begin
+#include "llvm/ADT/Triple.h"
+// TVM local end
 #include <string>
 
 namespace llvm {
@@ -56,9 +59,11 @@ namespace Intrinsic {
   /// version.
   std::string getName(ID id, ArrayRef<Type*> Tys);
 
+  // TVM local begin
   /// Return the function type for an intrinsic.
-  FunctionType *getType(LLVMContext &Context, ID id,
+  FunctionType *getType(LLVMContext &Context, Triple::ArchType Arch, ID id,
                         ArrayRef<Type*> Tys = None);
+  // TVM local end
 
   /// Returns true if the intrinsic can be overloaded.
   bool isOverloaded(ID id);

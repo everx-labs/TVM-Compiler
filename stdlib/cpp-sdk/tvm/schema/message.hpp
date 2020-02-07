@@ -61,7 +61,7 @@ struct CurrencyCollection {
 };
 
 template<class SrcT>
-struct int_msg_info_t {
+struct __attribute__((tvm_tuple)) int_msg_info_t {
   bitconst<1, 0b0> kind;
 
   bool_t ihr_disabled;
@@ -78,7 +78,7 @@ struct int_msg_info_t {
 using int_msg_info = int_msg_info_t<MsgAddressInt>;
 using int_msg_info_relaxed = int_msg_info_t<MsgAddress>;
 
-struct ext_in_msg_info {
+struct __attribute__((tvm_tuple)) ext_in_msg_info {
   bitconst<2, 0b10> kind;
 
   lazy<MsgAddressExt> src;
@@ -87,7 +87,7 @@ struct ext_in_msg_info {
 };
 
 template<class SrcT>
-struct ext_out_msg_info_t {
+struct __attribute__((tvm_tuple)) ext_out_msg_info_t {
   bitconst<2, 0b11> kind;
 
   lazy<SrcT> src;
@@ -118,14 +118,14 @@ struct StateInit {
 };
 
 template<typename X>
-struct message {
+struct __attribute__((tvm_tuple)) message {
   CommonMsgInfo info;
   optional<Either<StateInit, ref<StateInit>>> init;
   Either<X, ref<X>> body;
 };
 
 template<typename X>
-struct message_relaxed {
+struct __attribute__((tvm_tuple)) message_relaxed {
   CommonMsgInfoRelaxed info;
   optional<Either<StateInit, ref<StateInit>>> init;
   Either<X, ref<X>> body;

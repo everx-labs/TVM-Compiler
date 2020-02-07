@@ -3968,6 +3968,26 @@ bool Type::isTVMLiteralStructType() const {
         !RT->getDecl()->hasAttr<TVMTupleStructAttr>();
   return false;
 }
+
+bool Type::isTVMEmptyStruct() const {
+  const auto *Ty = this;
+  if (const auto *RefType = getAs<ReferenceType>())
+    Ty = RefType->getPointeeType().getTypePtr();
+  if (auto *Rec = Ty->getAsCXXRecordDecl()) {
+    if (Rec->isEmpty())
+      return true;
+    for (auto &Base : Rec->bases()) {
+      if (!Base.getType()->isTVMEmptyStruct())
+        return false;
+    }
+    for (auto *Field : Rec->fields()) {
+      if (!Field->getType()->isTVMEmptyStruct())
+        return false;
+    }
+    return true;
+  }
+  return false;
+}
 // TVM local end
 
 bool Type::isObjCRetainableType() const {

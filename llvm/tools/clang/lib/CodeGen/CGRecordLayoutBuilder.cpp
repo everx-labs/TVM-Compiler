@@ -120,8 +120,9 @@ struct CGRecordLowering {
 
   /// Wraps llvm::Type::getIntNTy with some implicit arguments.
   llvm::Type *getIntNType(uint64_t NumBits) {
-    return llvm::Type::getIntNTy(Types.getLLVMContext(),
-                                 (unsigned)llvm::alignTo(NumBits, 8));
+    return llvm::Type::getIntNTy(
+        Types.getLLVMContext(),
+        (unsigned)llvm::alignTo(NumBits, ByteSizeInBits));
   }
   /// Gets an llvm type of size NumBytes and alignment 1.
   llvm::Type *getByteArrayType(CharUnits NumBytes) {
@@ -277,7 +278,10 @@ void CGRecordLowering::lower(bool NVBaseType) {
       accumulateVBases();
   }
   std::stable_sort(Members.begin(), Members.end());
-  Members.push_back(StorageInfo(Size, getIntNType(8)));
+  // TVM local begin
+  Members.push_back(
+      StorageInfo(Size, llvm::Type::getByteTy(Types.getLLVMContext())));
+  // TVM local end
   clipTailPadding();
   determinePacked(NVBaseType);
   insertPadding();
@@ -357,9 +361,12 @@ void CGRecordLowering::accumulateFields() {
       for (++Field; Field != FieldEnd && Field->isBitField(); ++Field);
       accumulateBitFields(Start, Field);
     } else {
-      Members.push_back(MemberInfo(
-          bitsToCharUnits(getFieldBitOffset(*Field)), MemberInfo::Field,
-          getStorageType(*Field), *Field));
+      // TVM local begin
+      if (!Field->getType()->isTVMEmptyStruct())
+        Members.push_back(MemberInfo(
+            bitsToCharUnits(getFieldBitOffset(*Field)), MemberInfo::Field,
+            getStorageType(*Field), *Field));
+      // TVM local end
       ++Field;
     }
 }
@@ -724,7 +731,10 @@ CGBitFieldInfo CGBitFieldInfo::MakeInfo(CodeGenTypes &Types,
 
 CGRecordLayout *CodeGenTypes::ComputeRecordLayout(const RecordDecl *D,
                                                   llvm::StructType *Ty) {
-  CGRecordLowering Builder(*this, D, /*Packed=*/false);
+  // TVM local begin
+  bool Packed = (getTarget().getTriple().getArch() == llvm::Triple::tvm);
+  CGRecordLowering Builder(*this, D, /*Packed=*/Packed);
+  // TVM local end
 
   Builder.lower(/*NonVirtualBaseType=*/false);
 
@@ -799,6 +809,11 @@ CGRecordLayout *CodeGenTypes::ComputeRecordLayout(const RecordDecl *D,
   RecordDecl::field_iterator it = D->field_begin();
   for (unsigned i = 0, e = AST_RL.getFieldCount(); i != e; ++i, ++it) {
     const FieldDecl *FD = *it;
+
+    // TVM local begin
+    if (FD->getType()->isTVMEmptyStruct())
+      continue;
+    // TVM local end
 
     // For non-bit-fields, just check that the LLVM struct offset matches the
     // AST offset.

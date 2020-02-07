@@ -243,7 +243,9 @@ EmptySubobjectMap::CanPlaceSubobjectAtOffset(const CXXRecordDecl *RD,
     return true;
 
   // There is already an empty class of the same type at this offset.
-  return false;
+  // TVM local begin
+  return true;
+  // TVM local end
 }
 
 void EmptySubobjectMap::AddSubobjectAtOffset(const CXXRecordDecl *RD,
@@ -1245,7 +1247,10 @@ void ItaniumRecordLayoutBuilder::InitializeLayout(const Decl *D) {
     IsMsStruct = RD->isMsStruct(Context);
   }
 
-  Packed = D->hasAttr<PackedAttr>();
+  // TVM local begin
+  Packed = D->hasAttr<PackedAttr>() ||
+      (Context.getTargetInfo().getTriple().getArch() == llvm::Triple::tvm);
+  // TVM local end
 
   // Honor the default struct packing maximum alignment flag.
   if (unsigned DefaultMaxFieldAlignment = Context.getLangOpts().PackStruct) {
@@ -1751,10 +1756,18 @@ void ItaniumRecordLayoutBuilder::LayoutField(const FieldDecl *D,
     FieldAlign =
       Context.toCharUnitsFromBits(Context.getTargetInfo().getPointerAlign(AS));
   } else {
-    std::pair<CharUnits, CharUnits> FieldInfo =
-      Context.getTypeInfoInChars(D->getType());
-    FieldSize = FieldInfo.first;
-    FieldAlign = FieldInfo.second;
+    // TVM local begin
+    if (Context.getTargetInfo().getTriple().getArch() == llvm::Triple::tvm &&
+        D->getType()->isTVMEmptyStruct()) {
+      FieldSize = CharUnits::Zero();
+      FieldAlign = CharUnits::One();
+    } else {
+      std::pair<CharUnits, CharUnits> FieldInfo =
+        Context.getTypeInfoInChars(D->getType());
+      FieldSize = FieldInfo.first;
+      FieldAlign = FieldInfo.second;
+    }
+    // TVM local end
 
     if (IsMsStruct) {
       // If MS bitfield layout is required, figure out what type is being

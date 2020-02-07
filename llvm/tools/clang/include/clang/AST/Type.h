@@ -1921,6 +1921,7 @@ public:
   bool isTVMSliceT() const;                     // TVM Slice
   bool isTVMBuilderT() const;                   // TVM Builder
   bool isTVMCellT() const;                      // TVM Cell
+  bool isTVMEmptyStruct() const;
   // TVM local end
 
   bool isPipeType() const;                      // OpenCL pipe type

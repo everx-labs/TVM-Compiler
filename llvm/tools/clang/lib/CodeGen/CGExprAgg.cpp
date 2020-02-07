@@ -209,6 +209,10 @@ public:
 /// represents a value lvalue, this method emits the address of the lvalue,
 /// then loads the result into DestPtr.
 void AggExprEmitter::EmitAggLoadOfLValue(const Expr *E) {
+  // TVM local begin
+  if (E->getType()->isTVMEmptyStruct())
+    return;
+  // TVM local end
   LValue LV = CGF.EmitLValue(E);
 
   // If the type of the l-value is atomic, then do an atomic load.
@@ -1504,6 +1508,11 @@ void AggExprEmitter::VisitInitListExpr(InitListExpr *E) {
     // Always skip anonymous bitfields.
     if (field->isUnnamedBitfield())
       continue;
+
+    // TVM local begin
+    if (field->getType()->isTVMEmptyStruct())
+      continue;
+    // TVM local end
 
     // We're done if we reach the end of the explicit initializers, we
     // have a zeroed object, and the rest of the fields are

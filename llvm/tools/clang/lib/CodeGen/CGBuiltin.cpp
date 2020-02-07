@@ -3772,7 +3772,8 @@ RValue CodeGenFunction::EmitBuiltinExpr(const FunctionDecl *FD,
         // If it is literal record, unpack it into elements.
         auto Ty = ArgExpr->getType();
         const auto *RT = ArgExpr->getType()->getAs<RecordType>();
-        if (RT && RT->getDecl()->isLiteral()) {
+        if (RT) {
+          //  && RT->getDecl()->isLiteral()
           int64_t Size = getContext().getTypeSizeInChars(Ty).getQuantity();
           auto TupTy = getContext().getTVMTuple(static_cast<unsigned>(Size));
           auto *llvmTupTy = CGM.getTypes().ConvertType(TupTy);

@@ -1259,6 +1259,10 @@ QualType CodeGenFunction::BuildFunctionArgList(GlobalDecl GD,
 
   if (PassedParams) {
     for (auto *Param : FD->parameters()) {
+      // TVM local begin
+      if (Param->getType()->isTVMEmptyStruct())
+        continue;
+      // TVM local end
       Args.push_back(Param);
       if (!Param->hasAttr<PassObjectSizeAttr>())
         continue;

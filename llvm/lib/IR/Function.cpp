@@ -21,6 +21,9 @@
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/ADT/StringRef.h"
+// TVM local begin
+#include "llvm/ADT/Triple.h"
+// TVM local end
 #include "llvm/IR/Argument.h"
 #include "llvm/IR/Attributes.h"
 #include "llvm/IR/BasicBlock.h"
@@ -929,8 +932,11 @@ void Intrinsic::getIntrinsicInfoTableEntries(ID id,
     DecodeIITType(NextElt, IITEntries, T);
 }
 
+// TVM local begin
 static Type *DecodeFixedType(ArrayRef<Intrinsic::IITDescriptor> &Infos,
-                             ArrayRef<Type*> Tys, LLVMContext &Context) {
+                             ArrayRef<Type*> Tys, LLVMContext &Context,
+                             Triple::ArchType Arch) {
+// TVM local end
   using namespace Intrinsic;
 
   IITDescriptor D = Infos.front();
@@ -955,15 +961,22 @@ static Type *DecodeFixedType(ArrayRef<Intrinsic::IITDescriptor> &Infos,
   case IITDescriptor::Integer:
     return IntegerType::get(Context, D.Integer_Width);
   case IITDescriptor::Vector:
-    return VectorType::get(DecodeFixedType(Infos, Tys, Context),D.Vector_Width);
+    // TVM local begin
+    return VectorType::get(DecodeFixedType(Infos, Tys, Context, Arch),
+                           D.Vector_Width);
+    // TVM local end
   case IITDescriptor::Pointer:
-    return PointerType::get(DecodeFixedType(Infos, Tys, Context),
+    // TVM local begin
+    return PointerType::get(DecodeFixedType(Infos, Tys, Context, Arch),
                             D.Pointer_AddressSpace);
+    // TVM local end
   case IITDescriptor::Struct: {
     SmallVector<Type *, 8> Elts;
+    // TVM local begin
     for (unsigned i = 0, e = D.Struct_NumElements; i != e; ++i)
-      Elts.push_back(DecodeFixedType(Infos, Tys, Context));
-    return StructType::get(Context, Elts);
+      Elts.push_back(DecodeFixedType(Infos, Tys, Context, Arch));
+    return StructType::get(Context, Elts, /*Packed=*/(Arch == Triple::tvm));
+    // TVM local end
   }
   case IITDescriptor::Argument:
     return Tys[D.getArgumentNumber()];
@@ -987,7 +1000,7 @@ static Type *DecodeFixedType(ArrayRef<Intrinsic::IITDescriptor> &Infos,
     return VectorType::getHalfElementsVectorType(cast<VectorType>(
                                                   Tys[D.getArgumentNumber()]));
   case IITDescriptor::SameVecWidthArgument: {
-    Type *EltTy = DecodeFixedType(Infos, Tys, Context);
+    Type *EltTy = DecodeFixedType(Infos, Tys, Context, Arch);
     Type *Ty = Tys[D.getArgumentNumber()];
     if (VectorType *VTy = dyn_cast<VectorType>(Ty)) {
       return VectorType::get(EltTy, VTy->getNumElements());
@@ -1013,17 +1026,23 @@ static Type *DecodeFixedType(ArrayRef<Intrinsic::IITDescriptor> &Infos,
   llvm_unreachable("unhandled");
 }
 
-FunctionType *Intrinsic::getType(LLVMContext &Context,
+// TVM local begin
+FunctionType *Intrinsic::getType(LLVMContext &Context, Triple::ArchType Arch,
                                  ID id, ArrayRef<Type*> Tys) {
+// TVM local end
   SmallVector<IITDescriptor, 8> Table;
   getIntrinsicInfoTableEntries(id, Table);
 
   ArrayRef<IITDescriptor> TableRef = Table;
-  Type *ResultTy = DecodeFixedType(TableRef, Tys, Context);
+  // TVM local begin
+  Type *ResultTy = DecodeFixedType(TableRef, Tys, Context, Arch);
+  // TVM local end
 
   SmallVector<Type*, 8> ArgTys;
+  // TVM local begin
   while (!TableRef.empty())
-    ArgTys.push_back(DecodeFixedType(TableRef, Tys, Context));
+    ArgTys.push_back(DecodeFixedType(TableRef, Tys, Context, Arch));
+  // TVM local end
 
   // DecodeFixedType returns Void for IITDescriptor::Void and IITDescriptor::VarArg
   // If we see void type as the type of the last argument, it is vararg intrinsic
@@ -1060,9 +1079,11 @@ bool Intrinsic::isLeaf(ID id) {
 Function *Intrinsic::getDeclaration(Module *M, ID id, ArrayRef<Type*> Tys) {
   // There can never be multiple globals with the same name of different types,
   // because intrinsics must be a specific type.
-  return
-    cast<Function>(M->getOrInsertFunction(getName(id, Tys),
-                                          getType(M->getContext(), id, Tys)));
+  // TVM local begin
+  Triple Tr(M->getTargetTriple());
+  auto *FTy = getType(M->getContext(), Tr.getArch(), id, Tys);
+  return cast<Function>(M->getOrInsertFunction(getName(id, Tys), FTy));
+  // TVM local end
 }
 
 // This defines the "Intrinsic::getIntrinsicForGCCBuiltin()" method.

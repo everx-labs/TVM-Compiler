@@ -109,6 +109,7 @@ struct smart_switcher_impl {
           persistent_data_header = ReplayAttackProtection::init();
         }
       }
+      tvm_accept();
 
       using Args = get_interface_method_arg_struct<IContract, Index>;
       constexpr unsigned args_sz = calc_fields_count<Args>::value;
@@ -162,6 +163,7 @@ template<bool Internal, class Contract, class IContract, class DContract, class 
          unsigned Index>
 struct smart_switcher_impl<Internal, Contract, IContract, DContract, ReplayAttackProtection, Index, 0> {
   __always_inline static int execute(unsigned func_id, cell msg, slice msg_body) {
+    tvm_throw(error_code::wrong_public_call);
     return 0;
   }
 };

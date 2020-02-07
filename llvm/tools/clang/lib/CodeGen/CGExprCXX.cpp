@@ -261,14 +261,21 @@ RValue CodeGenFunction::EmitCXXMemberOrOperatorMemberCallExpr(
 
     if (!MD->getParent()->mayInsertExtraPadding()) {
       if (MD->isCopyAssignmentOperator() || MD->isMoveAssignmentOperator()) {
-        // We don't like to generate the trivial copy/move assignment operator
-        // when it isn't necessary; just produce the proper effect here.
-        LValue RHS = isa<CXXOperatorCallExpr>(CE)
-                         ? MakeNaturalAlignAddrLValue(
-                               (*RtlArgs)[0].getRValue(*this).getScalarVal(),
-                               (*(CE->arg_begin() + 1))->getType())
-                         : EmitLValue(*CE->arg_begin());
-        EmitAggregateAssign(This, RHS, CE->getType());
+        // TVM local begin
+        auto Ty = isa<CXXOperatorCallExpr>(CE) ?
+            (*(CE->arg_begin() + 1))->getType() :
+            (*CE->arg_begin())->getType();
+        if (!Ty->isTVMEmptyStruct()) {
+          // We don't like to generate the trivial copy/move assignment operator
+          // when it isn't necessary; just produce the proper effect here.
+          LValue RHS = isa<CXXOperatorCallExpr>(CE)
+                           ? MakeNaturalAlignAddrLValue(
+                                 (*RtlArgs)[0].getRValue(*this).getScalarVal(),
+                                 (*(CE->arg_begin() + 1))->getType())
+                           : EmitLValue(*CE->arg_begin());
+          EmitAggregateAssign(This, RHS, CE->getType());
+        }
+        // TVM local end
         return RValue::get(This.getPointer());
       }
 

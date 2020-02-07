@@ -490,8 +490,11 @@ void PredicateInfo::buildPredicateInfo() {
 // tricky (FIXME).
 static Function *getCopyDeclaration(Module *M, Type *Ty) {
   std::string Name = "llvm.ssa.copy." + utostr((uintptr_t) Ty);
+  // TVM local begin
+  Triple Tr(M->getTargetTriple());
   return cast<Function>(M->getOrInsertFunction(
-      Name, getType(M->getContext(), Intrinsic::ssa_copy, Ty)));
+      Name, getType(M->getContext(), Tr.getArch(), Intrinsic::ssa_copy, Ty)));
+  // TVM local end
 }
 
 // Given the renaming stack, make all the operands currently on the stack real

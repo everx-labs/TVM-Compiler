@@ -2,6 +2,7 @@
 
 #include <tvm/error_code.hpp>
 #include <tvm/parser.hpp>
+#include <tvm/builder.hpp>
 #include <tvm/schema/basics.hpp>
 #include <tvm/schema/message.hpp>
 #include <tvm/schema/parser/struct_parser.hpp>
@@ -247,13 +248,13 @@ inline auto parse(slice sl, unsigned err_code = error_code::custom_data_parse_er
 }
 
 template<typename _Tp>
-inline _Tp lazy<_Tp>::operator()() {
+__always_inline _Tp lazy<_Tp>::operator()() {
   if (is_slice()) {
     _Tp parsed_v = parse<_Tp>(std::get<slice>(val_), error_code::custom_data_parse_error, true);
-    val_ = parsed_v;
+    val_ = Tup(parsed_v);
     return parsed_v;
   }
-  return std::get<_Tp>(val_);
+  return std::get<Tup>(val_).unpack();
 }
 
 }} // namespace tvm::schema

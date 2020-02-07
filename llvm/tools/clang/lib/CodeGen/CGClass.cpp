@@ -620,6 +620,8 @@ static void EmitMemberInitializer(CodeGenFunction &CGF,
   // non-static data member initializers.
   FieldDecl *Field = MemberInit->getAnyMember();
   QualType FieldType = Field->getType();
+  if (FieldType->isTVMEmptyStruct())
+    return;
 
   llvm::Value *ThisPtr = CGF.LoadCXXThis();
   QualType RecordTy = CGF.getContext().getTypeDeclType(ClassDecl);
@@ -2186,6 +2188,10 @@ void CodeGenFunction::EmitInheritedCXXConstructorCall(
     assert(!OuterCtor->isVariadic() && "should have been inlined");
 
     for (const auto *Param : OuterCtor->parameters()) {
+      // TVM local begin
+      if (Param->getType()->isTVMEmptyStruct())
+        continue;
+      // TVM local end
       assert(getContext().hasSameUnqualifiedType(
           OuterCtor->getParamDecl(Param->getFunctionScopeIndex())->getType(),
           Param->getType()));

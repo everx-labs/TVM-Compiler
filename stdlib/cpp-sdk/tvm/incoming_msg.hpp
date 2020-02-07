@@ -7,10 +7,10 @@ namespace tvm {
 struct __attribute__((tvm_tuple)) incoming_msg final {
   incoming_msg(schema::CommonMsgInfo v) : impl_(v) {}
   schema::int_msg_info internal() const {
-    return cast<schema::int_msg_info>(impl_);
+    return std::get_known<schema::int_msg_info>(impl_);
   }
   schema::ext_in_msg_info external() const {
-    return cast<schema::ext_in_msg_info>(impl_);
+    return std::get_known<schema::ext_in_msg_info>(impl_);
   }
   int value() const {
     return internal().value.grams();

@@ -1614,6 +1614,82 @@ constexpr const _Tp&& get(const variant<_Types...>&& __v) {
       _VSTD::move(__v));
 }
 
+// TVM local begin - get_known = get without run-time check
+
+template <size_t _Ip, class _Vp>
+inline _LIBCPP_INLINE_VISIBILITY
+constexpr auto&& __generic_get_known(_Vp&& __v) {
+  using __variant_detail::__access::__variant;
+  return __variant::__get_alt<_Ip>(_VSTD::forward<_Vp>(__v)).__value;
+}
+
+template <size_t _Ip, class... _Types>
+inline _LIBCPP_INLINE_VISIBILITY
+constexpr variant_alternative_t<_Ip, variant<_Types...>>& get_known(
+    variant<_Types...>& __v) {
+  static_assert(_Ip < sizeof...(_Types));
+  static_assert(!is_void_v<variant_alternative_t<_Ip, variant<_Types...>>>);
+  return __generic_get_known<_Ip>(__v);
+}
+
+template <size_t _Ip, class... _Types>
+inline _LIBCPP_INLINE_VISIBILITY
+constexpr variant_alternative_t<_Ip, variant<_Types...>>&& get_known(
+    variant<_Types...>&& __v) {
+  static_assert(_Ip < sizeof...(_Types));
+  static_assert(!is_void_v<variant_alternative_t<_Ip, variant<_Types...>>>);
+  return __generic_get_known<_Ip>(_VSTD::move(__v));
+}
+
+template <size_t _Ip, class... _Types>
+inline _LIBCPP_INLINE_VISIBILITY
+constexpr const variant_alternative_t<_Ip, variant<_Types...>>& get_known(
+    const variant<_Types...>& __v) {
+  static_assert(_Ip < sizeof...(_Types));
+  static_assert(!is_void_v<variant_alternative_t<_Ip, variant<_Types...>>>);
+  return __generic_get_known<_Ip>(__v);
+}
+
+template <size_t _Ip, class... _Types>
+inline _LIBCPP_INLINE_VISIBILITY
+constexpr const variant_alternative_t<_Ip, variant<_Types...>>&& get_known(
+    const variant<_Types...>&& __v) {
+  static_assert(_Ip < sizeof...(_Types));
+  static_assert(!is_void_v<variant_alternative_t<_Ip, variant<_Types...>>>);
+  return __generic_get_known<_Ip>(_VSTD::move(__v));
+}
+
+template <class _Tp, class... _Types>
+inline _LIBCPP_INLINE_VISIBILITY
+constexpr _Tp& get_known(variant<_Types...>& __v) {
+  static_assert(!is_void_v<_Tp>);
+  return _VSTD::get_known<__find_exactly_one_t<_Tp, _Types...>::value>(__v);
+}
+
+template <class _Tp, class... _Types>
+inline _LIBCPP_INLINE_VISIBILITY
+constexpr _Tp&& get_known(variant<_Types...>&& __v) {
+  static_assert(!is_void_v<_Tp>);
+  return _VSTD::get_known<__find_exactly_one_t<_Tp, _Types...>::value>(
+      _VSTD::move(__v));
+}
+
+template <class _Tp, class... _Types>
+inline _LIBCPP_INLINE_VISIBILITY
+constexpr const _Tp& get_known(const variant<_Types...>& __v) {
+  static_assert(!is_void_v<_Tp>);
+  return _VSTD::get_known<__find_exactly_one_t<_Tp, _Types...>::value>(__v);
+}
+
+template <class _Tp, class... _Types>
+inline _LIBCPP_INLINE_VISIBILITY
+constexpr const _Tp&& get_known(const variant<_Types...>&& __v) {
+  static_assert(!is_void_v<_Tp>);
+  return _VSTD::get_known<__find_exactly_one_t<_Tp, _Types...>::value>(
+      _VSTD::move(__v));
+}
+// TVM local end
+
 template <size_t _Ip, class _Vp>
 inline _LIBCPP_INLINE_VISIBILITY
 constexpr auto* __generic_get_if(_Vp* __v) noexcept {

@@ -28,7 +28,6 @@ struct bitconst {
   constexpr bool operator==(bitconst<_bitlen, _code>) const {
     return true;
   }
-  unsigned unused_field;
 };
 
 template<unsigned _bitlen>

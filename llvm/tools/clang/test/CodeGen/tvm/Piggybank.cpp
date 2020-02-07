@@ -3,6 +3,7 @@
 
 #include <tvm/contract.hpp>
 #include <tvm/smart_switcher.hpp>
+#include <tvm/replay_attack_protection/timestamp.hpp>
 #include "Piggybank.hpp"
 #include <tvm/msg_address.inline.hpp>
 
@@ -22,7 +23,7 @@ public:
 };
 DEFINE_JSON_ABI(IPiggybank);
 
-// Public calls
+// -------------------------- Public calls --------------------------------- //
 void Piggybank::constructor(lazy<MsgAddress> pb_owner, uint_t<256> pb_limit) {
   owner = pb_owner;
   limit = pb_limit;
@@ -30,33 +31,29 @@ void Piggybank::constructor(lazy<MsgAddress> pb_owner, uint_t<256> pb_limit) {
 }
 
 void Piggybank::deposit() {
-  balance += msg().unpack().value();
+  balance += int_msg().unpack().value();
 }
 
 void Piggybank::withdraw() {
-  auto sender = msg().unpack().int_sender();
+  auto sender = int_msg().unpack().int_sender();
 
   require(sender.raw_slice() == owner.raw_slice(), error_code::wrong_owner);
   require(balance >= limit, error_code::not_enough_balance);
 
-  tvm_transfer(sender(), balance, false);
+  tvm_transfer(sender, balance, false);
   balance = 0;
 }
 
-// ----------------- main entry functions ---------------------- //
+// ----------------------------- Main entry functions ---------------------- //
 
 __attribute__((tvm_raw_func)) int main_external(__tvm_cell msg, __tvm_slice msg_body) {
-  cell msg_v(msg);
-  slice msg_body_v(msg_body);
-  parser msg_parser(msg_body_v);
-
-  auto func_id = msg_parser.ldu(32);
-  return smart_switch<Piggybank, IPiggybank, DPiggybank>(func_id, msg_v, msg_body_v);
+  return smart_switch</*Internal=*/false, Piggybank, IPiggybank, DPiggybank,
+                      replay_attack_protection::timestamp<100>>(msg, msg_body);
 }
 
 __attribute__((tvm_raw_func)) int main_internal(__tvm_cell msg, __tvm_slice msg_body) {
-  tvm_throw(error_code::unsupported_call_method);
-  return 0;
+  return smart_switch</*Internal=*/true, Piggybank, IPiggybank, DPiggybank,
+                      replay_attack_protection::timestamp<100>>(msg, msg_body);
 }
 
 __attribute__((tvm_raw_func)) int main_ticktock(__tvm_cell msg, __tvm_slice msg_body) {

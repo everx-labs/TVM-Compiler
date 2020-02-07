@@ -3770,14 +3770,22 @@ RValue CodeGenFunction::EmitBuiltinExpr(const FunctionDecl *FD,
       if ((ICEArguments & (1 << i)) == 0) {
         auto ArgExpr = E->getArg(i);
         // If it is literal record, unpack it into elements.
+        auto Ty = ArgExpr->getType();
         const auto *RT = ArgExpr->getType()->getAs<RecordType>();
         if (RT && RT->getDecl()->isLiteral()) {
-          auto SType = getTypes().ConvertRecordDeclType(RT->getDecl());
+          int64_t Size = getContext().getTypeSizeInChars(Ty).getQuantity();
+          auto TupTy = getContext().getTVMTuple(static_cast<unsigned>(Size));
+          auto *llvmTupTy = CGM.getTypes().ConvertType(TupTy);
           LValue LV = EmitLValue(ArgExpr);
-          auto StructVal = Builder.CreateLoad(LV.getAddress());
-          for (unsigned i = 0, e = SType->getNumElements(); i != e; ++i) {
+          Address This = LV.getAddress();
+          This = Address(Builder.CreateBitCast(This.getPointer(),
+                                               llvmTupTy->getPointerTo()),
+                         This.getAlignment());
+          auto *StructVal = Builder.CreateLoad(This);
+          auto e = llvmTupTy->getStructNumElements();
+          for (unsigned i = 0; i != e; ++i) {
             Value *CurVal = Builder.CreateExtractValue(StructVal, i);
-            Args.push_back(DoCast(CurVal, Args.size()));
+            Args.push_back(CurVal);
           }
         } else {
           // If this is a normal argument, just emit it as a scalar.

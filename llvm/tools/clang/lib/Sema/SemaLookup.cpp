@@ -701,6 +701,12 @@ static bool LookupBuiltin(Sema &S, LookupResult &R) {
         } else if (II == S.getASTContext().getReflectMethodFuncIdName()) {
           R.addDecl(S.getASTContext().getReflectMethodFuncIdDecl());
           return true;
+        } else if (II == S.getASTContext().getReflectMethodInternalName()) {
+          R.addDecl(S.getASTContext().getReflectMethodInternalDecl());
+          return true;
+        } else if (II == S.getASTContext().getReflectMethodExternalName()) {
+          R.addDecl(S.getASTContext().getReflectMethodExternalDecl());
+          return true;
         } else if (II == S.getASTContext().getReflectMethodPtrFuncIdName()) {
           R.addDecl(S.getASTContext().getReflectMethodPtrFuncIdDecl());
           return true;

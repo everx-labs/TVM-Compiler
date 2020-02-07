@@ -1076,6 +1076,22 @@ ASTContext::getReflectMethodFuncIdDecl() const {
 }
 
 BuiltinTemplateDecl *
+ASTContext::getReflectMethodInternalDecl() const {
+  if (!ReflectMethodInternalDecl)
+    ReflectMethodInternalDecl = buildBuiltinTemplateDecl(
+        BTK__reflect_method_internal, getReflectMethodInternalName());
+  return ReflectMethodInternalDecl;
+}
+
+BuiltinTemplateDecl *
+ASTContext::getReflectMethodExternalDecl() const {
+  if (!ReflectMethodExternalDecl)
+    ReflectMethodExternalDecl = buildBuiltinTemplateDecl(
+        BTK__reflect_method_external, getReflectMethodExternalName());
+  return ReflectMethodExternalDecl;
+}
+
+BuiltinTemplateDecl *
 ASTContext::getReflectMethodPtrFuncIdDecl() const {
   if (!ReflectMethodPtrFuncIdDecl)
     ReflectMethodPtrFuncIdDecl = buildBuiltinTemplateDecl(

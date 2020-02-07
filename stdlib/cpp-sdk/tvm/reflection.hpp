@@ -21,6 +21,12 @@ template<class Interface, unsigned Index>
 using get_interface_method_func_id =
   __reflect_method_func_id<std::integral_constant, unsigned, Interface, Index>;
 template<class Interface, unsigned Index>
+using get_interface_method_internal =
+  __reflect_method_internal<std::integral_constant, bool, Interface, Index>;
+template<class Interface, unsigned Index>
+using get_interface_method_external =
+  __reflect_method_external<std::integral_constant, bool, Interface, Index>;
+template<class Interface, unsigned Index>
 using get_interface_method_rv = __reflect_method_rv<Interface, Index>;
 template<class Interface, unsigned Index>
 using get_interface_method_arg_struct = __reflect_method_arg_struct<Interface, Index>;

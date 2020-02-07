@@ -1655,6 +1655,16 @@ def TVMRawFunc : Attr {
   let Documentation = [Undocumented];
   let Subjects = SubjectList<[Function]>;
 }
+def TVMInternalFunc : Attr {
+  let Spellings = [Clang<"internal">];
+  let Documentation = [Undocumented];
+  let Subjects = SubjectList<[Function]>;
+}
+def TVMExternalFunc : Attr {
+  let Spellings = [Clang<"external">];
+  let Documentation = [Undocumented];
+  let Subjects = SubjectList<[Function]>;
+}
 // TVM local end
 
 def ObjCPreciseLifetime : InheritableAttr {

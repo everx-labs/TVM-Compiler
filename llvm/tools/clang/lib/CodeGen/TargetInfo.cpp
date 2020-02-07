@@ -877,7 +877,8 @@ ABIArgInfo TVMABIInfo::classifyArgumentType(QualType Ty) const {
     if (isEmptyRecord(getContext(), Ty, true))
       return ABIArgInfo::getIgnore();
     if (const Type *SeltTy = isSingleElementStruct(Ty, getContext()))
-      return ABIArgInfo::getDirect(CGT.ConvertType(QualType(SeltTy, 0)));
+      if (!isAggregateTypeForABI(QualType(SeltTy, 0)))
+        return ABIArgInfo::getDirect(CGT.ConvertType(QualType(SeltTy, 0)));
     return ABIArgInfo::getExpand();
   }
 

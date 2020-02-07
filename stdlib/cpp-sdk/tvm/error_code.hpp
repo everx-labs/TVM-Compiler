@@ -13,6 +13,8 @@ struct error_code {
   static constexpr int bad_signature               = 58;
   static constexpr int replay_attack_check         = 59;
   static constexpr int bad_arguments               = 60;
+  static constexpr int constructor_double_call     = 61;
+  static constexpr int method_called_without_init  = 62;
 };
 
 } // namespace tvm

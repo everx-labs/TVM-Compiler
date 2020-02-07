@@ -19,6 +19,7 @@
 #include "llvm/ADT/Optional.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallVector.h"
+#include "llvm/ADT/SetVector.h"
 #include "llvm/ADT/Statistic.h"
 #include "llvm/ADT/Twine.h"
 #include "llvm/Analysis/AssumptionCache.h"
@@ -3654,6 +3655,47 @@ Instruction *InstCombiner::visitCallInst(CallInst &CI) {
     II->setOperand(0, UndefValue::get(Old->getType()));
     return II;
   }
+  // TVM local begin: optimization of untuple into index requests
+  #include "TVMUntupleN.def"
+  {
+    unsigned NumElements = II->getType()->getStructNumElements();
+    if (NumElements < 4)
+      break;
+    SmallSetVector<unsigned, 4> UsedIndices;
+    auto OptToIndex = [&]()->bool {
+      for (const User *U : II->users()) {
+        auto *Extract = dyn_cast<ExtractValueInst>(U);
+        if (!Extract)
+          return false;
+        auto Indices = Extract->getIndices();
+        if (Indices.size() != 1)
+          return false;
+        UsedIndices.insert(Indices[0]);
+        // If we are using more than 1/3 of elements, do full untuple
+        if (UsedIndices.size() > NumElements / 3)
+          return false;
+      }
+      return true;
+    };
+    if (OptToIndex()) {
+      Value *NewF = Intrinsic::getDeclaration(II->getModule(),
+                                              Intrinsic::tvm_index);
+      for (User *U : II->users()) {
+        auto *Extract = dyn_cast<ExtractValueInst>(U);
+        assert(Extract);
+        auto Indices = Extract->getIndices();
+        assert(Indices.size() == 1);
+        auto IdxC = ConstantInt::get(Type::getInt257Ty(II->getContext()),
+                                     Indices[0]);
+        Value *Args[] = { II->getArgOperand(0), IdxC };
+        CallInst *NewCall = Builder.CreateCall(NewF, Args);
+        replaceInstUsesWith(*Extract, NewCall);
+      }
+      return nullptr;
+    }
+    break;
+  }
+  // TVM local end
   case Intrinsic::stackrestore: {
     // If the save is right next to the restore, remove the restore.  This can
     // happen when variable allocas are DCE'd.

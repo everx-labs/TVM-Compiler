@@ -106,12 +106,44 @@ static tuple<incoming_msg> parse_incoming_msg(cell msg) {
   return tuple<incoming_msg>::create(incoming_msg(parsed_v));
 }
 
+// For only internal message
+static tuple<incoming_msg> parse_incoming_int_msg(cell msg) {
+  auto parsed_v = schema::parse<schema::int_msg_info>(parser(msg.ctos()),
+                                                      error_code::bad_incoming_msg);
+  return tuple<incoming_msg>::create(incoming_msg(schema::CommonMsgInfo{parsed_v}));
+}
+// For only external message
+static tuple<incoming_msg> parse_incoming_ext_msg(cell msg) {
+  auto parsed_v = schema::parse<schema::ext_in_msg_info>(parser(msg.ctos()),
+                                                         error_code::bad_incoming_msg);
+  return tuple<incoming_msg>::create(incoming_msg(parsed_v));
+}
+
 static inline tuple<incoming_msg> msg() {
   auto v = temporary_data::getglob(1);
   if (__builtin_tvm_istuple(__builtin_tvm_cast_to_tuple(v))) // already parsed into tuple
     return tuple<incoming_msg>(__builtin_tvm_cast_to_tuple(v));
   
   auto tp = parse_incoming_msg(__builtin_tvm_cast_to_cell(v));
+  temporary_data::setglob(1, __builtin_tvm_cast_from_tuple(tp.get()));
+  return tp;
+}
+
+static inline tuple<incoming_msg> int_msg() {
+  auto v = temporary_data::getglob(1);
+  if (__builtin_tvm_istuple(__builtin_tvm_cast_to_tuple(v))) // already parsed into tuple
+    return tuple<incoming_msg>(__builtin_tvm_cast_to_tuple(v));
+
+  auto tp = parse_incoming_int_msg(__builtin_tvm_cast_to_cell(v));
+  temporary_data::setglob(1, __builtin_tvm_cast_from_tuple(tp.get()));
+  return tp;
+}
+static inline tuple<incoming_msg> ext_msg() {
+  auto v = temporary_data::getglob(1);
+  if (__builtin_tvm_istuple(__builtin_tvm_cast_to_tuple(v))) // already parsed into tuple
+    return tuple<incoming_msg>(__builtin_tvm_cast_to_tuple(v));
+
+  auto tp = parse_incoming_ext_msg(__builtin_tvm_cast_to_cell(v));
   temporary_data::setglob(1, __builtin_tvm_cast_from_tuple(tp.get()));
   return tp;
 }

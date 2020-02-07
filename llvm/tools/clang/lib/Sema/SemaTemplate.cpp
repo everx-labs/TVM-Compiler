@@ -3133,6 +3133,72 @@ checkBuiltinTemplateIdType(Sema &SemaRef, BuiltinTemplateDecl *BTD,
     return SemaRef.CheckTemplateIdType(Converted[0].getAsTemplate(),
                                        TemplateLoc, SyntheticTemplateArgs);
   }
+  case BTK__reflect_method_internal: {
+    // __reflect_method_internal<T, IntType, Interface, Index> -
+    //   'internal' attribute of the Interface method number #Index,
+    //   provided into T<IntType, isInternal>
+    assert(Converted.size() == 4 &&
+      "__reflect_method_internal<T, IntType, Interface, Index>");
+    TemplateArgument IntType = Converted[1], InterfaceArg = Converted[2],
+        IndexArg = Converted[3];
+    llvm::APSInt Index = IndexArg.getAsIntegral();
+    assert(Index >= 0 && "the index used with __reflect_method_internal should be "
+                         "of type std::size_t, and hence be non-negative");
+    QualType InterfaceTy = InterfaceArg.getAsType();
+    const auto *Rec = InterfaceTy->getAsCXXRecordDecl();
+    if (!Rec) {
+      SemaRef.Diag(TemplateArgs[1].getLocation(),
+                   diag::err_reflect_method_not_struct_arg);
+      return QualType();
+    }
+    QualType IntTy = IntType.getAsType();
+    auto it = std::next(Rec->method_begin(),
+                        static_cast<int64_t>(Index.getZExtValue()));
+    assert(it != Rec->method_end() && "method not found by index");
+    llvm::APSInt Rv(static_cast<uint32_t>(Context.getTypeSize(IntTy)));
+    Rv = it->hasAttr<TVMInternalFuncAttr>();
+
+    TemplateArgumentListInfo SyntheticTemplateArgs;
+    SyntheticTemplateArgs.addArgument(TemplateArgs[1]);
+    TemplateArgument RvArg(Context, Rv, IntTy);
+    SyntheticTemplateArgs.addArgument(SemaRef.getTrivialTemplateArgumentLoc(
+        RvArg, IntTy, TemplateArgs[0].getLocation()));
+    return SemaRef.CheckTemplateIdType(Converted[0].getAsTemplate(),
+                                       TemplateLoc, SyntheticTemplateArgs);
+  }
+  case BTK__reflect_method_external: {
+    // __reflect_method_external<T, IntType, Interface, Index> -
+    //   'external' attribute of the Interface method number #Index,
+    //   provided into T<IntType, isInternal>
+    assert(Converted.size() == 4 &&
+      "__reflect_method_external<T, IntType, Interface, Index>");
+    TemplateArgument IntType = Converted[1], InterfaceArg = Converted[2],
+        IndexArg = Converted[3];
+    llvm::APSInt Index = IndexArg.getAsIntegral();
+    assert(Index >= 0 && "the index used with __reflect_method_external should be "
+                         "of type std::size_t, and hence be non-negative");
+    QualType InterfaceTy = InterfaceArg.getAsType();
+    const auto *Rec = InterfaceTy->getAsCXXRecordDecl();
+    if (!Rec) {
+      SemaRef.Diag(TemplateArgs[1].getLocation(),
+                   diag::err_reflect_method_not_struct_arg);
+      return QualType();
+    }
+    QualType IntTy = IntType.getAsType();
+    auto it = std::next(Rec->method_begin(),
+                        static_cast<int64_t>(Index.getZExtValue()));
+    assert(it != Rec->method_end() && "method not found by index");
+    llvm::APSInt Rv(static_cast<uint32_t>(Context.getTypeSize(IntTy)));
+    Rv = it->hasAttr<TVMExternalFuncAttr>();
+
+    TemplateArgumentListInfo SyntheticTemplateArgs;
+    SyntheticTemplateArgs.addArgument(TemplateArgs[1]);
+    TemplateArgument RvArg(Context, Rv, IntTy);
+    SyntheticTemplateArgs.addArgument(SemaRef.getTrivialTemplateArgumentLoc(
+        RvArg, IntTy, TemplateArgs[0].getLocation()));
+    return SemaRef.CheckTemplateIdType(Converted[0].getAsTemplate(),
+                                       TemplateLoc, SyntheticTemplateArgs);
+  }
   case BTK__reflect_method_ptr_func_id: {
     // __reflect_method_ptr_func_id<T, IntType, Rv Interface::* MethodPtr> -
     //   FuncID of the Interface method MethodPtr,

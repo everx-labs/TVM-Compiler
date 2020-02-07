@@ -342,6 +342,10 @@ class ASTContext : public RefCountedBase<ASTContext> {
   mutable IdentifierInfo *ReflectMethodNameName = nullptr;
   /// The identifier '__reflect_method_func_id'.
   mutable IdentifierInfo *ReflectMethodFuncIdName = nullptr;
+  /// The identifier '__reflect_method_internal'.
+  mutable IdentifierInfo *ReflectMethodInternalName = nullptr;
+  /// The identifier '__reflect_method_external'.
+  mutable IdentifierInfo *ReflectMethodExternalName = nullptr;
   /// The identifier '__reflect_method_ptr_func_id'.
   mutable IdentifierInfo *ReflectMethodPtrFuncIdName = nullptr;
   /// The identifier '__reflect_method_rv'.
@@ -538,6 +542,8 @@ private:
   mutable BuiltinTemplateDecl *ReflectMethodsCountDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectMethodNameDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectMethodFuncIdDecl = nullptr;
+  mutable BuiltinTemplateDecl *ReflectMethodInternalDecl = nullptr;
+  mutable BuiltinTemplateDecl *ReflectMethodExternalDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectMethodPtrFuncIdDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectMethodRvDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectMethodArgStructDecl = nullptr;
@@ -1051,6 +1057,8 @@ public:
   BuiltinTemplateDecl *getReflectMethodsCountDecl() const;
   BuiltinTemplateDecl *getReflectMethodNameDecl() const;
   BuiltinTemplateDecl *getReflectMethodFuncIdDecl() const;
+  BuiltinTemplateDecl *getReflectMethodInternalDecl() const;
+  BuiltinTemplateDecl *getReflectMethodExternalDecl() const;
   BuiltinTemplateDecl *getReflectMethodPtrFuncIdDecl() const;
   BuiltinTemplateDecl *getReflectMethodRvDecl() const;
   BuiltinTemplateDecl *getReflectMethodArgStructDecl() const;
@@ -1831,6 +1839,18 @@ public:
     if (!ReflectMethodFuncIdName)
       ReflectMethodFuncIdName = &Idents.get("__reflect_method_func_id");
     return ReflectMethodFuncIdName;
+  }
+
+  IdentifierInfo *getReflectMethodInternalName() const {
+    if (!ReflectMethodInternalName)
+      ReflectMethodInternalName = &Idents.get("__reflect_method_internal");
+    return ReflectMethodInternalName;
+  }
+
+  IdentifierInfo *getReflectMethodExternalName() const {
+    if (!ReflectMethodExternalName)
+      ReflectMethodExternalName = &Idents.get("__reflect_method_external");
+    return ReflectMethodExternalName;
   }
 
   IdentifierInfo *getReflectMethodPtrFuncIdName() const {

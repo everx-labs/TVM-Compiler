@@ -6,8 +6,13 @@ namespace tvm { namespace schema {
 
 // Piggybank interface
 __interface IPiggybank {
+  __attribute__((internal, external))
   void constructor(lazy<MsgAddress> owner, uint_t<256> limit) = 1;
+
+  __attribute__((internal))
   void deposit() = 2;
+
+  __attribute__((internal))
   void withdraw() = 3;
 };
 

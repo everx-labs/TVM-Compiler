@@ -1316,10 +1316,9 @@ createReflectMethodNameParameterList(const ASTContext &C, DeclContext *DC) {
                                        SourceLocation(), nullptr);
 }
 
-// __reflect_method_func_id<T, IntType, Interface, Index> -
-//   FuncID of the Interface method number #Index, provided into T<IntType, FuncID>
 static TemplateParameterList *
-createReflectMethodFuncIdParameterList(const ASTContext &C, DeclContext *DC) {
+createReflectMethodIntegralConstantParameterList(const ASTContext &C,
+                                                 DeclContext *DC) {
   // typename IntType
   auto *IntType = TemplateTypeParmDecl::Create(
       C, DC, SourceLocation(), SourceLocation(), /*Depth=*/1, /*Position=*/0,
@@ -1368,6 +1367,27 @@ createReflectMethodFuncIdParameterList(const ASTContext &C, DeclContext *DC) {
   return TemplateParameterList::Create(C, SourceLocation(), SourceLocation(),
                                        llvm::makeArrayRef(Params),
                                        SourceLocation(), nullptr);
+}
+// __reflect_method_func_id<T, IntType, Interface, Index> -
+//   FuncID of the Interface method number #Index, provided into T<IntType, FuncID>
+static TemplateParameterList *
+createReflectMethodFuncIdParameterList(const ASTContext &C, DeclContext *DC) {
+  return createReflectMethodIntegralConstantParameterList(C, DC);
+}
+
+// __reflect_method_internal<T, IntType, Interface, Index> -
+//   'internal' attribute of the Interface method number #Index,
+//   provided into T<IntType, isInternal>
+static TemplateParameterList *
+createReflectMethodInternalParameterList(const ASTContext &C, DeclContext *DC) {
+  return createReflectMethodIntegralConstantParameterList(C, DC);
+}
+// __reflect_method_external<T, IntType, Interface, Index> -
+//   'external' attribute of the Interface method number #Index,
+//   provided into T<IntType, isInternal>
+static TemplateParameterList *
+createReflectMethodExternalParameterList(const ASTContext &C, DeclContext *DC) {
+  return createReflectMethodIntegralConstantParameterList(C, DC);
 }
 
 // __reflect_method_ptr_func_id<T, IntType, Rv Interface::* MethodPtr> -
@@ -1572,6 +1592,10 @@ static TemplateParameterList *createBuiltinTemplateParameterList(
     return createReflectMethodNameParameterList(C, DC);
   case BTK__reflect_method_func_id:
     return createReflectMethodFuncIdParameterList(C, DC);
+  case BTK__reflect_method_internal:
+    return createReflectMethodInternalParameterList(C, DC);
+  case BTK__reflect_method_external:
+    return createReflectMethodExternalParameterList(C, DC);
   case BTK__reflect_method_ptr_func_id:
     return createReflectMethodPtrFuncIdParameterList(C, DC);
   case BTK__reflect_method_rv:

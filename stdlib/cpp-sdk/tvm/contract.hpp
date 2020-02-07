@@ -76,6 +76,27 @@ static void tvm_transfer(schema::MsgAddressInt dest, unsigned nanograms, bool bo
   out_msg.info = msg_info;
   tvm_sendmsg(build(out_msg).endc(), 0);
 }
+// The same for lazy MsgAddressInt (not parsed from slice)
+static void tvm_transfer(schema::lazy<schema::MsgAddressInt> dest, unsigned nanograms, bool bounce) {
+  using namespace schema;
+
+  message_relaxed<empty> out_msg;
+  int_msg_info_relaxed msg_info;
+  msg_info.ihr_disabled = false;
+  msg_info.bounce = bounce;
+  msg_info.bounced = false;
+  msg_info.dest = dest;
+  msg_info.value.grams = nanograms;
+  msg_info.ihr_disabled = 0;
+  msg_info.src = addr_none{}; // Will be filled by vm
+  msg_info.ihr_fee = 0;
+  msg_info.fwd_fee = 0;
+  msg_info.created_lt = 0;
+  msg_info.created_at = 0;
+
+  out_msg.info = msg_info;
+  tvm_sendmsg(build(out_msg).endc(), 0);
+}
 
 class contract {
 public:

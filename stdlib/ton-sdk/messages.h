@@ -6,6 +6,12 @@
 #define HEADER_OR_C "define-ton-struct-header.inc"
 #include "messages.inc"
 
+enum SendMsgFlags {
+  MSG_NO_FLAGS            = 0,
+  MSG_PAY_FEES_SEPARATELY = 1,
+  MSG_IGNORE_ERRORS       = 2
+};
+
 MsgAddressInt build_msg_address_int (int workchain, unsigned account);
 
 void build_internal_message (MsgAddressInt* dest, unsigned value);

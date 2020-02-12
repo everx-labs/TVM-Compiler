@@ -26,6 +26,8 @@ def convert_type (abi_type):
     errors.append ("Type %s is not supported yet\n" % abi_type)
     return ("int", ("Signed", 256))
 
+if (contract_name.endswith(".abi")):
+    contract_name = contract_name[:-4]
 contract_json = open("%s.abi" % contract_name)
 data = json.loads("".join ([x for x in contract_json]))
 contract_json.close()

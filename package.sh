@@ -45,6 +45,7 @@ cp ~/TON-Compiler/build/bin/llc          ~/TON-Compiler-$REV/bin/
 
 cp ~/TON-Compiler/stdlib/abi_parser.py              ~/TON-Compiler-$REV/bin/
 cp ~/TON-Compiler/llvm/tools/tvm-build/tvm-build.py ~/TON-Compiler-$REV/bin/
+cp ~/TON-Compiler/llvm/tools/tvm-build/tvm-build++.py ~/TON-Compiler-$REV/bin/
 
 cat >~/TON-Compiler-$REV/bin/tvm-build <<\EOF
 #!/bin/sh
@@ -57,6 +58,7 @@ export TVM_LIBRARY_PATH=$ROOT/stdlib
 python $ROOT/bin/tvm-build.py $@
 EOF
 chmod +x ~/TON-Compiler-$REV/bin/tvm-build
+chmod +x ~/TON-Compiler-$REV/bin/tvm-build++
 
 cp    ~/TON-Compiler/stdlib/*.tvm   ~/TON-Compiler-$REV/stdlib/
 cp -r ~/TON-Compiler/stdlib/ton-sdk ~/TON-Compiler-$REV/stdlib/

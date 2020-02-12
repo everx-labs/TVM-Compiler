@@ -27,31 +27,32 @@ namespace tvm { namespace schema { namespace json_abi_gen {
 
 using namespace hana::literals;
 
+template<unsigned radix>
 constexpr size_t get_magnitude(size_t num) {
   unsigned i = 0;
   while (num > 0) {
-    num /= 10;
+    num /= radix;
     ++i;
   }
   return i;
 }
 
-template <class X, size_t ...i>
+template <unsigned radix, class X, size_t ...i>
 constexpr auto to_string(X x, std::index_sequence<i...>) {
-  constexpr size_t mag = get_magnitude(X::value);
+  constexpr size_t mag = get_magnitude<radix>(X::value);
   return hana::string<
-    (x / hana::power(hana::size_c<10>,
-                     hana::size_c<mag - i - 1>) % hana::size_c<10>
+    (x / hana::power(hana::size_c<radix>,
+                     hana::size_c<mag - i - 1>) % hana::size_c<radix>
                        + hana::size_c<48>)...>{};
 }
 
-template <class X>
+template <unsigned radix, class X>
 constexpr auto to_string(X) {
   if constexpr (X::value == 0)
     return "0"_s;
   else
-    return to_string(hana::size_c<static_cast<size_t>(X::value)>,
-                     std::make_index_sequence<get_magnitude(X::value)>());
+    return to_string<radix>(hana::size_c<static_cast<size_t>(X::value)>,
+                            std::make_index_sequence<get_magnitude<radix>(X::value)>());
 }
 
 template<class T>
@@ -60,11 +61,11 @@ struct make_simple_type_impl {
 };
 template<unsigned _bitlen>
 struct make_simple_type_impl<int_t<_bitlen>> {
-  static constexpr auto value = "int"_s + to_string(hana::integral_c<unsigned, _bitlen>);
+  static constexpr auto value = "int"_s + to_string<10>(hana::integral_c<unsigned, _bitlen>);
 };
 template<unsigned _bitlen>
 struct make_simple_type_impl<uint_t<_bitlen>> {
-  static constexpr auto value = "uint"_s + to_string(hana::integral_c<unsigned, _bitlen>);
+  static constexpr auto value = "uint"_s + to_string<10>(hana::integral_c<unsigned, _bitlen>);
 };
 template<>
 struct make_simple_type_impl<uint_t<1>> {
@@ -73,6 +74,10 @@ struct make_simple_type_impl<uint_t<1>> {
 template<>
 struct make_simple_type_impl<MsgAddress> {
   static constexpr auto value = "address"_s;
+};
+template<class T>
+struct make_simple_type_impl<lazy<T>> {
+  static constexpr auto value = make_simple_type_impl<T>::value;
 };
 template<class T>
 constexpr auto make_simple_type() {
@@ -177,7 +182,7 @@ constexpr auto make_function_outputs() {
 template<unsigned FuncID>
 constexpr auto make_function_id() {
   if constexpr (FuncID != 0)
-    return ",\n    \"id\": "_s + to_string(hana::integral_c<unsigned, FuncID>);
+    return ",\n    \"id\": \"0x"_s + to_string<16>(hana::integral_c<unsigned, FuncID>) + "\""_s;
   else
     return ""_s;
 }

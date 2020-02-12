@@ -247,7 +247,7 @@ inline auto parse(slice sl, unsigned err_code = error_code::custom_data_parse_er
 }
 
 template<typename _Tp>
-inline _Tp lazy<_Tp>::operator()() {
+__always_inline _Tp lazy<_Tp>::operator()() {
   if (is_slice()) {
     _Tp parsed_v = parse<_Tp>(std::get<slice>(val_), error_code::custom_data_parse_error, true);
     val_ = parsed_v;

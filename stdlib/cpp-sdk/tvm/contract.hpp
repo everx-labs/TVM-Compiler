@@ -54,6 +54,30 @@ inline static schema::MsgAddressExt get_incoming_ext_src(cell msg) {
   return cast<ext_in_msg_info>(inc_msg).src();
 }
 
+// Default implementation of main entry functions
+//  (main_external, main_internal, main_ticktock, main_split, main_merge)
+#define DEFAULT_MAIN_ENTRY_FUNCTIONS(Contract, IContract, DContract, TimestampDelay)       \
+__attribute__((tvm_raw_func)) int main_external(__tvm_cell msg, __tvm_slice msg_body) {    \
+  return smart_switch</*Internal=*/false, Contract, IContract, DContract,                  \
+                      replay_attack_protection::timestamp<TimestampDelay>>(msg, msg_body); \
+}                                                                                          \
+__attribute__((tvm_raw_func)) int main_internal(__tvm_cell msg, __tvm_slice msg_body) {    \
+  return smart_switch</*Internal=*/true, Contract, IContract, DContract,                   \
+                      replay_attack_protection::timestamp<TimestampDelay>>(msg, msg_body); \
+}                                                                                          \
+__attribute__((tvm_raw_func)) int main_ticktock(__tvm_cell msg, __tvm_slice msg_body) {    \
+  tvm_throw(error_code::unsupported_call_method);                                          \
+  return 0;                                                                                \
+}                                                                                          \
+__attribute__((tvm_raw_func)) int main_split(__tvm_cell msg, __tvm_slice msg_body) {       \
+  tvm_throw(error_code::unsupported_call_method);                                          \
+  return 0;                                                                                \
+}                                                                                          \
+__attribute__((tvm_raw_func)) int main_merge(__tvm_cell msg, __tvm_slice msg_body) {       \
+  tvm_throw(error_code::unsupported_call_method);                                          \
+  return 0;                                                                                \
+}
+
 // Prepare and send empty message with nanograms as transfer value.
 // Only internal destination address allowed.
 static void tvm_transfer(schema::MsgAddressInt dest, unsigned nanograms, bool bounce) {

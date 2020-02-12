@@ -45,29 +45,5 @@ void Piggybank::withdraw() {
 }
 
 // ----------------------------- Main entry functions ---------------------- //
-
-__attribute__((tvm_raw_func)) int main_external(__tvm_cell msg, __tvm_slice msg_body) {
-  return smart_switch</*Internal=*/false, Piggybank, IPiggybank, DPiggybank,
-                      replay_attack_protection::timestamp<100>>(msg, msg_body);
-}
-
-__attribute__((tvm_raw_func)) int main_internal(__tvm_cell msg, __tvm_slice msg_body) {
-  return smart_switch</*Internal=*/true, Piggybank, IPiggybank, DPiggybank,
-                      replay_attack_protection::timestamp<100>>(msg, msg_body);
-}
-
-__attribute__((tvm_raw_func)) int main_ticktock(__tvm_cell msg, __tvm_slice msg_body) {
-  tvm_throw(error_code::unsupported_call_method);
-  return 0;
-}
-
-__attribute__((tvm_raw_func)) int main_split(__tvm_cell msg, __tvm_slice msg_body) {
-  tvm_throw(error_code::unsupported_call_method);
-  return 0;
-}
-
-__attribute__((tvm_raw_func)) int main_merge(__tvm_cell msg, __tvm_slice msg_body) {
-  tvm_throw(error_code::unsupported_call_method);
-  return 0;
-}
+DEFAULT_MAIN_ENTRY_FUNCTIONS(Piggybank, IPiggybank, DPiggybank, 100)
 

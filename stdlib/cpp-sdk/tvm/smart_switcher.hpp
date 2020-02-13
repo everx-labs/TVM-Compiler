@@ -4,7 +4,14 @@
 #include <tvm/contract.hpp>
 #include <tvm/smart_contract_info.hpp>
 
+#include <experimental/type_traits>
+
 namespace tvm {
+
+template<typename T>
+using fallback_t = decltype(T::_fallback(cell{}, slice{}));
+template<typename T>
+constexpr bool supports_fallback_v = std::experimental::is_detected_v<fallback_t, T>;
 
 template<class ReturnValue>
 inline void send_external_answer(unsigned func_id, ReturnValue rv) {
@@ -165,7 +172,10 @@ template<bool Internal, class Contract, class IContract, class DContract, class 
          unsigned Index>
 struct smart_switcher_impl<Internal, Contract, IContract, DContract, ReplayAttackProtection, Index, 0> {
   __always_inline static int execute(unsigned func_id, cell msg, slice msg_body) {
-    tvm_throw(error_code::wrong_public_call);
+    if constexpr (Internal && supports_fallback_v<Contract>)
+      return Contract::_fallback(msg, msg_body);
+    else
+      tvm_throw(error_code::wrong_public_call);
     return 0;
   }
 };
@@ -182,7 +192,15 @@ struct smart_switcher {
 template<bool Internal, class Contract, class IContract, class DContract, class ReplayAttackProtection = void>
 int smart_switch(cell msg, slice msg_body) {
   parser msg_parser(msg_body);
-  auto func_id = msg_parser.ldu(32);
+  unsigned func_id;
+  if constexpr (Internal && supports_fallback_v<Contract>) {
+    if (auto opt_val = msg_parser.lduq(32))
+      func_id = *opt_val;
+    else
+      return Contract::_fallback(msg, msg_body);
+  } else {
+    func_id = msg_parser.ldu(32);
+  }
   return smart_switcher<Internal, Contract, IContract, DContract, ReplayAttackProtection>
     ::execute(func_id, msg, msg_body);
 }

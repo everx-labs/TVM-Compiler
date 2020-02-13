@@ -102,6 +102,20 @@ defm LDUX : I0<(outs I257 : $x, Slice : $sliceo),
                  (int_tvm_ldu Slice : $slicei, I257 : $precision))],
                "LDUX", 0xd701>;
 
+defm LDUQ : I<(outs I257:$x, Slice:$sliceo, I257:$succ),
+              (ins Slice:$slicei, uimm1_256:$precision),
+              (outs), (ins uimm1_256:$precision),
+              [(set I257:$x, Slice:$sliceo, I257:$succ,
+                (int_tvm_lduq Slice:$slicei, uimm1_256:$precision))],
+              "LDUQ\t $precision, $slicei, $x, $sliceo, $succ",
+              "LDUQ\t $precision NULLROTRIFNOT", 0xd70d>;
+
+defm LDUXQ : I0<(outs I257:$x, Slice:$sliceo, I257:$succ),
+                (ins Slice:$slicei, I257:$precision),
+                [(set I257:$x, Slice:$sliceo, I257:$succ,
+                  (int_tvm_lduq Slice:$slicei, I257:$precision))],
+                "LDUXQ NULLROTRIFNOT", 0xd705>;
+
 defm LDVARUINT16 : I0<(outs I257:$x, Slice:$sliceo), (ins Slice:$slicei),
                       [(set I257:$x, Slice:$sliceo,
                         (int_tvm_ldvaruint16 Slice:$slicei))],

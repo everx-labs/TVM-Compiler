@@ -20,6 +20,9 @@ public:
   __always_inline void constructor(lazy<MsgAddress> pb_owner, uint_t<256> pb_limit) final;
   __always_inline void deposit() final;
   __always_inline void withdraw() final;
+
+  // Function is called in case of unparsed or unsupported func_id
+  static __always_inline int _fallback(cell msg, slice msg_body);
 };
 DEFINE_JSON_ABI(IPiggybank);
 
@@ -42,6 +45,12 @@ void Piggybank::withdraw() {
 
   tvm_transfer(sender, balance, false);
   balance = 0;
+}
+
+// Fallback function
+int Piggybank::_fallback(cell msg, slice msg_body) {
+  tvm_accept();
+  return 0;
 }
 
 // ----------------------------- Main entry functions ---------------------- //

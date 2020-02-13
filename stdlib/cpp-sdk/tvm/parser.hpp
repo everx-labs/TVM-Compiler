@@ -34,6 +34,14 @@ public:
   unsigned pldi(unsigned len) const {
     return __builtin_tvm_pldi(sl_, len);
   }
+  std::optional<unsigned> lduq(unsigned len) {
+    auto [val, sl, succ] = __builtin_tvm_lduq(sl_, len);
+    if (succ) {
+      sl_ = sl;
+      return val;
+    }
+    return {};
+  }
 
   unsigned ldvaruint16() {
     auto [val, sl] = __builtin_tvm_ldvaruint16(sl_);

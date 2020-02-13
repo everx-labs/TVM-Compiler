@@ -68,3 +68,7 @@ Cell Deserialize_Cell() {
   __builtin_tvm_setglobal(3, __builtin_tvm_cast_from_slice(st.s));
   return st.c;
 }
+
+void tvm_accept(void) {
+  __builtin_tvm_accept();
+}

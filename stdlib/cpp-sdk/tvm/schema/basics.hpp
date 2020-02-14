@@ -48,6 +48,8 @@ struct int_t {
   auto& operator=(int val) { val_ = val; return *this; }
   auto& operator+=(int val) { val_ += val; return *this; }
   auto& operator-=(int val) { val_ -= val; return *this; }
+  auto& operator++() { ++val_; return *this; }
+  auto& operator--() { --val_; return *this; }
   operator int() const { return val_; }
   DEFAULT_EQUAL(int_t)
   int val_;
@@ -62,6 +64,8 @@ struct uint_t {
   auto& operator=(unsigned val) { val_ = val; return *this; }
   auto& operator+=(unsigned val) { val_ += val; return *this; }
   auto& operator-=(unsigned val) { val_ -= val; return *this; }
+  auto& operator++() { ++val_; return *this; }
+  auto& operator--() { --val_; return *this; }
   operator unsigned() const { return val_; }
   DEFAULT_EQUAL(uint_t)
   unsigned val_;
@@ -143,6 +147,11 @@ struct varuint {
   unsigned operator()() const { return val_; }
   void operator()(unsigned val) { val_ = val; }
   auto& operator=(unsigned val) { val_ = val; return *this; }
+  auto& operator+=(int val) { val_ += val; return *this; }
+  auto& operator-=(int val) { val_ -= val; return *this; }
+  auto& operator++() { ++val_; return *this; }
+  auto& operator--() { --val_; return *this; }
+
   DEFAULT_EQUAL(varuint)
   unsigned val_;
 };
@@ -154,6 +163,10 @@ struct varint {
   int operator()() const { return val_; }
   void operator()(int val) { val_ = val; }
   auto& operator=(int val) { val_ = val; return *this; }
+  auto& operator+=(int val) { val_ += val; return *this; }
+  auto& operator-=(int val) { val_ -= val; return *this; }
+  auto& operator++() { ++val_; return *this; }
+  auto& operator--() { --val_; return *this; }
   DEFAULT_EQUAL(varint)
   int val_;
 };

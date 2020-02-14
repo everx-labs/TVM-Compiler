@@ -75,6 +75,14 @@ template<>
 struct make_simple_type_impl<MsgAddress> {
   static constexpr auto value = "address"_s;
 };
+template<>
+struct make_simple_type_impl<MsgAddressInt> {
+  static constexpr auto value = "address"_s;
+};
+template<>
+struct make_simple_type_impl<MsgAddressExt> {
+  static constexpr auto value = "address"_s;
+};
 template<class T>
 struct make_simple_type_impl<lazy<T>> {
   static constexpr auto value = make_simple_type_impl<T>::value;
@@ -155,6 +163,14 @@ struct make_struct_json<uint_t<_bitlen>> {
 template<>
 struct make_struct_json<MsgAddress> {
   static constexpr auto value = make_field_impl<MsgAddress, 1>("value"_s);
+};
+template<>
+struct make_struct_json<MsgAddressInt> {
+  static constexpr auto value = make_field_impl<MsgAddressInt, 1>("value"_s);
+};
+template<>
+struct make_struct_json<MsgAddressExt> {
+  static constexpr auto value = make_field_impl<MsgAddressExt, 1>("value"_s);
 };
 
 constexpr auto make_abi_version() {

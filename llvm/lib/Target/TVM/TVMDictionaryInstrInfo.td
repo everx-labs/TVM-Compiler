@@ -211,6 +211,13 @@ let mayStore = 1 in {
       "DICTUADDREF\t$newdict, $succ, $c, $key, $D, $key_len",
       "DICTUADDREF", 0xf437>;
 
+  defm DICTUDEL :
+    I<(outs Cell:$newdict, I257:$modified),
+      (ins I257:$key, Cell:$dict, I257:$w), (outs), (ins),
+      [(set Cell:$newdict, I257:$modified,
+        (int_tvm_dictudel I257:$key, Cell:$dict, I257:$w))],
+      "DICTUDEL\t$newdict, $modified, $key, $dict, $w", "DICTUDEL", 0xf45b>;
+
   // TODO: think how to implement DICTADDGET-like operations
   //  with 2 or 3 return values (D old_val true) | (D false)
 

@@ -59,6 +59,20 @@ let mayLoad = 1 in {
         (int_tvm_dictugetref I257:$key, Cell:$dict, I257:$precision))],
       "DICTUGETREF\t$result, $status, $key, $dict, $precision",
       "DICTUGETREF NULLSWAPIFNOT", 0xf40f>;
+  defm DICTUMIN :
+    I<(outs Slice:$result, I257:$key, I257:$status),
+      (ins Cell:$dict, I257:$precision), (outs), (ins),
+      [(set Slice:$result, I257:$key, I257:$status,
+        (int_tvm_dictumin Cell:$dict, I257:$precision))],
+      "DICTUMIN\t$result, $key, $status, $dict, $precision",
+      "DICTUMIN NULLSWAPIFNOT NULLSWAPIFNOT", 0xf486>;
+  defm DICTUGETNEXT :
+    I<(outs Slice:$result, I257:$next, I257:$status),
+      (ins I257:$key, Cell:$dict, I257:$precision), (outs), (ins),
+      [(set Slice:$result, I257:$next, I257:$status,
+        (int_tvm_dictugetnext I257:$key, Cell:$dict, I257:$precision))],
+      "DICTUGETNEXT\t$result, $next, $status, $key, $dict, $precision",
+      "DICTUGETNEXT NULLSWAPIFNOT NULLSWAPIFNOT", 0xf47c>;
 }
 
 let mayStore = 1 in {

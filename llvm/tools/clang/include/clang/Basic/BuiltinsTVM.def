@@ -153,6 +153,8 @@ BUILTIN(__builtin_tvm_dictireplaceref, "{TcWi}TcWiTcWi", "nc")
 BUILTIN(__builtin_tvm_dictureplace, "{TcWi}TsWiTcWi", "nc")
 BUILTIN(__builtin_tvm_dictureplaceref, "{TcWi}TcWiTcWi", "nc")
 
+BUILTIN(__builtin_tvm_dictudel, "{TcWi}WiTcWi", "nc")
+
 BUILTIN(__builtin_tvm_lddict, "{TcTs}Ts", "nc")
 BUILTIN(__builtin_tvm_plddict, "TcTs", "nc")
 BUILTIN(__builtin_tvm_stdicts, "TbTsTb", "nc")

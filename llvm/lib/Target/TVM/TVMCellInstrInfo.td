@@ -212,6 +212,10 @@ defm SBITREFS : I<(outs I257:$bits, I257:$refs), (ins Slice:$slice),
                     (int_tvm_sbitrefs Slice:$slice))],
                   "SBITREFS\t$bits, $refs, $slice", "SBITREFS", 0xd74b>;
 
+defm BREMBITS : I<(outs I257:$result), (ins Builder:$b), (outs), (ins),
+                  [(set I257:$result, (int_tvm_brembits Builder:$b))],
+                  "BREMBITS\t$result, $b", "BREMBITS", 0xcf35>;
+
 let hasSideEffects = 1 in
 defm LDSLICEX : I<(outs Slice:$result, Slice:$remainder),
                   (ins Slice:$slice, I257:$size),

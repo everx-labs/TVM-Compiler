@@ -453,6 +453,9 @@ let TargetPrefix = "tvm" in {
   def int_tvm_sbitrefs :
     GCCBuiltin<"__builtin_tvm_sbitrefs">,
     Intrinsic<[llvm_i257_ty, llvm_i257_ty], [llvm_TVMSlice_ty]>;
+  def int_tvm_brembits :
+    GCCBuiltin<"__builtin_tvm_brembits">,
+    Intrinsic<[llvm_i257_ty], [llvm_TVMBuilder_ty]>;
   def int_tvm_inttoslice :
     GCCBuiltin<"__builtin_tvm_inttoslice">,
     Intrinsic<[llvm_TVMSlice_ty], [llvm_i257_ty]>;

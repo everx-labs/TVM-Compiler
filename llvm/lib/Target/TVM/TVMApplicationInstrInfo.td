@@ -16,6 +16,9 @@
 defm ACCEPT   : I0<(outs), (ins), [(int_tvm_accept)],
                    "ACCEPT", 0xf800>;
 
+defm COMMIT   : I0<(outs), (ins), [(int_tvm_commit)],
+                   "COMMIT", 0xf80f>;
+
 defm HASHCU   : I0<(outs I257 : $result), (ins Cell : $cell),
                    [(set I257 : $result, (int_tvm_hashcu Cell : $cell))],
                    "HASHCU", 0xf900>;

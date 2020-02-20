@@ -24,18 +24,13 @@ void tvm_accept(void);
 
 #define tvm_assert(condition,exc) if (!(condition)) __builtin_tvm_throw((exc))
 
-void Serialize_Unsigned_Impl (unsigned width, unsigned int);
-void Serialize_Signed_Impl (unsigned width, signed int);
-void Serialize_Unsigned (unsigned width, unsigned int);
-void Serialize_Signed (unsigned width, signed int);
+__tvm_builder tvm_serialize_unsigned (__tvm_builder builder, unsigned value, unsigned size);
+__tvm_builder tvm_serialize_int (__tvm_builder builder, int value, unsigned size);
+unsigned tvm_deserialize_unsigned (__tvm_slice *slice, unsigned size);
+int tvm_deserialize_int (__tvm_slice *slice, unsigned size);
+Cell tvm_deserialize_Cell ();
 
-unsigned int Deserialize_Unsigned_Impl (unsigned width);
-signed int Deserialize_Signed_Impl (unsigned width);
-unsigned int Deserialize_Unsigned (unsigned width);
-signed int Deserialize_Signed (unsigned width);
-Cell Deserialize_Cell ();
-
-__tvm_slice __tvm_ldu(__tvm_slice slice, int width, int *value);
+__tvm_slice __tvm_ldu(__tvm_slice slice, int width, unsigned *value);
 __tvm_slice __tvm_ldi(__tvm_slice slice, int width, int *value);
 
 #endif

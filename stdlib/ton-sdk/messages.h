@@ -7,20 +7,23 @@
 #include "messages.inc"
 
 enum SendMsgFlags {
-  MSG_NO_FLAGS            = 0,
+  MSG_NO_FLAGS = 0,
   MSG_PAY_FEES_SEPARATELY = 1,
-  MSG_IGNORE_ERRORS       = 2
+  MSG_IGNORE_ERRORS = 2
 };
 
-MsgAddressInt build_msg_address_int (int workchain, unsigned account);
+MsgAddressInt build_msg_address_int(int workchain, unsigned account);
 
-void build_internal_message (MsgAddressInt* dest, unsigned value);
-void build_internal_message_bounce(MsgAddressInt *dest, unsigned value,
-                                   unsigned bounce);
-void send_raw_message (int flags);
-void build_external_output_int256_message (int value);
-void build_external_output_common_message_header ();
+__tvm_builder build_internal_message(MsgAddressInt *dest, unsigned value);
+__tvm_builder build_internal_message_bounce(MsgAddressInt *dest, unsigned value,
+                                            unsigned bounce);
+__attribute__((overloadable)) void send_raw_message(int flags);
+__attribute__((overloadable)) void send_raw_message(__tvm_cell cell, int flags);
+__attribute__((overloadable)) void send_raw_message(__tvm_builder builder,
+                                                    int flags);
+void build_external_output_int256_message(int value);
+__tvm_builder build_external_output_common_message_header();
 
-MsgAddressInt get_sender_address ();
+MsgAddressInt get_sender_address();
 
 #endif

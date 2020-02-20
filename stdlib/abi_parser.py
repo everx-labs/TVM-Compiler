@@ -11,7 +11,7 @@ def convert_type (abi_type):
     g = re.match (r'(u?)int(\d+)', abi_type)
     if g:
         type = g.group (1)
-        command = ("%s" % ("Unsigned" if type=="u" else "Signed"), g.group (2))
+        command = ("%s" % ("unsigned" if type=="u" else "int"), g.group (2))
         return ('unsigned' if type == 'u' else 'int', command);
 
     if abi_type == 'void':
@@ -41,7 +41,6 @@ header = [
 ]
 wrapper = [
     '#include "ton-sdk/tvm.h"',
-    '#include "ton-sdk/arguments.h"',
     '#include "ton-sdk/messages.h"',
     ('#include "%s.h"' % contract_name),
     ''
@@ -72,24 +71,28 @@ for func in data['functions']:
 
     wrapper_header = "void %s () {" % name;
     wrapper.append(wrapper_header);
+    wrapper.append("    __tvm_slice slice = __builtin_tvm_cast_to_slice(__builtin_tvm_getglobal(3));");
     for inp in inputs:
         (inputs_type, inputs_command) = convert_type (inp['type'])
-        wrapper.append("    %s %s_Deserialized = Deserialize_%s (%s);" % (inputs_type, inp['name'], inputs_command[0], inputs_command[1]))
+        if not inputs_command[1]:
+            wrapper.append("    %s %s_deserialized = tvm_deserialize_%s (&slice);" % (inputs_type, inp['name'], inputs_command[0]))
+        else:
+            wrapper.append("    %s %s_deserialized = tvm_deserialize_%s (&slice, %s);" % (inputs_type, inp['name'], inputs_command[0], inputs_command[1]))
 
     main_arguments = []
     for inp in inputs:
         (inputs_type, _) = convert_type (inp['type'])
-        main_arguments.append("%s_Deserialized" % inp['name'])
+        main_arguments.append("%s_deserialized" % inp['name'])
 
     if (outputs_type != 'void'):
         wrapper.append ("    %s res = %s_Impl (%s);" % (outputs_type, name, ", ".join(main_arguments)))
-        wrapper.append ("    build_external_output_common_message_header ();")
+        wrapper.append ("    __tvm_builder builder = build_external_output_common_message_header ();")
         #function_id and abi_version are serialized only in ABI v1 and later
         if int(abi_version) > 0:
             #highest bit of answer id should be set to 1
             wrapper.append ("    unsigned int answer_id = (unsigned int)%s | 0x80000000;" % (name))
-            wrapper.append ("    Serialize_Unsigned_Impl(answer_id, 32);")
-        wrapper.append ("    Serialize_%s_Impl (res, %s);" % (outputs_command[0], outputs_command[1]))
+            wrapper.append ("    tvm_serialize_unsigned (builder, answer_id, 32);")
+        wrapper.append ("    tvm_serialize_%s (builder, res, %s);" % (outputs_command[0], outputs_command[1]))
         wrapper.append ("    send_raw_message (0);")
     else:
         wrapper.append ("    %s_Impl (%s);" % (name, ", ".join(main_arguments, )))

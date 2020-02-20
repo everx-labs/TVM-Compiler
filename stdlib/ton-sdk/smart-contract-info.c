@@ -2,7 +2,8 @@
 
 SmartContractInfo get_SmartContractInfo () {
     tonstdlib_get_smart_contract_info ();
-    return Deserialize_SmartContractInfo ();
+    __tvm_slice slice = __builtin_tvm_cast_to_slice(__builtin_tvm_getglobal(3));
+    return tvm_deserialize_SmartContractInfo (&slice);
 }
 
 #define HEADER_OR_C "define-ton-struct-c.inc"

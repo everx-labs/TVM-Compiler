@@ -336,6 +336,8 @@ class ASTContext : public RefCountedBase<ASTContext> {
   // TVM local begin
   /// The identifier '__reflect_field'.
   mutable IdentifierInfo *ReflectFieldName = nullptr;
+  /// The identifier '__reflect_fields_count'.
+  mutable IdentifierInfo *ReflectFieldsCountName = nullptr;
   /// The identifier '__reflect_methods_count'.
   mutable IdentifierInfo *ReflectMethodsCountName = nullptr;
   /// The identifier '__reflect_method_name'.
@@ -539,6 +541,7 @@ private:
   mutable BuiltinTemplateDecl *TypePackElementDecl = nullptr;
   // TVM local begin
   mutable BuiltinTemplateDecl *ReflectFieldDecl = nullptr;
+  mutable BuiltinTemplateDecl *ReflectFieldsCountDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectMethodsCountDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectMethodNameDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectMethodFuncIdDecl = nullptr;
@@ -1054,6 +1057,7 @@ public:
   BuiltinTemplateDecl *getTypePackElementDecl() const;
   // TVM local begin
   BuiltinTemplateDecl *getReflectFieldDecl() const;
+  BuiltinTemplateDecl *getReflectFieldsCountDecl() const;
   BuiltinTemplateDecl *getReflectMethodsCountDecl() const;
   BuiltinTemplateDecl *getReflectMethodNameDecl() const;
   BuiltinTemplateDecl *getReflectMethodFuncIdDecl() const;
@@ -1158,10 +1162,13 @@ public:
   BuiltinTemplateDecl *buildBuiltinTemplateDecl(BuiltinTemplateKind BTK,
                                                 const IdentifierInfo *II) const;
 
+  // TVM local begin
   /// Create a new implicit TU-level CXXRecordDecl or RecordDecl
   /// declaration.
   RecordDecl *buildImplicitRecord(StringRef Name,
-                                  RecordDecl::TagKind TK = TTK_Struct) const;
+                                  RecordDecl::TagKind TK = TTK_Struct,
+                                  SourceLocation Loc = {}) const;
+  // TVM local end
 
   /// Create a new implicit TU-level typedef declaration.
   TypedefDecl *buildImplicitTypedef(QualType T, StringRef Name) const;
@@ -1427,8 +1434,10 @@ public:
                                        StringRef ElemsStr) const;
 
   /// Creating struct with combined arguments for Method (without `this`)
-  QualType prepareTVMArgumentsStructType(CXXMethodDecl *Method) const;
-  QualType getTVMArgumentsStructType(CXXMethodDecl *Method) const;
+  QualType prepareTVMArgumentsStructType(CXXMethodDecl *Method,
+                                         SourceLocation Loc) const;
+  QualType getTVMArgumentsStructType(CXXMethodDecl *Method,
+                                     SourceLocation Loc) const;
 
   /// Creating struct with adapted smart interface for contract interface
   QualType prepareTVMSmartInterfaceType(CXXRecordDecl *Rec) const;
@@ -1821,6 +1830,12 @@ public:
     if (!ReflectFieldName)
       ReflectFieldName = &Idents.get("__reflect_field");
     return ReflectFieldName;
+  }
+
+  IdentifierInfo *getReflectFieldsCountName() const {
+    if (!ReflectFieldsCountName)
+      ReflectFieldsCountName = &Idents.get("__reflect_fields_count");
+    return ReflectFieldsCountName;
   }
 
   IdentifierInfo *getReflectMethodsCountName() const {

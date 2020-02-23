@@ -2533,6 +2533,14 @@ static void ParseLangArgs(LangOptions &Opts, ArgList &Args, InputKind IK,
       Args.hasFlag(OPT_fdeclspec, OPT_fno_declspec,
                    (Opts.MicrosoftExt || Opts.Borland || Opts.CUDA));
 
+  // TVM local begin
+  bool isTVM = llvm::Triple(TargetOpts.Triple).getArch() == llvm::Triple::tvm;
+  Opts.DecompositionBindingOverride =
+      Args.hasFlag(OPT_fdecomposition_binding_override,
+                   OPT_fno_decomposition_binding_override,
+                   isTVM);
+  // TVM local end
+
   if (Arg *A = Args.getLastArg(OPT_faddress_space_map_mangling_EQ)) {
     switch (llvm::StringSwitch<unsigned>(A->getValue())
       .Case("target", LangOptions::ASMM_Target)

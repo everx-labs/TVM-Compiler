@@ -1052,6 +1052,14 @@ ASTContext::getReflectFieldDecl() const {
 }
 
 BuiltinTemplateDecl *
+ASTContext::getReflectFieldsCountDecl() const {
+  if (!ReflectFieldsCountDecl)
+    ReflectFieldsCountDecl = buildBuiltinTemplateDecl(BTK__reflect_fields_count,
+                                                      getReflectFieldsCountName());
+  return ReflectFieldsCountDecl;
+}
+
+BuiltinTemplateDecl *
 ASTContext::getReflectMethodsCountDecl() const {
   if (!ReflectMethodsCountDecl)
     ReflectMethodsCountDecl = buildBuiltinTemplateDecl(
@@ -1130,11 +1138,10 @@ ASTContext::getReflectMethodPtrDecl() const {
         BTK__reflect_method_ptr, getReflectMethodPtrName());
   return ReflectMethodPtrDecl;
 }
-// TVM local end
 
 RecordDecl *ASTContext::buildImplicitRecord(StringRef Name,
-                                            RecordDecl::TagKind TK) const {
-  SourceLocation Loc;
+                                            RecordDecl::TagKind TK,
+                                            SourceLocation Loc) const {
   RecordDecl *NewDecl;
   if (getLangOpts().CPlusPlus)
     NewDecl = CXXRecordDecl::Create(*this, TK, getTranslationUnitDecl(), Loc,
@@ -1147,6 +1154,7 @@ RecordDecl *ASTContext::buildImplicitRecord(StringRef Name,
       const_cast<ASTContext &>(*this), TypeVisibilityAttr::Default));
   return NewDecl;
 }
+// TVM local end
 
 TypedefDecl *ASTContext::buildImplicitTypedef(QualType T,
                                               StringRef Name) const {
@@ -3650,11 +3658,12 @@ QualType ASTContext::prepareTVMLiteralStructType(ArrayRef<QualType> Elems,
   return getTypeDeclType(TypedefDec);
 }
 
-QualType ASTContext::getTVMArgumentsStructType(CXXMethodDecl *Method) const {
+QualType ASTContext::getTVMArgumentsStructType(CXXMethodDecl *Method,
+                                               SourceLocation Loc) const {
   auto it = TVMMethodArgStructs.find(Method);
   if (it != TVMMethodArgStructs.end())
     return it->second;
-  auto ArgTy = prepareTVMArgumentsStructType(Method);
+  auto ArgTy = prepareTVMArgumentsStructType(Method, Loc);
   auto [It, Ok] = TVMMethodArgStructs.insert(std::make_pair(Method, ArgTy));
   assert(Ok && "can't update TVMMethodArgStructs");
   return ArgTy;
@@ -3662,16 +3671,17 @@ QualType ASTContext::getTVMArgumentsStructType(CXXMethodDecl *Method) const {
 
 /// Creating struct with combined arguments for Method (no `this`)
 QualType
-ASTContext::prepareTVMArgumentsStructType(CXXMethodDecl *Method) const {
+ASTContext::prepareTVMArgumentsStructType(CXXMethodDecl *Method,
+                                          SourceLocation Loc) const {
   auto StructName = ("__tvm_arguments_struct_" + Method->getName()).str();
-  auto *RecDecl = buildImplicitRecord(StructName + "_Tag");
+  auto *RecDecl = buildImplicitRecord(StructName + "_Tag", TTK_Struct, Loc);
   RecDecl->startDefinition();
 
   for (auto Param : Method->parameters()) {
     QualType FieldType = Param->getOriginalType();
     FieldDecl *F = FieldDecl::Create(*this, RecDecl,
-                                     SourceLocation(),
-                                     SourceLocation(),
+                                     Loc,
+                                     Loc,
                                      &Idents.get(Param->getName()),
                                      FieldType, /*TInfo=*/nullptr,
                                      /*BitWidth=*/nullptr,

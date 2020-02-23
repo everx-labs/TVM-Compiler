@@ -1227,6 +1227,55 @@ createReflectFieldParameterList(const ASTContext &C, DeclContext *DC) {
                                        SourceLocation(), nullptr);
 }
 
+// __reflect_fields_count<T, IntType, Struct> -
+//   fields count of Struct, provided into template T
+//   => T<IntType, FieldsCount>
+// ex: __reflect_fields_count<std::integral_constant, unsigned, Struct>
+//   => std::integral_constant<unsigned, FieldsCount>
+static TemplateParameterList *
+createReflectFieldsCountParameterList(const ASTContext &C, DeclContext *DC) {
+  // typename IntType
+  auto *IntType = TemplateTypeParmDecl::Create(
+      C, DC, SourceLocation(), SourceLocation(), /*Depth=*/1, /*Position=*/0,
+      /*Id=*/nullptr, /*Typename=*/true, /*ParameterPack=*/false);
+  IntType->setImplicit(true);
+
+  // IntType IntVal
+  TypeSourceInfo *TI =
+      C.getTrivialTypeSourceInfo(QualType(IntType->getTypeForDecl(), 0));
+  auto *IntVal = NonTypeTemplateParmDecl::Create(
+      C, DC, SourceLocation(), SourceLocation(), /*Depth=*/0, /*Position=*/1,
+      /*Id=*/nullptr, TI->getType(), /*ParameterPack=*/false, TI);
+  IntVal->setImplicit(true);
+
+  // <typename IntType, IntType IntVal>
+  NamedDecl *P[2] = {IntType, IntVal};
+  auto *TPL = TemplateParameterList::Create(
+      C, SourceLocation(), SourceLocation(), P, SourceLocation(), nullptr);
+
+  // template <typename IntType, IntType IntVal> class integral_constant
+  auto *TemplateTemplateParm = TemplateTemplateParmDecl::Create(
+      C, DC, SourceLocation(), /*Depth=*/0, /*Position=*/0,
+      /*ParameterPack=*/false, /*Id=*/nullptr, TPL);
+  TemplateTemplateParm->setImplicit(true);
+
+  // typename IntTypeTop
+  auto *IntTypeTop = TemplateTypeParmDecl::Create(
+      C, DC, SourceLocation(), SourceLocation(), /*Depth=*/0, /*Position=*/1,
+      /*Id=*/nullptr, /*Typename=*/true, /*ParameterPack=*/false);
+  IntTypeTop->setImplicit(true);
+
+  auto *Struct = TemplateTypeParmDecl::Create(
+      C, DC, SourceLocation(), SourceLocation(), /*Depth=*/0, /*Position=*/2,
+      /*Id=*/nullptr, /*Typename=*/true, /*ParameterPack=*/false);
+  Struct->setImplicit(true);
+
+  NamedDecl *Params[] = { TemplateTemplateParm, IntTypeTop, Struct };
+  return TemplateParameterList::Create(C, SourceLocation(), SourceLocation(),
+                                       llvm::makeArrayRef(Params),
+                                       SourceLocation(), nullptr);
+}
+
 // __reflect_methods_count<T, IntType, Interface> -
 //   methods count of Interface, provided into template T
 //   => T<IntType, MethodsCount>
@@ -1586,6 +1635,8 @@ static TemplateParameterList *createBuiltinTemplateParameterList(
   // TVM local begin
   case BTK__reflect_field:
     return createReflectFieldParameterList(C, DC);
+  case BTK__reflect_fields_count:
+    return createReflectFieldsCountParameterList(C, DC);
   case BTK__reflect_methods_count:
     return createReflectMethodsCountParameterList(C, DC);
   case BTK__reflect_method_name:

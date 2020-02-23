@@ -692,6 +692,9 @@ static bool LookupBuiltin(Sema &S, LookupResult &R) {
         } else if (II == S.getASTContext().getReflectFieldName()) {
           R.addDecl(S.getASTContext().getReflectFieldDecl());
           return true;
+        } else if (II == S.getASTContext().getReflectFieldsCountName()) {
+          R.addDecl(S.getASTContext().getReflectFieldsCountDecl());
+          return true;
         } else if (II == S.getASTContext().getReflectMethodsCountName()) {
           R.addDecl(S.getASTContext().getReflectMethodsCountDecl());
           return true;

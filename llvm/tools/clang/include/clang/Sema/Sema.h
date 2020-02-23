@@ -1928,6 +1928,11 @@ public:
                                      Expr *Init);
   void CheckCompleteVariableDeclaration(VarDecl *VD);
   void CheckCompleteDecompositionDeclaration(DecompositionDecl *DD);
+  // TVM local begin
+  const CXXRecordDecl *FindDecomposableBaseClass(SourceLocation Loc,
+                                                 const CXXRecordDecl *RD,
+                                                 CXXCastPath &BasePath);
+  // TVM local end
   void MaybeSuggestAddingStaticToDecl(const FunctionDecl *D);
 
   NamedDecl* ActOnFunctionDeclarator(Scope* S, Declarator& D, DeclContext* DC,
@@ -6843,11 +6848,6 @@ public:
   /// Returns an empty Optional if the type can't be expanded.
   Optional<unsigned> getNumArgumentsInExpansion(QualType T,
       const MultiLevelTemplateArgumentList &TemplateArgs);
-
-  // TVM local begin
-  unsigned calcFieldCountForTrickySizeof(NamedDecl *Param,
-      const MultiLevelTemplateArgumentList &TemplateArgs);
-  // TVM local end
 
   /// Determine whether the given declarator contains any unexpanded
   /// parameter packs.

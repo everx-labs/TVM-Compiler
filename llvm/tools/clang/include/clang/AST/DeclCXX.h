@@ -3806,23 +3806,35 @@ class BindingDecl : public ValueDecl {
   /// that it is only evaluated once at the point of declaration of the
   /// binding).
   Expr *Binding = nullptr;
+  // TVM local begin
+  Expr *BindExisting = nullptr;
 
-  BindingDecl(DeclContext *DC, SourceLocation IdLoc, IdentifierInfo *Id)
-      : ValueDecl(Decl::Binding, DC, IdLoc, Id, QualType()) {}
+  BindingDecl(DeclContext *DC, SourceLocation IdLoc, IdentifierInfo *Id,
+              Expr *BindExisting)
+      : ValueDecl(Decl::Binding, DC, IdLoc, Id, QualType()),
+        BindExisting(BindExisting) {}
+  // TVM local end
 
   void anchor() override;
 
 public:
   friend class ASTDeclReader;
 
+  // TVM local begin
   static BindingDecl *Create(ASTContext &C, DeclContext *DC,
-                             SourceLocation IdLoc, IdentifierInfo *Id);
+                             SourceLocation IdLoc, IdentifierInfo *Id,
+                             Expr *BindExisting);
+  // TVM local end
   static BindingDecl *CreateDeserialized(ASTContext &C, unsigned ID);
 
   /// Get the expression to which this declaration is bound. This may be null
   /// in two different cases: while parsing the initializer for the
   /// decomposition declaration, and when the initializer is type-dependent.
   Expr *getBinding() const { return Binding; }
+
+  // TVM local begin
+  Expr *getBindExisting() const { return BindExisting; }
+  // TVM local end
 
   /// Get the variable (if any) that holds the value of evaluating the binding.
   /// Only present for user-defined bindings for tuple-like types.

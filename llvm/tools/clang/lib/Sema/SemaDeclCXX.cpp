@@ -804,20 +804,42 @@ Sema::ActOnDecompositionDeclarator(Scope *S, Declarator &D,
       Previous.clear();
     }
 
-    bool ConsiderLinkage = DC->isFunctionOrMethod() &&
-                           DS.getStorageClassSpec() == DeclSpec::SCS_extern;
-    FilterLookupForScope(Previous, DC, S, ConsiderLinkage,
-                         /*AllowInlineNamespace*/false);
-    if (!Previous.empty()) {
-      auto *Old = Previous.getRepresentativeDecl();
-      Diag(B.NameLoc, diag::err_redefinition) << B.Name;
-      Diag(Old->getLocation(), diag::note_previous_definition);
-    }
+    // TVM local begin
+    if (B.BindExisting) {
+      if (Previous.empty() || !Previous.isSingleResult() ||
+          (!isa<ValueDecl>(Previous.getFoundDecl()) &&
+           !isa<BindingDecl>(Previous.getFoundDecl()))) {
+        Diag(B.NameLoc, diag::err_undeclared_var_use) << B.Name;
+        return nullptr;
+      }
+      ExprResult BindExpr;
+      if (Previous.getFoundDecl()->isCXXClassMember()) {
+        BindExpr = BuildPossibleImplicitMemberExpr({}, SourceLocation(),
+                                                   Previous, nullptr, S);
+      } else {
+        BindExpr = BuildDeclarationNameExpr({}, Previous, /* ADL */ false);
+      }
+      auto *BD = BindingDecl::Create(Context, DC, B.NameLoc, B.Name,
+                                     BindExpr.get());
+      Bindings.push_back(BD);
+      ParsingInitForAutoVars.insert(BD);
+    } else {
+      bool ConsiderLinkage = DC->isFunctionOrMethod() &&
+                             DS.getStorageClassSpec() == DeclSpec::SCS_extern;
+      FilterLookupForScope(Previous, DC, S, ConsiderLinkage,
+                           /*AllowInlineNamespace*/false);
+      if (!Previous.empty()) {
+        auto *Old = Previous.getRepresentativeDecl();
+        Diag(B.NameLoc, diag::err_redefinition) << B.Name;
+        Diag(Old->getLocation(), diag::note_previous_definition);
+      }
 
-    auto *BD = BindingDecl::Create(Context, DC, B.NameLoc, B.Name);
-    PushOnScopeChains(BD, S, true);
-    Bindings.push_back(BD);
-    ParsingInitForAutoVars.insert(BD);
+      auto *BD = BindingDecl::Create(Context, DC, B.NameLoc, B.Name, nullptr);
+      PushOnScopeChains(BD, S, true);
+      Bindings.push_back(BD);
+      ParsingInitForAutoVars.insert(BD);
+    }
+    // TVM local end
   }
 
   // There are no prior lookup results for the variable itself, because it
@@ -863,7 +885,17 @@ static bool checkSimpleDecomposition(
     E = GetInit(Loc, E.get(), I++);
     if (E.isInvalid())
       return true;
-    B->setBinding(ElemType, E.get());
+    // TVM local begin
+    if (auto *Existing = B->getBindExisting()) {
+      ExprResult Assignment = S.BuildBinOp(nullptr, Loc, BO_Assign,
+                                           Existing, E.get());
+      if (Assignment.isInvalid())
+        return true;
+      B->setBinding(ElemType, Assignment.get());
+    } else {
+      B->setBinding(ElemType, E.get());
+    }
+    // TVM local end
   }
 
   return false;
@@ -1169,6 +1201,18 @@ static bool checkTupleLikeDecomposition(Sema &S,
     if (T.isNull())
       return true;
 
+    // TVM local begin
+    if (auto *Existing = B->getBindExisting()) {
+      ExprResult Assignment = S.BuildBinOp(nullptr, Loc, BO_Assign,
+                                           Existing, Init);
+      if (Assignment.isInvalid())
+        return true;
+      B->setBinding(T, Assignment.get());
+      I++;
+      continue;
+    }
+    // TVM local end
+
     //   each vi is a variable of type "reference to T" initialized with the
     //   initializer, where the reference is an lvalue reference if the
     //   initializer is an lvalue and an rvalue reference otherwise
@@ -1212,13 +1256,14 @@ static bool checkTupleLikeDecomposition(Sema &S,
   return false;
 }
 
+// TVM local begin
+
 /// Find the base class to decompose in a built-in decomposition of a class type.
 /// This base class search is, unfortunately, not quite like any other that we
 /// perform anywhere else in C++.
-static const CXXRecordDecl *findDecomposableBaseClass(Sema &S,
-                                                      SourceLocation Loc,
-                                                      const CXXRecordDecl *RD,
-                                                      CXXCastPath &BasePath) {
+const CXXRecordDecl *Sema::FindDecomposableBaseClass(SourceLocation Loc,
+                                                     const CXXRecordDecl *RD,
+                                                     CXXCastPath &BasePath) {
   auto BaseHasFields = [](const CXXBaseSpecifier *Specifier,
                           CXXBasePath &Path) {
     return Specifier->getType()->getAsCXXRecordDecl()->hasDirectFields();
@@ -1244,10 +1289,10 @@ static const CXXRecordDecl *findDecomposableBaseClass(Sema &S,
     for (auto &P : Paths) {
       if (!BestPath)
         BestPath = &P;
-      else if (!S.Context.hasSameType(P.back().Base->getType(),
-                                      BestPath->back().Base->getType())) {
+      else if (!Context.hasSameType(P.back().Base->getType(),
+                                    BestPath->back().Base->getType())) {
         //   ... the same ...
-        S.Diag(Loc, diag::err_decomp_decl_multiple_bases_with_members)
+        Diag(Loc, diag::err_decomp_decl_multiple_bases_with_members)
           << false << RD << BestPath->back().Base->getType()
           << P.back().Base->getType();
         return nullptr;
@@ -1258,19 +1303,19 @@ static const CXXRecordDecl *findDecomposableBaseClass(Sema &S,
 
     //   ... unambiguous ...
     QualType BaseType = BestPath->back().Base->getType();
-    if (Paths.isAmbiguous(S.Context.getCanonicalType(BaseType))) {
-      S.Diag(Loc, diag::err_decomp_decl_ambiguous_base)
-        << RD << BaseType << S.getAmbiguousPathsDisplayString(Paths);
+    if (Paths.isAmbiguous(Context.getCanonicalType(BaseType))) {
+      Diag(Loc, diag::err_decomp_decl_ambiguous_base)
+        << RD << BaseType << getAmbiguousPathsDisplayString(Paths);
       return nullptr;
     }
 
     //   ... public base class of E.
     if (BestPath->Access != AS_public) {
-      S.Diag(Loc, diag::err_decomp_decl_non_public_base)
+      Diag(Loc, diag::err_decomp_decl_non_public_base)
         << RD << BaseType;
       for (auto &BS : *BestPath) {
         if (BS.Base->getAccessSpecifier() != AS_public) {
-          S.Diag(BS.Base->getLocStart(), diag::note_access_constrained_by_path)
+          Diag(BS.Base->getLocStart(), diag::note_access_constrained_by_path)
             << (BS.Base->getAccessSpecifier() == AS_protected)
             << (BS.Base->getAccessSpecifierAsWritten() == AS_none);
           break;
@@ -1280,14 +1325,14 @@ static const CXXRecordDecl *findDecomposableBaseClass(Sema &S,
     }
 
     ClassWithFields = BaseType->getAsCXXRecordDecl();
-    S.BuildBasePathArray(Paths, BasePath);
+    BuildBasePathArray(Paths, BasePath);
   }
 
   // The above search did not check whether the selected class itself has base
   // classes with fields, so check that now.
   CXXBasePaths Paths;
   if (ClassWithFields->lookupInBases(BaseHasFields, Paths)) {
-    S.Diag(Loc, diag::err_decomp_decl_multiple_bases_with_members)
+    Diag(Loc, diag::err_decomp_decl_multiple_bases_with_members)
       << (ClassWithFields == RD) << RD << ClassWithFields
       << Paths.front().back().Base->getType();
     return nullptr;
@@ -1295,12 +1340,15 @@ static const CXXRecordDecl *findDecomposableBaseClass(Sema &S,
 
   return ClassWithFields;
 }
+// TVM local end
 
 static bool checkMemberDecomposition(Sema &S, ArrayRef<BindingDecl*> Bindings,
                                      ValueDecl *Src, QualType DecompType,
                                      const CXXRecordDecl *RD) {
   CXXCastPath BasePath;
-  RD = findDecomposableBaseClass(S, Src->getLocation(), RD, BasePath);
+  // TVM local begin
+  RD = S.FindDecomposableBaseClass(Src->getLocation(), RD, BasePath);
+  // TVM local end
   if (!RD)
     return true;
   QualType BaseType = S.Context.getQualifiedType(S.Context.getRecordType(RD),
@@ -1379,7 +1427,18 @@ static bool checkMemberDecomposition(Sema &S, ArrayRef<BindingDecl*> Bindings,
     Qualifiers Q = DecompType.getQualifiers();
     if (FD->isMutable())
       Q.removeConst();
-    B->setBinding(S.BuildQualifiedType(FD->getType(), Loc, Q), E.get());
+    // TVM local begin
+    auto Ty = S.BuildQualifiedType(FD->getType(), Loc, Q);
+    if (auto *Existing = B->getBindExisting()) {
+      ExprResult Assignment = S.BuildBinOp(nullptr, Loc, BO_Assign,
+                                           Existing, E.get());
+      if (Assignment.isInvalid())
+        return true;
+      B->setBinding(Ty, Assignment.get());
+    } else {
+      B->setBinding(Ty, E.get());
+    }
+  // TVM local end
   }
 
   if (I != Bindings.size())

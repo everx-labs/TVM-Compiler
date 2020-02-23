@@ -182,6 +182,9 @@ def warn_attribute_no_decl : Warning<
 def err_ms_attributes_not_enabled : Error<
   "'__declspec' attributes are not enabled; use '-fdeclspec' or "
   "'-fms-extensions' to enable support for __declspec attributes">;
+def err_decomposition_binding_override_not_enabled : Error<
+  "Decomposition binding overrides are not enabled; "
+  "use '-fdecomposition-binding-override' to enable support">;
 def err_expected_method_body : Error<"expected method body">;
 def err_declspec_after_virtspec : Error<
   "'%0' qualifier may not appear after the virtual specifier '%1'">;

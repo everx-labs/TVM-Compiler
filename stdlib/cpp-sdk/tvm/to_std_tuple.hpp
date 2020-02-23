@@ -33,7 +33,7 @@ template<> struct to_std_tuple_impl<Sz> {                   \
 
 template<typename T>
 struct calc_fields_count {
-  static constexpr unsigned value = sizeof...(T);
+  static constexpr unsigned value = __reflect_fields_count<std::integral_constant, unsigned, T>::value;
 };
 
 template<class _Tp>

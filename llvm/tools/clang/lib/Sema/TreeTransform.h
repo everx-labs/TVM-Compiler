@@ -261,12 +261,6 @@ public:
     return false;
   }
 
-  // TVM local begin
-  unsigned calcFieldCountForTrickySizeof(NamedDecl *Param) {
-    return 0;
-  }
-  // TVM local end
-
   /// "Forget" about the partially-substituted pack template argument,
   /// when performing an instantiation that must preserve the parameter pack
   /// use.
@@ -11428,20 +11422,6 @@ TreeTransform<Derived>::TransformSizeOfPackExpr(SizeOfPackExpr *E) {
 
   ArrayRef<TemplateArgument> PackArgs;
   TemplateArgument ArgStorage;
-
-  // TVM local begin
-  if (!E->getPack()->isParameterPack()) {
-    auto Sz = getDerived().calcFieldCountForTrickySizeof(E->getPack());
-    // auto *decl = getDerived().TransformDecl(E->getPackLoc(), E->getPack());
-    // auto *rec = dyn_cast<RecordDecl>(decl);
-    // if (!rec)
-    //   return E;
-    // auto Sz = llvm::count_if(rec->fields(), [](const auto&){ return true; });
-    return getDerived().RebuildSizeOfPackExpr(E->getOperatorLoc(), E->getPack(),
-                                              E->getPackLoc(),
-                                              E->getRParenLoc(), Sz, None);
-  }
-  // TVM local end
 
   // Find the argument list to transform.
   if (E->isPartiallySubstituted()) {

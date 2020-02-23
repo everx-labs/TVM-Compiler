@@ -814,22 +814,6 @@ Optional<unsigned> Sema::getNumArgumentsInExpansion(QualType T,
   return Result;
 }
 
-// TVM local begin
-unsigned Sema::calcFieldCountForTrickySizeof(
-    NamedDecl *Param,
-    const MultiLevelTemplateArgumentList &TemplateArgs) {
-  if (isa<ParmVarDecl>(Param))
-    return 0;
-  auto [Depth, Index] = getDepthAndIndex(Param);
-  const TemplateArgument &Arg = TemplateArgs(Depth, Index);
-  auto Ty = Arg.getAsType();
-  const auto *Rec = Ty->getAsStructureType();
-  if (!Rec)
-      return 0;
-  return llvm::count_if(Rec->getDecl()->fields(), [](auto){ return true; });
-}
-// TVM local end
-
 bool Sema::containsUnexpandedParameterPacks(Declarator &D) {
   const DeclSpec &DS = D.getDeclSpec();
   switch (DS.getTypeSpecType()) {
@@ -1002,11 +986,7 @@ ExprResult Sema::ActOnSizeofParameterPackExpr(Scope *S,
     return ExprError();
   }
 
-  // TVM local begin
-  if (!ParameterPack || (!ParameterPack->isParameterPack() &&
-      (ParameterPack->getKind() == Decl::NonTypeTemplateParm ||
-       !ParameterPack->isTemplateParameter()))) {
-    // TVM local end
+  if (!ParameterPack || !ParameterPack->isParameterPack()) {
     Diag(NameLoc, diag::err_sizeof_pack_no_pack_name)
       << &Name;
     return ExprError();

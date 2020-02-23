@@ -844,6 +844,8 @@ def fdiagnostics_show_template_tree : Flag<["-"], "fdiagnostics-show-template-tr
     HelpText<"Print a template comparison tree for differing templates">;
 def fdeclspec : Flag<["-"], "fdeclspec">, Group<f_clang_Group>,
   HelpText<"Allow __declspec as a keyword">, Flags<[CC1Option]>;
+def fdecomposition_binding_override : Flag<["-"], "fdecomposition-binding-override">, Group<f_clang_Group>,
+  HelpText<"Allow decomposition binding override (auto [=rv1, =rv2] = foo())">, Flags<[CC1Option]>;
 def fdiscard_value_names : Flag<["-"], "fdiscard-value-names">, Group<f_clang_Group>,
   HelpText<"Discard value names in LLVM IR">, Flags<[DriverOption]>;
 def fno_discard_value_names : Flag<["-"], "fno-discard-value-names">, Group<f_clang_Group>,
@@ -1362,6 +1364,8 @@ def fno_digraphs : Flag<["-"], "fno-digraphs">, Group<f_Group>, Flags<[CC1Option
   HelpText<"Disallow alternative token representations '<:', ':>', '<%', '%>', '%:', '%:%:'">;
 def fno_declspec : Flag<["-"], "fno-declspec">, Group<f_clang_Group>,
   HelpText<"Disallow __declspec as a keyword">, Flags<[CC1Option]>;
+def fno_decomposition_binding_override : Flag<["-"], "fno-decomposition-binding-override">, Group<f_clang_Group>,
+  HelpText<"Disallow decomposition binding override">, Flags<[CC1Option]>;
 def fno_dollars_in_identifiers : Flag<["-"], "fno-dollars-in-identifiers">, Group<f_Group>,
   HelpText<"Disallow '$' in identifiers">, Flags<[CC1Option]>;
 def fno_elide_constructors : Flag<["-"], "fno-elide-constructors">, Group<f_Group>,

@@ -130,10 +130,16 @@ void CodeGenFunction::EmitDecl(const Decl &D) {
     assert(VD.isLocalVarDecl() &&
            "Should not see file-scope variables inside a function!");
     EmitVarDecl(VD);
+    // TVM local begin
     if (auto *DD = dyn_cast<DecompositionDecl>(&VD))
-      for (auto *B : DD->bindings())
+      for (auto *B : DD->bindings()) {
         if (auto *HD = B->getHoldingVar())
           EmitVarDecl(*HD);
+        if (B->getBindExisting()) {
+          EmitLValue(B->getBinding());
+        }
+      }
+    // TVM local end
     return;
   }
 

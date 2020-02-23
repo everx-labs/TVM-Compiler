@@ -251,6 +251,9 @@ enum BuiltinTemplateKind : int {
   /// This names the __reflect_field BuiltinTemplateDecl.
   BTK__reflect_field,
 
+  /// This names the __reflect_fields_count BuiltinTemplateDecl.
+  BTK__reflect_fields_count,
+
   /// This names the __reflect_methods_count BuiltinTemplateDecl.
   BTK__reflect_methods_count,
 

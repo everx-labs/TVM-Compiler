@@ -5844,11 +5844,17 @@ void Parser::ParseDecompositionDeclarator(Declarator &D) {
   // array declarator.
   // FIXME: Consume the l_square first so we don't need extra lookahead for
   // this.
-  if (!(NextToken().is(tok::identifier) &&
-        GetLookAheadToken(2).isOneOf(tok::comma, tok::r_square)) &&
+  // TVM local begin
+  bool MaybeDecompose =
+      (NextToken().is(tok::identifier) &&
+       GetLookAheadToken(2).isOneOf(tok::comma, tok::r_square)) ||
+      (NextToken().is(tok::equal) && GetLookAheadToken(2).is(tok::identifier) &&
+       GetLookAheadToken(3).isOneOf(tok::comma, tok::r_square));
+  if (!MaybeDecompose &&
       !(NextToken().is(tok::r_square) &&
         GetLookAheadToken(2).isOneOf(tok::equal, tok::l_brace)))
     return ParseMisplacedBracketDeclarator(D);
+  // TVM local end
 
   BalancedDelimiterTracker T(*this, tok::l_square);
   T.consumeOpen();
@@ -5876,12 +5882,25 @@ void Parser::ParseDecompositionDeclarator(Declarator &D) {
       }
     }
 
+    // TVM local begin
+    bool BindExisting = false;
+    if (Tok.is(tok::equal)) {
+      if (!getLangOpts().DecompositionBindingOverride) {
+        Diag(Tok, diag::err_decomposition_binding_override_not_enabled);
+      }
+      BindExisting = true;
+      ConsumeToken();
+    }
+    // TVM local end
+
     if (Tok.isNot(tok::identifier)) {
       Diag(Tok, diag::err_expected) << tok::identifier;
       break;
     }
 
-    Bindings.push_back({Tok.getIdentifierInfo(), Tok.getLocation()});
+    // TVM local begin
+    Bindings.push_back({Tok.getIdentifierInfo(), Tok.getLocation(), BindExisting});
+    // TVM local end
     ConsumeToken();
   }
 

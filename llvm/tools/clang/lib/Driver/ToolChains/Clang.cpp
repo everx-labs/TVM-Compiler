@@ -4303,6 +4303,15 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
   else if (Args.hasArg(options::OPT_fno_declspec))
     CmdArgs.push_back("-fno-declspec"); // Explicitly disabling __declspec.
 
+  // TVM local begin
+  if (Args.hasFlag(options::OPT_fdecomposition_binding_override,
+                   options::OPT_fno_decomposition_binding_override,
+                   (getToolChain().getArch() == llvm::Triple::tvm)))
+    CmdArgs.push_back("-fdecomposition-binding-override");
+  else if (Args.hasArg(options::OPT_fno_decomposition_binding_override))
+    CmdArgs.push_back("-fno-decomposition-binding-override");
+  // TVM local end
+
   // -fthreadsafe-static is default, except for MSVC compatibility versions less
   // than 19.
   if (!Args.hasFlag(options::OPT_fthreadsafe_statics,

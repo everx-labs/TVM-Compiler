@@ -2996,20 +2996,21 @@ checkBuiltinTemplateIdType(Sema &SemaRef, BuiltinTemplateDecl *BTD,
                          "type std::size_t, and hence be non-negative");
 
     QualType ArgTy = StructArg.getAsType();
-    const auto *Rec = ArgTy->getAsStructureType();
+    const auto *Rec = ArgTy->getAsCXXRecordDecl();
     if (!Rec) {
       SemaRef.Diag(TemplateArgs[1].getLocation(),
                    diag::err_reflect_field_not_struct_arg);
       return QualType();
     }
-    auto *Decl = Rec->getDecl();
-    auto N = count_if(Decl->fields(), [](auto){ return true; });
+    CXXCastPath BasePath;
+    Rec = SemaRef.FindDecomposableBaseClass(TemplateLoc, Rec, BasePath);
+    auto N = count_if(Rec->fields(), [](auto){ return true; });
     if (Index >= N) {
       SemaRef.Diag(TemplateArgs[1].getLocation(),
                    diag::err_reflect_field_big_index);
       return QualType();
     }
-    auto FieldIt = std::next(Decl->fields().begin(),
+    auto FieldIt = std::next(Rec->fields().begin(),
                              static_cast<ptrdiff_t>(Index.getZExtValue()));
     auto Name = FieldIt->getName();
     auto ChTy = Context.CharTy;
@@ -3028,6 +3029,33 @@ checkBuiltinTemplateIdType(Sema &SemaRef, BuiltinTemplateDecl *BTD,
     }
     // The first template argument will be reused as the template decl that
     // our synthetic template arguments will be applied to.
+    return SemaRef.CheckTemplateIdType(Converted[0].getAsTemplate(),
+                                       TemplateLoc, SyntheticTemplateArgs);
+  }
+  case BTK__reflect_fields_count: {
+    // __reflect_fields_count<SubTemplate, IntType, Struct> ==>
+    //     SubTemplate<IntType, FieldsCount>
+    assert(Converted.size() == 3 &&
+      "__reflect_fields_count<SubTemplate, IntType, Struct>");
+    TemplateArgument IntType = Converted[1], Struct = Converted[2];
+    QualType ArgTy = Struct.getAsType();
+    const auto *Rec = ArgTy->getAsCXXRecordDecl();
+    if (!Rec) {
+      SemaRef.Diag(TemplateArgs[2].getLocation(),
+                   diag::err_reflect_method_not_struct_arg);
+      return QualType();
+    }
+    QualType IntTy = IntType.getAsType();
+    CXXCastPath BasePath;
+    Rec = SemaRef.FindDecomposableBaseClass(TemplateLoc, Rec, BasePath);
+    auto FieldsVal = llvm::count_if(Rec->fields(), [](auto){ return true; });
+    llvm::APSInt FieldsNum(static_cast<uint32_t>(Context.getTypeSize(IntTy)));
+    FieldsNum = static_cast<uint64_t>(FieldsVal);
+    TemplateArgumentListInfo SyntheticTemplateArgs;
+    SyntheticTemplateArgs.addArgument(TemplateArgs[1]);
+    TemplateArgument FieldsCountArg(Context, FieldsNum, IntTy);
+    SyntheticTemplateArgs.addArgument(SemaRef.getTrivialTemplateArgumentLoc(
+        FieldsCountArg, IntTy, TemplateArgs[0].getLocation()));
     return SemaRef.CheckTemplateIdType(Converted[0].getAsTemplate(),
                                        TemplateLoc, SyntheticTemplateArgs);
   }
@@ -3269,7 +3297,7 @@ checkBuiltinTemplateIdType(Sema &SemaRef, BuiltinTemplateDecl *BTD,
         return QualType();
       }
     }
-    return Context.getTVMArgumentsStructType(*it);
+    return Context.getTVMArgumentsStructType(*it, TemplateLoc);
   }
   case BTK__reflect_smart_interface: {
     // __reflect_smart_interface<parsed_value, built_value, Interface>  -

@@ -1,9 +1,14 @@
 // RUN: %clang -O3 -S -c -emit-llvm -target tvm %s -o -
 // REQUIRES: tvm-registered-target
 
+template<class Ty, Ty val>
+struct integral_constant {
+  static constexpr unsigned value = val;
+};
+
 template<class T>
 struct fields_count {
-  static constexpr unsigned value = sizeof...(T);
+  static constexpr unsigned value = __reflect_fields_count<integral_constant, unsigned, T>::value;
 };
 
 template<class T>

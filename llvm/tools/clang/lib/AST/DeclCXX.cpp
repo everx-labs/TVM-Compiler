@@ -2776,14 +2776,17 @@ StaticAssertDecl *StaticAssertDecl::CreateDeserialized(ASTContext &C,
 
 void BindingDecl::anchor() {}
 
+// TVM local begin
 BindingDecl *BindingDecl::Create(ASTContext &C, DeclContext *DC,
-                                 SourceLocation IdLoc, IdentifierInfo *Id) {
-  return new (C, DC) BindingDecl(DC, IdLoc, Id);
+                                 SourceLocation IdLoc, IdentifierInfo *Id,
+                                 Expr *BindExisting) {
+  return new (C, DC) BindingDecl(DC, IdLoc, Id, BindExisting);
 }
 
 BindingDecl *BindingDecl::CreateDeserialized(ASTContext &C, unsigned ID) {
-  return new (C, ID) BindingDecl(nullptr, SourceLocation(), nullptr);
+  return new (C, ID) BindingDecl(nullptr, SourceLocation(), nullptr, nullptr);
 }
+// TVM local end
 
 VarDecl *BindingDecl::getHoldingVar() const {
   Expr *B = getBinding();

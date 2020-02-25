@@ -4,6 +4,7 @@
 #include <tvm/reflection.hpp>
 #include <tvm/schema/basics.hpp>
 #include <tvm/schema/message.hpp>
+#include <tvm/sequence.hpp>
 #include <tvm/dict_array.hpp>
 #include <tvm/dict_map.hpp>
 
@@ -103,6 +104,10 @@ struct make_simple_type_impl<dict_map<Key, Value>> {
   static constexpr auto value = "map("_s + key_value + ", "_s + elem_value + ")"_s;
 };
 template<>
+struct make_simple_type_impl< sequence<uint_t<8>> > {
+  static constexpr auto value = "bytes"_s;
+};
+template<>
 struct make_simple_type_impl<cell> {
   static constexpr auto value = "cell"_s;
 };
@@ -177,7 +182,7 @@ struct make_struct_json<void> {
 // For simple-type return value ("MsgAddress func()") we don't have name for field, so just "value0"
 template<unsigned _bitlen>
 struct make_struct_json<int_t<_bitlen>> {
-  static constexpr auto value = make_field_impl<int_t<_bitlen>, 1>("value"_s);
+  static constexpr auto value = make_field_impl<int_t<_bitlen>, 1>("value0"_s);
 };
 template<unsigned _bitlen>
 struct make_struct_json<uint_t<_bitlen>> {
@@ -207,6 +212,10 @@ struct make_struct_json<dict_array<Element, 32>> {
 template<class Key, class Value>
 struct make_struct_json<dict_map<Key, Value>> {
   static constexpr auto value = make_field_impl<dict_map<Key, Value>, 1>("value0"_s);
+};
+template<>
+struct make_struct_json< sequence<uint_t<8>> > {
+  static constexpr auto value = make_field_impl<sequence<uint_t<8>>, 1>("value0"_s);
 };
 template<>
 struct make_struct_json<cell> {

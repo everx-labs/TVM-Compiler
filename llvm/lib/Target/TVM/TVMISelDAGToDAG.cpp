@@ -106,6 +106,12 @@ void TVMDAGToDAGISel::Select(SDNode *Node) {
     break;
   case TVMISD::TUPLE: {
     SmallVector<SDValue, 16> Ops(Node->op_begin(), Node->op_end());
+    if (Ops.size() <= 1) {
+      SDNode *Res = CurDAG->getMachineNode(TVM::NIL, dl, MVT::TVMTuple);
+      ReplaceNode(Node, Res);
+      return;
+    }
+
     SDNode *Res = CurDAG->getMachineNode(TVM::TUPLE, dl, MVT::TVMTuple, Ops);
     ReplaceNode(Node, Res);
     return;

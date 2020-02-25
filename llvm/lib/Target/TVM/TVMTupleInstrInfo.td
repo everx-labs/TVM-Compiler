@@ -12,6 +12,11 @@
 //
 //===----------------------------------------------------------------------===//
 
+defm NIL : I<(outs Tuple:$result), (ins), (outs), (ins),
+             [],
+             "NIL\t$result",
+             "NIL", 0x6f00>;
+
 defm TUPLE : I<(outs Tuple:$result),
                 (ins reglist:$regs, variable_ops, uimm4:$sz),
                 (outs), (ins uimm4:$sz),

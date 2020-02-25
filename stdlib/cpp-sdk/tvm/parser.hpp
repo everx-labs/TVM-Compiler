@@ -8,6 +8,7 @@ namespace tvm {
 
 class parser {
 public:
+  parser(){}
   explicit parser(slice sl) : sl_(sl.get()) {}
   explicit parser(__tvm_slice sl) : sl_(sl) {}
   explicit parser(__tvm_cell cell) : sl_(__builtin_tvm_ctos(cell)) {}
@@ -100,6 +101,7 @@ public:
   }
   
   slice get_cur_slice() const { return sl_; }
+  slice sl() const { return sl_; }
 
   // Ensure that slice is now empty and throw exception if not
   void ends() const {

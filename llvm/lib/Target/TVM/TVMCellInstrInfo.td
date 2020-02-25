@@ -226,6 +226,10 @@ defm SBITREFS : I<(outs I257:$bits, I257:$refs), (ins Slice:$slice),
                     (int_tvm_sbitrefs Slice:$slice))],
                   "SBITREFS\t$bits, $refs, $slice", "SBITREFS", 0xd74b>;
 
+defm BBITS : I<(outs I257:$result), (ins Builder:$b), (outs), (ins),
+               [(set I257:$result, (int_tvm_bbits Builder:$b))],
+               "BBITS\t$result, $b", "BBITS", 0xcf31>;
+
 defm BREMBITS : I<(outs I257:$result), (ins Builder:$b), (outs), (ins),
                   [(set I257:$result, (int_tvm_brembits Builder:$b))],
                   "BREMBITS\t$result, $b", "BREMBITS", 0xcf35>;

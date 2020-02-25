@@ -564,6 +564,9 @@ let TargetPrefix = "tvm" in {
   def int_tvm_logflush :
     GCCBuiltin<"__builtin_tvm_logflush">,
     Intrinsic<[], []>;
+  def int_tvm_bbits :
+    GCCBuiltin<"__builtin_tvm_bbits">,
+    Intrinsic<[llvm_i257_ty], [llvm_TVMBuilder_ty]>;
 
   // A.3 Tuple, list and null primitives
   def int_tvm_index :

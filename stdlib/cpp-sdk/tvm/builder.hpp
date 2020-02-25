@@ -8,6 +8,7 @@ namespace tvm {
 class __attribute((tvm_tuple)) builder {
 public:
   builder() : bldr_(__builtin_tvm_newc()) {}
+  explicit builder(__tvm_builder bldr) : bldr_(bldr) {}
 
   builder& stslice(slice sl) {
     bldr_ = __builtin_tvm_stslice(sl, bldr_);
@@ -50,10 +51,15 @@ public:
     bldr_ = __builtin_tvm_stref(cl, bldr_);
     return *this;
   }
-  
+
+  unsigned bbits() const { return __builtin_tvm_bbits(bldr_); }
+  unsigned brembits() const { return __builtin_tvm_brembits(bldr_); }
+
   cell make_cell() const { return  { __builtin_tvm_endc(bldr_) }; }
   cell endc() const { return make_cell(); }
   slice make_slice() const { return make_cell().ctos(); }
+
+  __tvm_builder get() const { return bldr_; }
 private:
   __tvm_builder bldr_;
 };

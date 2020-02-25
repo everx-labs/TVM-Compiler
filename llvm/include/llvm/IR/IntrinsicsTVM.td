@@ -193,7 +193,24 @@ let TargetPrefix = "tvm" in {
     GCCBuiltin<"__builtin_tvm_dictumin">,
     Intrinsic<[llvm_TVMSlice_ty, llvm_i257_ty, llvm_i257_ty],
               [llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
-
+  def int_tvm_dictugetprev :
+    GCCBuiltin<"__builtin_tvm_dictugetprev">,
+    Intrinsic<[llvm_TVMSlice_ty, llvm_i257_ty, llvm_i257_ty],
+              [llvm_i257_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+  def int_tvm_dictumax :
+    GCCBuiltin<"__builtin_tvm_dictumax">,
+    Intrinsic<[llvm_TVMSlice_ty, llvm_i257_ty, llvm_i257_ty],
+              [llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+  def int_tvm_dicturemmin :
+    GCCBuiltin<"__builtin_tvm_dicturemmin">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_TVMSlice_ty,
+               llvm_i257_ty, llvm_i257_ty],
+              [llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+  def int_tvm_dicturemmax :
+    GCCBuiltin<"__builtin_tvm_dicturemmax">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_TVMSlice_ty,
+               llvm_i257_ty, llvm_i257_ty],
+              [llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
   def int_tvm_dictset :
     GCCBuiltin<"__builtin_tvm_dictset">,
     Intrinsic<[llvm_TVMCell_ty /* Dict */],
@@ -224,6 +241,11 @@ let TargetPrefix = "tvm" in {
     Intrinsic<[llvm_TVMCell_ty /* Dict */],
               [llvm_TVMCell_ty, llvm_i257_ty,
                llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+    def int_tvm_dictusetget :
+      GCCBuiltin<"__builtin_tvm_dictusetget">,
+      Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_TVMSlice_ty, llvm_i257_ty],
+                [llvm_TVMSlice_ty, llvm_i257_ty,
+                 llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
 
   def int_tvm_dictreplace :
     GCCBuiltin<"__builtin_tvm_dictreplace">,

@@ -15,6 +15,8 @@ struct error_code {
   static constexpr int bad_arguments               = 60;
   static constexpr int constructor_double_call     = 61;
   static constexpr int method_called_without_init  = 62;
+  static constexpr int iterator_overflow           = 63;
+  static constexpr int empty_container             = 64;
 };
 
 } // namespace tvm

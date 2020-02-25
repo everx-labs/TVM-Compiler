@@ -8,5 +8,5 @@ using namespace tvm;
 using namespace schema;
 
 void foo(lazy<MsgAddressInt> addr) {
-  contract_handle<IPiggybank>(addr).call<&IPiggybank::deposit>(10000);
+  contract_handle<IPiggybank>(addr).call<&IPiggybank::deposit>(schema::Grams(10000));
 }

@@ -79,6 +79,13 @@ struct make_builder_impl<HashmapE<_keylen, _element_type>> {
     return b.stdict(v.dict_);
   }
 };
+template<>
+struct make_builder_impl<anydict> {
+  using value_type = anydict;
+  inline static builder build(builder b, value_type v) {
+    return b.stdict(v.dict_);
+  }
+};
 
 template<class _Tp>
 struct make_builder_impl<ref<_Tp>> {
@@ -90,10 +97,10 @@ struct make_builder_impl<ref<_Tp>> {
   }
 };
 template<>
-struct make_builder_impl<anyref> {
-  using value_type = anyref;
+struct make_builder_impl<cell> {
+  using value_type = cell;
   inline static builder build(builder b, value_type v) {
-    return b.stref(v.val_);
+    return b.stref(v);
   }
 };
 template<>

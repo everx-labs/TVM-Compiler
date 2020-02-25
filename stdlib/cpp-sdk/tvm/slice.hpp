@@ -1,10 +1,12 @@
 #pragma once
 
+#include <tvm/to_std_tuple.hpp>
+
 namespace tvm {
 
 class __attribute((tvm_tuple)) slice {
 public:
-  slice() {}
+  slice() : sl_((__tvm_slice)__builtin_tvm_pushnull()) {}
   slice(__tvm_slice sl) : sl_(sl) {}
 
   unsigned sbits() const { return __builtin_tvm_sbits(sl_); }

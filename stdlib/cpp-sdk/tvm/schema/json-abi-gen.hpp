@@ -4,6 +4,8 @@
 #include <tvm/reflection.hpp>
 #include <tvm/schema/basics.hpp>
 #include <tvm/schema/message.hpp>
+#include <tvm/dict_array.hpp>
+#include <tvm/dict_map.hpp>
 
 /*
 {
@@ -37,13 +39,19 @@ constexpr size_t get_magnitude(size_t num) {
   return i;
 }
 
+constexpr char hex_sym(unsigned num) {
+  constexpr char arr[] = "0123456789abcdef";
+  return arr[std::min(num, 16u)];
+}
+
 template <unsigned radix, class X, size_t ...i>
 constexpr auto to_string(X x, std::index_sequence<i...>) {
   constexpr size_t mag = get_magnitude<radix>(X::value);
   return hana::string<
-    (x / hana::power(hana::size_c<radix>,
-                     hana::size_c<mag - i - 1>) % hana::size_c<radix>
-                       + hana::size_c<48>)...>{};
+    hana::size_c<hex_sym(
+      hana::value(x / hana::power(hana::size_c<radix>, hana::size_c<mag - i - 1>)
+                    % hana::size_c<radix>))
+      >...>{};
 }
 
 template <unsigned radix, class X>
@@ -82,6 +90,21 @@ struct make_simple_type_impl<MsgAddressInt> {
 template<>
 struct make_simple_type_impl<MsgAddressExt> {
   static constexpr auto value = "address"_s;
+};
+template<class Element>
+struct make_simple_type_impl<dict_array<Element, 32>> {
+  static constexpr auto elem_value = make_simple_type_impl<Element>::value;
+  static constexpr auto value = elem_value + "[]"_s;
+};
+template<class Key, class Value>
+struct make_simple_type_impl<dict_map<Key, Value>> {
+  static constexpr auto key_value = make_simple_type_impl<Key>::value;
+  static constexpr auto elem_value = make_simple_type_impl<Value>::value;
+  static constexpr auto value = "map("_s + key_value + ", "_s + elem_value + ")"_s;
+};
+template<>
+struct make_simple_type_impl<cell> {
+  static constexpr auto value = "cell"_s;
 };
 template<class T>
 struct make_simple_type_impl<lazy<T>> {
@@ -151,26 +174,47 @@ struct make_struct_json<void> {
   static constexpr auto value = ""_s;
 };
 
-// For simple-type return value ("MsgAddress func()") we don't have name for field, so just "value"
+// For simple-type return value ("MsgAddress func()") we don't have name for field, so just "value0"
 template<unsigned _bitlen>
 struct make_struct_json<int_t<_bitlen>> {
   static constexpr auto value = make_field_impl<int_t<_bitlen>, 1>("value"_s);
 };
 template<unsigned _bitlen>
 struct make_struct_json<uint_t<_bitlen>> {
-  static constexpr auto value = make_field_impl<uint_t<_bitlen>, 1>("value"_s);
+  static constexpr auto value = make_field_impl<uint_t<_bitlen>, 1>("value0"_s);
 };
 template<>
+struct make_struct_json<uint_t<1>> {
+  static constexpr auto value = make_field_impl<uint_t<1>, 1>("value0"_s);
+};
+
+template<>
 struct make_struct_json<MsgAddress> {
-  static constexpr auto value = make_field_impl<MsgAddress, 1>("value"_s);
+  static constexpr auto value = make_field_impl<MsgAddress, 1>("value0"_s);
 };
 template<>
 struct make_struct_json<MsgAddressInt> {
-  static constexpr auto value = make_field_impl<MsgAddressInt, 1>("value"_s);
+  static constexpr auto value = make_field_impl<MsgAddressInt, 1>("value0"_s);
 };
 template<>
 struct make_struct_json<MsgAddressExt> {
-  static constexpr auto value = make_field_impl<MsgAddressExt, 1>("value"_s);
+  static constexpr auto value = make_field_impl<MsgAddressExt, 1>("value0"_s);
+};
+template<class Element>
+struct make_struct_json<dict_array<Element, 32>> {
+  static constexpr auto value = make_field_impl<dict_array<Element, 32>, 1>("value0"_s);
+};
+template<class Key, class Value>
+struct make_struct_json<dict_map<Key, Value>> {
+  static constexpr auto value = make_field_impl<dict_map<Key, Value>, 1>("value0"_s);
+};
+template<>
+struct make_struct_json<cell> {
+  static constexpr auto value = make_field_impl<cell, 1>("value0"_s);
+};
+template<class T>
+struct make_struct_json<lazy<T>> {
+  static constexpr auto value = make_field_impl<lazy<T>, 1>("value0"_s);
 };
 
 constexpr auto make_abi_version() {

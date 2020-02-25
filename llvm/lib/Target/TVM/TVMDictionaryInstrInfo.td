@@ -73,6 +73,34 @@ let mayLoad = 1 in {
         (int_tvm_dictugetnext I257:$key, Cell:$dict, I257:$precision))],
       "DICTUGETNEXT\t$result, $next, $status, $key, $dict, $precision",
       "DICTUGETNEXT NULLSWAPIFNOT NULLSWAPIFNOT", 0xf47c>;
+    defm DICTUMAX :
+      I<(outs Slice:$result, I257:$key, I257:$status),
+        (ins Cell:$dict, I257:$precision), (outs), (ins),
+        [(set Slice:$result, I257:$key, I257:$status,
+          (int_tvm_dictumax Cell:$dict, I257:$precision))],
+        "DICTUMAX\t$result, $key, $status, $dict, $precision",
+        "DICTUMAX NULLSWAPIFNOT NULLSWAPIFNOT", 0xf48e>;
+    defm DICTUGETPREV :
+      I<(outs Slice:$result, I257:$next, I257:$status),
+        (ins I257:$key, Cell:$dict, I257:$precision), (outs), (ins),
+        [(set Slice:$result, I257:$next, I257:$status,
+          (int_tvm_dictugetprev I257:$key, Cell:$dict, I257:$precision))],
+        "DICTUGETPREV\t$result, $next, $status, $key, $dict, $precision",
+        "DICTUGETPREV NULLSWAPIFNOT NULLSWAPIFNOT", 0xf47a>;
+    defm DICTUREMMIN :
+      I<(outs Cell:$newdict, Slice:$result, I257:$idx, I257:$status),
+        (ins Cell:$dict, I257:$precision), (outs), (ins),
+        [(set Cell:$newdict, Slice:$result, I257:$idx, I257:$status,
+          (int_tvm_dicturemmin Cell:$dict, I257:$precision))],
+        "DICTUREMMIN\t$result, $idx, $status, $dict, $precision",
+        "DICTUREMMIN NULLSWAPIFNOT NULLSWAPIFNOT", 0xf496>;
+    defm DICTUREMMAX :
+      I<(outs Cell:$newdict, Slice:$result, I257:$idx, I257:$status),
+        (ins Cell:$dict, I257:$precision), (outs), (ins),
+        [(set Cell:$newdict, Slice:$result, I257:$idx, I257:$status,
+          (int_tvm_dicturemmax Cell:$dict, I257:$precision))],
+        "DICTUREMMAX\t$result, $idx, $status, $dict, $precision",
+        "DICTUREMMAX NULLSWAPIFNOT NULLSWAPIFNOT", 0xf496>;
 }
 
 let mayStore = 1 in {
@@ -118,9 +146,13 @@ let mayStore = 1 in {
         (int_tvm_dictusetref Cell:$c, I257:$key, Cell:$dict, I257:$precision))],
       "DICTUSETREF\t$newdict, $c, $key, $dict, $precision",
       "DICTUSETREF", 0xf417>;
-
-  // TODO: think how to implement DICTISETGET-like operations
-  //  with 2 or 3 return values (D old_val true) | (D false)
+  defm DICTUSETGET :
+    I<(outs Cell:$newdict, Slice:$oldval, I257:$succ),
+      (ins Slice:$val, I257:$key, Cell:$dict, I257:$precision), (outs), (ins),
+      [(set Cell:$newdict, Slice:$oldval, I257:$succ,
+        (int_tvm_dictusetget Slice:$val, I257:$key, Cell:$dict, I257:$precision))],
+      "DICTUSETGET\t$newdict, $oldval, $succ, $val, $key, $dict, $precision",
+      "DICTUSETGET NULLSWAPIFNOT", 0xf41e>;
 
   defm DICTREPLACE :
     I<(outs Cell:$newdict, I257:$succ),

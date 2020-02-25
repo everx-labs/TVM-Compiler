@@ -4,6 +4,8 @@
 #include <tuple>
 #include <variant>
 
+#include <boost/operators.hpp>
+
 #include <tvm/cell.hpp>
 #include <tvm/slice.hpp>
 
@@ -23,6 +25,58 @@ namespace tvm { namespace schema {
     return to_std_tuple(*this) != to_std_tuple(v);   \
   }
 
+#ifdef DEFAULT_PROXY_OPERATORS
+#error Overriding DEFAULT_PROXY_OPERATORS macros
+#endif
+#define DEFAULT_PROXY_OPERATORS(T, V)                                                       \
+  bool operator<(T x) const { return val_ < x.val_; }                                       \
+  bool operator<(V x) const { return val_ < x; }                                            \
+  template<unsigned _len> bool operator<(T<_len> x) const { return val_ < x.val_; }         \
+  bool operator<=(T x) const { return val_ <= x.val_; }                                     \
+  bool operator<=(V x) const { return val_ <= x; }                                          \
+  template<unsigned _len> bool operator<=(T<_len> x) const { return val_ <= x.val_; }       \
+  bool operator>(T x) const { return val_ > x.val_; }                                       \
+  bool operator>(V x) const { return val_ > x; }                                            \
+  template<unsigned _len> bool operator>(T<_len> x) const { return val_ > x.val_; }         \
+  bool operator>=(T x) const { return val_ >= x.val_; }                                     \
+  bool operator>=(V x) const { return val_ >= x; }                                          \
+  template<unsigned _len> bool operator>=(T<_len> x) const { return val_ >= x.val_; }       \
+  bool operator==(T x) const { return val_ == x.val_; }                                     \
+  bool operator==(V x) const { return val_ == x; }                                          \
+  template<unsigned _len> bool operator==(T<_len> x) const { return val_ == x.val_; }       \
+  bool operator!=(T x) const { return val_ != x.val_; }                                     \
+  bool operator!=(V x) const { return val_ != x; }                                          \
+  template<unsigned _len> bool operator!=(T<_len> x) const { return val_ != x.val_; }       \
+  T& operator+=(T x) { val_ += x.val_; return *this; }                                      \
+  T& operator+=(V x) { val_ += x; return *this; }                                           \
+  template<unsigned _len> T& operator+=(T<_len> x) { val_ += x.val_; return *this; }        \
+  T& operator-=(T x) { val_ -= x.val_; return *this; }                                      \
+  T& operator-=(V x) { val_ -= x; return *this; }                                           \
+  template<unsigned _len> T& operator-=(T<_len> x) { val_ -= x.val_; return *this; }        \
+  T& operator*=(T x) { val_ *= x.val_; return *this; }                                      \
+  T& operator*=(V x) { val_ *= x; return *this; }                                           \
+  template<unsigned _len> T& operator*=(T<_len> x) { val_ *= x.val_; return *this; }        \
+  T& operator/=(T x) { val_ /= x.val_; return *this; }                                      \
+  T& operator/=(V x) { val_ /= x; return *this; }                                           \
+  template<unsigned _len> T& operator/=(T<_len> x) { val_ /= x.val_; return *this; }        \
+  T& operator%=(T x) { val_ %= x.val_; return *this; }                                      \
+  T& operator%=(V x) { val_ %= x; return *this; }                                           \
+  template<unsigned _len> T& operator%=(T<_len> x) { val_ %= x.val_; return *this; }        \
+  T& operator|=(T x) { val_ |= x.val_; return *this; }                                      \
+  T& operator|=(V x) { val_ |= x; return *this; }                                           \
+  template<unsigned _len> T& operator|=(T<_len> x) { val_ |= x.val_; return *this; }        \
+  T& operator&=(T x) { val_ &= x.val_; return *this; }                                      \
+  T& operator&=(V x) { val_ &= x; return *this; }                                           \
+  template<unsigned _len> T& operator&=(T<_len> x) { val_ &= x.val_; return *this; }        \
+  T& operator^=(T x) { val_ ^= x.val_; return *this; }                                      \
+  T& operator^=(V x) { val_ ^= x; return *this; }                                           \
+  template<unsigned _len> T& operator^=(T<_len> x) { val_ ^= x.val_; return *this; }        \
+  T& operator++() { ++val_; return *this; }                                                 \
+  T& operator--() { --val_; return *this; }                                                 \
+  T operator++(int) { T old(*this); ++val_; return old; }                                   \
+  T operator--(int) { T old(*this); --val_; return old; }                                   \
+  T operator~() const { return T(~val_); }
+
 template<unsigned _bitlen, unsigned _code>
 struct bitconst {
   constexpr bool operator==(bitconst<_bitlen, _code>) const {
@@ -41,50 +95,394 @@ struct bitfield {
 
 template<unsigned _bitlen>
 struct int_t {
+  static constexpr unsigned max_bits = 257;
+
   int_t() : val_(0) {}
-  int_t(int val) : val_(val) {}
+  explicit int_t(int val) : val_(val) {}
   int operator()() const { return val_; }
   void operator()(int val) { val_ = val; }
   auto& operator=(int val) { val_ = val; return *this; }
-  auto& operator+=(int val) { val_ += val; return *this; }
-  auto& operator-=(int val) { val_ -= val; return *this; }
-  auto& operator++() { ++val_; return *this; }
-  auto& operator--() { --val_; return *this; }
-  operator int() const { return val_; }
-  DEFAULT_EQUAL(int_t)
+  template<unsigned _len>
+  auto& operator=(int_t<_len> val) { val_ = val.get(); return *this; }
+  DEFAULT_PROXY_OPERATORS(int_t, int)
+  int get() const { return val_; }
+  explicit operator bool() const { return val_ != 0; }
+  explicit operator int() const { return val_; }
   int val_;
 };
 
+template<unsigned _left_len, unsigned _right_len>
+auto operator+(int_t<_left_len> l, int_t<_right_len> r) {
+  return int_t<std::max(_left_len, _right_len)>(l.val_ + r.val_);
+}
+template<unsigned _len>
+auto operator+(int_t<_len> l, unsigned r) {
+  return int_t<_len>(l.val_ + r);
+}
+template<unsigned _len>
+auto operator+(unsigned l, int_t<_len> r) {
+  return int_t<_len>(l + r.val_);
+}
+template<unsigned _left_len, unsigned _right_len>
+auto operator-(int_t<_left_len> l, int_t<_right_len> r) {
+  return int_t<std::max(_left_len, _right_len)>(l.val_ - r.val_);
+}
+template<unsigned _len>
+auto operator-(int_t<_len> l, unsigned r) {
+  return int_t<_len>(l.val_ - r);
+}
+template<unsigned _len>
+auto operator-(unsigned l, int_t<_len> r) {
+  return int_t<_len>(l - r.val_);
+}
+template<unsigned _left_len, unsigned _right_len>
+auto operator*(int_t<_left_len> l, int_t<_right_len> r) {
+  return int_t<std::max(_left_len, _right_len)>(l.val_ * r.val_);
+}
+template<unsigned _len>
+auto operator*(int_t<_len> l, unsigned r) {
+  return int_t<_len>(l.val_ * r);
+}
+template<unsigned _len>
+auto operator*(unsigned l, int_t<_len> r) {
+  return int_t<_len>(l * r.val_);
+}
+template<unsigned _left_len, unsigned _right_len>
+auto operator/(int_t<_left_len> l, int_t<_right_len> r) {
+  return int_t<std::max(_left_len, _right_len)>(l.val_ / r.val_);
+}
+template<unsigned _len>
+auto operator/(int_t<_len> l, unsigned r) {
+  return int_t<_len>(l.val_ / r);
+}
+template<unsigned _len>
+auto operator/(unsigned l, int_t<_len> r) {
+  return int_t<_len>(l / r.val_);
+}
+template<unsigned _left_len, unsigned _right_len>
+auto operator%(int_t<_left_len> l, int_t<_right_len> r) {
+  return int_t<std::max(_left_len, _right_len)>(l.val_ % r.val_);
+}
+template<unsigned _len>
+auto operator%(int_t<_len> l, unsigned r) {
+  return int_t<_len>(l.val_ % r);
+}
+template<unsigned _len>
+auto operator%(unsigned l, int_t<_len> r) {
+  return int_t<_len>(l % r.val_);
+}
+template<unsigned _left_len, unsigned _right_len>
+auto operator|(int_t<_left_len> l, int_t<_right_len> r) {
+  return int_t<std::max(_left_len, _right_len)>(l.val_ | r.val_);
+}
+template<unsigned _len>
+auto operator|(int_t<_len> l, unsigned r) {
+  return int_t<_len>(l.val_ | r);
+}
+template<unsigned _len>
+auto operator|(unsigned l, int_t<_len> r) {
+  return int_t<_len>(l | r.val_);
+}
+template<unsigned _left_len, unsigned _right_len>
+auto operator&(int_t<_left_len> l, int_t<_right_len> r) {
+  return int_t<std::max(_left_len, _right_len)>(l.val_ & r.val_);
+}
+template<unsigned _len>
+auto operator&(int_t<_len> l, unsigned r) {
+  return int_t<_len>(l.val_ & r);
+}
+template<unsigned _len>
+auto operator&(unsigned l, int_t<_len> r) {
+  return int_t<_len>(l & r.val_);
+}
+template<unsigned _left_len, unsigned _right_len>
+auto operator^(int_t<_left_len> l, int_t<_right_len> r) {
+  return int_t<std::max(_left_len, _right_len)>(l.val_ ^ r.val_);
+}
+template<unsigned _len>
+auto operator^(int_t<_len> l, unsigned r) {
+  return int_t<_len>(l.val_ ^ r);
+}
+template<unsigned _len>
+auto operator^(unsigned l, int_t<_len> r) {
+  return int_t<_len>(l ^ r.val_);
+}
+template<unsigned _left_len, unsigned _right_len>
+auto operator<<(int_t<_left_len> l, int_t<_right_len> r) {
+  return int_t<std::max(_left_len, _right_len)>(l.val_ << r.val_);
+}
+template<unsigned _len>
+auto operator<<(int_t<_len> l, unsigned r) {
+  return int_t<_len>(l.val_ << r);
+}
+template<unsigned _len>
+auto operator<<(unsigned l, int_t<_len> r) {
+  return int_t<_len>(l << r.val_);
+}
+template<unsigned _left_len, unsigned _right_len>
+auto operator>>(int_t<_left_len> l, int_t<_right_len> r) {
+  return int_t<std::max(_left_len, _right_len)>(l.val_ >> r.val_);
+}
+template<unsigned _len>
+auto operator>>(int_t<_len> l, unsigned r) {
+  return int_t<_len>(l.val_ >> r);
+}
+template<unsigned _len>
+auto operator>>(unsigned l, int_t<_len> r) {
+  return int_t<_len>(l >> r.val_);
+}
+template<unsigned _left_len, unsigned _right_len>
+bool operator==(int_t<_left_len> l, int_t<_right_len> r) {
+  return l.val_ == r.val_;
+}
+template<unsigned _len>
+bool operator==(unsigned l, int_t<_len> r) {
+  return l == r.val_;
+}
+template<unsigned _left_len, unsigned _right_len>
+bool operator!=(int_t<_left_len> l, int_t<_right_len> r) {
+  return l.val_ != r.val_;
+}
+template<unsigned _len>
+bool operator!=(unsigned l, int_t<_len> r) {
+  return l != r.val_;
+}
+template<unsigned _left_len, unsigned _right_len>
+bool operator<(int_t<_left_len> l, int_t<_right_len> r) {
+  return l.val_ < r.val_;
+}
+template<unsigned _len>
+bool operator<(unsigned l, int_t<_len> r) {
+  return l < r.val_;
+}
+template<unsigned _left_len, unsigned _right_len>
+bool operator<=(int_t<_left_len> l, int_t<_right_len> r) {
+  return l.val_ <= r.val_;
+}
+template<unsigned _len>
+bool operator<=(unsigned l, int_t<_len> r) {
+  return l <= r.val_;
+}
+template<unsigned _left_len, unsigned _right_len>
+bool operator>(int_t<_left_len> l, int_t<_right_len> r) {
+  return l.val_ > r.val_;
+}
+template<unsigned _len>
+bool operator>(unsigned l, int_t<_len> r) {
+  return l > r.val_;
+}
+template<unsigned _left_len, unsigned _right_len>
+bool operator>=(int_t<_left_len> l, int_t<_right_len> r) {
+  return l.val_ >= r.val_;
+}
+template<unsigned _len>
+bool operator>=(unsigned l, int_t<_len> r) {
+  return l >= r.val_;
+}
+
 template<unsigned _bitlen>
 struct uint_t {
+  static constexpr unsigned max_bits = 256;
+
   uint_t() : val_(0) {}
-  uint_t(unsigned val) : val_(val) {}
+  explicit uint_t(unsigned val) : val_(val) {}
+  template<unsigned _len>
+  explicit uint_t(uint_t<_len> val) : val_(val.get()) {}
   unsigned operator()() const { return val_; }
   void operator()(unsigned val) { val_ = val; }
   auto& operator=(unsigned val) { val_ = val; return *this; }
-  auto& operator+=(unsigned val) { val_ += val; return *this; }
-  auto& operator-=(unsigned val) { val_ -= val; return *this; }
-  auto& operator++() { ++val_; return *this; }
-  auto& operator--() { --val_; return *this; }
-  operator unsigned() const { return val_; }
-  DEFAULT_EQUAL(uint_t)
+  template<unsigned _len>
+  auto& operator=(uint_t<_len> val) { val_ = val.get(); return *this; }
+  DEFAULT_PROXY_OPERATORS(uint_t, unsigned)
+  unsigned get() const { return val_; }
+  explicit operator bool() const { return val_ != 0; }
+  explicit operator unsigned() const { return val_; }
   unsigned val_;
 };
 
-using int8_t = int_t<8>;
-using int16_t = int_t<16>;
-using int32_t = int_t<32>;
-using int64_t = int_t<64>;
-using int128_t = int_t<128>;
-using int256_t = int_t<256>;
+template<unsigned _left_len, unsigned _right_len>
+auto operator+(uint_t<_left_len> l, uint_t<_right_len> r) {
+  return uint_t<std::max(_left_len, _right_len)>(l.val_ + r.val_);
+}
+template<unsigned _len>
+auto operator+(uint_t<_len> l, unsigned r) {
+  return uint_t<_len>(l.val_ + r);
+}
+template<unsigned _len>
+auto operator+(unsigned l, uint_t<_len> r) {
+  return uint_t<_len>(l + r.val_);
+}
+template<unsigned _left_len, unsigned _right_len>
+auto operator-(uint_t<_left_len> l, uint_t<_right_len> r) {
+  return uint_t<std::max(_left_len, _right_len)>(l.val_ - r.val_);
+}
+template<unsigned _len>
+auto operator-(uint_t<_len> l, unsigned r) {
+  return uint_t<_len>(l.val_ - r);
+}
+template<unsigned _len>
+auto operator-(unsigned l, uint_t<_len> r) {
+  return uint_t<_len>(l - r.val_);
+}
+template<unsigned _left_len, unsigned _right_len>
+auto operator*(uint_t<_left_len> l, uint_t<_right_len> r) {
+  return uint_t<std::max(_left_len, _right_len)>(l.val_ * r.val_);
+}
+template<unsigned _len>
+auto operator*(uint_t<_len> l, unsigned r) {
+  return uint_t<_len>(l.val_ * r);
+}
+template<unsigned _len>
+auto operator*(unsigned l, uint_t<_len> r) {
+  return uint_t<_len>(l * r.val_);
+}
+template<unsigned _left_len, unsigned _right_len>
+auto operator/(uint_t<_left_len> l, uint_t<_right_len> r) {
+  return uint_t<std::max(_left_len, _right_len)>(l.val_ / r.val_);
+}
+template<unsigned _len>
+auto operator/(uint_t<_len> l, unsigned r) {
+  return uint_t<_len>(l.val_ / r);
+}
+template<unsigned _len>
+auto operator/(unsigned l, uint_t<_len> r) {
+  return uint_t<_len>(l / r.val_);
+}
+template<unsigned _left_len, unsigned _right_len>
+auto operator%(uint_t<_left_len> l, uint_t<_right_len> r) {
+  return uint_t<std::max(_left_len, _right_len)>(l.val_ % r.val_);
+}
+template<unsigned _len>
+auto operator%(uint_t<_len> l, unsigned r) {
+  return uint_t<_len>(l.val_ % r);
+}
+template<unsigned _len>
+auto operator%(unsigned l, uint_t<_len> r) {
+  return uint_t<_len>(l % r.val_);
+}
+template<unsigned _left_len, unsigned _right_len>
+auto operator|(uint_t<_left_len> l, uint_t<_right_len> r) {
+  return uint_t<std::max(_left_len, _right_len)>(l.val_ | r.val_);
+}
+template<unsigned _len>
+auto operator|(uint_t<_len> l, unsigned r) {
+  return uint_t<_len>(l.val_ | r);
+}
+template<unsigned _len>
+auto operator|(unsigned l, uint_t<_len> r) {
+  return uint_t<_len>(l | r.val_);
+}
+template<unsigned _left_len, unsigned _right_len>
+auto operator&(uint_t<_left_len> l, uint_t<_right_len> r) {
+  return uint_t<std::max(_left_len, _right_len)>(l.val_ & r.val_);
+}
+template<unsigned _len>
+auto operator&(uint_t<_len> l, unsigned r) {
+  return uint_t<_len>(l.val_ & r);
+}
+template<unsigned _len>
+auto operator&(unsigned l, uint_t<_len> r) {
+  return uint_t<_len>(l & r.val_);
+}
+template<unsigned _left_len, unsigned _right_len>
+auto operator^(uint_t<_left_len> l, uint_t<_right_len> r) {
+  return uint_t<std::max(_left_len, _right_len)>(l.val_ ^ r.val_);
+}
+template<unsigned _len>
+auto operator^(uint_t<_len> l, unsigned r) {
+  return uint_t<_len>(l.val_ ^ r);
+}
+template<unsigned _len>
+auto operator^(unsigned l, uint_t<_len> r) {
+  return uint_t<_len>(l ^ r.val_);
+}
+template<unsigned _left_len, unsigned _right_len>
+auto operator<<(uint_t<_left_len> l, uint_t<_right_len> r) {
+  return uint_t<std::max(_left_len, _right_len)>(l.val_ << r.val_);
+}
+template<unsigned _len>
+auto operator<<(uint_t<_len> l, unsigned r) {
+  return uint_t<_len>(l.val_ << r);
+}
+template<unsigned _len>
+auto operator<<(unsigned l, uint_t<_len> r) {
+  return uint_t<_len>(l << r.val_);
+}
+template<unsigned _left_len, unsigned _right_len>
+auto operator>>(uint_t<_left_len> l, uint_t<_right_len> r) {
+  return uint_t<std::max(_left_len, _right_len)>(l.val_ >> r.val_);
+}
+template<unsigned _len>
+auto operator>>(uint_t<_len> l, unsigned r) {
+  return uint_t<_len>(l.val_ >> r);
+}
+template<unsigned _len>
+auto operator>>(unsigned l, uint_t<_len> r) {
+  return uint_t<_len>(l >> r.val_);
+}
+template<unsigned _left_len, unsigned _right_len>
+bool operator==(uint_t<_left_len> l, uint_t<_right_len> r) {
+  return l.val_ == r.val_;
+}
+template<unsigned _len>
+bool operator==(unsigned l, uint_t<_len> r) {
+  return l == r.val_;
+}
+template<unsigned _left_len, unsigned _right_len>
+bool operator!=(uint_t<_left_len> l, uint_t<_right_len> r) {
+  return l.val_ != r.val_;
+}
+template<unsigned _len>
+bool operator!=(unsigned l, uint_t<_len> r) {
+  return l != r.val_;
+}
+template<unsigned _left_len, unsigned _right_len>
+bool operator<(uint_t<_left_len> l, uint_t<_right_len> r) {
+  return l.val_ < r.val_;
+}
+template<unsigned _len>
+bool operator<(unsigned l, uint_t<_len> r) {
+  return l < r.val_;
+}
+template<unsigned _left_len, unsigned _right_len>
+bool operator<=(uint_t<_left_len> l, uint_t<_right_len> r) {
+  return l.val_ <= r.val_;
+}
+template<unsigned _len>
+bool operator<=(unsigned l, uint_t<_len> r) {
+  return l <= r.val_;
+}
+template<unsigned _left_len, unsigned _right_len>
+bool operator>(uint_t<_left_len> l, uint_t<_right_len> r) {
+  return l.val_ > r.val_;
+}
+template<unsigned _len>
+bool operator>(unsigned l, uint_t<_len> r) {
+  return l > r.val_;
+}
+template<unsigned _left_len, unsigned _right_len>
+bool operator>=(uint_t<_left_len> l, uint_t<_right_len> r) {
+  return l.val_ >= r.val_;
+}
+template<unsigned _len>
+bool operator>=(unsigned l, uint_t<_len> r) {
+  return l >= r.val_;
+}
+
+using int8 = int_t<8>;
+using int16 = int_t<16>;
+using int32 = int_t<32>;
+using int64 = int_t<64>;
+using int128 = int_t<128>;
+using int256 = int_t<256>;
 
 using bool_t = uint_t<1>;
-using uint8_t = uint_t<8>;
-using uint16_t = uint_t<16>;
-using uint32_t = uint_t<32>;
-using uint64_t = uint_t<64>;
-using uint128_t = uint_t<128>;
-using uint256_t = uint_t<256>;
+using uint8 = uint_t<8>;
+using uint16 = uint_t<16>;
+using uint32 = uint_t<32>;
+using uint64 = uint_t<64>;
+using uint128 = uint_t<128>;
+using uint256 = uint_t<256>;
 
 template<auto _Field>
 struct dynamic_bitfield {
@@ -141,33 +539,24 @@ struct dynamic_int {
 };
 
 template<unsigned _bitlen>
-struct varuint {
+struct varuint : boost::operators<varuint<_bitlen>> {
   varuint() : val_(0) {}
   varuint(unsigned val) : val_(val) {}
   unsigned operator()() const { return val_; }
   void operator()(unsigned val) { val_ = val; }
   auto& operator=(unsigned val) { val_ = val; return *this; }
-  auto& operator+=(int val) { val_ += val; return *this; }
-  auto& operator-=(int val) { val_ -= val; return *this; }
-  auto& operator++() { ++val_; return *this; }
-  auto& operator--() { --val_; return *this; }
-
-  DEFAULT_EQUAL(varuint)
+  DEFAULT_PROXY_OPERATORS(varuint, unsigned)
   unsigned val_;
 };
 
 template<unsigned _bitlen>
-struct varint {
+struct varint : boost::operators<varint<_bitlen>> {
   varint() : val_(0) {}
   varint(int val) : val_(val) {}
   int operator()() const { return val_; }
   void operator()(int val) { val_ = val; }
   auto& operator=(int val) { val_ = val; return *this; }
-  auto& operator+=(int val) { val_ += val; return *this; }
-  auto& operator-=(int val) { val_ -= val; return *this; }
-  auto& operator++() { ++val_; return *this; }
-  auto& operator--() { --val_; return *this; }
-  DEFAULT_EQUAL(varint)
+  DEFAULT_PROXY_OPERATORS(varint, int)
   int val_;
 };
 
@@ -184,6 +573,12 @@ struct HashmapE {
   void operator()(cell dict) { dict_ = dict; }
   auto& operator=(cell dict) { dict_ = dict; return *this; }
   DEFAULT_EQUAL(HashmapE)
+  cell dict_;
+};
+struct anydict {
+  cell operator()() const { return dict_; }
+  void operator()(cell dict) { dict_ = dict; }
+  auto& operator=(cell dict) { dict_ = dict; return *this; }
   cell dict_;
 };
 
@@ -210,7 +605,7 @@ struct Either {
     return *this;
   }
   Either& operator=(Y right) {
-    val_ = EitherRight<X>{ {}, right };
+    val_ = EitherRight<Y>{ {}, right };
     return *this;
   }
 
@@ -229,13 +624,6 @@ struct ref {
 
   DEFAULT_EQUAL(ref)
   _Tp val_;
-};
-
-struct anyref {
-  cell operator()() const { return val_; }
-  void operator()(cell val) { val_ = val; }
-  auto& operator=(cell val) { val_ = val; return *this; }
-  cell val_;
 };
 
 struct anyval {

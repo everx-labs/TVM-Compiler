@@ -43,7 +43,7 @@ void Piggybank::withdraw() {
   require(sender.raw_slice() == owner.raw_slice(), error_code::wrong_owner);
   require(balance >= limit, error_code::not_enough_balance);
 
-  tvm_transfer(sender, balance, false);
+  tvm_transfer(sender, balance.get(), false);
   balance = 0;
 }
 

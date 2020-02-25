@@ -70,7 +70,7 @@ struct make_parser_impl<std::tuple<Types...>> {
   inline static std::tuple<optional<value_type>, parser, _Ctx> parse(parser p, _Ctx parent_ctx) {
     using CtxT = ParseContext<empty, value_type>;
     CtxT ctx;
-    auto [succ, new_p, new_ctx] = sequence_parser<_Ctx, 0, Types...>::parse(p, ctx);
+    auto [succ, new_p, new_ctx] = sequence_parser<CtxT, 0, Types...>::parse(p, ctx);
     if (succ)
       return std::tuple(new_ctx.get_tuple(), new_p, parent_ctx);
     return std::tuple(optional<value_type>{}, p, parent_ctx);

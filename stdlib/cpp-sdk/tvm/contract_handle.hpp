@@ -23,7 +23,7 @@ public:
 
     using namespace schema;
 
-    abiv1::internal_msg_header hdr{ id_v<Func> };
+    abiv1::internal_msg_header hdr{ uint32(id_v<Func>) };
     auto hdr_plus_args = std::make_tuple(hdr, args...);
     int_msg_info_relaxed out_info;
     out_info.src = addr_none{};

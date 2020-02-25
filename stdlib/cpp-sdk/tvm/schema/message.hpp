@@ -31,8 +31,8 @@ struct anycast_info {
 struct addr_std {
   bitconst<2, 0b10> kind;
   optional<anycast_info> Anycast;
-  int8_t workchain_id;
-  uint256_t address;
+  int8 workchain_id;
+  uint256 address;
 
   DEFAULT_EQUAL(addr_std)
 };
@@ -41,7 +41,7 @@ struct addr_var {
   bitconst<2, 0b11> kind;
   optional<anycast_info> Anycast;
   uint_t<9> addr_len;
-  int32_t workchain_id;
+  int32 workchain_id;
   dynamic_bitfield<&addr_var::addr_len> address;
 
   DEFAULT_EQUAL(addr_var)
@@ -72,8 +72,8 @@ struct int_msg_info_t {
   CurrencyCollection value;
   Grams ihr_fee;
   Grams fwd_fee;
-  uint64_t created_lt;
-  uint32_t created_at;
+  uint64 created_lt;
+  uint32 created_at;
 };
 using int_msg_info = int_msg_info_t<MsgAddressInt>;
 using int_msg_info_relaxed = int_msg_info_t<MsgAddress>;
@@ -92,8 +92,8 @@ struct ext_out_msg_info_t {
 
   lazy<SrcT> src;
   lazy<MsgAddressExt> dest;
-  uint64_t created_lt;
-  uint32_t created_at;
+  uint64 created_lt;
+  uint32 created_at;
 };
 using ext_out_msg_info = ext_out_msg_info_t<MsgAddressInt>;
 using ext_out_msg_info_relaxed = ext_out_msg_info_t<MsgAddress>;
@@ -112,9 +112,9 @@ struct TickTock {
 struct StateInit {
   optional<uint_t<5>> split_depth;
   optional<TickTock> special;
-  optional<anyref> code;
-  optional<anyref> data;
-  optional<anyref> library;
+  optional<cell> code;
+  optional<cell> data;
+  optional<cell> library;
 };
 
 template<typename X>

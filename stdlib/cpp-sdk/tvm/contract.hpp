@@ -6,6 +6,7 @@
 #include <tvm/parser.hpp>
 #include <tvm/signature_checker.hpp>
 #include <tvm/persistent_data.hpp>
+#include <tvm/assert.hpp>
 
 #include <tvm/schema/make_parser.hpp>
 #include <tvm/schema/make_builder.hpp>
@@ -20,18 +21,6 @@ inline void tvm_accept() {
 }
 inline void tvm_sendmsg(cell msg, unsigned flags) {
   __builtin_tvm_sendrawmsg(msg.get(), flags);
-}
-inline void tvm_assert(bool cond, unsigned exc_code) {
-  if (!cond)
-    __builtin_tvm_throw(exc_code);
-}
-// tvm_assert copy to match solidity name
-inline void require(bool cond, unsigned exc_code) {
-  if (!cond)
-    __builtin_tvm_throw(exc_code);
-}
-inline void tvm_throw(unsigned exc_code) {
-  __builtin_tvm_throw(exc_code);
 }
 template<class T, class V>
 inline static bool isa(V v) {

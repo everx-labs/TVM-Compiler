@@ -100,6 +100,15 @@ struct make_parser_impl<HashmapE<_keylen, _element_type>> {
     return std::tuple(rv, p, ctx);
   }
 };
+template<>
+struct make_parser_impl<anydict> {
+  using value_type = anydict;
+  template<class _Ctx>
+  inline static std::tuple<optional<value_type>, parser, _Ctx> parse(parser p, _Ctx ctx) {
+    auto rv = value_type{ p.lddict() };
+    return std::tuple(rv, p, ctx);
+  }
+};
 
 template<class _Tp>
 struct make_parser_impl<ref<_Tp>> {
@@ -114,8 +123,8 @@ struct make_parser_impl<ref<_Tp>> {
   }
 };
 template<>
-struct make_parser_impl<anyref> {
-  using value_type = anyref;
+struct make_parser_impl<cell> {
+  using value_type = cell;
   template<class _Ctx>
   inline static std::tuple<optional<value_type>, parser, _Ctx> parse(parser p, _Ctx ctx) {
     auto rv = value_type{ p.ldref() };

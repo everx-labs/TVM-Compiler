@@ -15,7 +15,7 @@ constexpr bool supports_fallback_v = std::experimental::is_detected_v<fallback_t
 
 template<class ReturnValue>
 inline void send_external_answer(unsigned func_id, ReturnValue rv) {
-  schema::abiv1::external_outbound_msg_header hdr{ schema::abiv1::answer_id(func_id) };
+  schema::abiv1::external_outbound_msg_header hdr{ schema::uint32(func_id) };
   auto hdr_plus_rv = std::make_tuple(hdr, rv);
   schema::ext_out_msg_info_relaxed out_info;
   out_info.src = schema::addr_none{};
@@ -31,7 +31,7 @@ inline void send_external_answer(unsigned func_id, ReturnValue rv) {
 
 template<class ReturnValue>
 inline void send_internal_answer(unsigned func_id, ReturnValue rv) {
-  schema::abiv1::internal_msg_header hdr{ schema::abiv1::answer_id(func_id) };
+  schema::abiv1::internal_msg_header hdr{ schema::uint32(func_id) };
   auto hdr_plus_rv = std::make_tuple(hdr, rv);
   schema::int_msg_info_relaxed out_info;
   out_info.src = schema::addr_none{};

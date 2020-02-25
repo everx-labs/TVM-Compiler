@@ -33,7 +33,7 @@ public:
   using replay_protection = replay_attack_protection::timestamp<100>;
 
   struct persistent_values {
-    uint256_t owner;
+    uint256 owner;
     MsgAddress subscription;
     replay_protection::persistent_t timestamp;
   } p;
@@ -94,11 +94,11 @@ int Wallet::set_subscription_account(cell msg, slice msg_body) {
   };
   unsigned sender_key = check_signature(msg_body, error_code::bad_signature);
 
-  unsigned owner_v = p.owner;
+  unsigned owner_v = p.owner.get();
   tvm_assert(owner_v == sender_key, error_code::wrong_owner);
 
   auto args = parse_args<args_t>(msg_body, error_code::bad_arguments);
-  replay_protection_check(args.hdr.timestamp);
+  replay_protection_check(args.hdr.timestamp.get());
   tvm_accept();
 
   p.subscription = args.address;
@@ -116,7 +116,7 @@ int Wallet::get_subscription_account(cell msg, slice msg_body) {
 
   MsgAddress subscription_v = p.subscription;
   auto args = parse_args<args_t>(msg_body, error_code::bad_arguments);
-  replay_protection_check(args.timestamp);
+  replay_protection_check(args.timestamp.get());
   tvm_accept();
 
   return_t result;
@@ -149,10 +149,10 @@ int Wallet::send_transaction(cell msg, slice msg_body) {
   };
 
   args_t args = parse_args<args_t>(msg_body, error_code::bad_arguments);
-  replay_protection_check(args.hdr.timestamp);
+  replay_protection_check(args.hdr.timestamp.get());
 
   unsigned sender_key = check_signature(msg_body, error_code::bad_signature);
-  unsigned owner_v = p.owner;
+  unsigned owner_v = p.owner.get();
   MsgAddress subscription_v = p.subscription;
 
   MsgAddressExt sender = get_incoming_ext_src(msg);
@@ -167,7 +167,7 @@ int Wallet::send_transaction(cell msg, slice msg_body) {
   int balance = smart_contract_info::balance_remaining();
   tvm_assert(args.value() > 0 && args.value() < balance, error_code::invalid_transfer_value);
 
-  tvm_transfer(args.dest, args.value, args.bounce);
+  tvm_transfer(args.dest, args.value.get(), args.bounce.get());
   return 444;
 }
 

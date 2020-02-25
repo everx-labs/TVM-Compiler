@@ -97,6 +97,7 @@ TVMTargetLowering::TVMTargetLowering(const TargetMachine &TM,
   setOperationAction(ISD::CopyToReg, MVT::Other, Custom);
 
   setOperationAction(ISD::ADD, MVT::i256, Promote);
+  setOperationAction(ISD::ROTL, MVT::i257, Expand);
 
   // Custom lowering for intrinsics that unrolls into more than one
   // MIR instructions.

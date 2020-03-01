@@ -37,6 +37,7 @@ add_llvm_target(TVMCodeGen
   TVMStackFixup.cpp
   TVMStackPatterns.cpp
   TVMStackModel.cpp
+  TVMStoreCombine.cpp
   TVMUtilities.cpp
   TVMContinuationsHoist.cpp
   TVMLoadStoreReplace.cpp

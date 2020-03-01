@@ -43,6 +43,7 @@ extern "C" void LLVMInitializeTVMTarget() {
   initializeTVMLoopPreparePass(PR);
   initializeTVMContinuationsHoistPass(PR);
   initializeTVMLoadStoreReplacePass(PR);
+  initializeTVMStoreCombinePass(PR);
 }
 
 static Reloc::Model getEffectiveRelocModel(Optional<Reloc::Model> RM) {
@@ -128,6 +129,7 @@ void TVMPassConfig::addIRPasses() {
   addPass(createLowerSwitchPass());
   addPass(createTVMLoopPrepare());
   addPass(createTVMControlFlowPrepare());
+  addPass(createTVMStoreCombine());
 }
 
 bool TVMPassConfig::addInstSelector() {

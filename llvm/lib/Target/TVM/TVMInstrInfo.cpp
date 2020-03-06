@@ -138,36 +138,15 @@ bool TVMInstrInfo::analyzeBranch(MachineBasicBlock &MBB,
   }
   if (!I->isTerminator())
     return false;
-  const MachineRegisterInfo &MRI = MBB.getParent()->getRegInfo();
   if (I->getOpcode() == TVM::JMPX) {
-    assert(I->getOperand(0).isReg() && "JMPX operand is not register");
-    unsigned ContReg = I->getOperand(0).getReg();
-    auto* PushMI = MRI.getVRegDef(ContReg);
-    if (!PushMI)
-      return true;
-    assert(PushMI && PushMI->getOpcode() == TVM::PUSHCONT_MBB &&
-           "JMPX op is not from PUSHCONT_MBB");
-    assert(PushMI->getOperand(1).isMBB() && "PUSHCONT_MBB op is not MBB");
-    TBB = PushMI->getOperand(1).getMBB();
+    TBB = I->getOperand(0).getMBB();
     return false;
   }
   if (I->getOpcode() == TVM::IFELSE) {
     Cond.push_back(MachineOperand::CreateImm(0));
     Cond.push_back(I->getOperand(0));
-    unsigned TrueReg = I->getOperand(1).getReg();
-    unsigned FalseReg = I->getOperand(2).getReg();
-    auto* TruePushMI = MRI.getVRegDef(TrueReg);
-    if (!TruePushMI)
-      return true;
-    assert(TruePushMI->getOpcode() == TVM::PUSHCONT_MBB &&
-           "IFELSE op is not from PUSHCONT_MBB");
-    auto* FalsePushMI = MRI.getVRegDef(FalseReg);
-    if (!FalsePushMI)
-      return true;
-    assert(FalsePushMI->getOpcode() == TVM::PUSHCONT_MBB &&
-           "IFELSE op is not from PUSHCONT_MBB");
-    TBB = TruePushMI->getOperand(1).getMBB();
-    FBB = FalsePushMI->getOperand(1).getMBB();
+    TBB = I->getOperand(1).getMBB();
+    FBB = I->getOperand(2).getMBB();
 
     // BranchFolding trying to make single-block back-branch as TBB
     // We need to make this swap to prevent infinite loop
@@ -181,13 +160,7 @@ bool TVMInstrInfo::analyzeBranch(MachineBasicBlock &MBB,
   if (I->getOpcode() == TVM::IFJMP || I->getOpcode() == TVM::IFNOTJMP) {
     Cond.push_back(MachineOperand::CreateImm(I->getOpcode() == TVM::IFNOTJMP));
     Cond.push_back(I->getOperand(0));
-    unsigned TrueReg = I->getOperand(1).getReg();
-    auto* TruePushMI = MRI.getVRegDef(TrueReg);
-    if (!TruePushMI)
-      return true;
-    assert(TruePushMI->getOpcode() == TVM::PUSHCONT_MBB &&
-           "IFJMP op is not from PUSHCONT_MBB");
-    TBB = TruePushMI->getOperand(1).getMBB();
+    TBB = I->getOperand(1).getMBB();
     FBB = nullptr;
     return false;
   }
@@ -254,31 +227,18 @@ unsigned TVMInstrInfo::
                const DebugLoc &DL, int *BytesAdded) const {
   // Shouldn't be a fall through.
   assert(TBB && "insertBranch must not be told to insert a fallthrough");
-  MachineRegisterInfo &MRI = MBB.getParent()->getRegInfo();
   if (TBB && FBB) {
     assert(Cond.size() == 2 && "Wrong Conds size");
     assert(MBB.getFirstTerminator() == MBB.end() && "Block already has terminator");
     bool Inverted = Cond[0].getImm();
     auto Pred = Cond[1];
-
-    // TBB and FBB may be in vregs defined by PUSHCONT_MBB with dominated def
-    //  to this place.
-    // Or may be not. And then we need to insert PUSHCONT_MBBs before IFELSE.
-    // And better run TVMContinuationsHoist after to optimize PUSHCONTs.
-
-    unsigned TrueReg = MRI.createVirtualRegister(&TVM::I257RegClass);
-    BuildMI(&MBB, DL, get(TVM::PUSHCONT_MBB), TrueReg).addMBB(TBB)
-        .addImm(0);
-    unsigned FalseReg = MRI.createVirtualRegister(&TVM::I257RegClass);
-    BuildMI(&MBB, DL, get(TVM::PUSHCONT_MBB), FalseReg).addMBB(FBB)
-        .addImm(0);
     if (Inverted)
-      std::swap(TrueReg, FalseReg);
+      std::swap(TBB, FBB);
 
     BuildMI(&MBB, DL, get(TVM::IFELSE))
         .add(Pred)
-        .addReg(TrueReg)
-        .addReg(FalseReg);
+        .addMBB(TBB)
+        .addMBB(FBB);
     if (BytesAdded)
       *BytesAdded = 8 * 3;
     return 3;
@@ -293,26 +253,20 @@ unsigned TVMInstrInfo::
               IfJmp->getOpcode() == TVM::IFNOTJMP) &&
              "We can only insert uncond branch after cond branch");
       auto Cond = IfJmp->getOperand(0);
-      unsigned TrueReg = IfJmp->getOperand(1).getReg();
+      auto BB = IfJmp->getOperand(1).getMBB();
       bool Inverted = IfJmp->getOpcode() == TVM::IFNOTJMP;
       IfJmp->eraseFromParent();
-      unsigned FalseReg = MRI.createVirtualRegister(&TVM::I257RegClass);
-      BuildMI(&MBB, DL, get(TVM::PUSHCONT_MBB), FalseReg).addMBB(TBB)
-          .addImm(0);
       if (Inverted)
-        std::swap(TrueReg, FalseReg);
+        std::swap(TBB, BB);
       BuildMI(&MBB, DL, get(TVM::IFELSE))
           .add(Cond)
-          .addReg(TrueReg)
-          .addReg(FalseReg);
+          .addMBB(BB)
+          .addMBB(TBB);
       if (BytesAdded)
         *BytesAdded = 8;
       return 1;
     } else {
-      unsigned TrueReg = MRI.createVirtualRegister(&TVM::I257RegClass);
-      BuildMI(&MBB, DL, get(TVM::PUSHCONT_MBB), TrueReg).addMBB(TBB)
-          .addImm(0);
-      BuildMI(&MBB, DL, get(TVM::JMPX)).addReg(TrueReg);
+      BuildMI(&MBB, DL, get(TVM::JMPX)).addMBB(TBB);
       if (BytesAdded)
         *BytesAdded = 8 * 2;
       return 2;
@@ -325,12 +279,9 @@ unsigned TVMInstrInfo::
     bool Inverted = Cond[0].getImm();
     auto Pred = Cond[1];
 
-    unsigned TrueReg = MRI.createVirtualRegister(&TVM::I257RegClass);
-    BuildMI(&MBB, DL, get(TVM::PUSHCONT_MBB), TrueReg).addMBB(TBB)
-        .addImm(0);
     BuildMI(&MBB, DL, get(Inverted ? TVM::IFNOTJMP : TVM::IFJMP))
         .add(Pred)
-        .addReg(TrueReg);
+        .addMBB(TBB);
     if (BytesAdded)
       *BytesAdded = 8 * 2;
     return 2;
@@ -370,35 +321,10 @@ void enumMBBoperands(MachineInstr &Term, Func func) {
 void TVMInstrInfo::ReplaceUsesOfBlockWith(MachineBasicBlock *Pred,
                                           MachineBasicBlock *Old,
                                           MachineBasicBlock *New) const {
-  MachineRegisterInfo &MRI = Pred->getParent()->getRegInfo();
   for (MachineInstr &Term : Pred->terminators()) {
     enumMBBoperands(Term, [&](MachineOperand &Op) {
-      if (!Op.isReg())
-        return;
-      unsigned MbbReg = Op.getReg();
-      auto* PushMI = MRI.getVRegDef(MbbReg);
-      if (PushMI->getOpcode() != TVM::PUSHCONT_MBB)
-       return;
-      assert(PushMI->getOperand(1).isMBB() && "PUSHCONT_MBB op is not MBB");
-
-      if (PushMI->getOperand(1).getMBB() == Old) {
-        if (MRI.hasOneNonDBGUse(MbbReg)) {
-          // If we have only one non-debug use, we can override existing mbb
-          PushMI->getOperand(1).setMBB(New);
-        } else {
-          // We need to find existing PUSHCONT_MBB with New mbb,
-          //  dominating this terminator,
-          // Or insert new PUSHCONT_MBB right before terminator
-          //  or before label decl (for back-branches)
-
-          auto it = Pred->getFirstTerminator();
-          auto DL = it->getDebugLoc();
-          MbbReg = MRI.createVirtualRegister(&TVM::I257RegClass);
-          BuildMI(*Pred, it, DL, get(TVM::PUSHCONT_MBB), MbbReg).addMBB(New)
-              .addImm(0);
-          Op.setReg(MbbReg);
-        }
-      }
+      if (Op.isMBB() && Op.getMBB() == Old)
+        Op.setMBB(New);
     });
   }
   // Update the successor information.
@@ -407,6 +333,5 @@ void TVMInstrInfo::ReplaceUsesOfBlockWith(MachineBasicBlock *Pred,
 
 bool TVMInstrInfo::canFallthrough(MachineBasicBlock &,
                                   MachineBasicBlock &To) const {
-  // We can fallthrough only to block with single predecessor.
-  return To.pred_size() == 1;
+  return false;
 }

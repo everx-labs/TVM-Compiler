@@ -747,10 +747,12 @@ bool TailDuplicator::duplicateSimpleBB(
     }
 
     // Avoid adding fall through branches.
+    if (TII->canFallthrough(*PredFBB, *NextBB)) { // TVM local
     if (PredFBB == NextBB)
       PredFBB = nullptr;
     if (PredTBB == NextBB && PredFBB == nullptr)
       PredTBB = nullptr;
+    }
 
     auto DL = PredBB->findBranchDebugLoc();
     TII->removeBranch(*PredBB);

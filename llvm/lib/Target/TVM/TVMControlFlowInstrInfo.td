@@ -119,15 +119,6 @@ defm CONST_U257 : I<(outs I257:$res), (ins UImm257:$uimm),
                     "PUSHINT\t$res, $uimm", "PUSHINT\t$uimm", 0x82>;
 }
 
-let isMoveImm = 1, AddedComplexity = 99 in
-defm PUSHCONT_MBB : I<(outs I257:$res), (ins bb_op:$bb, i257imm:$fake_op),
-                      (outs), (ins bb_op:$bb),
-                      [(set I257:$res, (BBWrapper bb:$bb, timm:$fake_op))],
-                      "PUSHCONT", "PUSHCONT", 0x8f>;
-
-defm PUSHCONT_FUNC : NRI<(outs), (ins function_op:$callee), [],
-                         "PUSHCONT\t$callee", 0x8f>;
-
 // There are no labels in TVM, so this functionality is emulated
 // using ```PUSHINT label; CALL 1```
 defm PUSHCONT_LABEL: NRI<(outs), (ins function_op:$callee), [],

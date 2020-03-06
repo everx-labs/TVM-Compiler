@@ -43,8 +43,6 @@ using namespace llvm;
 
 #define DEBUG_TYPE "tvm-lower"
 
-constexpr int PUSH_C0_FUNCTION_UNIQUE_ID = -2;
-
 //===----------------------------------------------------------------------===//
 // Command line options for TVM
 //===----------------------------------------------------------------------===//
@@ -248,11 +246,8 @@ TVMTargetLowering::LowerReturn(SDValue Chain, CallingConv::ID CallConv,
   if (!CallingConvSupported(CallConv))
     fail(DL, DAG, "TVM doesn't support non-C calling conventions");
 
-  // Restore C0 for returning to correct continuation
-  SDValue SetC0 = RestoreC0(Chain, DL, DAG);
-
   // Lower outputs
-  SmallVector<SDValue, 4> RetOps(1, SetC0);
+  SmallVector<SDValue, 4> RetOps(1, Chain);
   RetOps.append(OutVals.begin(), OutVals.end());
   Chain = DAG.getNode(TVMISD::RETURN, DL, MVT::Other, RetOps);
 
@@ -309,69 +304,13 @@ SDValue TVMTargetLowering::LowerFormalArguments(
     FI->addParam(In.VT);
   }
 
-  // Save C0 for returning to correct continuation
-  return SaveC0(Chain, DL, DAG);
-}
+  SmallVector<MVT, 4> Params;
+  SmallVector<MVT, 4> Results;
+  ComputeSignatureVTs(MF.getFunction(), DAG.getTarget(), Params, Results);
+  for (MVT VT : Results)
+    FI->addResult(VT);
 
-SDValue TVMTargetLowering::SaveC0(SDValue Chain, const SDLoc &DL,
-                                  SelectionDAG &DAG) const {
-  MachineFunction &MF = DAG.getMachineFunction();
-  auto *FI = MF.getInfo<TVMFunctionInfo>();
-
-  // Save c0 for further return lowering
-  SDValue GetC0Ops[] = {
-      DAG.getTargetConstant(Intrinsic::tvm_getreg, DL, MVT::i257),
-      DAG.getConstant(0, DL, MVT::i257)};
-  SDValue GetC0 = DAG.getNode(ISD::INTRINSIC_WO_CHAIN, DL, MVT::i257, GetC0Ops);
-
-  MachineRegisterInfo &MRI = MF.getRegInfo();
-  unsigned C0VirtReg = MRI.createVirtualRegister(&TVM::I257RegClass);
-  SDValue C0VirtRegNode = DAG.getCopyToReg(Chain, DL, C0VirtReg, GetC0);
-
-  FI->setC0VirtReg(C0VirtReg);
-  C0VirtRegNode.getNode()->setNodeId(PUSH_C0_FUNCTION_UNIQUE_ID);
-  // New PushC0 node has just appeared -> invalidate the cache
-  HasNoPushC0PredecessorCache.clear();
-
-  return C0VirtRegNode;
-}
-
-bool TVMTargetLowering::hasPushC0Predecessor(SDNode *Node) const {
-  int NodeId = Node->getNodeId();
-
-  if (NodeId == PUSH_C0_FUNCTION_UNIQUE_ID)
-    return true;
-
-  if (HasNoPushC0PredecessorCache.count(NodeId) != 0)
-    return false;
-
-  for (const SDUse &Use : Node->ops()) {
-    if (hasPushC0Predecessor(Use.getNode()))
-      return true;
-  }
-
-  HasNoPushC0PredecessorCache.insert(NodeId);
-  return false;
-}
-
-SDValue TVMTargetLowering::RestoreC0(SDValue Chain, const SDLoc &DL,
-                                     SelectionDAG &DAG) const {
-  MachineFunction &MF = DAG.getMachineFunction();
-  auto *FI = MF.getInfo<TVMFunctionInfo>();
-
-  assert(FI->hasC0VirtReg() && "C0 virtual register has not been saved");
-
-  if (hasPushC0Predecessor(Chain.getNode()))
-    return Chain;
-
-  unsigned C0VirtReg = FI->getC0VirtReg();
-  SDValue GetC0VirtReg = DAG.getCopyFromReg(Chain, DL, C0VirtReg, MVT::i257);
-  SDValue SetC0Ops[] = {
-      Chain, DAG.getTargetConstant(Intrinsic::tvm_setreg, DL, MVT::i257),
-      DAG.getConstant(0, DL, MVT::i257), GetC0VirtReg};
-  SDValue SetC0 = DAG.getNode(ISD::INTRINSIC_VOID, DL, MVT::Other, SetC0Ops);
-
-  return SetC0;
+  return Chain;
 }
 
 EVT TVMTargetLowering::getOptimalMemOpType(uint64_t /*Sz*/, unsigned /*DstAl*/,
@@ -602,18 +541,13 @@ SDValue TVMTargetLowering::LowerBR(SDValue Op,
   SDLoc DL(Op);
   SDValue Chain = Op.getOperand(0);
   SDValue Dest  = Op.getOperand(1);
-  SDValue Zero = DAG.getTargetConstant(0, DL, MVT::i257);
   if (Chain.getOpcode() == ISD::BRCOND) {
     SDValue PrevChain = Chain->getOperand(0), Cond = Chain->getOperand(1),
             ThenBr = Chain->getOperand(2), ElseBr = Dest;
 
-    ThenBr = DAG.getNode(TVMISD::BBWrapper, DL, MVT::i257, ThenBr, Zero);
-    ElseBr = DAG.getNode(TVMISD::BBWrapper, DL, MVT::i257, ElseBr, Zero);
-
     return DAG.getNode(TVMISD::IFELSE, DL, MVT::Other, PrevChain, Cond,
                        ThenBr, ElseBr);
   }
-  Dest = DAG.getNode(TVMISD::BBWrapper, DL, MVT::i257, Dest, Zero);
   return DAG.getNode(TVMISD::JUMPX, DL, MVT::Other, Chain, Dest);
 }
 
@@ -623,8 +557,6 @@ SDValue TVMTargetLowering::LowerBRCOND(SDValue Op,
   SDValue Chain = Op.getOperand(0);
   SDValue Cond  = Op.getOperand(1);
   SDValue Dest  = Op.getOperand(2);
-  SDValue Zero = DAG.getTargetConstant(0, DL, MVT::i257);
-  Dest = DAG.getNode(TVMISD::BBWrapper, DL, MVT::i257, Dest, Zero);
   return DAG.getNode(TVMISD::IFJMP, DL, MVT::Other, Chain, Dest, Cond);
 }
 

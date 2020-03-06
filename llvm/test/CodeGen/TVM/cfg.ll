@@ -5,12 +5,23 @@ target triple = "tvm"
 ; CHECK-LABEL: brcond
 define i257 @brcond(i1 %par) nounwind {
 entry:
-; CHECK: PUSHCONT
-; CHECK: {
-; CHECK:   PUSHINT 77
-; CHECK: }
-; CHECK: IFNOTJMP
-; CHECK: PUSHINT 42
+; CHECK:      PUSHCONT {
+; CHECK-NEXT:   PUSH2 s2, s1
+; CHECK-NEXT:   IFELSE
+; CHECK-NEXT: }
+; CHECK-NEXT: PUSHCONT {
+; CHECK-NEXT:   PUSHINT 42
+; CHECK-NEXT:   RET
+; CHECK-NEXT: }
+; CHECK-NEXT: PUSHCONT {
+; CHECK-NEXT:   PUSHINT 77
+; CHECK-NEXT:   RET
+; CHECK-NEXT: }
+; CHECK-NEXT: BLKSWAP 1, 3
+; CHECK-NEXT: PUSH s3
+; CHECK-NEXT: EXECUTE
+; CHECK-NEXT: BLKSWAP 3, 1
+; CHECK-NEXT: BLKDROP 3
   br i1 %par, label %exit1, label %exit2
 exit1:
   ret i257 42
@@ -25,12 +36,27 @@ declare void @bazz()
 ; CHECK-LABEL: diamond
 define void @diamond(i1 %par) nounwind {
 entry:
-; CHECK: PUSHCONT
-; CHECK: {
-; CHECK:   CALL $bar$
-; CHECK: }
-; CHECK: IFNOTJMP
-; CHECK: CALL $foo$
+; CHECK:      PUSHCONT {
+; CHECK-NEXT:   PUSH2 s3, s2
+; CHECK-NEXT:   IFELSE
+; CHECK-NEXT: }
+; CHECK-NEXT: PUSHCONT {
+; CHECK-NEXT:   CALL  $foo$
+; CHECK-NEXT:   PUSH  s0
+; CHECK-NEXT:   JMPX
+; CHECK-NEXT: }
+; CHECK-NEXT: PUSHCONT {
+; CHECK-NEXT:   CALL  $bar$
+; CHECK-NEXT:   PUSH  s0
+; CHECK-NEXT:   JMPX
+; CHECK-NEXT: }
+; CHECK-NEXT: PUSHCONT {
+; CHECK-NEXT:   RET
+; CHECK-NEXT: }
+; CHECK-NEXT: BLKSWAP 1, 4
+; CHECK-NEXT: PUSH s4
+; CHECK-NEXT: EXECUTE
+; CHECK-NEXT: BLKDROP 4
   br i1 %par, label %bb1, label %bb2
 bb1:
   call void @foo()
@@ -66,11 +92,29 @@ exit:
 ; CHECK-LABEL: trivial_phi
 define i257 @trivial_phi(i1 %par, i257 %val) nounwind {
 entry:
-; CHECK: PUSHCONT
-; CHECK: DEC
-; CHECK: PUSHCONT
-; CHECK: INC
-; CHECK: IFNOTJMP
+; CHECK:      PUSHCONT {
+; CHECK-NEXT:   SWAP
+; CHECK-NEXT:   PUSH2 s4, s3
+; CHECK-NEXT:   IFELSE
+; CHECK-NEXT: }
+; CHECK-NEXT: PUSHCONT {
+; CHECK-NEXT:   INC
+; CHECK-NEXT:   PUSH  s1
+; CHECK-NEXT:   JMPX
+; CHECK-NEXT: }
+; CHECK-NEXT: PUSHCONT {
+; CHECK-NEXT:   DEC
+; CHECK-NEXT:   PUSH  s1
+; CHECK-NEXT:   JMPX
+; CHECK-NEXT: }
+; CHECK-NEXT: PUSHCONT {
+; CHECK-NEXT:   RET
+; CHECK-NEXT: }
+; CHECK-NEXT: BLKSWAP 2, 4
+; CHECK-NEXT: PUSH s5
+; CHECK-NEXT: EXECUTE
+; CHECK-NEXT: BLKSWAP 4, 1
+; CHECK-NEXT: BLKDROP 4
   br i1 %par, label %bb1, label %bb2
 bb1:
 

@@ -320,8 +320,10 @@ void TVMStackModel::prepareRoads(MachineFunction &MF) {
 
   BBInfo.clear();
   BBInfo.reserve(MF.size());
+  unsigned ID = MF.size();
   for (auto &MBB : MF) {
     BBInfo[&MBB].setMBB(&MBB);
+    BBInfo[&MBB].setID(--ID);
   }
 
   /// TODO: It's better to encode keep infor about roads with a more expressive
@@ -676,6 +678,36 @@ void TVMStackModel::rewriteToSForm(MachineInstr &MI,
       }
     }
 
+    if (MI.getOpcode() == TVM::IFELSE) {
+      auto Then = MI.getOperand(1).getMBB();
+      unsigned ThenID = TheStack.size() + BBInfo[Then].getID() + 1;
+
+      auto Else = MI.getOperand(2).getMBB();
+      unsigned ElseID = TheStack.size() + BBInfo[Else].getID() + 1;
+
+      MachineInstrBuilder MIB;
+      if (ThenID < 16 && ElseID < 16) {
+        MIB = BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
+            TII->get(TVM::PUSH2)).addImm(ThenID).addImm(ElseID);
+        MFI->addStackModelComment(MIB.getInstr(), Then->getName());
+        MFI->addStackModelComment(MIB.getInstr(), Else->getName());
+      } else {
+        MIB = BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
+            TII->get(TVM::PUSH)).addImm(ThenID);
+        MFI->addStackModelComment(MIB.getInstr(), Then->getName());
+        MIB = BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
+            TII->get(TVM::PUSH)).addImm(ElseID + 1);
+        MFI->addStackModelComment(MIB.getInstr(), Else->getName());
+      }
+    } else if (MI.getOpcode() == TVM::JMPX) {
+      auto Dest = MI.getOperand(0).getMBB();
+      unsigned DestID = TheStack.size() + BBInfo[Dest].getID();
+
+      auto MIB = BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
+          TII->get(TVM::PUSH)).addImm(DestID);
+      MFI->addStackModelComment(MIB.getInstr(), Dest->getName());
+    }
+
     MachineInstrBuilder MIB = BuildMI(&MI, TII->get(NewOpcode));
 
     if (NewOpcode != TVM::PUSH_GLOBAL_ADDRESS_S) {
@@ -685,20 +717,15 @@ void TVMStackModel::rewriteToSForm(MachineInstr &MI,
       }
     }
 
-    // Additional immediate is fake op for TVM::PUSHCONT_MBB operation
-    if (MI.getOpcode() == TVM::PUSHCONT_MBB) {
-      MIB->addOperand(MI.getOperand(1));
-    } else {
-      for (unsigned I = 0; I < NumImms; I++) {
-        // Imms are expected to be in continuous sequence
-        //  in register version of MI
-        const auto &Op = MI.getOperand(NumOperands - NumImms + I);
-        assert(Op.isImm() || Op.isCImm() && "Expected Imm or CImm");
-        if (Op.isImm())
-          MIB.addImm(Op.getImm());
-        else
-          MIB.addCImm(Op.getCImm());
-      }
+    for (unsigned I = 0; I < NumImms; I++) {
+      // Imms are expected to be in continuous sequence
+      //  in register version of MI
+      const auto &Op = MI.getOperand(NumOperands - NumImms + I);
+      assert(Op.isImm() || Op.isCImm() && "Expected Imm or CImm");
+      if (Op.isImm())
+        MIB.addImm(Op.getImm());
+      else
+        MIB.addCImm(Op.getCImm());
     }
 
     std::vector<unsigned> SourceRegs;

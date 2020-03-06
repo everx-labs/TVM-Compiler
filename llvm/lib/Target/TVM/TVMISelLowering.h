@@ -113,13 +113,6 @@ private:
 
   SDValue LowerSMUL_LOHI(SDValue Op, SelectionDAG &DAG) const;
   SDValue LowerUMUL_LOHI(SDValue Op, SelectionDAG &DAG) const;
-
-  // Save/restore C0 for return lowering
-  SDValue SaveC0(SDValue Chain, const SDLoc &DL, SelectionDAG& DAG) const;
-  SDValue RestoreC0(SDValue Chain, const SDLoc &DL, SelectionDAG& DAG) const;
-
-  bool hasPushC0Predecessor(SDNode *Node) const;
-  mutable std::set<int> HasNoPushC0PredecessorCache;
 };
 } // namespace llvm
 

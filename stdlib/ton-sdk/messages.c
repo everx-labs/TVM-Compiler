@@ -14,7 +14,7 @@ MsgAddressInt build_msg_address_int (int workchain, unsigned account) {
 }
 
 void build_internal_message (MsgAddressInt* dest, unsigned value) {
-  build_internal_message_bounce(dest, value, 0);
+  build_internal_message_bounce(dest, value, 1);
 }
 
 __tvm_builder build_currency_collection(__tvm_builder builder,

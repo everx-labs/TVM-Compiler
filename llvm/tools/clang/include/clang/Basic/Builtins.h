@@ -269,6 +269,15 @@ enum BuiltinTemplateKind : int {
   /// This names the __reflect_method_external BuiltinTemplateDecl.
   BTK__reflect_method_external,
 
+  /// This names the __reflect_method_getter BuiltinTemplateDecl.
+  BTK__reflect_method_getter,
+
+  /// This names the __reflect_method_no_read_persistent BuiltinTemplateDecl.
+  BTK__reflect_method_no_read_persistent,
+
+  /// This names the __reflect_method_no_write_persistent BuiltinTemplateDecl.
+  BTK__reflect_method_no_write_persistent,
+
   /// This names the __reflect_method_ptr_func_id BuiltinTemplateDecl.
   BTK__reflect_method_ptr_func_id,
 

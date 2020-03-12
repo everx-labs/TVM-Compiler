@@ -18,7 +18,11 @@ struct IWallet {
   void send_transaction(MsgAddress dest, uint_t<128> value, bool_t bounce) = 4;
 };
 
+struct DWallet {};
+
+struct EWallet {};
+
 }} // namespace tvm::schema
 
-DEFINE_JSON_ABI(tvm::schema::IWallet);
+DEFINE_JSON_ABI(tvm::schema::IWallet, tvm::schema::DWallet, tvm::schema::EWallet);
 

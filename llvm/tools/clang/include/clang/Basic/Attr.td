@@ -1665,6 +1665,26 @@ def TVMExternalFunc : Attr {
   let Documentation = [Undocumented];
   let Subjects = SubjectList<[Function]>;
 }
+def TVMGetterFunc : Attr {
+  let Spellings = [Clang<"getter">];
+  let Documentation = [Undocumented];
+  let Subjects = SubjectList<[Function]>;
+}
+def TVMNoReadPersistentFunc : Attr {
+  let Spellings = [Clang<"no_read_persistent">];
+  let Documentation = [Undocumented];
+  let Subjects = SubjectList<[Function]>;
+}
+def TVMNoWritePersistentFunc : Attr {
+  let Spellings = [Clang<"no_write_persistent">];
+  let Documentation = [Undocumented];
+  let Subjects = SubjectList<[Function]>;
+}
+def TVMNoPersistentFunc : Attr {
+  let Spellings = [Clang<"no_persistent">];
+  let Documentation = [Undocumented];
+  let Subjects = SubjectList<[Function]>;
+}
 // TVM local end
 
 def ObjCPreciseLifetime : InheritableAttr {

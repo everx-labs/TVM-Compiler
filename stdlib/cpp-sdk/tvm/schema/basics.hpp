@@ -79,6 +79,7 @@ namespace tvm { namespace schema {
 
 template<unsigned _bitlen, unsigned _code>
 struct bitconst {
+  static constexpr unsigned code = _code;
   constexpr bool operator==(bitconst<_bitlen, _code>) const {
     return true;
   }
@@ -283,6 +284,7 @@ bool operator>=(unsigned l, int_t<_len> r) {
 template<unsigned _bitlen>
 struct uint_t {
   static constexpr unsigned max_bits = 256;
+  static constexpr unsigned bitlen = _bitlen;
 
   uint_t() : val_(0) {}
   explicit uint_t(unsigned val) : val_(val) {}
@@ -599,6 +601,10 @@ struct EitherRight {
 template<typename X, typename Y>
 struct Either {
   using base_t = std::variant<EitherLeft<X>, EitherRight<Y>>;
+
+  Either() {}
+  Either(X left) : val_(EitherLeft<X>{ {}, left }) {}
+  Either(Y right) : val_(EitherRight<Y>{ {}, right }) {}
 
   Either& operator=(X left) {
     val_ = EitherLeft<X>{ {}, left };

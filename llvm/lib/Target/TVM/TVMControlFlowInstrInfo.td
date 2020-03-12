@@ -228,3 +228,8 @@ def : Pat<(i257 (TVMGlobalAddressWrapper tglobaladdr : $addr)),
           (PUSH_GLOBAL_ADDRESS tglobaladdr : $addr)>;
 def : Pat<(i257 (TVMGlobalAddressWrapper texternalsym : $addr)),
           (PUSH_GLOBAL_ADDRESS texternalsym : $addr)>;
+
+defm BLESS : I<(outs I257:$cont), (ins Slice:$sl),
+               (outs), (ins),
+               [(set I257:$cont, (int_tvm_bless Slice:$sl))],
+               "BLESS\t$cont, $sl", "BLESS", 0xed1e>;

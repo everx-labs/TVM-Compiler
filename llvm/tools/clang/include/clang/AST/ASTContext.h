@@ -348,6 +348,12 @@ class ASTContext : public RefCountedBase<ASTContext> {
   mutable IdentifierInfo *ReflectMethodInternalName = nullptr;
   /// The identifier '__reflect_method_external'.
   mutable IdentifierInfo *ReflectMethodExternalName = nullptr;
+  /// The identifier '__reflect_method_getter'.
+  mutable IdentifierInfo *ReflectMethodGetterName = nullptr;
+  /// The identifier '__reflect_method_no_read_persistent'.
+  mutable IdentifierInfo *ReflectMethodNoReadPersistentName = nullptr;
+  /// The identifier '__reflect_method_no_write_persistent'.
+  mutable IdentifierInfo *ReflectMethodNoWritePersistentName = nullptr;
   /// The identifier '__reflect_method_ptr_func_id'.
   mutable IdentifierInfo *ReflectMethodPtrFuncIdName = nullptr;
   /// The identifier '__reflect_method_rv'.
@@ -547,6 +553,9 @@ private:
   mutable BuiltinTemplateDecl *ReflectMethodFuncIdDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectMethodInternalDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectMethodExternalDecl = nullptr;
+  mutable BuiltinTemplateDecl *ReflectMethodGetterDecl = nullptr;
+  mutable BuiltinTemplateDecl *ReflectMethodNoReadPersistentDecl = nullptr;
+  mutable BuiltinTemplateDecl *ReflectMethodNoWritePersistentDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectMethodPtrFuncIdDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectMethodRvDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectMethodArgStructDecl = nullptr;
@@ -1063,6 +1072,9 @@ public:
   BuiltinTemplateDecl *getReflectMethodFuncIdDecl() const;
   BuiltinTemplateDecl *getReflectMethodInternalDecl() const;
   BuiltinTemplateDecl *getReflectMethodExternalDecl() const;
+  BuiltinTemplateDecl *getReflectMethodGetterDecl() const;
+  BuiltinTemplateDecl *getReflectMethodNoReadPersistentDecl() const;
+  BuiltinTemplateDecl *getReflectMethodNoWritePersistentDecl() const;
   BuiltinTemplateDecl *getReflectMethodPtrFuncIdDecl() const;
   BuiltinTemplateDecl *getReflectMethodRvDecl() const;
   BuiltinTemplateDecl *getReflectMethodArgStructDecl() const;
@@ -1866,6 +1878,26 @@ public:
     if (!ReflectMethodExternalName)
       ReflectMethodExternalName = &Idents.get("__reflect_method_external");
     return ReflectMethodExternalName;
+  }
+
+  IdentifierInfo *getReflectMethodGetterName() const {
+    if (!ReflectMethodGetterName)
+      ReflectMethodGetterName = &Idents.get("__reflect_method_getter");
+    return ReflectMethodGetterName;
+  }
+
+  IdentifierInfo *getReflectMethodNoReadPersistentName() const {
+    if (!ReflectMethodNoReadPersistentName)
+      ReflectMethodNoReadPersistentName =
+        &Idents.get("__reflect_method_no_read_persistent");
+    return ReflectMethodNoReadPersistentName;
+  }
+
+  IdentifierInfo *getReflectMethodNoWritePersistentName() const {
+    if (!ReflectMethodNoWritePersistentName)
+      ReflectMethodNoWritePersistentName =
+        &Idents.get("__reflect_method_no_write_persistent");
+    return ReflectMethodNoWritePersistentName;
   }
 
   IdentifierInfo *getReflectMethodPtrFuncIdName() const {

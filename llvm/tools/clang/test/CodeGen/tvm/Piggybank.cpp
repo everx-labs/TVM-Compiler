@@ -24,7 +24,7 @@ public:
   // Function is called in case of unparsed or unsupported func_id
   static __always_inline int _fallback(cell msg, slice msg_body);
 };
-DEFINE_JSON_ABI(IPiggybank);
+DEFINE_JSON_ABI(IPiggybank, DPiggybank, EPiggybank);
 
 // -------------------------- Public calls --------------------------------- //
 void Piggybank::constructor(lazy<MsgAddress> pb_owner, uint_t<256> pb_limit) {

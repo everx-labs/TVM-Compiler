@@ -6388,6 +6388,21 @@ static void ProcessDeclAttribute(Sema &S, Scope *scope, Decl *D,
   case ParsedAttr::AT_TVMExternalFunc:
     handleSimpleAttribute<TVMExternalFuncAttr>(S, D, AL);
     break;
+  case ParsedAttr::AT_TVMGetterFunc:
+    handleSimpleAttribute<TVMGetterFuncAttr>(S, D, AL);
+    // Applying also no_write_persistent for getter methods
+    handleSimpleAttribute<TVMNoWritePersistentFuncAttr>(S, D, AL);
+    break;
+  case ParsedAttr::AT_TVMNoReadPersistentFunc:
+    handleSimpleAttribute<TVMNoReadPersistentFuncAttr>(S, D, AL);
+    break;
+  case ParsedAttr::AT_TVMNoWritePersistentFunc:
+    handleSimpleAttribute<TVMNoWritePersistentFuncAttr>(S, D, AL);
+    break;
+  case ParsedAttr::AT_TVMNoPersistentFunc:
+    handleSimpleAttribute<TVMNoReadPersistentFuncAttr>(S, D, AL);
+    handleSimpleAttribute<TVMNoWritePersistentFuncAttr>(S, D, AL);
+    break;
   case ParsedAttr::AT_Blocks:
     handleBlocksAttr(S, D, AL);
     break;

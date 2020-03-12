@@ -23,5 +23,8 @@ struct DPiggybank {
   uint_t<256> balance;
 };
 
+// Piggybank events
+struct EPiggybank {};
+
 }} // namespace tvm::schema
 

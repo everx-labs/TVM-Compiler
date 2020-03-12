@@ -8,7 +8,7 @@ namespace tvm {
 class __attribute__((tvm_tuple)) smart_contract_info {
 public:
   static inline tuple<smart_contract_info> get();
-  
+
   static inline int magic() {
     return __builtin_tvm_index(smart_contract_info::get().get(), 0);
   }
@@ -147,6 +147,10 @@ static inline tuple<incoming_msg> ext_msg() {
   temporary_data::setglob(1, __builtin_tvm_cast_from_tuple(tp.get()));
   return tp;
 }
+
+static inline int tvm_now() { return smart_contract_info::now(); }
+static inline slice tvm_myaddr() { return smart_contract_info::myaddr(); }
+static inline int tvm_balance() { return smart_contract_info::balance_remaining(); }
 
 } // namespace tvm
 

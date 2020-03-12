@@ -16,6 +16,7 @@ public:
   }
 
   bool empty() const { return __builtin_tvm_sdempty(sl_); }
+  bool srempty() const { return __builtin_tvm_srempty(sl_); }
 
   __tvm_slice get() const { return sl_; }
 

@@ -7,6 +7,7 @@
 #include <tvm/signature_checker.hpp>
 #include <tvm/persistent_data.hpp>
 #include <tvm/assert.hpp>
+#include <tvm/smart_contract_info.hpp>
 
 #include <tvm/schema/make_parser.hpp>
 #include <tvm/schema/make_builder.hpp>
@@ -19,6 +20,28 @@ namespace tvm {
 inline void tvm_accept() {
   __builtin_tvm_accept();
 }
+inline void tvm_commit() {
+  __builtin_tvm_commit();
+}
+inline void tvm_setcode(cell new_root_cell) {
+  __builtin_tvm_setcode(new_root_cell);
+}
+inline void tvm_pop_c3(int val) {
+  __builtin_tvm_setreg(3, val);
+}
+inline int tvm_bless(slice sl) {
+  return __builtin_tvm_bless(sl);
+}
+inline unsigned tvm_hash(cell cl) {
+  return __builtin_tvm_hashcu(cl);
+}
+inline unsigned tvm_hash(slice sl) {
+  return __builtin_tvm_hashsu(sl);
+}
+inline unsigned tvm_trans_lt() {
+  return __builtin_tvm_ltime();
+}
+
 inline void tvm_sendmsg(cell msg, unsigned flags) {
   __builtin_tvm_sendrawmsg(msg.get(), flags);
 }
@@ -29,11 +52,6 @@ inline static bool isa(V v) {
 template<class T, class V>
 inline static auto cast(V v) {
   return std::get<T>(v);
-}
-inline static unsigned check_signature(slice msg_body, unsigned err) {
-  signature_checker sig_check(msg_body);
-  tvm_assert(sig_check.verified(), err);
-  return sig_check.public_key();
 }
 
 inline static schema::MsgAddressExt get_incoming_ext_src(cell msg) {
@@ -74,12 +92,11 @@ static void tvm_transfer(schema::MsgAddressInt dest, unsigned nanograms, bool bo
 
   message_relaxed<empty> out_msg;
   int_msg_info_relaxed msg_info;
-  msg_info.ihr_disabled = false;
+  msg_info.ihr_disabled = true;
   msg_info.bounce = bounce;
   msg_info.bounced = false;
   msg_info.dest = dest;
   msg_info.value.grams = nanograms;
-  msg_info.ihr_disabled = 0;
   msg_info.src = addr_none{}; // Will be filled by vm
   msg_info.ihr_fee = 0;
   msg_info.fwd_fee = 0;
@@ -89,18 +106,78 @@ static void tvm_transfer(schema::MsgAddressInt dest, unsigned nanograms, bool bo
   out_msg.info = msg_info;
   tvm_sendmsg(build(out_msg).endc(), 0);
 }
-// The same for lazy MsgAddressInt (not parsed from slice)
+// Prepare and send empty message with nanograms as transfer value.
+// Only internal destination address allowed.
+static void tvm_transfer(schema::lazy<schema::MsgAddressInt> dest, unsigned nanograms, bool bounce, unsigned flags, cell payload) {
+  using namespace schema;
+
+  message_relaxed<anyval> out_msg;
+  int_msg_info_relaxed msg_info;
+  msg_info.ihr_disabled = true;
+  msg_info.bounce = bounce;
+  msg_info.bounced = false;
+  msg_info.dest = dest;
+  msg_info.value.grams = nanograms;
+  msg_info.src = addr_none{}; // Will be filled by vm
+  msg_info.ihr_fee = 0;
+  msg_info.fwd_fee = 0;
+  msg_info.created_lt = 0;
+  msg_info.created_at = 0;
+
+  out_msg.info = msg_info;
+
+  builder b = build(out_msg.info);
+  b = build(b, out_msg.init);
+  slice payload_sl = payload.ctos();
+  if (b.brembits() > payload_sl.sbits()) {
+    out_msg.body = anyval{payload_sl};
+    b = build(b, out_msg.body);
+  } else {
+    out_msg.body = ref<anyval>{payload_sl};
+    b = build(b, out_msg.body);
+  }
+  tvm_sendmsg(b.endc(), flags);
+}
+static void tvm_transfer(slice dest, unsigned nanograms, unsigned bounce, unsigned flags, cell payload) {
+  using namespace schema;
+
+  message_relaxed<anyval> out_msg;
+  int_msg_info_relaxed msg_info;
+  msg_info.ihr_disabled = true;
+  msg_info.bounce = bounce;
+  msg_info.bounced = false;
+  msg_info.dest = dest;
+  msg_info.value.grams = nanograms;
+  msg_info.src = addr_none{}; // Will be filled by vm
+  msg_info.ihr_fee = 0;
+  msg_info.fwd_fee = 0;
+  msg_info.created_lt = 0;
+  msg_info.created_at = 0;
+
+  out_msg.info = msg_info;
+
+  builder b = build(out_msg.info);
+  b = build(b, out_msg.init);
+  slice payload_sl = payload.ctos();
+  if (b.brembits() > payload_sl.sbits()) {
+    out_msg.body = anyval{payload_sl};
+    b = build(b, out_msg.body);
+  } else {
+    out_msg.body = ref<anyval>{payload_sl};
+    b = build(b, out_msg.body);
+  }
+  tvm_sendmsg(b.endc(), flags);
+}
 static void tvm_transfer(schema::lazy<schema::MsgAddressInt> dest, unsigned nanograms, bool bounce) {
   using namespace schema;
 
   message_relaxed<empty> out_msg;
   int_msg_info_relaxed msg_info;
-  msg_info.ihr_disabled = false;
+  msg_info.ihr_disabled = true;
   msg_info.bounce = bounce;
   msg_info.bounced = false;
   msg_info.dest = dest;
   msg_info.value.grams = nanograms;
-  msg_info.ihr_disabled = 0;
   msg_info.src = addr_none{}; // Will be filled by vm
   msg_info.ihr_fee = 0;
   msg_info.fwd_fee = 0;

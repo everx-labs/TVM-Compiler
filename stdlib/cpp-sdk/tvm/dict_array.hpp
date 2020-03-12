@@ -85,7 +85,7 @@ public:
   Ref operator[](unsigned idx) {
     return Ref{base::dict_, idx};
   }
-    
+
   using const_iterator = dictionary_const_iterator<Element, KeyLen>;
   const_iterator begin() const {
     return const_iterator::create_begin(base::dict_);
@@ -93,7 +93,7 @@ public:
   const_iterator end() const {
     return const_iterator::create_end(base::dict_);
   }
-  
+
   using iterator = dictionary_array_iterator<Element, KeyLen>;
   iterator begin() {
     return iterator::create_begin(base::dict_, base::size_);

@@ -710,6 +710,15 @@ static bool LookupBuiltin(Sema &S, LookupResult &R) {
         } else if (II == S.getASTContext().getReflectMethodExternalName()) {
           R.addDecl(S.getASTContext().getReflectMethodExternalDecl());
           return true;
+        } else if (II == S.getASTContext().getReflectMethodGetterName()) {
+          R.addDecl(S.getASTContext().getReflectMethodGetterDecl());
+          return true;
+        } else if (II == S.getASTContext().getReflectMethodNoReadPersistentName()) {
+          R.addDecl(S.getASTContext().getReflectMethodNoReadPersistentDecl());
+          return true;
+        } else if (II == S.getASTContext().getReflectMethodNoWritePersistentName()) {
+          R.addDecl(S.getASTContext().getReflectMethodNoWritePersistentDecl());
+          return true;
         } else if (II == S.getASTContext().getReflectMethodPtrFuncIdName()) {
           R.addDecl(S.getASTContext().getReflectMethodPtrFuncIdDecl());
           return true;

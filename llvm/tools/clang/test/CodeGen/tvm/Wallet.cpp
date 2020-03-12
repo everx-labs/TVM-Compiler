@@ -56,7 +56,7 @@ private:
     p.timestamp = *v;
   }
 };
-DEFINE_JSON_ABI(IWallet);
+DEFINE_JSON_ABI(IWallet, DWallet, EWallet);
 
 // Public call wrappers
 int Wallet::constructor_external(cell msg, slice msg_body) {
@@ -77,7 +77,7 @@ int Wallet::send_transaction_external(cell msg, slice msg_body) {
 
 // Public calls
 int Wallet::constructor(cell msg, slice msg_body) {
-  unsigned sender_key = check_signature(msg_body, error_code::bad_signature);
+  auto [sender_key, =msg_body] = signature_checker<error_code::invalid_signature>::check(msg_body);
   tvm_accept();
 
   p.owner = sender_key;
@@ -92,7 +92,7 @@ int Wallet::set_subscription_account(cell msg, slice msg_body) {
     abiv1::external_inbound_msg_header hdr;
     MsgAddress address;
   };
-  unsigned sender_key = check_signature(msg_body, error_code::bad_signature);
+  auto [sender_key, =msg_body] = signature_checker<error_code::invalid_signature>::check(msg_body);
 
   unsigned owner_v = p.owner.get();
   tvm_assert(owner_v == sender_key, error_code::wrong_owner);
@@ -112,7 +112,7 @@ int Wallet::get_subscription_account(cell msg, slice msg_body) {
     MsgAddress subscription;
   };
 
-  unsigned sender_key = check_signature(msg_body, error_code::bad_signature);
+  auto [sender_key, =msg_body] = signature_checker<error_code::invalid_signature>::check(msg_body);
 
   MsgAddress subscription_v = p.subscription;
   auto args = parse_args<args_t>(msg_body, error_code::bad_arguments);
@@ -151,7 +151,7 @@ int Wallet::send_transaction(cell msg, slice msg_body) {
   args_t args = parse_args<args_t>(msg_body, error_code::bad_arguments);
   replay_protection_check(args.hdr.timestamp.get());
 
-  unsigned sender_key = check_signature(msg_body, error_code::bad_signature);
+  auto [sender_key, =msg_body] = signature_checker<error_code::invalid_signature>::check(msg_body);
   unsigned owner_v = p.owner.get();
   MsgAddress subscription_v = p.subscription;
 

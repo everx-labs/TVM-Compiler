@@ -27,6 +27,15 @@ template<class Interface, unsigned Index>
 using get_interface_method_external =
   __reflect_method_external<std::integral_constant, bool, Interface, Index>;
 template<class Interface, unsigned Index>
+using get_interface_method_getter =
+  __reflect_method_getter<std::integral_constant, bool, Interface, Index>;
+template<class Interface, unsigned Index>
+using get_interface_method_no_read_persistent =
+  __reflect_method_no_read_persistent<std::integral_constant, bool, Interface, Index>;
+template<class Interface, unsigned Index>
+using get_interface_method_no_write_persistent =
+  __reflect_method_no_write_persistent<std::integral_constant, bool, Interface, Index>;
+template<class Interface, unsigned Index>
 using get_interface_method_rv = __reflect_method_rv<Interface, Index>;
 template<class Interface, unsigned Index>
 using get_interface_method_arg_struct = __reflect_method_arg_struct<Interface, Index>;

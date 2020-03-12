@@ -1438,7 +1438,27 @@ static TemplateParameterList *
 createReflectMethodExternalParameterList(const ASTContext &C, DeclContext *DC) {
   return createReflectMethodIntegralConstantParameterList(C, DC);
 }
-
+// __reflect_method_getter<T, IntType, Interface, Index> -
+//   'getter' attribute of the Interface method number #Index,
+//   provided into T<IntType, isInternal>
+static TemplateParameterList *
+createReflectMethodGetterParameterList(const ASTContext &C, DeclContext *DC) {
+  return createReflectMethodIntegralConstantParameterList(C, DC);
+}
+// __reflect_method_no_read_persistent<T, IntType, Interface, Index> -
+//   'no_read_persistent' attribute of the Interface method number #Index,
+//   provided into T<IntType, isInternal>
+static TemplateParameterList *
+createReflectMethodNoReadPersistentParameterList(const ASTContext &C, DeclContext *DC) {
+  return createReflectMethodIntegralConstantParameterList(C, DC);
+}
+// __reflect_method_no_write_persistent<T, IntType, Interface, Index> -
+//   'no_write_persistent' attribute of the Interface method number #Index,
+//   provided into T<IntType, isInternal>
+static TemplateParameterList *
+createReflectMethodNoWritePersistentParameterList(const ASTContext &C, DeclContext *DC) {
+  return createReflectMethodIntegralConstantParameterList(C, DC);
+}
 // __reflect_method_ptr_func_id<T, IntType, Rv Interface::* MethodPtr> -
 //   FuncID of the Interface method (specified by pointer), provided into T<IntType, FuncID>
 static TemplateParameterList *
@@ -1647,6 +1667,12 @@ static TemplateParameterList *createBuiltinTemplateParameterList(
     return createReflectMethodInternalParameterList(C, DC);
   case BTK__reflect_method_external:
     return createReflectMethodExternalParameterList(C, DC);
+  case BTK__reflect_method_getter:
+    return createReflectMethodGetterParameterList(C, DC);
+  case BTK__reflect_method_no_read_persistent:
+    return createReflectMethodNoReadPersistentParameterList(C, DC);
+  case BTK__reflect_method_no_write_persistent:
+    return createReflectMethodNoWritePersistentParameterList(C, DC);
   case BTK__reflect_method_ptr_func_id:
     return createReflectMethodPtrFuncIdParameterList(C, DC);
   case BTK__reflect_method_rv:

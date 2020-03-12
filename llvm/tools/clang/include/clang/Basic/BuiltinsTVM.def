@@ -129,6 +129,9 @@ BUILTIN(__builtin_tvm_sdcntlead1, "WiTs", "nc")
 BUILTIN(__builtin_tvm_sdcnttrail0, "WiTs", "nc")
 BUILTIN(__builtin_tvm_sdcnttrail1, "WiTs", "nc")
 
+// A.8.5. Creating simple continuations and closures.
+BUILTIN(__builtin_tvm_bless, "WiTs", "nc")
+
 // A.10 Dictionary manipulation primitives
 BUILTIN(__builtin_tvm_newdict, "Tc", "nc")
 BUILTIN(__builtin_tvm_dictget, "{TsWi}TsTcWi", "nc")

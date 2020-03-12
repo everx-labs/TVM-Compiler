@@ -237,6 +237,13 @@ constexpr auto make_functions_end() {
   return "\n  ]"_s;
 }
 
+constexpr auto make_events_begin() {
+  return "\"events\": ["_s;
+}
+constexpr auto make_events_end() {
+  return "\n  ]"_s;
+}
+
 template<class ArgStruct>
 constexpr auto make_function_inputs() {
   return "\"inputs\": [\n"_s + make_struct_json<ArgStruct>::value + "    ]"_s;
@@ -289,15 +296,22 @@ struct make_json_abi_impl<Interface, CurMethod, 0> {
   static constexpr auto value = ""_s;
 };
 
-template<class Interface>
+template<class Interface, class Events>
 constexpr auto make_json_abi() {
   using MethodsCount = get_interface_methods_count<Interface>;
-  return "{\n  "_s + make_abi_version() + ",\n  "_s + make_functions_begin() + "\n"_s +
-      make_json_abi_impl<Interface, 0, MethodsCount::value>::value +
-      make_functions_end() + "\n}\n"_s;
+  using EventsCount = get_interface_methods_count<Events>;
+  return
+    "{\n  "_s + make_abi_version() + ",\n  "_s +
+      make_functions_begin() + "\n"_s +
+        make_json_abi_impl<Interface, 0, MethodsCount::value>::value +
+      make_functions_end() + ",\n  "_s +
+      make_events_begin() +
+        make_json_abi_impl<Events, 0, EventsCount::value>::value +
+      make_events_end() +
+    "\n}\n"_s;
 }
 
-#define DEFINE_JSON_ABI(Interface) \
-  const char* json_abi = tvm::schema::json_abi_gen::make_json_abi<Interface>().c_str()
+#define DEFINE_JSON_ABI(Interface, DInterface, EInterface) \
+  const char* json_abi = tvm::schema::json_abi_gen::make_json_abi<Interface, EInterface>().c_str()
 
 }}} // namespace tvm::schema::json_abi_gen

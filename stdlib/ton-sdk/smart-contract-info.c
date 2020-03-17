@@ -9,9 +9,9 @@ SmartContractInfo get_SmartContractInfo () {
 #include "smart-contract-info.inc"
 
 unsigned contract_balance() {
-  return __builtin_tvm_hiddenstack(4);
+  return __builtin_tvm_getglobal(9);
 }
 
 unsigned message_balance() {
-  return __builtin_tvm_hiddenstack(3);
+  return __builtin_tvm_getglobal(8);
 }

@@ -637,38 +637,6 @@ void TVMStackModel::rewriteToSForm(MachineInstr &MI,
   });
 
   if (NewOpcode >= 0) {
-    // Global operands and external symbols are represented using GlobalAddress
-    // and ExternalSymbol DAG nodes. Because of convention of instruction
-    // operands ordering global addresses and external symbols must be placed
-    // first before instruction. To avoid custom logic of stack reordering for
-    // global/external operands, we transfrom all GlobalAddress and
-    // ExternalSymbol nodes to the chain of PUSH_GLOBAL_ADDRESS(_S) instruction
-    // and TargetGlobalAddress / TargetExternalSymbol nodes. So by default only
-    // PUSH_GLOBAL_ADDRESS instruction may have global/external operand. This
-    // instruction has definition with address which can be normally processed
-    // using stack model for all further uses of the address result.
-    // There are may be exceptions when the transformation to
-    // PUSH_GLOBAL_ADDRESS is not needed (for example, for instructions with
-    // immediate string operands like LOGSTR). For such cases operands will be
-    // passed up to lowering to MCInst where they can be customly processed.
-
-    // add global addresses before the command
-    // TODO: continuation must be modelled in the stack then.
-    for (unsigned I = 0; I < NumGlobals; I++) {
-      const auto &Op = MI.getOperand(NumDefs + I);
-      assert((Op.isGlobal() || Op.isSymbol()) &&
-             "Expected GlobalAddress/ExternalSymbol");
-      if (NewOpcode == TVM::PUSH_GLOBAL_ADDRESS_S) {
-        if (Op.isGlobal()) {
-          BuildMI(&MI, TII->get(TVM::PUSHCONT_LABEL))
-              .addGlobalAddress(Op.getGlobal(), Op.getOffset());
-        } else {
-          BuildMI(&MI, TII->get(TVM::PUSHCONT_LABEL))
-              .addExternalSymbol(Op.getSymbolName(), Op.getOffset());
-        }
-      }
-    }
-
     if (MI.getOpcode() == TVM::IFELSE) {
       auto Then = MI.getOperand(1).getMBB();
       unsigned ThenID = TheStack.size() + BBInfo[Then].getID() + 1;
@@ -701,11 +669,9 @@ void TVMStackModel::rewriteToSForm(MachineInstr &MI,
 
     MachineInstrBuilder MIB = BuildMI(&MI, TII->get(NewOpcode));
 
-    if (NewOpcode != TVM::PUSH_GLOBAL_ADDRESS_S) {
-      for (unsigned I = 0; I < NumGlobals; I++) {
-        const auto &Op = MI.getOperand(NumDefs + I);
-        MIB->addOperand(Op);
-      }
+    for (unsigned I = 0; I < NumGlobals; I++) {
+      const auto &Op = MI.getOperand(NumDefs + I);
+      MIB->addOperand(Op);
     }
 
     for (unsigned I = 0; I < NumImms; I++) {

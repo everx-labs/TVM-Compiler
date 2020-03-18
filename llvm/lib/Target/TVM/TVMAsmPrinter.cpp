@@ -116,7 +116,6 @@ void TVMAsmPrinter::EmitInstruction(const MachineInstr *MI) {
   case TVM::FROM_SLICE_COPY_S:
   case TVM::FROM_BUILDER_COPY_S:
   case TVM::FROM_CELL_COPY_S:
-  case TVM::PUSH_GLOBAL_ADDRESS_S:
     break;
   case TVM::FALLTHROUGH_RETURN:
     if (isVerbose()) {

@@ -32,25 +32,6 @@ using namespace llvm;
 
 void TVMInstPrinter::printInst(const MCInst *MI, raw_ostream &O,
                                StringRef Annot, const MCSubtargetInfo &STI) {
-  // TODO: A hack, we have the same logic in AsmPrinter, but it's not triggered
-  // for instructions in TVM::PUSHCONT_MBB. Need to find a better solution.
-  switch (MI->getOpcode()) {
-  case TVM::TO_TUPLE_COPY_S:
-  case TVM::TO_SLICE_COPY_S:
-  case TVM::TO_BUILDER_COPY_S:
-  case TVM::TO_CELL_COPY_S:
-  case TVM::FROM_TUPLE_COPY_S:
-  case TVM::FROM_SLICE_COPY_S:
-  case TVM::FROM_BUILDER_COPY_S:
-  case TVM::FROM_CELL_COPY_S:
-  case TVM::REG_TO_REG_COPY_S:
-  case TVM::PUSH_GLOBAL_ADDRESS_S:
-  case TVM::FALLTHROUGH_RETURN:
-    return;
-  default:
-    break;
-  }
-
   {
     std::string Str;
     raw_string_ostream OStr(Str);
@@ -80,8 +61,6 @@ void TVMInstPrinter::printOperand(const MCInst *MI, unsigned OpNo,
     if (const auto *Expr = dyn_cast<TVMImmStringMCExpr>(Op.getExpr())) {
       O << Expr->getString();
     } else {
-      assert((Info.OperandType == TVM::OPERAND_FUNCTION) &&
-             "Unimplemented expression type");
       // The actual label address is not known at the moment of
       // code generation; to simplify further linking, the label name
       // is surrounded with dollar signs ($callee$).

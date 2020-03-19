@@ -19,12 +19,8 @@
 //===----------------------------------------------------------------------===//
 
 let isTerminator = 1, hasCtrlDep = 1 in {
-  let isReturn = 1, isBarrier = 1 in {
-    defm RETURN_N : NRI<(outs), (ins variable_ops), [(TVMreturn)],
-                        "RET", 0xdb30>;
-    let isCodeGenOnly = 1 in
-    defm FALLTHROUGH_RETURN : SI<(ins)>;
-  } // isReturn = 1, isBarrier = 1
+  let isReturn = 1, isBarrier = 1 in
+    defm RETURN_N : NRI<(outs), (ins variable_ops), [(TVMreturn)]>;
 
   let isBranch = 1 in {
     // The condition operand is a boolean value which TVM represents as i257.

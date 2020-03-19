@@ -117,9 +117,9 @@ void TVMAsmPrinter::EmitInstruction(const MachineInstr *MI) {
   case TVM::FROM_BUILDER_COPY_S:
   case TVM::FROM_CELL_COPY_S:
     break;
-  case TVM::FALLTHROUGH_RETURN:
+  case TVM::RETURN_N_S:
     if (isVerbose()) {
-      OutStreamer->AddComment("fallthrough return");
+      OutStreamer->AddComment("implicit return");
       OutStreamer->AddBlankLine();
     }
     break;

@@ -20,7 +20,7 @@ public:
   static inline std::optional<persistent_t> check(unsigned msg_time, persistent_t last) {
     if (last && msg_time <= last)
       return {};
-    if (msg_time >= smart_contract_info::now() + Interval)
+    if (msg_time >= (smart_contract_info::now() + Interval) * 1000)
       return {};
     return persistent_t{msg_time};
   }

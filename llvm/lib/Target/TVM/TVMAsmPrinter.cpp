@@ -163,14 +163,15 @@ void TVMAsmPrinter::EmitFunctionBodyEnd() {
   auto *FI = MF->getInfo<TVMFunctionInfo>();
   unsigned Arguments = FI->getParams().size();
   unsigned ReturnValues = FI->getResults().size();
+  const unsigned SmallEncodingLimit = 16;
 
   if (Arguments > 0) {
-    if (Blocks <= 16 && Arguments <= 16) {
-      OutStreamer->EmitRawText("  BLKSWAP\t" + Twine(Arguments) + ", " +
+    if (Blocks <= SmallEncodingLimit && Arguments <= SmallEncodingLimit) {
+      OutStreamer->EmitRawText("  BLKSWAP " + Twine(Arguments) + ", " +
           Twine(Blocks));
     } else {
-      OutStreamer->EmitRawText("  PUSHINT\t" + Twine(Arguments));
-      OutStreamer->EmitRawText("  PUSHINT\t" + Twine(Blocks));
+      OutStreamer->EmitRawText("  PUSHINT " + Twine(Arguments));
+      OutStreamer->EmitRawText("  PUSHINT " + Twine(Blocks));
       OutStreamer->EmitRawText("  BLKSWX");
     }
   }
@@ -179,20 +180,20 @@ void TVMAsmPrinter::EmitFunctionBodyEnd() {
   OutStreamer->EmitRawText("  EXECUTE");
 
   if (ReturnValues > 0) {
-    if (Blocks <= 16 && ReturnValues <= 16) {
-      OutStreamer->EmitRawText("  BLKSWAP\t" + Twine(Blocks) + ", " +
+    if (Blocks <= SmallEncodingLimit && ReturnValues <= SmallEncodingLimit) {
+      OutStreamer->EmitRawText("  BLKSWAP " + Twine(Blocks) + ", " +
           Twine(ReturnValues));
     } else {
-      OutStreamer->EmitRawText("  PUSHINT\t" + Twine(Blocks));
-      OutStreamer->EmitRawText("  PUSHINT\t" + Twine(ReturnValues));
+      OutStreamer->EmitRawText("  PUSHINT " + Twine(Blocks));
+      OutStreamer->EmitRawText("  PUSHINT " + Twine(ReturnValues));
       OutStreamer->EmitRawText("  BLKSWX");
     }
   }
 
-  if (Blocks < 16) {
-    OutStreamer->EmitRawText("  BLKDROP\t" + Twine(Blocks));
+  if (Blocks < SmallEncodingLimit) {
+    OutStreamer->EmitRawText("  BLKDROP " + Twine(Blocks));
   } else {
-    OutStreamer->EmitRawText("  PUSHINT\t" + Twine(Blocks));
+    OutStreamer->EmitRawText("  PUSHINT " + Twine(Blocks));
     OutStreamer->EmitRawText("  DROPX");
   }
 }

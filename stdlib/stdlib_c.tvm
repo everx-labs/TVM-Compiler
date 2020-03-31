@@ -88,6 +88,10 @@ tvm_sender_pubkey:
 
     PUSH s1
     SETGLOB 7
+    PUSH s2
+    SETGLOB 8
+    PUSH s3
+    SETGLOB 9
 
     PUSHCONT {
         CALL $load_macro$
@@ -135,6 +139,10 @@ tvm_sender_pubkey:
 
     PUSH s1
     SETGLOB 7
+    PUSH s2
+    SETGLOB 8
+    PUSH s3
+    SETGLOB 9
 
     PUSHCONT {
         CALL $load_macro$

@@ -12,6 +12,8 @@
 //===----------------------------------------------------------------------===//
 
 #include "TVM.h"
+#include "TVMUtilities.h"
+
 #include "llvm/ADT/PostOrderIterator.h"
 #include "llvm/CodeGen/MachineDominators.h"
 #include "llvm/CodeGen/MachineFunctionPass.h"
@@ -49,7 +51,8 @@ public:
   static char ID;
   explicit TVMIfConversionTerm() : MachineFunctionPass(ID) {}
 private:
-  bool tryConvertIf(MachineBasicBlock*);
+  bool tryConvertIf1(MachineBasicBlock *MBB);
+  bool tryConvertIf2(MachineBasicBlock *MBB);
   void updateDomTree(MachineBasicBlock *Head,
                      MachineBasicBlock *ThrowBB,
                      MachineBasicBlock *ContBB);
@@ -96,7 +99,7 @@ void TVMIfConversionTerm::updateLoops(MachineBasicBlock *ThrowBB,
   Loops->removeBlock(ContBB);
 }
 
-bool TVMIfConversionTerm::tryConvertIf(MachineBasicBlock* MBB) {
+bool TVMIfConversionTerm::tryConvertIf1(MachineBasicBlock *MBB) {
   SmallVector<MachineBasicBlock*, 4> RemovedBlocks;
 
   MachineBasicBlock *Head = MBB;
@@ -148,6 +151,55 @@ bool TVMIfConversionTerm::tryConvertIf(MachineBasicBlock* MBB) {
   return true;
 }
 
+static bool IsThrow(MachineBasicBlock *MBB) {
+  if (!MBB->succ_empty())
+    return false;
+  if (MBB->size() != 1)
+    return false;
+  auto &MI = MBB->front();
+  if (MI.getOpcode() != TVM::THROW)
+    return false;
+  return true;
+}
+
+//         ...
+//          |
+//         MBB       ...
+//  ...    / \       /
+//    \   /   \     /
+//     \ /     \   /
+//     TBB      \ /
+//              FBB
+//               |
+//              ...
+bool TVMIfConversionTerm::tryConvertIf2(MachineBasicBlock *MBB) {
+  MachineBasicBlock *TBB = nullptr;
+  MachineBasicBlock *FBB = nullptr;
+  SmallVector<MachineOperand, 4> Cond;
+  if (TII->analyzeBranch(*MBB, TBB, FBB, Cond))
+    return false;
+
+  unsigned Opcode;
+  if (TBB && IsThrow(TBB)) {
+    Opcode = TVM::THROWIF;
+  } else if (FBB && IsThrow(FBB)) {
+    std::swap(TBB, FBB);
+    Opcode = TVM::THROWIFNOT;
+  } else {
+    return false;
+  }
+
+  auto &TI = TBB->front();
+  auto &MI = *MBB->getFirstTerminator();
+  BuildMI(*MBB, MI, MI.getDebugLoc(), TII->get(Opcode))
+      .add(Cond[1]).add(TI.getOperand(0));
+  TII->removeBranch(*MBB);
+  MBB->removeSuccessor(TBB);
+  TII->insertBranch(*MBB, FBB, nullptr, ArrayRef<MachineOperand>(), DebugLoc());
+
+  return true;
+}
+
 bool TVMIfConversionTerm::runOnMachineFunction(MachineFunction &MF) {
   LLVM_DEBUG(dbgs() << "********** TVM IF-CONVERSION TERM **********\n"
                     << "********** Function: " << MF.getName() << '\n');
@@ -157,9 +209,12 @@ bool TVMIfConversionTerm::runOnMachineFunction(MachineFunction &MF) {
   DomTree = &getAnalysis<MachineDominatorTree>();
   Loops = getAnalysisIfAvailable<MachineLoopInfo>();
   bool Changed = false;
-  for (auto DomNode : post_order(DomTree))
-    if (tryConvertIf(DomNode->getBlock()))
+  for (auto DomNode : post_order(DomTree)) {
+    if (tryConvertIf1(DomNode->getBlock()))
       Changed = true;
+    if (tryConvertIf2(DomNode->getBlock()))
+      Changed = true;
+  }
   return Changed;
 }
 

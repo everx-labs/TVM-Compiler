@@ -53,9 +53,6 @@ class TVMFunctionInfo final : public MachineFunctionInfo {
   ///   - defined and used in LIFO order with other stack registers
   BitVector VRegStackified;
 
-  /// Virtual register allocated to save c0 for function return lowering
-  unsigned C0VirtReg = 0;
-
 public:
   explicit TVMFunctionInfo(MachineFunction &MF);
   ~TVMFunctionInfo() override;
@@ -180,17 +177,6 @@ public:
   static unsigned getTVMRegStackId(unsigned Reg) {
     assert(Reg & INT32_MIN);
     return Reg & INT32_MAX;
-  }
-
-  // Accessors to work with virtual register for c0 saving
-  unsigned int getC0VirtReg() const { return C0VirtReg; }
-
-  bool hasC0VirtReg() const { return C0VirtReg != 0; }
-
-  void setC0VirtReg(unsigned Register) {
-    assert(!hasC0VirtReg() && "C0 virtual register has been already saved");
-    assert(Register && "C0 virtual register has to be non zero");
-    C0VirtReg = Register;
   }
 };
 

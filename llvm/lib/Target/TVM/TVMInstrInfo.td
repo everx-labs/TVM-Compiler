@@ -198,6 +198,7 @@ defm NOP : I<(outs), (ins), (outs), (ins), [(int_tvm_nop)], "NOP", "NOP", 0x00>;
 
 let mayLoad = 1, isAsCheapAsAMove = 1 in {
 defm PUSH : SI<(ins stack_op:$local), "PUSH\t$local", 0x20>;
+defm PUSHX : SI<(ins), "PUSHX", 0x60>;
 defm SWAP : SI<(ins), "SWAP", 0x01>;
 defm XCHG_TOP : SI<(ins stack_op:$src), "XCHG\ts0, $src", 0x01>;
 defm XCHG_TOP_DEEP : SI<(ins stack_op:$src), "XCHG\ts0, $src", 0x11>;
@@ -236,9 +237,6 @@ defm PU2XC : SI<(ins stack_op:$i, stack_op:$j, stack_op:$k),
 // PUSH, PUSH, PUSH
 defm PUSH3 : SI<(ins stack_op:$i, stack_op:$j, stack_op:$k),
                 "PUSH3\t$i, $j, $k", 0x547>;
-
-let isPseudo=1 in
-def HIDDENSTACK : NI<(outs I257:$dst), (ins uimm8:$src), [(set I257:$dst, (int_tvm_hiddenstack uimm8:$src))], 1>;
 
 defm POP  : SI<(ins stack_op:$dst), "POP\t$dst", 0x30>;
 defm DROP : SI<(ins), "DROP", 0x30>;

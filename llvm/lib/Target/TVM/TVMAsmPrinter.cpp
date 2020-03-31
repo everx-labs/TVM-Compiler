@@ -49,9 +49,10 @@ public:
   void printOperand(const MachineInstr *MI, int OpNum, raw_ostream &O,
                     const char *Modifier = nullptr);
   void EmitInstruction(const MachineInstr *MI) override;
-  bool ShouldPrintNextBlock(const MachineBasicBlock &CurMBB) const override;
   std::string regToString(const MachineOperand &MO);
   void EmitBasicBlockStart(const MachineBasicBlock &MBB) const override;
+  void EmitBasicBlockEnd(const MachineBasicBlock &MBB) override;
+  void EmitFunctionBodyEnd() override;
 
   void EmitFunctionHeader() override;
 
@@ -59,10 +60,6 @@ public:
   void EmitBigInt(const ConstantInt *CI) override;
 
   bool runOnMachineFunction(MachineFunction &MF) override;
-protected:
-  void EmitSubBlockForPushcont(const TVMMCInstLower &lower, const MCInst &Inst,
-                               int depth);
-  void EmitBBEntry(const MachineBasicBlock &MBB) const;
 private:
   TVMFunctionInfo *MFI;
 };
@@ -97,7 +94,7 @@ void TVMAsmPrinter::printOperand(const MachineInstr *MI, int OpNum,
 
 //===----------------------------------------------------------------------===//
 void TVMAsmPrinter::EmitInstruction(const MachineInstr *MI) {
-  LLVM_DEBUG(dbgs() << "EmitInstruction: " << *MI << '\n');
+  LLVM_DEBUG(dbgs() << "EmitInstruction: " << *MI);
   if (isVerbose())
     for (auto Comment : MFI->getStackModelComments(MI)) {
       OutStreamer->AddComment(Comment);
@@ -120,9 +117,9 @@ void TVMAsmPrinter::EmitInstruction(const MachineInstr *MI) {
   case TVM::FROM_BUILDER_COPY_S:
   case TVM::FROM_CELL_COPY_S:
     break;
-  case TVM::FALLTHROUGH_RETURN:
+  case TVM::RETURN_N_S:
     if (isVerbose()) {
-      OutStreamer->AddComment("fallthrough return");
+      OutStreamer->AddComment("implicit return");
       OutStreamer->AddBlankLine();
     }
     break;
@@ -131,104 +128,22 @@ void TVMAsmPrinter::EmitInstruction(const MachineInstr *MI) {
 
     MCInst TmpInst;
     MCInstLowering.lower(MI, TmpInst);
-    // We need to access OutStreamer->GetOS() to have such code pattern:
-    // (tabs for first offset from labels ans 2-spaces nested PUSHCONTs)
-    // \tInstr1
-    // \tInstr2
-    // \tPUSHCONT
-    // \t{
-    // \t  Instr3
-    // \t  Instr4
-    // \t  PUSHCONT
-    // \t  {
-    // \t    Instr5
-    // \t    Instr6
-    // \t  }
-    // \t}
-    OutStreamer->GetOS() << "\t";
+    OutStreamer->GetOS() << (MF->size() < 2 ? "  " : "    ");
     EmitToStreamer(*OutStreamer, TmpInst);
-    if (TmpInst.getOpcode() == TVM::PUSHCONT_MBB_S) {
-      EmitSubBlockForPushcont(MCInstLowering, TmpInst, 0);
-    }
   }
-}
-
-bool TVMAsmPrinter::ShouldPrintNextBlock(const MachineBasicBlock &CurMBB) const {
-  auto Term = CurMBB.terminators();
-  // Continue if no terminators or fallthrough terminator
-  if (Term.begin() == Term.end() ||
-      Term.begin()->getOpcode() == TVM::IFJMP_S ||
-      Term.begin()->getOpcode() == TVM::IFNOTJMP_S)
-    return true;
-  return false;
-}
-
-void TVMAsmPrinter::EmitBBEntry(const MachineBasicBlock &MBB) const {
-  if (isVerbose()) {
-    if (const BasicBlock *BB = MBB.getBasicBlock()) {
-      if (BB->hasName()) {
-        BB->printAsOperand(OutStreamer->GetCommentOS(), false, BB->getModule());
-        OutStreamer->GetCommentOS() << '\n';
-      }
-    }
-    auto BBStackComment = MFI->getStackModelBBComment(&MBB);
-    if (!BBStackComment.empty())
-      OutStreamer->AddComment(BBStackComment, true);
-  }
-  OutStreamer->emitRawComment(" %bb." + Twine(MBB.getNumber()) + ":", false);
-}
-
-void TVMAsmPrinter::EmitSubBlockForPushcont(const TVMMCInstLower &lower,
-                                            const MCInst &Inst,
-                                            int depth) {
-  OutStreamer->EmitRawText("\t" + std::string(depth, ' ') + "{\n");
-
-  const auto &Mapping = lower.getMCInstrsMap();
-  const MachineBasicBlock *MBB = nullptr;
-
-  auto I = llvm::find_if(Inst, [](const MCOperand &op) { return op.isInst(); });
-  if (I != Inst.end()) {
-    auto MIit = Mapping.find(I->getInst());
-    if (MIit != Mapping.end()) {
-      if ((MBB = MIit->second->getParent()))
-        EmitBBEntry(*MBB);
-    }
-  }
-
-  for (const auto &op : Inst) {
-    if (op.isInst()) {
-      auto &curInst = *op.getInst();
-      if (isVerbose()) {
-        auto MIit = Mapping.find(&curInst);
-        // PUSHCONT_MBB comment will be printed later, at closing brace '}'
-        if (MIit != Mapping.end() && curInst.getOpcode() != TVM::PUSHCONT_MBB_S)
-          for (auto &Comment : MFI->getStackModelComments(MIit->second))
-            OutStreamer->AddComment(Comment);
-        if (curInst.getOpcode() == TVM::FALLTHROUGH_RETURN) {
-          OutStreamer->AddComment("fallthrough return");
-          OutStreamer->AddBlankLine();
-        }
-      }
-      OutStreamer->GetOS() << "\t";
-      static_cast<formatted_raw_ostream &>(OutStreamer->GetOS()).
-          PadToColumn(10 + depth);
-      EmitToStreamer(*OutStreamer, curInst);
-      if (curInst.getOpcode() == TVM::PUSHCONT_MBB_S)
-        EmitSubBlockForPushcont(lower, curInst, depth + 2);
-    }
-  }
-  if (isVerbose()) {
-    // Print PUSHCONT_MBB comments at close brace '}'
-    auto MIit = Mapping.find(&Inst);
-    if (MIit != Mapping.end())
-      for (auto &Comment : MFI->getStackModelComments(MIit->second))
-        OutStreamer->AddComment(Comment);
-  }
-  OutStreamer->EmitRawText("\t" + std::string(depth, ' ') + "}\n");
 }
 
 void TVMAsmPrinter::EmitBasicBlockStart(const MachineBasicBlock &MBB) const {
-  EmitBBEntry(MBB);
+  if (MF->size() < 2)
+    return;
+  OutStreamer->AddComment(MBB.getName());
+  OutStreamer->EmitRawText("  PUSHCONT {");
+}
+
+void TVMAsmPrinter::EmitBasicBlockEnd(const MachineBasicBlock &MBB) {
+  if (MF->size() < 2)
+    return;
+  OutStreamer->EmitRawText("  }");
 }
 
 void TVMAsmPrinter::EmitFunctionHeader() {
@@ -237,6 +152,55 @@ void TVMAsmPrinter::EmitFunctionHeader() {
     OutStreamer->EmitRawText("\t.internal\t:" + CurrentFnSym->getName());
   } else {
     AsmPrinter::EmitFunctionHeader();
+  }
+}
+
+void TVMAsmPrinter::EmitFunctionBodyEnd() {
+  unsigned Blocks = MF->size();
+  if (Blocks < 2)
+    return;
+
+  auto *FI = MF->getInfo<TVMFunctionInfo>();
+  unsigned Arguments = FI->getParams().size();
+  unsigned ReturnValues = FI->getResults().size();
+  const unsigned SmallEncodingLimit = 16;
+
+  if (Arguments > 0) {
+    if (Blocks <= SmallEncodingLimit && Arguments <= SmallEncodingLimit) {
+      OutStreamer->EmitRawText("  BLKSWAP " + Twine(Arguments) + ", " +
+          Twine(Blocks));
+    } else {
+      OutStreamer->EmitRawText("  PUSHINT " + Twine(Arguments));
+      OutStreamer->EmitRawText("  PUSHINT " + Twine(Blocks));
+      OutStreamer->EmitRawText("  BLKSWX");
+    }
+  }
+
+  unsigned Entry = Blocks + Arguments - 1;
+  if (Entry < 256) {
+    OutStreamer->EmitRawText("  PUSH s" + Twine(Entry));
+  } else {
+    OutStreamer->EmitRawText("  PUSHINT " + Twine(Entry));
+    OutStreamer->EmitRawText("  PUSHX");
+  }
+  OutStreamer->EmitRawText("  EXECUTE");
+
+  if (ReturnValues > 0) {
+    if (Blocks <= SmallEncodingLimit && ReturnValues <= SmallEncodingLimit) {
+      OutStreamer->EmitRawText("  BLKSWAP " + Twine(Blocks) + ", " +
+          Twine(ReturnValues));
+    } else {
+      OutStreamer->EmitRawText("  PUSHINT " + Twine(Blocks));
+      OutStreamer->EmitRawText("  PUSHINT " + Twine(ReturnValues));
+      OutStreamer->EmitRawText("  BLKSWX");
+    }
+  }
+
+  if (Blocks < SmallEncodingLimit) {
+    OutStreamer->EmitRawText("  BLKDROP " + Twine(Blocks));
+  } else {
+    OutStreamer->EmitRawText("  PUSHINT " + Twine(Blocks));
+    OutStreamer->EmitRawText("  DROPX");
   }
 }
 

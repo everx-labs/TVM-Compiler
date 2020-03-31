@@ -37,11 +37,9 @@ extern "C" void LLVMInitializeTVMTarget() {
   initializeTVMRematerializePass(PR);
   initializeTVMRegStackifyPass(PR);
   initializeTVMRegNumberingPass(PR);
-  initializeTVMPeepholePass(PR);
   initializeTVMStackModelPass(PR);
   initializeTVMLoopInstructionsPass(PR);
   initializeTVMLoopPreparePass(PR);
-  initializeTVMContinuationsHoistPass(PR);
   initializeTVMLoadStoreReplacePass(PR);
 }
 
@@ -149,8 +147,6 @@ bool TVMPassConfig::addILPOpts() {
 void TVMPassConfig::addPreEmitPass() {
   TargetPassConfig::addPreEmitPass();
 
-  addPass(createTVMContinuationsHoist());
-
   // Now that we have a prologue and epilogue and all frame indices are
   // rewritten, eliminate SP and FP. This allows them to be stackified,
   // colored, and numbered with the rest of the registers.
@@ -161,16 +157,11 @@ void TVMPassConfig::addPreEmitPass() {
   addPass(createTVMLoopInstructions());
   addPass(createTVMStackModel());
 
-  // Perform the very last peephole optimizations on the code.
-  if (getOptLevel() != CodeGenOpt::None)
-    addPass(createTVMPeephole());
-
   // Create a mapping from LLVM CodeGen virtual registers to tvm registers.
   addPass(createTVMRegNumbering());
 }
 
 void TVMPassConfig::addPreRegAlloc() {
-  addPass(createTVMContinuationsHoist());
   TargetPassConfig::addPreRegAlloc();
 }
 

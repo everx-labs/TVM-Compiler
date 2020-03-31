@@ -31,14 +31,12 @@ add_llvm_target(TVMCodeGen
   TVMReplacePhysRegs.cpp
   TVMRegStackify.cpp
   TVMRegNumbering.cpp
-  TVMPeephole.cpp
   TVMStack.cpp
   TVMStackBlockInfo.cpp
   TVMStackFixup.cpp
   TVMStackPatterns.cpp
   TVMStackModel.cpp
   TVMUtilities.cpp
-  TVMContinuationsHoist.cpp
   TVMLoadStoreReplace.cpp
   TVMIfConversionTerm.cpp
 )

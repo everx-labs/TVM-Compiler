@@ -54,6 +54,13 @@ public:
   void setRoadEnd(unsigned roadEnd) {
     RoadEnd = roadEnd;
   }
+
+  unsigned getID() {
+    return ID;
+  }
+  void setID(unsigned id) {
+    ID = id;
+  }
 private:
   MachineBasicBlock *MBB = nullptr;
   /// Initial stack state
@@ -65,6 +72,8 @@ private:
 
   unsigned RoadBegin = 0;
   unsigned RoadEnd = 0;
+
+  unsigned ID;
 };
 
 } // namespace llvm

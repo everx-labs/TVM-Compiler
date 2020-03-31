@@ -703,6 +703,5 @@ BUILTIN(__builtin_tvm_unpackfirst252, "T252Tt", "nc")
 BUILTIN(__builtin_tvm_unpackfirst253, "T253Tt", "nc")
 BUILTIN(__builtin_tvm_unpackfirst254, "T254Tt", "nc")
 BUILTIN(__builtin_tvm_unpackfirst255, "T255Tt", "nc")
-BUILTIN(__builtin_tvm_hiddenstack, "WiWi", "nc")
 
 #undef BUILTIN

@@ -95,7 +95,8 @@ StackFixup StackFixup::Diff(const Stack &to, const Stack &from) {
 
   // Generate changes to re-order
   assert(llvm::size(unmaskedTo) == llvm::size(curStack));
-  generateVagonXchgs(rv, curStack, unmaskedTo);
+  if (llvm::size(curStack) > 0)
+    generateVagonXchgs(rv, curStack, unmaskedTo);
   rv.optimize();
   return rv;
 }
@@ -225,6 +226,7 @@ void StackFixup::generateVagonXchgs(StackFixup &rv, const Stack &from,
 
   auto Tr = Train::build(curStack, to);
   auto restVagons = llvm::make_range(Tr.Vagons.begin(), Tr.Vagons.end());
+  assert(restVagons.begin() != restVagons.end());
   auto V = *restVagons.begin();
   if (V.DeepIdx + 1 == Sz && !V.Inverted) {
     restVagons = drop_begin(restVagons, 1);
@@ -378,9 +380,12 @@ StackFixup StackFixup::DiffForArgs(const Stack &From, const MIArgs &Args,
         (ArgInfo[0].Push && Vreg.VirtReg == TVMFunctionInfo::UnusedReg)
             ? 0
             : CurStack.position(Vreg);
-    if (ArgInfo[0].Push)
-      rv(CurStack += rv(pushI(Pos)));
-    else if (Pos != 0)
+    if (ArgInfo[0].Push) {
+      if (CurStack.size() > 0)
+        rv(CurStack += rv(pushI(Pos)));
+      else
+        rv(CurStack += rv(pushUndef()));
+    } else if (Pos != 0)
       rv(CurStack += rv(xchgTop(Pos)));
   } else if (Ar.size() == 2 && !HasBigNums) {
     auto Pos0 = ArgInfo[0].SrcPos;
@@ -450,14 +455,6 @@ StackFixup StackFixup::DiffForArgs(const Stack &From, const MIArgs &Args,
   }
   rv.optimize(IsCommutative);
   rv.annotate(From);
-  return rv;
-}
-
-StackFixup StackFixup::DiffForHiddenStack(const Stack &Src, size_t Element,
-                                          unsigned OutRegister) {
-  Stack CurrentStack(Src);
-  StackFixup rv;
-  rv(CurrentStack += rv(pushHidden(Src.size() + Element, OutRegister)));
   return rv;
 }
 
@@ -595,7 +592,6 @@ void StackFixup::printElem(raw_ostream &OS, const Change &change) const {
           [&](xchgTop v) { OS << "xchg s(" << v.i << ")"; },
           [&](xchg v) { OS << "xchg s(" << v.i << "), s(" << v.j << ")"; },
           [&](pushI v) { OS << "push s(" << v.i << ")"; },
-          [&](pushHidden v) { OS << "push s(" << v.i << ")"; },
           [&](pushUndef) { OS << "zero"; },
           [&](blkswap v) { OS << "blkswap " << v.deepSz << ", " << v.topSz; },
           [&](roll v) {

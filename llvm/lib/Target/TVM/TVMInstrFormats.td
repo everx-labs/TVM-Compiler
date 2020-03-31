@@ -18,7 +18,7 @@ class TVMInst<bits<32> inst, string asmstr, bit stack> : Instruction {
   field bit StackBased = stack;
   let Namespace   = "TVM";
   let Pattern     = [];
-  let AsmString   = asmstr;
+  let AsmString   = !subst("\t", " ", asmstr);
 }
 
 // Normal instructions. Default instantiation of a TVMInst.

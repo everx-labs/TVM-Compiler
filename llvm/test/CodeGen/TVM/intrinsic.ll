@@ -209,11 +209,41 @@ do_throw:
   unreachable
 }
 
+; CHECK-LABEL: throws2
+define void @throws2(i257 %cond1, i257 %cond2) {
+  %flag1 = trunc i257 %cond1 to i1
+  br i1 %flag1, label %bb, label %ok
+bb:
+; CHECK: THROWIF 42
+  %flag2 = trunc i257 %cond2 to i1
+  br i1 %flag2, label %do_throw, label %ok
+ok:
+  ret void
+do_throw:
+  call void @llvm.tvm.throw(i257 42)
+  unreachable
+}
+
 ; CHECK-LABEL: throws_neg
 define void @throws_neg(i257 %cond) {
 ; CHECK: THROWIFNOT 42
   %flag = trunc i257 %cond to i1
   br i1 %flag, label %ok, label %do_throw
+ok:
+  ret void
+do_throw:
+  call void @llvm.tvm.throw(i257 42)
+  unreachable
+}
+
+; CHECK-LABEL: throws2_neg
+define void @throws2_neg(i257 %cond1, i257 %cond2) {
+  %flag1 = trunc i257 %cond1 to i1
+  br i1 %flag1, label %bb, label %ok
+bb:
+; CHECK: THROWIFNOT 42
+  %flag2 = trunc i257 %cond2 to i1
+  br i1 %flag2, label %ok, label %do_throw
 ok:
   ret void
 do_throw:

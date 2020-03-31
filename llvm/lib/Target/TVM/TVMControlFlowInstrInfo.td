@@ -19,12 +19,8 @@
 //===----------------------------------------------------------------------===//
 
 let isTerminator = 1, hasCtrlDep = 1 in {
-  let isReturn = 1, isBarrier = 1 in {
-    defm RETURN_N : NRI<(outs), (ins variable_ops), [(TVMreturn)],
-                        "RET", 0xdb30>;
-    let isCodeGenOnly = 1 in
-    defm FALLTHROUGH_RETURN : SI<(ins)>;
-  } // isReturn = 1, isBarrier = 1
+  let isReturn = 1, isBarrier = 1 in
+    defm RETURN_N : NRI<(outs), (ins variable_ops), [(TVMreturn)]>;
 
   let isBranch = 1 in {
     // The condition operand is a boolean value which TVM represents as i257.
@@ -119,20 +115,6 @@ defm CONST_U257 : I<(outs I257:$res), (ins UImm257:$uimm),
                     "PUSHINT\t$res, $uimm", "PUSHINT\t$uimm", 0x82>;
 }
 
-let isMoveImm = 1, AddedComplexity = 99 in
-defm PUSHCONT_MBB : I<(outs I257:$res), (ins bb_op:$bb, i257imm:$fake_op),
-                      (outs), (ins bb_op:$bb),
-                      [(set I257:$res, (BBWrapper bb:$bb, timm:$fake_op))],
-                      "PUSHCONT", "PUSHCONT", 0x8f>;
-
-defm PUSHCONT_FUNC : NRI<(outs), (ins function_op:$callee), [],
-                         "PUSHCONT\t$callee", 0x8f>;
-
-// There are no labels in TVM, so this functionality is emulated
-// using ```PUSHINT label; CALL 1```
-defm PUSHCONT_LABEL: NRI<(outs), (ins function_op:$callee), [],
-                     "PUSHINT\t$callee", 0x82>;
-
 defm PUSHC : I<(outs I257 : $root), (ins uimm8 : $regno),
                (outs), (ins uimm8 : $regno),
                [(set I257 : $root, (int_tvm_getreg uimm8 : $regno))],
@@ -220,11 +202,7 @@ def : Pat<(store Cell : $value, I257 : $addr),
 def : Pat<(truncstore I257 : $value, I257 : $addr),
           (CALL_STORE_INT I257 : $addr, I257 : $value)>;
 
-defm PUSH_GLOBAL_ADDRESS : I<(outs I257 : $res), (ins I257 : $in),
-                             (outs), (ins I257 : $in),
-                             [], "PUSHINT\t$res, $in", "PUSHINT\t$in", 0x82>;
-
 def : Pat<(i257 (TVMGlobalAddressWrapper tglobaladdr : $addr)),
-          (PUSH_GLOBAL_ADDRESS tglobaladdr : $addr)>;
+          (CONST_I257 tglobaladdr : $addr)>;
 def : Pat<(i257 (TVMGlobalAddressWrapper texternalsym : $addr)),
-          (PUSH_GLOBAL_ADDRESS texternalsym : $addr)>;
+          (CONST_I257 texternalsym : $addr)>;

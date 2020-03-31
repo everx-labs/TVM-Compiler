@@ -79,16 +79,16 @@ defm LDI : I<(outs I257 : $x, Slice : $sliceo),
              (outs), (ins uimm1_256 : $precision),
              [(set I257 : $x, Slice : $sliceo,
                (int_tvm_ldi Slice : $slicei, uimm1_256 : $precision))],
-             "LDI\t $precision, $slicei, $x, $sliceo",
-             "LDI\t $precision", 0xd2>;
+             "LDI\t$precision, $slicei, $x, $sliceo",
+             "LDI\t$precision", 0xd2>;
 
 defm LDU : I<(outs I257 : $x, Slice : $sliceo),
              (ins Slice : $slicei, uimm1_256 : $precision),
              (outs), (ins uimm1_256 : $precision),
              [(set I257 : $x, Slice : $sliceo,
                (int_tvm_ldu Slice : $slicei, uimm1_256 : $precision))],
-             "LDU\t $precision, $slicei, $x, $sliceo",
-             "LDU\t $precision", 0xd3>;
+             "LDU\t$precision, $slicei, $x, $sliceo",
+             "LDU\t$precision", 0xd3>;
 
 defm LDIX : I0<(outs I257 : $x, Slice : $sliceo),
                (ins Slice : $slicei, I257 : $precision),
@@ -107,8 +107,8 @@ defm LDUQ : I<(outs I257:$x, Slice:$sliceo, I257:$succ),
               (outs), (ins uimm1_256:$precision),
               [(set I257:$x, Slice:$sliceo, I257:$succ,
                 (int_tvm_lduq Slice:$slicei, uimm1_256:$precision))],
-              "LDUQ\t $precision, $slicei, $x, $sliceo, $succ",
-              "LDUQ\t $precision NULLROTRIFNOT", 0xd70d>;
+              "LDUQ\t$precision, $slicei, $x, $sliceo, $succ",
+              "LDUQ\t$precision NULLROTRIFNOT", 0xd70d>;
 
 defm LDUXQ : I0<(outs I257:$x, Slice:$sliceo, I257:$succ),
                 (ins Slice:$slicei, I257:$precision),
@@ -162,16 +162,16 @@ defm PLDI : I<(outs I257:$x),
               (outs), (ins uimm1_256:$precision),
               [(set I257:$x,
                 (int_tvm_pldi Slice:$slicei, uimm1_256:$precision))],
-              "PLDI\t $precision, $slicei, $x",
-              "PLDI\t $precision", 0xd70a00>;
+              "PLDI\t$precision, $slicei, $x",
+              "PLDI\t$precision", 0xd70a00>;
 
 defm PLDU : I<(outs I257:$x),
               (ins Slice:$slicei, uimm1_256:$precision),
               (outs), (ins uimm1_256:$precision),
               [(set I257:$x,
                 (int_tvm_pldu Slice:$slicei, uimm1_256:$precision))],
-              "PLDU\t $precision, $slicei, $x",
-              "PLDU\t $precision", 0xd70b00>;
+              "PLDU\t$precision, $slicei, $x",
+              "PLDU\t$precision", 0xd70b00>;
 
 defm PLDIX : I0<(outs I257:$x), (ins Slice:$slicei, I257:$precision),
                 [(set I257:$x, (int_tvm_pldu Slice:$slicei, I257:$precision))],
@@ -194,7 +194,7 @@ defm STUXR : I0<(outs Builder : $builder),
 defm LDREFRTOS : I<(outs Slice:$cellslice, Slice:$sliceo), (ins Slice:$slicei),
                    (outs), (ins),
                    [(set Slice:$cellslice, Slice:$sliceo, (int_tvm_ldrefrtos Slice:$slicei))],
-                   "LDREFRTOS\t $cellslice, $sliceo, $slicei", "LDREFRTOS", 0xd5>;
+                   "LDREFRTOS\t$cellslice, $sliceo, $slicei", "LDREFRTOS", 0xd5>;
 
 let hasSideEffects = 1 in
 defm LDREF : I<(outs Cell:$ocell, Slice:$oslice), (ins Slice:$islice),

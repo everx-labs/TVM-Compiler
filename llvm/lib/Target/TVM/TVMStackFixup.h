@@ -63,9 +63,6 @@ public:
   static StackFixup DiffForArgs(const Stack &Src, const MIArgs &Args,
                                 bool IsCommutative = false);
 
-  static StackFixup DiffForHiddenStack(const Stack &Src, size_t Element,
-                                       unsigned OutRegister);
-
   void apply(Stack &stack) const;
 
   // Remove one copy of this elem
@@ -108,12 +105,6 @@ public:
       }
     }
     unsigned i;
-  };
-  struct pushHidden : pushI {
-    explicit pushHidden(unsigned i, unsigned reg, bool checkLimits = true)
-        : pushI(i, checkLimits), reg(reg) {}
-    unsigned i;
-    unsigned reg;
   };
   struct dup : pushI {
     dup() : pushI(0) {}
@@ -251,8 +242,8 @@ public:
         : tripleChange(true, true, false, i, j, k) {}
   };
   using Change =
-      std::variant<drop, nip, xchgTop, xchg, pushI, pushHidden, pushUndef,
-                   blkswap, blkdrop, roll, reverse, doubleChange, tripleChange>;
+      std::variant<drop, nip, xchgTop, xchg, pushI, pushUndef, blkswap, blkdrop,
+                   roll, reverse, doubleChange, tripleChange>;
   using ChangesVec = std::vector<std::pair<Change, std::string>>;
 
 #if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)

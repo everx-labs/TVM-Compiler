@@ -34,11 +34,9 @@ FunctionPass *createTVMPrepareForLiveIntervals();
 FunctionPass *createTVMRematerialize();
 FunctionPass *createTVMRegStackify();
 FunctionPass *createTVMRegNumbering();
-FunctionPass *createTVMPeephole();
 FunctionPass *createTVMStackModel();
 FunctionPass *createTVMLoopInstructions();
 FunctionPass *createTVMLoopPrepare();
-FunctionPass *createTVMContinuationsHoist();
 FunctionPass *createTVMIfConversionTerm();
 BasicBlockPass *createTVMLoadStoreReplace();
 
@@ -49,11 +47,9 @@ void initializeTVMPrepareForLiveIntervalsPass(PassRegistry &);
 void initializeTVMRematerializePass(PassRegistry &);
 void initializeTVMRegStackifyPass(PassRegistry &);
 void initializeTVMRegNumberingPass(PassRegistry &);
-void initializeTVMPeepholePass(PassRegistry &);
 void initializeTVMStackModelPass(PassRegistry &);
 void initializeTVMLoopInstructionsPass(PassRegistry &);
 void initializeTVMLoopPreparePass(PassRegistry &);
-void initializeTVMContinuationsHoistPass(PassRegistry &);
 void initializeTVMLoadStoreReplacePass(PassRegistry &);
 void initializeTVMIfConversionTermPass(PassRegistry &);
 

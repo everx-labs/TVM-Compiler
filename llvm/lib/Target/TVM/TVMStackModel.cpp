@@ -320,8 +320,10 @@ void TVMStackModel::prepareRoads(MachineFunction &MF) {
 
   BBInfo.clear();
   BBInfo.reserve(MF.size());
+  unsigned ID = MF.size();
   for (auto &MBB : MF) {
     BBInfo[&MBB].setMBB(&MBB);
+    BBInfo[&MBB].setID(--ID);
   }
 
   /// TODO: It's better to encode keep infor about roads with a more expressive
@@ -523,15 +525,6 @@ StackFixup TVMStackModel::prepareStackFor(MachineInstr &MI,
   if (MI.isImplicitDef())
     return {};
 
-  if (MI.getOpcode() == TVM::HIDDENSTACK) {
-    auto Result = MI.getOperand(0);
-    auto Operand = MI.getOperand(1);
-    assert(Result.isReg() && Operand.isCImm() && "Unexpected instruction format");
-    return StackFixup::DiffForHiddenStack(StackBefore,
-                                          Operand.getCImm()->getZExtValue(),
-                                          Result.getReg());
-  }
-
   auto *MBB = MI.getParent();
 
 #ifndef NDEBUG
@@ -644,61 +637,74 @@ void TVMStackModel::rewriteToSForm(MachineInstr &MI,
   });
 
   if (NewOpcode >= 0) {
-    // Global operands and external symbols are represented using GlobalAddress
-    // and ExternalSymbol DAG nodes. Because of convention of instruction
-    // operands ordering global addresses and external symbols must be placed
-    // first before instruction. To avoid custom logic of stack reordering for
-    // global/external operands, we transfrom all GlobalAddress and
-    // ExternalSymbol nodes to the chain of PUSH_GLOBAL_ADDRESS(_S) instruction
-    // and TargetGlobalAddress / TargetExternalSymbol nodes. So by default only
-    // PUSH_GLOBAL_ADDRESS instruction may have global/external operand. This
-    // instruction has definition with address which can be normally processed
-    // using stack model for all further uses of the address result.
-    // There are may be exceptions when the transformation to
-    // PUSH_GLOBAL_ADDRESS is not needed (for example, for instructions with
-    // immediate string operands like LOGSTR). For such cases operands will be
-    // passed up to lowering to MCInst where they can be customly processed.
+    if (MI.getOpcode() == TVM::IFELSE) {
+      auto Then = MI.getOperand(1).getMBB();
+      unsigned ThenID = TheStack.size() + BBInfo[Then].getID() + 1;
 
-    // add global addresses before the command
-    // TODO: continuation must be modelled in the stack then.
-    for (unsigned I = 0; I < NumGlobals; I++) {
-      const auto &Op = MI.getOperand(NumDefs + I);
-      assert((Op.isGlobal() || Op.isSymbol()) &&
-             "Expected GlobalAddress/ExternalSymbol");
-      if (NewOpcode == TVM::PUSH_GLOBAL_ADDRESS_S) {
-        if (Op.isGlobal()) {
-          BuildMI(&MI, TII->get(TVM::PUSHCONT_LABEL))
-              .addGlobalAddress(Op.getGlobal(), Op.getOffset());
+      auto Else = MI.getOperand(2).getMBB();
+      unsigned ElseID = TheStack.size() + BBInfo[Else].getID() + 1;
+
+      MachineInstrBuilder MIB;
+      if (ThenID < 16 && ElseID < 16) {
+        MIB = BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
+            TII->get(TVM::PUSH2)).addImm(ThenID).addImm(ElseID);
+        MFI->addStackModelComment(MIB.getInstr(), Then->getName());
+        MFI->addStackModelComment(MIB.getInstr(), Else->getName());
+      } else {
+        if (ThenID < 256) {
+          MIB = BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
+              TII->get(TVM::PUSH)).addImm(ThenID);
         } else {
-          BuildMI(&MI, TII->get(TVM::PUSHCONT_LABEL))
-              .addExternalSymbol(Op.getSymbolName(), Op.getOffset());
+          BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
+              TII->get(TVM::CONST_I257_S)).addImm(ThenID);
+          MIB = BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
+              TII->get(TVM::PUSHX));
         }
+        MFI->addStackModelComment(MIB.getInstr(), Then->getName());
+        if (ElseID < 255) {
+          MIB = BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
+              TII->get(TVM::PUSH)).addImm(ElseID + 1);
+        } else {
+          BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
+              TII->get(TVM::CONST_I257_S)).addImm(ElseID + 1);
+          MIB = BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
+              TII->get(TVM::PUSHX));
+        }
+        MFI->addStackModelComment(MIB.getInstr(), Else->getName());
       }
+    } else if (MI.getOpcode() == TVM::JMPX) {
+      auto Dest = MI.getOperand(0).getMBB();
+      unsigned DestID = TheStack.size() + BBInfo[Dest].getID();
+
+      MachineInstrBuilder MIB;
+      if (DestID < 256) {
+        MIB = BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
+            TII->get(TVM::PUSH)).addImm(DestID);
+      } else {
+        BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
+            TII->get(TVM::CONST_I257_S)).addImm(DestID);
+        MIB = BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
+            TII->get(TVM::PUSHX));
+      }
+      MFI->addStackModelComment(MIB.getInstr(), Dest->getName());
     }
 
     MachineInstrBuilder MIB = BuildMI(&MI, TII->get(NewOpcode));
 
-    if (NewOpcode != TVM::PUSH_GLOBAL_ADDRESS_S) {
-      for (unsigned I = 0; I < NumGlobals; I++) {
-        const auto &Op = MI.getOperand(NumDefs + I);
-        MIB->addOperand(Op);
-      }
+    for (unsigned I = 0; I < NumGlobals; I++) {
+      const auto &Op = MI.getOperand(NumDefs + I);
+      MIB->addOperand(Op);
     }
 
-    // Additional immediate is fake op for TVM::PUSHCONT_MBB operation
-    if (MI.getOpcode() == TVM::PUSHCONT_MBB) {
-      MIB->addOperand(MI.getOperand(1));
-    } else {
-      for (unsigned I = 0; I < NumImms; I++) {
-        // Imms are expected to be in continuous sequence
-        //  in register version of MI
-        const auto &Op = MI.getOperand(NumOperands - NumImms + I);
-        assert(Op.isImm() || Op.isCImm() && "Expected Imm or CImm");
-        if (Op.isImm())
-          MIB.addImm(Op.getImm());
-        else
-          MIB.addCImm(Op.getCImm());
-      }
+    for (unsigned I = 0; I < NumImms; I++) {
+      // Imms are expected to be in continuous sequence
+      //  in register version of MI
+      const auto &Op = MI.getOperand(NumOperands - NumImms + I);
+      assert(Op.isImm() || Op.isCImm() && "Expected Imm or CImm");
+      if (Op.isImm())
+        MIB.addImm(Op.getImm());
+      else
+        MIB.addCImm(Op.getCImm());
     }
 
     std::vector<unsigned> SourceRegs;

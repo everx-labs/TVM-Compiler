@@ -1,4 +1,4 @@
-; RUN: llc < %s -march=tvm | FileCheck %s
+; RUN: llc < %s -march=tvm -asm-verbose=0 | FileCheck %s
 target triple = "tvm"
 
 @value1 = global i257 1

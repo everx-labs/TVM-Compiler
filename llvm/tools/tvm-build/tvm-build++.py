@@ -143,6 +143,8 @@ if args.opt_flags:
 else:
   opt_flags = ['-O3']
 
+opt_flags += ['-simplifycfg-dup-ret=1']
+
 _, bitcode_opt = tempfile.mkstemp()
 execute([os.path.join(tvm_llvm_bin, 'opt')] + opt_flags + [bitcode_int, '-o',
   bitcode_opt], args.verbose)

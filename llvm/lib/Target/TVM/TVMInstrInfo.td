@@ -198,6 +198,7 @@ defm NOP : I<(outs), (ins), (outs), (ins), [(int_tvm_nop)], "NOP", "NOP", 0x00>;
 
 let mayLoad = 1, isAsCheapAsAMove = 1 in {
 defm PUSH : SI<(ins stack_op:$local), "PUSH\t$local", 0x20>;
+defm PUSHX : SI<(ins), "PUSHX", 0x60>;
 defm SWAP : SI<(ins), "SWAP", 0x01>;
 defm XCHG_TOP : SI<(ins stack_op:$src), "XCHG\ts0, $src", 0x01>;
 defm XCHG_TOP_DEEP : SI<(ins stack_op:$src), "XCHG\ts0, $src", 0x11>;

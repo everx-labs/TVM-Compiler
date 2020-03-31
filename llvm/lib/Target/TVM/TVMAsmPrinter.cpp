@@ -176,7 +176,13 @@ void TVMAsmPrinter::EmitFunctionBodyEnd() {
     }
   }
 
-  OutStreamer->EmitRawText("  PUSH s" + Twine(Blocks + Arguments - 1));
+  unsigned Entry = Blocks + Arguments - 1;
+  if (Entry < 256) {
+    OutStreamer->EmitRawText("  PUSH s" + Twine(Entry));
+  } else {
+    OutStreamer->EmitRawText("  PUSHINT " + Twine(Entry));
+    OutStreamer->EmitRawText("  PUSHX");
+  }
   OutStreamer->EmitRawText("  EXECUTE");
 
   if (ReturnValues > 0) {

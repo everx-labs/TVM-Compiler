@@ -651,19 +651,41 @@ void TVMStackModel::rewriteToSForm(MachineInstr &MI,
         MFI->addStackModelComment(MIB.getInstr(), Then->getName());
         MFI->addStackModelComment(MIB.getInstr(), Else->getName());
       } else {
-        MIB = BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
-            TII->get(TVM::PUSH)).addImm(ThenID);
+        if (ThenID < 256) {
+          MIB = BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
+              TII->get(TVM::PUSH)).addImm(ThenID);
+        } else {
+          BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
+              TII->get(TVM::CONST_I257_S)).addImm(ThenID);
+          MIB = BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
+              TII->get(TVM::PUSHX));
+        }
         MFI->addStackModelComment(MIB.getInstr(), Then->getName());
-        MIB = BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
-            TII->get(TVM::PUSH)).addImm(ElseID + 1);
+        if (ElseID < 255) {
+          MIB = BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
+              TII->get(TVM::PUSH)).addImm(ElseID + 1);
+        } else {
+          BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
+              TII->get(TVM::CONST_I257_S)).addImm(ElseID + 1);
+          MIB = BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
+              TII->get(TVM::PUSHX));
+        }
         MFI->addStackModelComment(MIB.getInstr(), Else->getName());
       }
     } else if (MI.getOpcode() == TVM::JMPX) {
       auto Dest = MI.getOperand(0).getMBB();
       unsigned DestID = TheStack.size() + BBInfo[Dest].getID();
 
-      auto MIB = BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
-          TII->get(TVM::PUSH)).addImm(DestID);
+      MachineInstrBuilder MIB;
+      if (DestID < 256) {
+        MIB = BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
+            TII->get(TVM::PUSH)).addImm(DestID);
+      } else {
+        BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
+            TII->get(TVM::CONST_I257_S)).addImm(DestID);
+        MIB = BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
+            TII->get(TVM::PUSHX));
+      }
       MFI->addStackModelComment(MIB.getInstr(), Dest->getName());
     }
 

@@ -842,11 +842,16 @@ inst_classes = {
         'SETCP',
         'SETCP0',
         'SETCPX',
+    ],
+
+    'implicit': [
+        'IMPLICIT'
     ]
 }
 
 import re
 import argparse
+import sys
 
 def main():
 
@@ -862,36 +867,35 @@ def main():
 
     stats = {k: 0 for k in inst_classes.keys()}
     with open(args.exec_log) as f:
+        l2 = ''
+        l1 = ''
         l = f.readline()
         while l:
-            # parse instruction log
-            m = re.match(r'(\d+)\: ([^,]+)\, boc_offset\: (\d+), cell_hash: (\w+), cell_offset: (\d+)', l)
+            # parse gas log
+            m = re.match(r'Gas\: (\d+) \((\d+)\)', l)
             if m:
+                inst_gas = int(m.group(2))
+                # parse instruction log
+                m = re.match(r'(\d+)\: ([^,\n]+)', l2)
                 order = int(m.group(1))
                 inst = m.group(2).split(' ')[0]
                 if inst not in inst2class:
                     raise RuntimeError('unknown instruction: ' + inst)
                 inst_class = inst2class[inst]
-                boc_offset = int(m.group(3))
-                cell_hash = m.group(4)
-                cell_offset = int(m.group(5))
                 if args.dump_inst:
-                    print(order, inst, inst_class, cell_hash, cell_offset)
-                while not l.startswith('Gas:'):
-                   l = f.readline()
-                # parse gas log
-                m = re.match(r'Gas\: (\d+) \((\d+)\)', l)
-                if not m:
-                    raise RuntimeError('invalid log format')
-                inst_gas = int(m.group(2))
+                    print(order, inst, inst_class)
 
                 # calc stats
                 stats[inst_class] += inst_gas
 
+            l2 = l1
+            l1 = l
             l = f.readline()
 
     total = sum(stats.values())
     print('cumulative gas usage statistics:')
+    if total == 0:
+        sys.exit(0)
     for c, g in stats.items():
         print(c, g, '{0:.3g}'.format(100 * float(g) / total), '%')
 

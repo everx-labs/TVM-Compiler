@@ -27,6 +27,7 @@ class formatted_raw_ostream;
 FunctionPass *createTVMISelDag(TVMTargetMachine &TM,
                                CodeGenOpt::Level OptLevel);
 
+FunctionPass *createTVMAdHocOutliner();
 FunctionPass *createTVMArgumentMove();
 FunctionPass *createTVMControlFlowPrepare();
 FunctionPass *createTVMReplacePhysRegs();
@@ -42,6 +43,7 @@ FunctionPass *createTVMContinuationsHoist();
 FunctionPass *createTVMIfConversionTerm();
 BasicBlockPass *createTVMLoadStoreReplace();
 
+void initializeTVMAdHocOutlinerPass(PassRegistry &);
 void initializeTVMArgumentMovePass(PassRegistry &);
 void initializeTVMControlFlowPreparePass(PassRegistry &);
 void initializeTVMReplacePhysRegsPass(PassRegistry &);

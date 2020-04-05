@@ -38,6 +38,10 @@ template<unsigned _keylen, class _element_type>
 struct get_bitsize<HashmapE<_keylen, _element_type>> {
   static constexpr unsigned value = 0;
 };
+template<class T>
+struct get_bitsize<std::optional<T>> {
+  static constexpr unsigned value = 0;
+};
 
 // Counting refs as dynamic
 template<class _Tp>
@@ -97,6 +101,10 @@ struct get_bitsize<EitherRight<Y>> {
 template<class X, class Y>
 struct get_bitsize<Either<X, Y>> {
   static constexpr unsigned value = get_bitsize< to_std_tuple_t<Either<X, Y>> >::value;
+};
+template<class T>
+struct get_bitsize<lazy<T>> {
+  static constexpr unsigned value = get_bitsize<T>::value;
 };
 
 // Helper template constant

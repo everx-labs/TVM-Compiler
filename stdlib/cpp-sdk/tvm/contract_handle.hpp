@@ -94,7 +94,9 @@ public:
                              schema::Grams amount, unsigned flags)
     : addr_(addr), init_(init), amount_(amount), flags_(flags) {}
   template<auto Func, class... Args>
-  inline void call(Args... args) const { contract_deploy_impl(addr_, init_, amount_, flags_, args...); }
+  inline void call(Args... args) const {
+    contract_deploy_impl<Interface, Func>(addr_, init_, amount_, flags_, args...);
+  }
 private:
   schema::lazy<schema::MsgAddressInt> addr_;
   schema::StateInit init_;

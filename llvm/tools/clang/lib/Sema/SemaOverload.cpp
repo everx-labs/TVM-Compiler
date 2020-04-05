@@ -11940,11 +11940,13 @@ bool Sema::buildOverloadedCallSet(Scope *S, Expr *Fn,
     // We don't perform ADL for implicit declarations of builtins.
     // Verify that this was correctly set up.
     FunctionDecl *F;
-    if (ULE->decls_begin() + 1 == ULE->decls_end() &&
-        (F = dyn_cast<FunctionDecl>(*ULE->decls_begin())) &&
-        F->getBuiltinID() && F->isImplicit())
-      llvm_unreachable("performing ADL for builtin");
-
+    // TVM local begin
+    if (ULE->decls_begin() != ULE->decls_end())
+      if (ULE->decls_begin() + 1 == ULE->decls_end() &&
+          (F = dyn_cast<FunctionDecl>(*ULE->decls_begin())) &&
+          F->getBuiltinID() && F->isImplicit())
+        llvm_unreachable("performing ADL for builtin");
+    // TVM local end
     // We don't perform ADL in C.
     assert(getLangOpts().CPlusPlus && "ADL enabled in C");
   }

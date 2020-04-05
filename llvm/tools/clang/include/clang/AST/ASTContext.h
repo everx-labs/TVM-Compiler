@@ -350,6 +350,10 @@ class ASTContext : public RefCountedBase<ASTContext> {
   mutable IdentifierInfo *ReflectMethodExternalName = nullptr;
   /// The identifier '__reflect_method_getter'.
   mutable IdentifierInfo *ReflectMethodGetterName = nullptr;
+  /// The identifier '__reflect_method_noaccept'.
+  mutable IdentifierInfo *ReflectMethodNoAcceptName = nullptr;
+  /// The identifier '__reflect_method_dyn_chain_parse'.
+  mutable IdentifierInfo *ReflectMethodDynChainParseName = nullptr;
   /// The identifier '__reflect_method_no_read_persistent'.
   mutable IdentifierInfo *ReflectMethodNoReadPersistentName = nullptr;
   /// The identifier '__reflect_method_no_write_persistent'.
@@ -360,6 +364,8 @@ class ASTContext : public RefCountedBase<ASTContext> {
   mutable IdentifierInfo *ReflectMethodRvName = nullptr;
   /// The identifier '__reflect_method_arg_struct'.
   mutable IdentifierInfo *ReflectMethodArgStructName = nullptr;
+  /// The identifier '__reflect_method_ptr_arg_struct'.
+  mutable IdentifierInfo *ReflectMethodPtrArgStructName = nullptr;
   /// The identifier '__reflect_smart_interface'.
   mutable IdentifierInfo *ReflectSmartInterfaceName = nullptr;
   /// The identifier '__reflect_method_ptr'.
@@ -554,11 +560,14 @@ private:
   mutable BuiltinTemplateDecl *ReflectMethodInternalDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectMethodExternalDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectMethodGetterDecl = nullptr;
+  mutable BuiltinTemplateDecl *ReflectMethodNoAcceptDecl = nullptr;
+  mutable BuiltinTemplateDecl *ReflectMethodDynChainParseDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectMethodNoReadPersistentDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectMethodNoWritePersistentDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectMethodPtrFuncIdDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectMethodRvDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectMethodArgStructDecl = nullptr;
+  mutable BuiltinTemplateDecl *ReflectMethodPtrArgStructDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectSmartInterfaceDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectMethodPtrDecl = nullptr;
   // TVM local end
@@ -1073,11 +1082,14 @@ public:
   BuiltinTemplateDecl *getReflectMethodInternalDecl() const;
   BuiltinTemplateDecl *getReflectMethodExternalDecl() const;
   BuiltinTemplateDecl *getReflectMethodGetterDecl() const;
+  BuiltinTemplateDecl *getReflectMethodNoAcceptDecl() const;
+  BuiltinTemplateDecl *getReflectMethodDynChainParseDecl() const;
   BuiltinTemplateDecl *getReflectMethodNoReadPersistentDecl() const;
   BuiltinTemplateDecl *getReflectMethodNoWritePersistentDecl() const;
   BuiltinTemplateDecl *getReflectMethodPtrFuncIdDecl() const;
   BuiltinTemplateDecl *getReflectMethodRvDecl() const;
   BuiltinTemplateDecl *getReflectMethodArgStructDecl() const;
+  BuiltinTemplateDecl *getReflectMethodPtrArgStructDecl() const;
   BuiltinTemplateDecl *getReflectSmartInterfaceDecl() const;
   BuiltinTemplateDecl *getReflectMethodPtrDecl() const;
   // TVM local end
@@ -1446,9 +1458,9 @@ public:
                                        StringRef ElemsStr) const;
 
   /// Creating struct with combined arguments for Method (without `this`)
-  QualType prepareTVMArgumentsStructType(CXXMethodDecl *Method,
+  QualType prepareTVMArgumentsStructType(const CXXMethodDecl *Method,
                                          SourceLocation Loc) const;
-  QualType getTVMArgumentsStructType(CXXMethodDecl *Method,
+  QualType getTVMArgumentsStructType(const CXXMethodDecl *Method,
                                      SourceLocation Loc) const;
 
   /// Creating struct with adapted smart interface for contract interface
@@ -1886,6 +1898,18 @@ public:
     return ReflectMethodGetterName;
   }
 
+  IdentifierInfo *getReflectMethodNoAcceptName() const {
+    if (!ReflectMethodNoAcceptName)
+      ReflectMethodNoAcceptName = &Idents.get("__reflect_method_noaccept");
+    return ReflectMethodNoAcceptName;
+  }
+
+  IdentifierInfo *getReflectMethodDynChainParseName() const {
+    if (!ReflectMethodDynChainParseName)
+      ReflectMethodDynChainParseName = &Idents.get("__reflect_method_dyn_chain_parse");
+    return ReflectMethodDynChainParseName;
+  }
+
   IdentifierInfo *getReflectMethodNoReadPersistentName() const {
     if (!ReflectMethodNoReadPersistentName)
       ReflectMethodNoReadPersistentName =
@@ -1916,6 +1940,12 @@ public:
     if (!ReflectMethodArgStructName)
       ReflectMethodArgStructName = &Idents.get("__reflect_method_arg_struct");
     return ReflectMethodArgStructName;
+  }
+
+  IdentifierInfo *getReflectMethodPtrArgStructName() const {
+    if (!ReflectMethodPtrArgStructName)
+      ReflectMethodPtrArgStructName = &Idents.get("__reflect_method_ptr_arg_struct");
+    return ReflectMethodPtrArgStructName;
   }
 
   IdentifierInfo *getReflectSmartInterfaceName() const {

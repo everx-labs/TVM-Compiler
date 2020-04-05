@@ -272,6 +272,12 @@ enum BuiltinTemplateKind : int {
   /// This names the __reflect_method_getter BuiltinTemplateDecl.
   BTK__reflect_method_getter,
 
+  /// This names the __reflect_method_noaccept BuiltinTemplateDecl.
+  BTK__reflect_method_noaccept,
+
+  /// This names the __reflect_method_dyn_chain_parse BuiltinTemplateDecl.
+  BTK__reflect_method_dyn_chain_parse,
+
   /// This names the __reflect_method_no_read_persistent BuiltinTemplateDecl.
   BTK__reflect_method_no_read_persistent,
 
@@ -286,6 +292,9 @@ enum BuiltinTemplateKind : int {
 
   /// This names the __reflect_method_arg_struct BuiltinTemplateDecl.
   BTK__reflect_method_arg_struct,
+
+  /// This names the __reflect_method_ptr_arg_struct BuiltinTemplateDecl.
+  BTK__reflect_method_ptr_arg_struct,
 
   /// This names the __reflect_smart_interface BuiltinTemplateDecl.
   BTK__reflect_smart_interface,

@@ -14,6 +14,10 @@ using fallback_t = decltype(T::_fallback(cell{}, slice{}));
 template<typename T>
 constexpr bool supports_fallback_v = std::experimental::is_detected_v<fallback_t, T>;
 template<typename T>
+using on_bounced_t = decltype(T::_on_bounced(cell{}, slice{}));
+template<typename T>
+constexpr bool supports_on_bounced_v = std::experimental::is_detected_v<on_bounced_t, T>;
+template<typename T>
 using pubkey_t = decltype(&T::set_tvm_pubkey);
 template<typename T>
 constexpr bool supports_tvm_pubkey_v = std::experimental::is_detected_v<pubkey_t, T>;
@@ -25,7 +29,6 @@ constexpr bool supports_set_persistent_data_header_v = std::experimental::is_det
 template<class ReturnValue>
 inline void send_external_answer(unsigned func_id, ReturnValue rv) {
   using namespace schema;
-  //abiv1::external_outbound_msg_header hdr{ uint32(abiv1::answer_id(func_id)) };
   abiv1::external_outbound_msg_header hdr{ uint32(func_id) };
   auto hdr_plus_rv = std::make_tuple(hdr, rv);
   ext_out_msg_info_relaxed out_info;
@@ -43,7 +46,6 @@ inline void send_external_answer(unsigned func_id, ReturnValue rv) {
 template<class ReturnValue>
 inline void send_internal_answer(unsigned func_id, ReturnValue rv) {
   using namespace schema;
-  //abiv1::internal_msg_header hdr{ uint32(abiv1::answer_id(func_id)) };
   abiv1::internal_msg_header hdr{ uint32(func_id) };
   auto hdr_plus_rv = std::make_tuple(hdr, rv);
   int_msg_info_relaxed out_info;
@@ -69,8 +71,44 @@ using persistent_data_header_t = typename std::conditional_t<
     ReplayAttackProtection>::persistent_t;
 
 template<class ReplayAttackProtection, class DContract>
-void save_persistent_data(persistent_data_header_t<ReplayAttackProtection> persistent_data_header,
-                          DContract base) {
+inline std::tuple<persistent_data_header_t<ReplayAttackProtection>, DContract> load_persistent_data() {
+  using namespace schema;
+
+  parser persist(persistent_data::get());
+  bool uninitialized = persist.ldu(1);
+  tvm_assert(!uninitialized, error_code::method_called_without_init);
+
+  if constexpr (!std::is_void_v<ReplayAttackProtection>) {
+    using HeaderT = typename ReplayAttackProtection::persistent_t;
+    auto [data_hdr, =persist] = parse_continue<HeaderT>(persist);
+    tvm_assert(!!data_hdr, error_code::persistent_data_parse_error);
+
+    static_assert(get_bitsize_v<HeaderT> != 0,
+      "Replay attack protection header can't be dynamic-size");
+    // Only 1 + bitsize(Header) bits to skip
+    DContract base = parse_chain<DContract, 1 + get_bitsize_v<HeaderT>>(persist);
+    return { *data_hdr, base };
+  } else {
+    // Only 1 bit to skip
+    DContract base = parse_chain<DContract, 1>(persist);
+    return { 0, base };
+  }
+}
+
+template<class Data, bool dyn_chain>
+__always_inline Data parse_smart(parser p) {
+  using namespace schema;
+
+  if constexpr (dyn_chain) {
+    return parse_chain_dynamic<Data>(p);
+  } else {
+    return parse<Data>(p);
+  }
+}
+
+template<class ReplayAttackProtection, class DContract>
+inline cell prepare_persistent_data(persistent_data_header_t<ReplayAttackProtection> persistent_data_header,
+                                    DContract base) {
   using namespace schema;
   auto data_tup = to_std_tuple(base);
   // First add uninitialized bit = false in tuple
@@ -78,11 +116,17 @@ void save_persistent_data(persistent_data_header_t<ReplayAttackProtection> persi
   // Then store data_tup_combined into chain of cells
   if constexpr (!std::is_void_v<ReplayAttackProtection>) {
     auto data_tup_combined = std::tuple_cat(std::make_tuple(bool_t(false), persistent_data_header), data_tup);
-    persistent_data::set(build_chain(data_tup_combined));
+    return build_chain(data_tup_combined).make_cell();
   } else {
     auto data_tup_combined = std::tuple_cat(std::make_tuple(bool_t(false)), data_tup);
-    persistent_data::set(build_chain(data_tup_combined));
+    return build_chain(data_tup_combined).make_cell();
   }
+}
+
+template<class ReplayAttackProtection, class DContract>
+inline void save_persistent_data(persistent_data_header_t<ReplayAttackProtection> persistent_data_header,
+                                 DContract base) {
+  persistent_data::set(prepare_persistent_data<ReplayAttackProtection, DContract>(persistent_data_header, base));
 }
 
 template<bool Internal, class Contract, class IContract, class DContract, class ReplayAttackProtection,
@@ -91,8 +135,10 @@ struct smart_switcher_impl {
   static const unsigned my_method_id = get_interface_method_func_id<IContract, Index>::value;
   __always_inline static int execute(unsigned func_id, cell msg, slice msg_body) {
     constexpr bool is_getter = get_interface_method_getter<IContract, Index>::value;
+    constexpr bool is_noaccept = get_interface_method_noaccept<IContract, Index>::value;
     constexpr bool is_internal = get_interface_method_internal<IContract, Index>::value;
     constexpr bool is_external = get_interface_method_external<IContract, Index>::value;
+    constexpr bool is_dyn_chain_parse = get_interface_method_dyn_chain_parse<IContract, Index>::value;
     // getters should be inserted at main_external switch
     constexpr bool valid = (Internal && is_internal) ||
                            (!Internal && (is_external || is_getter));
@@ -164,7 +210,7 @@ struct smart_switcher_impl {
         }
       }
       // We don't need accept for getter methods
-      if constexpr (!is_getter)
+      if constexpr (!is_getter && !is_noaccept)
         tvm_accept();
 
       if constexpr (!get_interface_method_no_write_persistent<IContract, Index>::value && !is_getter) {
@@ -180,7 +226,7 @@ struct smart_switcher_impl {
       if constexpr (!std::is_void_v<rv_t>) {
         rv_t rv;
         if constexpr (args_sz != 0) {
-          auto parsed_args = schema::parse<Args>(body_p, error_code::bad_arguments, true);
+          auto parsed_args = parse_smart<Args, is_dyn_chain_parse>(body_p);
           rv = std::apply_f<func>(std::tuple_cat(std::make_tuple(std::ref(c)),
                                                  to_std_tuple(parsed_args)));
         } else {
@@ -193,7 +239,7 @@ struct smart_switcher_impl {
       } else {
         // void return (no need to send an answer message)
         if constexpr (args_sz != 0) {
-          auto parsed_args = parse<Args>(body_p, error_code::bad_arguments, true);
+          auto parsed_args = parse_smart<Args, is_dyn_chain_parse>(body_p);
           std::apply_f<func>(std::tuple_cat(std::make_tuple(std::ref(c)),
                                             to_std_tuple(parsed_args)));
         } else {
@@ -204,17 +250,7 @@ struct smart_switcher_impl {
       // Store persistent data
       if constexpr (!get_interface_method_no_write_persistent<IContract, Index>::value && !is_getter) {
         auto &base = static_cast<DContract&>(c);
-        auto data_tup = to_std_tuple(base);
-        // First add uninitialized bit = false in tuple
-        // Also add replay attack protection header if needed
-        // Then store data_tup_combined into chain of cells
-        if constexpr (!std::is_void_v<ReplayAttackProtection>) {
-          auto data_tup_combined = std::tuple_cat(std::make_tuple(bool_t(false), persistent_data_header), data_tup);
-          persistent_data::set(build_chain(data_tup_combined));
-        } else {
-          auto data_tup_combined = std::tuple_cat(std::make_tuple(bool_t(false)), data_tup);
-          persistent_data::set(build_chain(data_tup_combined));
-        }
+        save_persistent_data<ReplayAttackProtection>(persistent_data_header, base);
       }
       return my_method_id;
     } else {
@@ -244,8 +280,25 @@ struct smart_switcher {
                                0, methods_count>::execute(func_id, msg, msg_body);
   }
 };
+
+__always_inline bool is_bounced(cell msg) {
+  parser p(msg.ctos());
+  require(p.ldu(1) == schema::int_msg_info{}.kind.code, error_code::bad_incoming_msg);
+  p.skip(2); // ihr_disabled + bounce
+  return p.ldu(1) != 0; // bounced != 0
+}
+
 template<bool Internal, class Contract, class IContract, class DContract, class ReplayAttackProtection = void>
 int smart_switch(cell msg, slice msg_body) {
+  if constexpr (Internal) {
+    if constexpr (supports_on_bounced_v<Contract>) {
+      if (is_bounced(msg))
+        return Contract::_on_bounced(msg, msg_body);
+    } else {
+      require(!is_bounced(msg), error_code::unsupported_bounced_msg);
+    }
+  }
+
   parser msg_parser(msg_body);
   unsigned func_id;
   if constexpr (Internal && supports_fallback_v<Contract>) {

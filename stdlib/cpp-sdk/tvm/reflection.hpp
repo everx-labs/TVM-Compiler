@@ -30,6 +30,12 @@ template<class Interface, unsigned Index>
 using get_interface_method_getter =
   __reflect_method_getter<std::integral_constant, bool, Interface, Index>;
 template<class Interface, unsigned Index>
+using get_interface_method_noaccept =
+  __reflect_method_noaccept<std::integral_constant, bool, Interface, Index>;
+template<class Interface, unsigned Index>
+using get_interface_method_dyn_chain_parse =
+  __reflect_method_dyn_chain_parse<std::integral_constant, bool, Interface, Index>;
+template<class Interface, unsigned Index>
 using get_interface_method_no_read_persistent =
   __reflect_method_no_read_persistent<std::integral_constant, bool, Interface, Index>;
 template<class Interface, unsigned Index>
@@ -39,6 +45,9 @@ template<class Interface, unsigned Index>
 using get_interface_method_rv = __reflect_method_rv<Interface, Index>;
 template<class Interface, unsigned Index>
 using get_interface_method_arg_struct = __reflect_method_arg_struct<Interface, Index>;
+
+template<auto MethodPtr>
+using args_struct_t = __reflect_method_ptr_arg_struct<MethodPtr>;
 
 template<class Fmt>
 using parsed_value = Fmt;

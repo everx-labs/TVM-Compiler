@@ -6393,6 +6393,12 @@ static void ProcessDeclAttribute(Sema &S, Scope *scope, Decl *D,
     // Applying also no_write_persistent for getter methods
     handleSimpleAttribute<TVMNoWritePersistentFuncAttr>(S, D, AL);
     break;
+  case ParsedAttr::AT_TVMNoAcceptFunc:
+    handleSimpleAttribute<TVMNoAcceptFuncAttr>(S, D, AL);
+    break;
+  case ParsedAttr::AT_TVMDynChainParseFunc:
+    handleSimpleAttribute<TVMDynChainParseFuncAttr>(S, D, AL);
+    break;
   case ParsedAttr::AT_TVMNoReadPersistentFunc:
     handleSimpleAttribute<TVMNoReadPersistentFuncAttr>(S, D, AL);
     break;

@@ -713,6 +713,12 @@ static bool LookupBuiltin(Sema &S, LookupResult &R) {
         } else if (II == S.getASTContext().getReflectMethodGetterName()) {
           R.addDecl(S.getASTContext().getReflectMethodGetterDecl());
           return true;
+        } else if (II == S.getASTContext().getReflectMethodNoAcceptName()) {
+          R.addDecl(S.getASTContext().getReflectMethodNoAcceptDecl());
+          return true;
+        } else if (II == S.getASTContext().getReflectMethodDynChainParseName()) {
+          R.addDecl(S.getASTContext().getReflectMethodDynChainParseDecl());
+          return true;
         } else if (II == S.getASTContext().getReflectMethodNoReadPersistentName()) {
           R.addDecl(S.getASTContext().getReflectMethodNoReadPersistentDecl());
           return true;
@@ -727,6 +733,9 @@ static bool LookupBuiltin(Sema &S, LookupResult &R) {
           return true;
         } else if (II == S.getASTContext().getReflectMethodArgStructName()) {
           R.addDecl(S.getASTContext().getReflectMethodArgStructDecl());
+          return true;
+        } else if (II == S.getASTContext().getReflectMethodPtrArgStructName()) {
+          R.addDecl(S.getASTContext().getReflectMethodPtrArgStructDecl());
           return true;
         } else if (II == S.getASTContext().getReflectSmartInterfaceName()) {
           R.addDecl(S.getASTContext().getReflectSmartInterfaceDecl());

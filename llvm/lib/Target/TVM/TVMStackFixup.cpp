@@ -354,10 +354,13 @@ StackFixup StackFixup::DiffForArgs(const Stack &From, const MIArgs &Args,
 
   bool HasBigNums = false;
   SmallVector<argInfo, 4> ArgInfo;
+  unsigned PushOffset = 0; // offset by previous pushes
   for (unsigned i = 0; i < Args.size(); ++i) {
     ArgInfo.push_back(argInfo(Args, i, CurStack));
-    if (ArgInfo.back().SrcPos > XchgLimit)
+    if (PushOffset + ArgInfo.back().SrcPos > XchgLimit)
       HasBigNums = true;
+    if (ArgInfo.back().Push)
+      ++PushOffset;
   }
   bool AlreadyGood = true;
   for (unsigned i = 0; i < Args.size(); ++i) {

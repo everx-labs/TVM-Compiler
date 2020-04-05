@@ -1108,6 +1108,22 @@ ASTContext::getReflectMethodGetterDecl() const {
 }
 
 BuiltinTemplateDecl *
+ASTContext::getReflectMethodNoAcceptDecl() const {
+  if (!ReflectMethodNoAcceptDecl)
+    ReflectMethodNoAcceptDecl = buildBuiltinTemplateDecl(
+        BTK__reflect_method_noaccept, getReflectMethodNoAcceptName());
+  return ReflectMethodNoAcceptDecl;
+}
+
+BuiltinTemplateDecl *
+ASTContext::getReflectMethodDynChainParseDecl() const {
+  if (!ReflectMethodDynChainParseDecl)
+    ReflectMethodDynChainParseDecl = buildBuiltinTemplateDecl(
+        BTK__reflect_method_dyn_chain_parse, getReflectMethodDynChainParseName());
+  return ReflectMethodDynChainParseDecl;
+}
+
+BuiltinTemplateDecl *
 ASTContext::getReflectMethodNoReadPersistentDecl() const {
   if (!ReflectMethodNoReadPersistentDecl)
     ReflectMethodNoReadPersistentDecl = buildBuiltinTemplateDecl(
@@ -1147,6 +1163,14 @@ ASTContext::getReflectMethodArgStructDecl() const {
     ReflectMethodArgStructDecl = buildBuiltinTemplateDecl(
         BTK__reflect_method_arg_struct, getReflectMethodArgStructName());
   return ReflectMethodArgStructDecl;
+}
+
+BuiltinTemplateDecl *
+ASTContext::getReflectMethodPtrArgStructDecl() const {
+  if (!ReflectMethodPtrArgStructDecl)
+    ReflectMethodPtrArgStructDecl = buildBuiltinTemplateDecl(
+        BTK__reflect_method_ptr_arg_struct, getReflectMethodPtrArgStructName());
+  return ReflectMethodPtrArgStructDecl;
 }
 
 BuiltinTemplateDecl *
@@ -3684,7 +3708,7 @@ QualType ASTContext::prepareTVMLiteralStructType(ArrayRef<QualType> Elems,
   return getTypeDeclType(TypedefDec);
 }
 
-QualType ASTContext::getTVMArgumentsStructType(CXXMethodDecl *Method,
+QualType ASTContext::getTVMArgumentsStructType(const CXXMethodDecl *Method,
                                                SourceLocation Loc) const {
   auto it = TVMMethodArgStructs.find(Method);
   if (it != TVMMethodArgStructs.end())
@@ -3697,7 +3721,7 @@ QualType ASTContext::getTVMArgumentsStructType(CXXMethodDecl *Method,
 
 /// Creating struct with combined arguments for Method (no `this`)
 QualType
-ASTContext::prepareTVMArgumentsStructType(CXXMethodDecl *Method,
+ASTContext::prepareTVMArgumentsStructType(const CXXMethodDecl *Method,
                                           SourceLocation Loc) const {
   auto StructName = ("__tvm_arguments_struct_" + Method->getName()).str();
   auto *RecDecl = buildImplicitRecord(StructName + "_Tag", TTK_Struct, Loc);

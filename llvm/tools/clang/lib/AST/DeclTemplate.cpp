@@ -1445,6 +1445,20 @@ static TemplateParameterList *
 createReflectMethodGetterParameterList(const ASTContext &C, DeclContext *DC) {
   return createReflectMethodIntegralConstantParameterList(C, DC);
 }
+// __reflect_method_noaccept<T, IntType, Interface, Index> -
+//   'noaccept' attribute of the Interface method number #Index,
+//   provided into T<IntType, isInternal>
+static TemplateParameterList *
+createReflectMethodNoAcceptParameterList(const ASTContext &C, DeclContext *DC) {
+  return createReflectMethodIntegralConstantParameterList(C, DC);
+}
+// __reflect_method_dyn_chain_parse<T, IntType, Interface, Index> -
+//   'dyn_chain_parse' attribute of the Interface method number #Index,
+//   provided into T<IntType, isInternal>
+static TemplateParameterList *
+createReflectMethodDynChainParseParameterList(const ASTContext &C, DeclContext *DC) {
+  return createReflectMethodIntegralConstantParameterList(C, DC);
+}
 // __reflect_method_no_read_persistent<T, IntType, Interface, Index> -
 //   'no_read_persistent' attribute of the Interface method number #Index,
 //   provided into T<IntType, isInternal>
@@ -1549,6 +1563,24 @@ createReflectMethodArgStructParameterList(const ASTContext &C, DeclContext *DC) 
   Index->setImplicit(true);
 
   NamedDecl *Params[] = { Interface, Index };
+  return TemplateParameterList::Create(C, SourceLocation(), SourceLocation(),
+                                       llvm::makeArrayRef(Params),
+                                       SourceLocation(), nullptr);
+}
+
+// __reflect_method_ptr_arg_struct<Rv Interface::* MethodPtr> -
+//   Combined arguments structure of the MethodPtr
+static TemplateParameterList *
+createReflectMethodPtrArgStructParameterList(const ASTContext &C, DeclContext *DC) {
+  // Rv Interface::* MethodPtr
+  QualType AutoType = C.getAutoDeductType();
+  TypeSourceInfo *TInfo = C.getTrivialTypeSourceInfo(AutoType);
+  auto *MethodPtr = NonTypeTemplateParmDecl::Create(
+      C, DC, SourceLocation(), SourceLocation(), /*Depth=*/0, /*Position=*/0,
+      /*Id=*/nullptr, TInfo->getType(), /*ParameterPack=*/false, TInfo);
+  MethodPtr->setImplicit(true);
+
+  NamedDecl *Params[] = { MethodPtr };
   return TemplateParameterList::Create(C, SourceLocation(), SourceLocation(),
                                        llvm::makeArrayRef(Params),
                                        SourceLocation(), nullptr);
@@ -1669,6 +1701,10 @@ static TemplateParameterList *createBuiltinTemplateParameterList(
     return createReflectMethodExternalParameterList(C, DC);
   case BTK__reflect_method_getter:
     return createReflectMethodGetterParameterList(C, DC);
+  case BTK__reflect_method_noaccept:
+    return createReflectMethodNoAcceptParameterList(C, DC);
+  case BTK__reflect_method_dyn_chain_parse:
+    return createReflectMethodDynChainParseParameterList(C, DC);
   case BTK__reflect_method_no_read_persistent:
     return createReflectMethodNoReadPersistentParameterList(C, DC);
   case BTK__reflect_method_no_write_persistent:
@@ -1679,6 +1715,8 @@ static TemplateParameterList *createBuiltinTemplateParameterList(
     return createReflectMethodRvParameterList(C, DC);
   case BTK__reflect_method_arg_struct:
     return createReflectMethodArgStructParameterList(C, DC);
+  case BTK__reflect_method_ptr_arg_struct:
+    return createReflectMethodPtrArgStructParameterList(C, DC);
   case BTK__reflect_smart_interface:
     return createReflectSmartInterfaceParameterList(C, DC);
   case BTK__reflect_method_ptr:

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <tvm/schema/basics.hpp>
+#include <tvm/schema/message.hpp>
 
 namespace tvm { namespace schema {
 

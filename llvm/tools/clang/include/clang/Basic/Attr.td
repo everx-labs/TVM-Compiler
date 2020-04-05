@@ -1670,6 +1670,16 @@ def TVMGetterFunc : Attr {
   let Documentation = [Undocumented];
   let Subjects = SubjectList<[Function]>;
 }
+def TVMNoAcceptFunc : Attr {
+  let Spellings = [Clang<"noaccept">];
+  let Documentation = [Undocumented];
+  let Subjects = SubjectList<[Function]>;
+}
+def TVMDynChainParseFunc : Attr {
+  let Spellings = [Clang<"dyn_chain_parse">];
+  let Documentation = [Undocumented];
+  let Subjects = SubjectList<[Function]>;
+}
 def TVMNoReadPersistentFunc : Attr {
   let Spellings = [Clang<"no_read_persistent">];
   let Documentation = [Undocumented];

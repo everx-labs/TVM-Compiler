@@ -38,17 +38,17 @@ union test_union {
   delta d;
 };
 
-// CHECK: @_Z18test_argument_beta10test_union(i257 %{{.*}}, i257 %{{.*}}, i257 %{{.*}}, i257 %{{.*}}, i257 %{{.*}}, i257 %{{.*}}, i257 %{{.*}}, i257 %{{.*}}, i257 %{{.*}})
+// CHECK: @_Z18test_argument_beta10test_union(i257{{( %.*)?}}, i257{{( %.*)?}}, i257{{( %.*)?}}, i257{{( %.*)?}}, i257{{( %.*)?}}, i257{{( %.*)?}}, i257{{( %.*)?}}, i257{{( %.*)?}}, i257{{( %.*)?}})
 __attribute__((noinline)) int test_argument_beta(test_union v) {
   return v.b.b_v0 + v.b.b_v1 + (int)v.b.b_v2;
 }
 
-// CHECK: @_Z19test_argument_gamma10test_union(i257 %{{.*}}, i257 %{{.*}}, i257 %{{.*}}, i257 %{{.*}}, i257 %{{.*}}, i257 %{{.*}}, i257 %{{.*}}, i257 %{{.*}}, i257 %{{.*}})
+// CHECK: @_Z19test_argument_gamma10test_union(i257{{( %.*)?}}, i257{{( %.*)?}}, i257{{( %.*)?}}, i257{{( %.*)?}}, i257{{( %.*)?}}, i257{{( %.*)?}}, i257{{( %.*)?}}, i257{{( %.*)?}}, i257{{( %.*)?}})
 __attribute__((noinline)) int test_argument_gamma(test_union v) {
   return v.g.g_v0 + (int)v.g.g_v1 + (int)v.g.g_v2 + v.g.g_v3;
 }
 
-// CHECK: @_Z19test_argument_delta10test_union(i257 %{{.*}}, i257 %{{.*}}, i257 %{{.*}}, i257 %{{.*}}, i257 %{{.*}}, i257 %{{.*}}, i257 %{{.*}}, i257 %{{.*}}, i257 %{{.*}})
+// CHECK: @_Z19test_argument_delta10test_union(i257{{( %.*)?}}, i257{{( %.*)?}}, i257{{( %.*)?}}, i257{{( %.*)?}}, i257{{( %.*)?}}, i257{{( %.*)?}}, i257{{( %.*)?}}, i257{{( %.*)?}}, i257{{( %.*)?}})
 __attribute__((noinline)) int test_argument_delta(test_union v) {
   auto [val, new_sl] = __builtin_tvm_ldu(v.d.d_v1, 8);
   return v.d.d_v0 + val;
@@ -74,7 +74,7 @@ int test_argument_delta_call(__tvm_slice sl) {
   test_union v;
   delta d = { 111, sl };
   v.d = d;
-  // CHECK: call i257 @_Z19test_argument_delta10test_union(i257 111, i257 %0
+  // CHECK: call i257 @_Z19test_argument_delta10test_union(i257 111, i257 %
   return test_argument_delta(v);
 }
 

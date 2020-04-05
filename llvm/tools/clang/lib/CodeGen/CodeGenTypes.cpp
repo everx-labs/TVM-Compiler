@@ -727,11 +727,15 @@ llvm::StructType *CodeGenTypes::ConvertRecordDeclType(const RecordDecl *RD) {
   // type connected to the decl.
   const Type *Key = Context.getTagDeclType(RD).getTypePtr();
 
-  llvm::StructType *&Entry = RecordDeclTypes[Key];
+  // TVM local begin
+  llvm::StructType *Entry = RecordDeclTypes[Key];
+  // TVM local end
 
   // If we don't have a StructType at all yet, create the forward declaration.
   if (!Entry) {
-    Entry = llvm::StructType::create(getLLVMContext());
+    // TVM local begin
+    RecordDeclTypes[Key] = Entry = llvm::StructType::create(getLLVMContext());
+    // TVM local end
     addRecordTypeName(RD, Entry, "");
   }
   llvm::StructType *Ty = Entry;
@@ -747,6 +751,9 @@ llvm::StructType *CodeGenTypes::ConvertRecordDeclType(const RecordDecl *RD) {
         !Ty->isLiteral()) {
       Entry = Ty = llvm::StructType::get(Ty->getContext(), Ty->elements(),
                                          Ty->isPacked());
+      // TVM local begin
+      RecordDeclTypes[Key] = Entry;
+      // TVM local end
       CGRecordLayouts[Key]->updateToLiteralType(Ty);
     }
     return Ty;
@@ -798,6 +805,7 @@ llvm::StructType *CodeGenTypes::ConvertRecordDeclType(const RecordDecl *RD) {
   if (RD->isLiteral() || RD->hasAttr<TVMTupleStructAttr>()) {
     Entry = Ty = llvm::StructType::get(Ty->getContext(), Ty->elements(),
                                        Ty->isPacked());
+    RecordDeclTypes[Key] = Entry;
     CGRecordLayouts[Key]->updateToLiteralType(Ty);
   }
   // TVM local end

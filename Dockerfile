@@ -44,6 +44,7 @@ COPY --from=build-ton-compiler /home/user/TON-Compiler/build/bin/count       /us
 COPY --from=build-ton-compiler /home/user/TON-Compiler/build/bin/not         /usr/bin/LLVM/bin/
 COPY --from=build-ton-compiler /home/user/TON-Compiler/build/bin/FileCheck   /usr/bin/LLVM/bin/
 COPY --from=build-ton-compiler /home/user/TON-Compiler/build/bin/llvm-config /usr/bin/LLVM/bin/
+COPY --from=build-ton-compiler /home/user/TON-Compiler/build/lib/clang/7.0.0/include /usr/lib/clang/7.0.0/include
 COPY --from=build-ton-compiler /home/user/TON-Compiler/stdlib                /app
 COPY --from=build-ton-compiler /home/user/TON-Compiler/install.sh            /app/
 

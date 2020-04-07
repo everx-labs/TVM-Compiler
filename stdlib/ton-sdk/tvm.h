@@ -38,4 +38,44 @@ Cell Deserialize_Cell ();
 __tvm_slice __tvm_ldu(__tvm_slice slice, int width, int *value);
 __tvm_slice __tvm_ldi(__tvm_slice slice, int width, int *value);
 
+__attribute__((overloadable, always_inline))
+static void tvm_setreg(int n, int value) {
+  __builtin_tvm_setreg(n, value);
+}
+
+__attribute__((overloadable, always_inline))
+static void tvm_setreg(int n, __tvm_builder value) {
+  __builtin_tvm_setreg(n, __builtin_tvm_cast_from_builder(value));
+}
+
+__attribute__((overloadable, always_inline))
+static void tvm_setreg(int n, __tvm_cell value) {
+  __builtin_tvm_setreg(n, __builtin_tvm_cast_from_cell(value));
+}
+
+__attribute__((overloadable, always_inline))
+static void tvm_setreg(int n, __tvm_slice value) {
+  __builtin_tvm_setreg(n, __builtin_tvm_cast_from_slice(value));
+}
+
+__attribute__((overloadable, always_inline))
+static void tvm_setglobal(int n, int value) {
+  __builtin_tvm_setglobal(n, value);
+}
+
+__attribute__((overloadable, always_inline))
+static void tvm_setglobal(int n, __tvm_builder value) {
+  __builtin_tvm_setglobal(n, __builtin_tvm_cast_from_builder(value));
+}
+
+__attribute__((overloadable, always_inline))
+static void tvm_setglobal(int n, __tvm_cell value) {
+  __builtin_tvm_setglobal(n, __builtin_tvm_cast_from_cell(value));
+}
+
+__attribute__((overloadable, always_inline))
+static void tvm_setglobal(int n, __tvm_slice value) {
+  __builtin_tvm_setglobal(n, __builtin_tvm_cast_from_slice(value));
+}
+
 #endif

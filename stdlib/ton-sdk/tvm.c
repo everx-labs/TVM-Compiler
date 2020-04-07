@@ -65,10 +65,11 @@ Cell Deserialize_Cell() {
   int s = __builtin_tvm_getglobal(3);
   struct __attribute__((tvm_tuple)) { __tvm_cell c; __tvm_slice s; } st =
     __builtin_tvm_ldref(__builtin_tvm_cast_to_slice(s));
-  __builtin_tvm_setglobal(3, __builtin_tvm_cast_from_slice(st.s));
+  tvm_setglobal(3, st.s);
   return st.c;
 }
 
 void tvm_accept(void) {
   __builtin_tvm_accept();
 }
+

@@ -63,6 +63,7 @@ parser.add_argument('--inline-loads-stores', action='store_true', default=False,
 parser.add_argument('--llvm-bin', help='path to LLVM binaries directory')
 parser.add_argument('--linker', help='path to TVM linker executable')
 parser.add_argument('--stdlib', help='path to standard library directory')
+parser.add_argument('--include', help='path to standard include directory')
 
 args = parser.parse_args()
 
@@ -73,6 +74,7 @@ if not os.path.exists(os.path.join(bindir, 'llvm-link')):
 tvm_llvm_bin = get_path(args.llvm_bin, '--llvm-bin', 'TVM_LLVM_BINARY_DIR', bindir)
 tvm_linker = get_path(args.linker, '--linker', 'TVM_LINKER', os.path.join(bindir, 'tvm_linker'))
 tvm_stdlib = get_path(args.stdlib, '--stdlib', 'TVM_LIBRARY_PATH', os.path.join(bindir, '../../stdlib'))
+tvm_include = get_path(args.headers, '--include', 'TVM_INCLUDE_PATH', tvm_stdlib)
 
 input_c   = []
 input_cpp = []
@@ -104,7 +106,7 @@ if args.cxxflags:
 for filename in input_cpp:
   _, tmp_file = tempfile.mkstemp()
   execute([os.path.join(tvm_llvm_bin, 'clang++'), '-target', 'tvm'] +
-    cxxflags + ['-c', '-emit-llvm', filename, '-o', tmp_file, '--sysroot=' + tvm_stdlib], args.verbose)
+    cxxflags + ['-c', '-emit-llvm', filename, '-o', tmp_file, '--sysroot=' + tvm_include], args.verbose)
   input_bc += [tmp_file]
 
 cflags = ['-O1']
@@ -113,7 +115,7 @@ if args.cflags:
 
 for filename in input_c:
   _, tmp_file = tempfile.mkstemp()
-  execute([os.path.join(tvm_llvm_bin, 'clang'), '-target', 'tvm', '-isystem', tvm_stdlib] +
+  execute([os.path.join(tvm_llvm_bin, 'clang'), '-target', 'tvm', '-isystem', tvm_include] +
     cflags + ['-c', '-emit-llvm', filename, '-o', tmp_file], args.verbose)
   input_bc += [tmp_file]
 

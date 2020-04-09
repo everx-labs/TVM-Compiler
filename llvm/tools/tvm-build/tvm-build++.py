@@ -74,7 +74,7 @@ if not os.path.exists(os.path.join(bindir, 'llvm-link')):
 tvm_llvm_bin = get_path(args.llvm_bin, '--llvm-bin', 'TVM_LLVM_BINARY_DIR', bindir)
 tvm_linker = get_path(args.linker, '--linker', 'TVM_LINKER', os.path.join(bindir, 'tvm_linker'))
 tvm_stdlib = get_path(args.stdlib, '--stdlib', 'TVM_LIBRARY_PATH', os.path.join(bindir, '../../stdlib'))
-tvm_include = get_path(args.headers, '--include', 'TVM_INCLUDE_PATH', tvm_stdlib)
+tvm_include = get_path(args.include, '--include', 'TVM_INCLUDE_PATH', tvm_stdlib)
 
 input_c   = []
 input_cpp = []

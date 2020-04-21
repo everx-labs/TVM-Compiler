@@ -78,7 +78,9 @@ public:
   contract_call_configured(schema::lazy<schema::MsgAddressInt> addr, schema::Grams amount, unsigned flags)
     : addr_(addr), amount_(amount), flags_(flags) {}
   template<auto Func, class... Args>
-  inline void call(Args... args) const { contract_call_impl(addr_, amount_, flags_, args...); }
+  inline void call(Args... args) const {
+    contract_call_impl<Interface, Func>(addr_, amount_, flags_, args...);
+  }
 private:
   schema::lazy<schema::MsgAddressInt> addr_;
   schema::Grams amount_;
@@ -116,12 +118,12 @@ public:
   }
 
   contract_call_configured<Interface> operator()(
-      schema::Grams amount, unsigned flags = DEFAULT_MSG_FLAGS) const {
-    return contract_call_configured(addr_, amount, flags);
+      schema::Grams amount = 10000000, unsigned flags = DEFAULT_MSG_FLAGS) const {
+    return contract_call_configured<Interface>(addr_, amount, flags);
   }
   contract_deploy_configured<Interface> deploy(
       schema::StateInit init, schema::Grams amount, unsigned flags = DEFAULT_MSG_FLAGS) const {
-    return contract_deploy_configured(addr_, init, amount, flags);
+    return contract_deploy_configured<Interface>(addr_, init, amount, flags);
   }
 private:
   schema::lazy<schema::MsgAddressInt> addr_;

@@ -14,8 +14,6 @@ define i257 @f(i257 %N) nounwind {
 ; CHECK: CALL $g$
 ; CHECK: SWAP
 ; CHECK: POP	c0
-; CHECK: }
-; CHECK: IFNOTJMP
 
   %status = icmp sgt i257 %N, 0
   br i1 %status, label %then, label %else

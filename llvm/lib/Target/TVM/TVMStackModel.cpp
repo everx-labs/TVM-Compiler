@@ -23,6 +23,7 @@
 #include "TVMUtilities.h"
 
 #include "llvm/ADT/SmallVector.h"
+#include "llvm/ADT/PostOrderIterator.h"
 #include "llvm/CodeGen/LiveIntervals.h"
 #include "llvm/CodeGen/MachineBlockFrequencyInfo.h"
 #include "llvm/CodeGen/MachineDominators.h"
@@ -37,6 +38,11 @@
 using namespace llvm;
 
 #define DEBUG_TYPE "tvm-stack-model"
+
+#define DEBUG_RPOT    0
+#define DEBUG_BBS     0
+#define DEBUG_ROADS   0
+#define DEBUG_PATTERN 0
 
 namespace {
 
@@ -81,30 +87,23 @@ public:
 
   /// Calculate stack after \par MI execution.
   /// This fixup is not supposed to be code generated.
-  void modelInstructionExecution(MachineInstr &MI, Stack &StackBefore);
+  void modelInstructionExecution(const MachineInstr &MI, Stack &StackBefore);
 
   static char ID; // Pass identification, replacement for typeid
   TVMStackModel() : MachineFunctionPass(ID) {}
 
 private:
   bool runOnBasicBlocks(MachineFunction &MF, const Stack &StartStack);
-  void fillBackEdgesLiveouts(MachineBasicBlock &MBB,
-                             SmallVector<unsigned, 16> &Regs);
 
   /// Calculate equvalent classes on BB's entry / exit stack configuration
   /// and store them as road numbers in BBInfo.
   void prepareRoads(MachineFunction &MF);
 
-  /// Helper function to calculate initial and final stack configurations
-  Stack prepareRoadPattern(MachineFunction &MF,
-                           std::vector<MachineBasicBlock *> &BBs,
-                           unsigned RoadIdx);
-
-  /// Calculate initial and final stack state for a basic block.
-  /// When processing a basic blocks, it's initial state is pre calculate and
-  /// in the end the pass must ensure that the control flow leaves stack in
-  /// final stack configuration.
-  void fillBlocksBeginEndPatterns(MachineFunction &MF);
+  /// Compute road pattern -- a particular stack configuration used accross
+  /// the blocks of the road. The pattern is based on the output stack config
+  /// of the block which enters the road first in RPO traversal of the CFG.
+  void computeRoadPattern(MachineFunction &MF, unsigned RoadIdx,
+                          const Stack &OutStack);
 
   /// Rewrite an instruction in Reg-form to S-form.
   /// \see TVMInstructionInfo.td to learn more.
@@ -280,11 +279,22 @@ bool TVMStackModel::runOnBasicBlocks(MachineFunction &MF,
   auto &FirstBB = MF.front();
   BBInfo[&FirstBB].setFixedBegin(StartStack);
 
-  for (auto &MBB : MF) {
-    auto &bbInfo = BBInfo[&MBB];
+  using RPOTType = ReversePostOrderTraversal<MachineFunction *>;
+  RPOTType RPOT(&MF);
+#if DEBUG_RPOT
+  llvm::dbgs() << "RPOT:";
+  for (RPOTType::rpo_iterator I = RPOT.begin(), E = RPOT.end(); I != E; ++I) {
+    auto MBB = *I;
+    llvm::dbgs() << " " << MBB->getNumber();
+  }
+  llvm::dbgs() << "\n";
+#endif
+  for (RPOTType::rpo_iterator I = RPOT.begin(), E = RPOT.end(); I != E; ++I) {
+    auto MBB = *I;
+    auto &bbInfo = BBInfo[MBB];
     auto CurrentStack = bbInfo.fixedBegin(); // start bb stack here
 
-    for (auto I = MBB.begin(), E = MBB.end(); I != E;) {
+    for (auto I = MBB->begin(), E = MBB->end(); I != E; ) {
       MachineInstr &MI = *I++;
       assert(!TVM::isArgument(MI));
 
@@ -295,24 +305,6 @@ bool TVMStackModel::runOnBasicBlocks(MachineFunction &MF,
     bbInfo.setCalculatedEnd(CurrentStack);
   }
   return Changed;
-}
-
-Stack TVMStackModel::prepareRoadPattern(MachineFunction &MF,
-                                        std::vector<MachineBasicBlock *> &BBs,
-                                        unsigned RoadIdx) {
-  std::set<unsigned> vregs;
-  for (auto MBB : BBs) {
-    auto &CurInfo = BBInfo[MBB];
-    if (CurInfo.roadBegin() == RoadIdx)
-      gatherBlockLiveIns(*MBB, vregs);
-    if (CurInfo.roadEnd() == RoadIdx)
-      gatherBlockLiveOuts(*MBB, vregs);
-  }
-
-  Stack roadPattern(MF, 0);
-  for (auto Reg : vregs)
-    roadPattern.addDef(Reg, nullptr);
-  return roadPattern;
 }
 
 void TVMStackModel::prepareRoads(MachineFunction &MF) {
@@ -402,35 +394,6 @@ void TVMStackModel::prepareRoads(MachineFunction &MF) {
   MaxRoads = curRoad;
 }
 
-void TVMStackModel::fillBlocksBeginEndPatterns(MachineFunction &MF) {
-  using BBVecT = std::vector<MachineBasicBlock *>;
-  std::vector<BBVecT> roadsBBs(MaxRoads);
-
-  for (auto &MBB : MF) {
-    auto &CurInfo = BBInfo[&MBB];
-    roadsBBs[CurInfo.roadBegin()].push_back(&MBB);
-    if (CurInfo.roadBegin() != CurInfo.roadEnd())
-      roadsBBs[CurInfo.roadEnd()].push_back(&MBB);
-  }
-
-  for (unsigned i = 1; i < MaxRoads; ++i) {
-    auto &BBs = roadsBBs[i];
-
-    auto roadPattern = prepareRoadPattern(MF, BBs, i);
-    MaxRoadWidth = std::max<unsigned>(MaxRoadWidth, roadPattern.size());
-
-    for (auto MBB : BBs) {
-      auto &CurInfo = BBInfo[MBB];
-      if (CurInfo.roadBegin() == i) {
-        CurInfo.setFixedBegin(roadPattern.filteredByLiveIns(*MBB, *LIS));
-        MFI->setStackModelBBComment(MBB, CurInfo.fixedBegin().toString());
-      }
-      if (CurInfo.roadEnd() == i)
-        CurInfo.setFixedEnd(roadPattern.filteredByLiveOuts(*MBB, *LIS));
-    }
-  }
-}
-
 void TVMStackModel::gatherBlockLiveIns(MachineBasicBlock &MBB,
                                        std::set<unsigned> &vregs) {
   for (unsigned i = 0, e = MRI->getNumVirtRegs(); i != e; ++i) {
@@ -470,11 +433,30 @@ bool TVMStackModel::runOnMachineFunction(MachineFunction &MF) {
   Loops = &getAnalysis<MachineLoopInfo>();
   LIS = &getAnalysis<LiveIntervals>();
 
+#if DEBUG_BBS
+  for (auto &MBB : MF) {
+    llvm::dbgs() << "~~~~~~~~~~~~~~~ bb." << MBB.getNumber() << ":\n";
+    std::set<unsigned> LiveIns, LiveOuts;
+    gatherBlockLiveIns(MBB, LiveIns);
+    gatherBlockLiveOuts(MBB, LiveOuts);
+    llvm::dbgs() << "liveins: ";
+    for (auto Reg : LiveIns)
+      llvm::dbgs() << " %" << TargetRegisterInfo::virtReg2Index(Reg);
+    llvm::dbgs() << "\n";
+    llvm::dbgs() << "liveouts:";
+    for (auto Reg : LiveOuts)
+      llvm::dbgs() << " %" << TargetRegisterInfo::virtReg2Index(Reg);
+    llvm::dbgs() << "\n";
+    for (auto &I : MBB)
+      llvm::dbgs() << "  " << I;
+    llvm::dbgs() << "\n";
+  }
+#endif
+
   MaxRoads = 0;
   MaxRoadWidth = 0;
 
   prepareRoads(MF);
-  fillBlocksBeginEndPatterns(MF);
 
   MachineBasicBlock &FirstBB = MF.front();
   if (!FirstBB.empty()) {
@@ -513,6 +495,70 @@ bool TVMStackModel::runOnMachineFunction(MachineFunction &MF) {
     Changed = true;
 
   return Changed;
+}
+
+void TVMStackModel::computeRoadPattern(MachineFunction &MF, unsigned RoadIdx,
+                                       const Stack &OutStack) {
+  std::set<MachineBasicBlock *> BBs, SinkBBs;
+  for (auto &MBB : MF) {
+    auto &Info = BBInfo[&MBB];
+    if (Info.roadBegin() == RoadIdx) {
+      SinkBBs.insert(&MBB);
+      BBs.insert(&MBB);
+    }
+    if (Info.roadEnd() == RoadIdx)
+      BBs.insert(&MBB);
+  }
+
+#if DEBUG_ROADS
+  llvm::dbgs() << "Road " << RoadIdx << ":";
+  for (auto MBB : BBs) {
+    auto &Info = BBInfo[MBB];
+    llvm::dbgs() << " ";
+    if (Info.roadBegin() == RoadIdx)
+      llvm::dbgs() << "-";
+    llvm::dbgs() << MBB->getNumber();
+    if (Info.roadEnd() == RoadIdx)
+      llvm::dbgs() << "-";
+  }
+  llvm::dbgs() << "\n";
+#endif
+
+  Stack RoadPattern(MF, 0);
+  if (SinkBBs.size() == 1 && (*SinkBBs.begin())->succ_size() == 0) {
+    auto *MBB = *SinkBBs.begin();
+    std::set<unsigned> Regs;
+    gatherBlockLiveIns(*MBB, Regs);
+    gatherBlockLiveOuts(*MBB, Regs);
+    for (auto Reg : Regs)
+      RoadPattern.addDef(Reg, nullptr);
+  } else {
+    std::set<unsigned> Regs;
+    for (auto MBB : BBs) {
+      auto &Info = BBInfo[MBB];
+      if (Info.roadBegin() == RoadIdx)
+        gatherBlockLiveIns(*MBB, Regs);
+      if (Info.roadEnd() == RoadIdx)
+        gatherBlockLiveOuts(*MBB, Regs);
+    }
+    // Push remaining road pattern registers on top of the output stack
+    // of the block which enters the road first
+    for (auto Reg : OutStack)
+      Regs.erase(Reg.VirtReg);
+    RoadPattern = OutStack;
+    for (auto Reg : Regs)
+      RoadPattern.addDef(Reg, nullptr);
+  }
+
+  for (auto MBB : BBs) {
+    auto &Info = BBInfo[MBB];
+    if (Info.roadBegin() == RoadIdx) {
+      Info.setFixedBegin(RoadPattern.filteredByLiveIns(*MBB, *LIS));
+      MFI->setStackModelBBComment(MBB, Info.fixedBegin().toString());
+    }
+    if (Info.roadEnd() == RoadIdx)
+      Info.setFixedEnd(RoadPattern);
+  }
 }
 
 /// Model stack for a single instruction.
@@ -571,7 +617,32 @@ StackFixup TVMStackModel::prepareStackFor(MachineInstr &MI,
     }
   }
 
-  if (MI.isTerminator() && MBB->succ_size()) {
+  bool IsLast = MI.isTerminator() || !MI.getNextNode();
+  if (IsLast && MBB->succ_size()) {
+    if (!BBInfo[MBB].isFixedEnd()) {
+      size_t RegsToConsume = 0;
+      if (MI.getOpcode() == TVM::JMPX)
+        RegsToConsume = 1;
+      else if (MI.getOpcode() == TVM::IFJMP ||
+               MI.getOpcode() == TVM::IFNOTJMP)
+        RegsToConsume = 2;
+      else if (MI.getOpcode() == TVM::IFELSE)
+        RegsToConsume = 3;
+      auto OutStack = TheStack;
+      OutStack.consumeArguments(RegsToConsume);
+      computeRoadPattern(*MBB->getParent(), BBInfo[MBB].roadEnd(), OutStack);
+      assert(BBInfo[MBB].isFixedEnd());
+#if DEBUG_PATTERN
+      llvm::dbgs() << "BB #" << MBB->getNumber() << " has entered the road\n";
+      llvm::dbgs() << "OutStack  " << OutStack << "\n";
+      auto AfterTermStack = BBInfo[MBB].fixedEnd();
+      llvm::dbgs() << "FixedEnd  " << AfterTermStack << "\n";
+      auto NeedStack = AfterTermStack.withArgs(MIArgs(MI, *LIS, Index));
+      NeedStack.filterByImpDefs(TheStack);
+      llvm::dbgs() << "NeedStack " << NeedStack << "\n";
+#endif
+    }
+
     // For terminator instruction we need to prepare stack as
     //  dst road pattern plus required arguments
     auto AfterTermStack = BBInfo[MBB].fixedEnd();
@@ -587,7 +658,7 @@ StackFixup TVMStackModel::prepareStackFor(MachineInstr &MI,
   }
 }
 
-void TVMStackModel::modelInstructionExecution(MachineInstr &MI,
+void TVMStackModel::modelInstructionExecution(const MachineInstr &MI,
                                               Stack &StackBefore) {
   if (MI.isImplicitDef())
     return;

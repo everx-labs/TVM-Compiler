@@ -702,10 +702,18 @@ operator()(const std::pair<Change, std::string> &pair) const {
             }
           },
           [&](reverse v) {
-            MI = BuildMI(*MBB, InsertPt, DL, TII->get(TVM::REVERSE))
-                     .addImm(v.deepSz)
-                     .addImm(v.topIdx)
-                     .getInstr();
+            if (v.isImm()) {
+              MI = BuildMI(*MBB, InsertPt, DL, TII->get(TVM::REVERSE))
+                       .addImm(v.deepSz)
+                       .addImm(v.topIdx)
+                       .getInstr();
+            } else {
+              BuildMI(*MBB, InsertPt, DL, TII->get(TVM::CONST_U257_S))
+                  .addImm(v.deepSz);
+              BuildMI(*MBB, InsertPt, DL, TII->get(TVM::CONST_U257_S))
+                  .addImm(v.topIdx);
+              MI = BuildMI(*MBB, InsertPt, DL, TII->get(TVM::REVX)).getInstr();
+            }
           },
           [&](blkdrop v) {
             if (v.isImm()) {

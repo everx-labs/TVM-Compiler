@@ -26,14 +26,38 @@ using persistent_data_hdr_t = decltype(&T::set_persistent_data_header);
 template<typename T>
 constexpr bool supports_set_persistent_data_header_v = std::experimental::is_detected_v<persistent_data_hdr_t, T>;
 
-template<class ReturnValue>
-inline void send_external_answer(unsigned func_id, ReturnValue rv) {
+// Check that a contract has field to store incoming msg slice
+template<typename T>
+using msg_slice_t = decltype(T{}.set_msg_slice(slice{}));
+template<typename T>
+constexpr bool supports_msg_slice_v = std::experimental::is_detected_v<msg_slice_t, T>;
+// Check that contract have field to store parsed internal sender from incoming message
+template<typename T>
+using int_sender_t = decltype(&T::int_sender);
+template<typename T>
+constexpr bool supports_int_sender_v = std::experimental::is_detected_v<int_sender_t, T>;
+// Check that contract have field to store parsed external sender from incoming message
+template<typename T>
+using ext_sender_t = decltype(&T::ext_sender);
+template<typename T>
+constexpr bool supports_ext_sender_v = std::experimental::is_detected_v<ext_sender_t, T>;
+
+template<class Contract>
+inline schema::lazy<schema::MsgAddressExt> ext_return_address(Contract c) {
+  if constexpr (supports_ext_sender_v<Contract>)
+    return c.ext_sender();
+  else
+    return ext_msg().unpack().ext_sender();
+}
+
+template<class Contract, class ReturnValue>
+inline void send_external_answer(Contract c, unsigned func_id, ReturnValue rv) {
   using namespace schema;
   abiv1::external_outbound_msg_header hdr{ uint32(func_id) };
   auto hdr_plus_rv = std::make_tuple(hdr, rv);
   ext_out_msg_info_relaxed out_info;
   out_info.src = addr_none{};
-  out_info.dest = ext_msg().unpack().ext_sender();
+  out_info.dest = ext_return_address(c);
   out_info.created_lt = 0;
   out_info.created_at = 0;
 
@@ -43,14 +67,22 @@ inline void send_external_answer(unsigned func_id, ReturnValue rv) {
   tvm_sendmsg(build(out_msg).endc(), 0);
 }
 
-template<class ReturnValue>
-inline void send_internal_answer(unsigned func_id, ReturnValue rv) {
+template<class Contract>
+inline schema::lazy<schema::MsgAddressInt> int_return_address(Contract c) {
+  if constexpr (supports_int_sender_v<Contract>)
+    return c.int_sender();
+  else
+    return int_msg().unpack().int_sender();
+}
+
+template<class Contract, class ReturnValue>
+inline void send_internal_answer(Contract c, unsigned func_id, ReturnValue rv) {
   using namespace schema;
   abiv1::internal_msg_header hdr{ uint32(func_id) };
   auto hdr_plus_rv = std::make_tuple(hdr, rv);
   int_msg_info_relaxed out_info;
   out_info.src = addr_none{};
-  out_info.dest = int_msg().unpack().int_sender();
+  out_info.dest = int_return_address(c);
   out_info.created_lt = 0;
   out_info.created_at = 0;
 
@@ -133,7 +165,7 @@ template<bool Internal, class Contract, class IContract, class DContract, class 
          unsigned Index, unsigned RestMethods>
 struct smart_switcher_impl {
   static const unsigned my_method_id = get_interface_method_func_id<IContract, Index>::value;
-  __always_inline static int execute(unsigned func_id, cell msg, slice msg_body) {
+  __always_inline static int execute(Contract c, unsigned func_id, cell msg, slice msg_body) {
     constexpr bool is_getter = get_interface_method_getter<IContract, Index>::value;
     constexpr bool is_noaccept = get_interface_method_noaccept<IContract, Index>::value;
     constexpr bool is_internal = get_interface_method_internal<IContract, Index>::value;
@@ -146,7 +178,6 @@ struct smart_switcher_impl {
     if (valid && (func_id == my_method_id)) {
       // We need to parse persistent data for contract, parse arguments for method,
       // call method, build return value and send message, build updated persistent data and store
-      Contract c;
       using ISmart = typename Contract::base;
       constexpr auto func = get_interface_method_ptr<Contract, ISmart, Index>::value;
 
@@ -233,9 +264,9 @@ struct smart_switcher_impl {
           rv = (c.*func)();
         }
         if constexpr (Internal)
-          send_internal_answer(in_hdr->function_id(), rv);
+          send_internal_answer(c, in_hdr->function_id(), rv);
         else
-          send_external_answer(in_hdr->function_id(), rv);
+          send_external_answer(c, in_hdr->function_id(), rv);
       } else {
         // void return (no need to send an answer message)
         if constexpr (args_sz != 0) {
@@ -255,14 +286,14 @@ struct smart_switcher_impl {
       return my_method_id;
     } else {
       return smart_switcher_impl<Internal, Contract, IContract, DContract, ReplayAttackProtection,
-                                 Index + 1, RestMethods - 1>::execute(func_id, msg, msg_body);
+                                 Index + 1, RestMethods - 1>::execute(c, func_id, msg, msg_body);
     }
   }
 };
 template<bool Internal, class Contract, class IContract, class DContract, class ReplayAttackProtection,
          unsigned Index>
 struct smart_switcher_impl<Internal, Contract, IContract, DContract, ReplayAttackProtection, Index, 0> {
-  __always_inline static int execute(unsigned func_id, cell msg, slice msg_body) {
+  __always_inline static int execute(Contract c, unsigned func_id, cell msg, slice msg_body) {
     if constexpr (Internal && supports_fallback_v<Contract>)
       return Contract::_fallback(msg, msg_body);
     else
@@ -274,15 +305,14 @@ struct smart_switcher_impl<Internal, Contract, IContract, DContract, ReplayAttac
 template<bool Internal, class Contract, class IContract, class DContract, class ReplayAttackProtection>
 struct smart_switcher {
   static const unsigned methods_count = get_interface_methods_count<IContract>::value;
-  static int execute(unsigned func_id, cell msg, slice msg_body) {
-    set_msg(msg); // msg cell is set into global value and will be parsed at first request
+  __always_inline static int execute(Contract c, unsigned func_id, cell msg, slice msg_body) {
     return smart_switcher_impl<Internal, Contract, IContract, DContract, ReplayAttackProtection,
-                               0, methods_count>::execute(func_id, msg, msg_body);
+                               0, methods_count>::execute(c, func_id, msg, msg_body);
   }
 };
 
-__always_inline bool is_bounced(cell msg) {
-  parser p(msg.ctos());
+__always_inline bool is_bounced(slice msg_sl) {
+  parser p(msg_sl);
   require(p.ldu(1) == schema::int_msg_info{}.kind.code, error_code::bad_incoming_msg);
   p.skip(2); // ihr_disabled + bounce
   return p.ldu(1) != 0; // bounced != 0
@@ -290,13 +320,26 @@ __always_inline bool is_bounced(cell msg) {
 
 template<bool Internal, class Contract, class IContract, class DContract, class ReplayAttackProtection = void>
 int smart_switch(cell msg, slice msg_body) {
+  Contract c;
   if constexpr (Internal) {
+    slice msg_slice = msg.ctos();
+    if constexpr (supports_msg_slice_v<Contract>)
+      c.set_msg_slice(msg_slice);
+    else
+      set_msg(msg);
     if constexpr (supports_on_bounced_v<Contract>) {
-      if (is_bounced(msg))
+      if (is_bounced(msg_slice))
         return Contract::_on_bounced(msg, msg_body);
     } else {
-      require(!is_bounced(msg), error_code::unsupported_bounced_msg);
+      require(!is_bounced(msg_slice), error_code::unsupported_bounced_msg);
     }
+  } else {
+    // Store msg cell into contract if it supports the required field
+    // Otherwise, store into global (set_msg)
+    if constexpr (supports_msg_slice_v<Contract>)
+      c.set_msg_slice(msg);
+    else
+      set_msg(msg);
   }
 
   parser msg_parser(msg_body);
@@ -312,7 +355,7 @@ int smart_switch(cell msg, slice msg_body) {
     func_id = msg_parser.ldu(32);
   }
   return smart_switcher<Internal, Contract, IContract, DContract, ReplayAttackProtection>
-    ::execute(func_id, msg, msg_body);
+    ::execute(c, func_id, msg, msg_body);
 }
 
 } // namespace tvm

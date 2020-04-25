@@ -8,12 +8,15 @@
 namespace tvm {
 
 // Array represented in flat sequence of elements
+// Default constructor contains null cell (for optimization of arguments parsing)
 template<class Element>
 class sequence {
   static constexpr unsigned max_cell_bits = 1023;
 
   static_assert(schema::get_bitsize<Element>::value < max_cell_bits);
 public:
+  // WARNING: this is not constructor of empty sequence, this is null sequence
+  // use sequence::create() for empty sequence construction
   sequence() {}
   sequence(cell cl) : cl_(cl) {}
   sequence(std::initializer_list<Element> il) {
@@ -30,6 +33,10 @@ public:
   sequence& operator=(std::initializer_list<int> il) {
     assign(il.begin(), il.end());
     return *this;
+  }
+
+  static sequence create() {
+    return sequence(builder().make_cell());
   }
 
   template<class _Iterator>

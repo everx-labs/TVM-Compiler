@@ -49,10 +49,10 @@ namespace {
     MachineDominatorTree *MDT = nullptr;
     MachineRegisterInfo *MRI = nullptr;
 
-    struct OccuranciesInfo {
+    struct OccurrencesInfo {
       SmallVector<MachineInstr *, 4> Instructions;
     };
-    std::map<MachineBasicBlock *, OccuranciesInfo> Info;
+    std::map<MachineBasicBlock *, OccurrencesInfo> Info;
     SmallSet<MachineInstr *, 8> DeleteMIs;
 
     void collectInstr(MachineInstr &MI);
@@ -99,14 +99,13 @@ bool TVMContinuationsHoist::optimize() {
     }
 
     MachineInstr *FoundMI = nullptr;
-    for (MachineInstr &MI : *CommonDom) {
+    for (auto I = CommonDom->instr_rbegin(), E = CommonDom->instr_rend(); I != E; ++I) {
+      MachineInstr &MI = *I;
       if (MI.getOpcode() == TVM::PUSHCONT_MBB &&
           MI.getOperand(1).getMBB() == TargetMBB) {
         FoundMI = &MI;
         break;
       }
-      if (MI.isTerminator())
-        break;
     }
 
     unsigned MBBReg = 0;
@@ -114,8 +113,17 @@ bool TVMContinuationsHoist::optimize() {
       MBBReg = FoundMI->getOperand(0).getReg();
       FoundMI->clearRegisterDeads(MBBReg);
     } else {
+      MachineInstr *InsertBefore = &*CommonDom->getFirstInstrTerminator();
+      unsigned FirstOpReg = InsertBefore->getOperand(0).getReg();
+      if (TargetRegisterInfo::isVirtualRegister(FirstOpReg) &&
+          MRI->hasOneDef(FirstOpReg)) {
+        MachineInstr *I = MRI->getVRegDef(FirstOpReg);
+        if (I->getOpcode() != TVM::PHI &&
+            I->getParent() == InsertBefore->getParent())
+          InsertBefore = I;
+      }
       MBBReg = MRI->createVirtualRegister(&TVM::I257RegClass);
-      BuildMI(*CommonDom, CommonDom->getFirstInstrTerminator(), DebugLoc(),
+      BuildMI(*CommonDom, InsertBefore, DebugLoc(),
               TII->get(TVM::PUSHCONT_MBB), MBBReg).addMBB(TargetMBB).addImm(0);
     }
 

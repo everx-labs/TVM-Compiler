@@ -17,30 +17,27 @@ We expect the project to build successfully on
 - Mac OS Mojave 10.14.3 or higher
 - Windows 10
 
-## Building
-At the moment TVM toolchain contains no specific flags and you can build it as an ordinary LLVM-based project except for 
-* `LLVM_EXPERIMENTAL_TARGETS_TO_BUILD=TVM` that enables TVM backend in LLVM
-* `LLVM_BYTE_SIZE_IN_BITS=257` that defines size of byte the compiler assumes.
-Sample build scenario:
+## Building and installing
+File `cmake/Cache/ton-compiler.cmake` has all the parameters required for a build. We recommend however to use installed version of the compiler, so specifying the installation prefix might be a good idea.
 ```
 $ git clone git@github.com:tonlabs/TON-Compiler.git
 $ mkdir build
 $ cd build
-$ cmake -DLLVM_EXPERIMENTAL_TARGETS_TO_BUILD=TVM -DLLVM_TARGETS_TO_BUILD=X86 -DLLVM_BYTE_SIZE_IN_BITS=257 -GNinja ../TON-Compiler/llvm
-$ ninja
+$ cmake -DCMAKE_INSTALL_PREFIX=/path/to/install -C /path/to/TON-Compiler/cmake/Cache/ton-compiler.cmake  -GNinja /path/to/TON-Compiler/llvm
+$ cmake --build . --target install-distribution
 ```
-Note that 257 bits byte is incompatible with other targets Clang supports. `LLVM_BYTE_SIZE_IN_BITS` is a temporary solution introduced to support TVM, later on we plan to switch to non-breaking method to support TVM target (see `Upstreaming` section).
-To learn more about available CMake options, please refer to https://llvm.org/docs/CMake.html
+Note that a full C/C++ toolchain also required [tvm_linker](https://github.com/tonlabs/TVM-linker/) to be built. You might want to put it to the installation, because in that case the compiler driver would be able to find it. Otherwise you'd need to specify path to the linker or link manually.
+`install-distribution` installs only required minimum of tools, while `install` target copies all the LLVM tools to the installation folder. These additional tools doesn't necessary work with TVM target properly.
 
 ## Running tests
 To run tests for TVM, execute
 ```
-$ ninja check-llvm-codegen-tvm
+$ cmake --build . --target check-llvm-codegen-tvm
 ```
 
-To run tests for other platforms (to ensure that LLVM itself is not broken), Clang build with `-DLLVM_BYTE_SIZE_IN_BITS=8` is required.
+To run tests for other platforms (to ensure that LLVM itself is not broken), you have to create a separate build without using `/path/to/TON-Compiler/cmake/Cache/ton-compiler.cmake` config and run
 ```
-$ ninja check-all
+$ ninja --build . --target check all
 ```
 
 For more details see [testing.md](https://github.com/tonlabs/TON-Compiler/blob/readme/testing.md).

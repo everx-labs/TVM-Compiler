@@ -1,4 +1,4 @@
-// RUN: %clang -O3 -S -c -emit-llvm -target tvm %s --sysroot=%S/../../../../../../stdlib -o -
+// RUN: %clang -O3 -S -c -emit-llvm -target tvm %s --sysroot=%S/../../../../../projects/ton-compiler/cpp-sdk/ -o -
 // REQUIRES: tvm-registered-target
 
 #include <tvm/contract.hpp>

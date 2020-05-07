@@ -1,4 +1,4 @@
-// RUN: not %clang -O3 -S -c -emit-llvm -target tvm %s -std=c++17 -I%S/../../../../../../../stdlib/cpp-sdk/ -o - 2>&1 | FileCheck %s
+// RUN: not %clang -O3 -S -c -emit-llvm -target tvm %s -std=c++17 -I%S/../../../../../projects/ton-compiler/cpp-sdk/ -o - 2>&1 | FileCheck %s
 // REQUIRES: tvm-registered-target
 
 void f(int x);

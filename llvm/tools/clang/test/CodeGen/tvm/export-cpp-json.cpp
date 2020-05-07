@@ -1,4 +1,4 @@
-// RUN: %clang -target tvm -export-json-abi %s --sysroot=%S/../../../../../../stdlib -o - | FileCheck %s
+// RUN: %clang -target tvm -export-json-abi %s --sysroot=%S/../../../../../projects/ton-compiler/cpp-sdk/ -o - | FileCheck %s
 // REQUIRES: tvm-registered-target
 
 // CHECK: "functions":

@@ -3714,7 +3714,7 @@ QualType ASTContext::getTVMArgumentsStructType(const CXXMethodDecl *Method,
   if (it != TVMMethodArgStructs.end())
     return it->second;
   auto ArgTy = prepareTVMArgumentsStructType(Method, Loc);
-  auto [It, Ok] = TVMMethodArgStructs.insert(std::make_pair(Method, ArgTy));
+  [[maybe_unused]] auto [It, Ok] = TVMMethodArgStructs.insert(std::make_pair(Method, ArgTy));
   assert(Ok && "can't update TVMMethodArgStructs");
   return ArgTy;
 }

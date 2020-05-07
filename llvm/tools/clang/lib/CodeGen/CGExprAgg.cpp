@@ -799,7 +799,7 @@ void AggExprEmitter::VisitCastExpr(CastExpr *E) {
     // TVM local begin
     auto SrcTy = E->getSubExpr()->getType();
     auto DstTy = E->getType();
-    bool TVMTupleConv =
+    [[maybe_unused]] bool TVMTupleConv =
       ((SrcTy->isTVMTupleStructType() && DstTy->isTVMLiteralStructType()) ||
        (DstTy->isTVMTupleStructType() && SrcTy->isTVMLiteralStructType())) &&
       (CGF.getContext().getTypeSizeInChars(SrcTy).getQuantity() ==

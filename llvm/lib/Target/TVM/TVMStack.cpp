@@ -186,7 +186,7 @@ Stack& Stack::operator += (const StackFixup::Change &change) {
         Data.erase(Data.begin(), Data.begin() + v.sz);
       },
       [&](const StackFixup::doubleChange &v) {
-        for (unsigned Arg : v.args)
+        for ([[maybe_unused]] unsigned Arg : v.args)
           assert(Arg < Data.size() && "Bad doubleChange");
         if (v.isPush(0) && v.isPush(1)) {
           (*this) += StackFixup::pushI(v.args[0], false);
@@ -204,7 +204,7 @@ Stack& Stack::operator += (const StackFixup::Change &change) {
         }
       },
       [&](const StackFixup::tripleChange &v) {
-        for (unsigned Arg : v.args)
+        for ([[maybe_unused]] unsigned Arg : v.args)
           assert(Arg < Data.size() && "Bad tripleChange");
         if (v.isPush(0) && v.isPush(1) && v.isPush(2)) {
           (*this) += StackFixup::pushI(v.args[0], false);

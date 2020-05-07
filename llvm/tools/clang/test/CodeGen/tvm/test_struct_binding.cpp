@@ -1,4 +1,4 @@
-// RUN: %clang -O3 -S -c -emit-llvm -target tvm %s --sysroot=%S/../../../../../../stdlib -o - | FileCheck %s
+// RUN: %clang -O3 -S -c -emit-llvm -target tvm %s --sysroot=%S/../../../../../projects/ton-compiler/cpp-sdk/ -o - | FileCheck %s
 // REQUIRES: tvm-registered-target
 
 #include <tuple>

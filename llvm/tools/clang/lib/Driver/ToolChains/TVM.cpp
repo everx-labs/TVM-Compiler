@@ -21,8 +21,7 @@ using namespace clang::driver::toolchains;
 using namespace clang;
 using namespace llvm::opt;
 
-// TODO: Copied from WebAssembly. We need to figure out what to do with linker.
-tvm::Linker::Linker(const ToolChain &TC) : GnuTool("tvm::Linker", "lld", TC) {}
+tvm::Linker::Linker(const ToolChain &TC) : GnuTool("tvm::Linker", "tvm_linker", TC) {}
 
 bool tvm::Linker::isLinkJob() const { return true; }
 
@@ -36,31 +35,8 @@ void tvm::Linker::ConstructJob(Compilation &C, const JobAction &JA,
   const ToolChain &ToolChain = getToolChain();
   const char *Linker = Args.MakeArgString(ToolChain.GetLinkerPath());
   ArgStringList CmdArgs;
-  CmdArgs.push_back("-flavor");
-  CmdArgs.push_back("tvm");
-
-  if (Args.hasArg(options::OPT_s))
-    CmdArgs.push_back("--strip-all");
-
-  Args.AddAllArgs(CmdArgs, options::OPT_L);
-  Args.AddAllArgs(CmdArgs, options::OPT_u);
-  ToolChain.AddFilePathLibArgs(Args, CmdArgs);
-
-  if (!Args.hasArg(options::OPT_nostdlib, options::OPT_nostartfiles))
-    CmdArgs.push_back(Args.MakeArgString(ToolChain.GetFilePath("crt1.o")));
 
   AddLinkerInputs(ToolChain, Inputs, Args, CmdArgs, JA);
-
-  if (!Args.hasArg(options::OPT_nostdlib, options::OPT_nodefaultlibs)) {
-    if (ToolChain.ShouldLinkCXXStdlib(Args))
-      ToolChain.AddCXXStdlibLibArgs(Args, CmdArgs);
-
-    if (Args.hasArg(options::OPT_pthread))
-      CmdArgs.push_back("-lpthread");
-
-    CmdArgs.push_back("-lc");
-    AddRunTimeLibs(ToolChain, ToolChain.getDriver(), CmdArgs, Args);
-  }
 
   CmdArgs.push_back("-o");
   CmdArgs.push_back(Output.getFilename());
@@ -71,8 +47,6 @@ void tvm::Linker::ConstructJob(Compilation &C, const JobAction &JA,
 TVM::TVM(const Driver &D, const llvm::Triple &Triple,
          const llvm::opt::ArgList &Args)
     : ToolChain(D, Triple, Args) {
-
-  assert(Triple.isArch32Bit() != Triple.isArch64Bit());
 
   getProgramPaths().push_back(getDriver().getInstalledDir());
 
@@ -95,21 +69,13 @@ bool TVM::IsIntegratedAssemblerDefault() const { return false; }
 
 bool TVM::hasBlocksRuntime() const { return false; }
 
-// TODO: Support profiling.
 bool TVM::SupportsProfiling() const { return false; }
 
-bool TVM::HasNativeLLVMSupport() const { return true; }
+bool TVM::HasNativeLLVMSupport() const { return false; }
 
 void TVM::addClangTargetOptions(const ArgList &DriverArgs,
                                 ArgStringList &CC1Args,
                                 Action::OffloadKind) const {
-  if (DriverArgs.hasFlag(clang::driver::options::OPT_fuse_init_array,
-                         options::OPT_fno_use_init_array, true))
-    CC1Args.push_back("-fuse-init-array");
-  if (auto *Arg = DriverArgs.getLastArg(options::OPT_import_json_abi))
-    Arg->render(DriverArgs, CC1Args);
-  if (auto *Arg = DriverArgs.getLastArg(options::OPT_import_json_name))
-    Arg->render(DriverArgs, CC1Args);
 }
 
 ToolChain::RuntimeLibType TVM::GetDefaultRuntimeLibType() const {
@@ -123,10 +89,12 @@ ToolChain::CXXStdlibType TVM::GetCXXStdlibType(const ArgList &) const {
 void TVM::AddClangSystemIncludeArgs(const ArgList &DriverArgs,
                                     ArgStringList &CC1Args) const {
   if (!DriverArgs.hasArg(options::OPT_nostdinc)) {
+    // Distribution include paths.
     addSystemInclude(DriverArgs, CC1Args,
-                     getDriver().SysRoot + "/usr/include/cpp-sdk/std/target");
+                     getDriver().SysRoot + "/include/");
+    // Build include paths for tests.
     addSystemInclude(DriverArgs, CC1Args,
-                     getDriver().SysRoot + "/cpp-sdk/std/target");
+                     getDriver().SysRoot);
   }
 }
 
@@ -134,28 +102,25 @@ void TVM::AddClangCXXStdlibIncludeArgs(const ArgList &DriverArgs,
                                        ArgStringList &CC1Args) const {
   if (!DriverArgs.hasArg(options::OPT_nostdlibinc) &&
       !DriverArgs.hasArg(options::OPT_nostdincxx)) {
+    // Distribution include paths.
     addSystemInclude(DriverArgs, CC1Args,
-                     getDriver().SysRoot + "/usr/include/cpp-sdk");
+                     getDriver().SysRoot + "/include/std");
     addSystemInclude(DriverArgs, CC1Args,
-                     getDriver().SysRoot + "/usr/include/cpp-sdk/std");
+                     getDriver().SysRoot + "/include/std/target");
+    // Build include paths for tests.
     addSystemInclude(DriverArgs, CC1Args,
-                     getDriver().SysRoot + "/cpp-sdk");
+                     getDriver().SysRoot + "/std");
     addSystemInclude(DriverArgs, CC1Args,
-                     getDriver().SysRoot + "/cpp-sdk/std");
+                     getDriver().SysRoot + "/std/target");
+    // FIXME: CI does the installation via manual copying.
+    addSystemInclude(DriverArgs, CC1Args, "/usr/include/cpp-sdk/std");
+    addSystemInclude(DriverArgs, CC1Args, "/usr/include/cpp-sdk");
+    addSystemInclude(DriverArgs, CC1Args, "/usr/include/cpp-sdk/std/target");
   }
 }
 
 void TVM::AddCXXStdlibLibArgs(const llvm::opt::ArgList &Args,
                               llvm::opt::ArgStringList &CmdArgs) const {
-
-  switch (GetCXXStdlibType(Args)) {
-  case ToolChain::CST_Libcxx:
-    CmdArgs.push_back("-lc++");
-    CmdArgs.push_back("-lc++abi");
-    break;
-  case ToolChain::CST_Libstdcxx:
-    llvm_unreachable("invalid stdlib name");
-  }
 }
 
 std::string TVM::getThreadModel() const {

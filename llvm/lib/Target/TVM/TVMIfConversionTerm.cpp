@@ -80,7 +80,7 @@ void TVMIfConversionTerm::updateDomTree(MachineBasicBlock *Head,
     DomTree->changeImmediateDominator(ContNode->getChildren().back(), HeadNode);
   }
   DomTree->eraseNode(ContBB);
-  MachineDomTreeNode *ThrowNode = DomTree->getNode(ThrowBB);
+  [[maybe_unused]] MachineDomTreeNode *ThrowNode = DomTree->getNode(ThrowBB);
   assert((!ThrowNode->getNumChildren()) && "Unexpected dom children");
   DomTree->eraseNode(ThrowBB);
 }

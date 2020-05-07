@@ -179,9 +179,10 @@ SDValue TVMTargetLowering::LowerCall(CallLoweringInfo &CLI,
   CLI.IsTailCall = false;
 
   SmallVectorImpl<ISD::InputArg> &Ins = CLI.Ins;
-
-  SmallVectorImpl<ISD::OutputArg> &Outs = CLI.Outs;
   SmallVectorImpl<SDValue> &OutVals = CLI.OutVals;
+
+#ifndef NDEBUG
+  SmallVectorImpl<ISD::OutputArg> &Outs = CLI.Outs;
   for (unsigned i = 0; i < Outs.size(); ++i) {
     const ISD::OutputArg &Out = Outs[i];
     assert((Out.VT.SimpleTy == MVT::SimpleValueType::i257 ||
@@ -191,6 +192,7 @@ SDValue TVMTargetLowering::LowerCall(CallLoweringInfo &CLI,
             Out.VT.SimpleTy == MVT::SimpleValueType::TVMTuple) &&
            "Unsupported type in call");
   }
+#endif
 
   // Compute the operands for the CALLn node.
   SmallVector<SDValue, 16> Ops;
@@ -561,7 +563,7 @@ SDValue TVMTargetLowering::LowerStore(SDValue Op, SelectionDAG &DAG) const {
   auto Chain = St->getChain();
   auto Ptr = St->getBasePtr();
   auto Val = St->getValue();
-  auto PtrVT = Ptr.getValueType();
+  [[maybe_unused]] auto PtrVT = Ptr.getValueType();
   assert((PtrVT == MVT::i256 || PtrVT == MVT::i257) && "Wrong Ptr type");
   if (Ptr.getOpcode() == ISD::TRUNCATE)
     Ptr = Ptr.getOperand(0);

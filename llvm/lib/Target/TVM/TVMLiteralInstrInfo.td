@@ -21,3 +21,7 @@ defm PUSHREFSLICE : I0<(outs Slice : $slice), (ins),
                        [(set Slice : $slice, (int_tvm_ctos(int_tvm_pushref)))],
                        "PUSHREFSLICE", 0x89>;
 }
+
+defm PUSHSLICE_EMPTY : I0<(outs Slice : $slice), (ins),
+                          [(set Slice : $slice, (int_tvm_pushslice_empty))],
+                          "PUSHSLICE x8_", 0x8b08>;

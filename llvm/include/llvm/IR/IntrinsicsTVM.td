@@ -689,6 +689,9 @@ let TargetPrefix = "tvm" in {
   def int_tvm_pushnull : GCCBuiltin<"__builtin_tvm_pushnull">,
     Intrinsic<[llvm_i257_ty], [], [IntrNoMem]>;
 
+  def int_tvm_pushslice_empty : GCCBuiltin<"__builtin_tvm_pushslice_empty">,
+    Intrinsic<[llvm_TVMSlice_ty], [], [IntrNoMem]>;
+
   def int_tvm_bless : GCCBuiltin<"__builtin_tvm_bless">,
     Intrinsic<[llvm_i257_ty], [llvm_TVMSlice_ty], [IntrNoMem]>;
 

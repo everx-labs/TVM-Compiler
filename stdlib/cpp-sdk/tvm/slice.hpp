@@ -9,6 +9,10 @@ public:
   slice() : sl_((__tvm_slice)__builtin_tvm_pushnull()) {}
   slice(__tvm_slice sl) : sl_(sl) {}
 
+  static slice create_empty() {
+    return __builtin_tvm_pushslice_empty();
+  }
+
   unsigned sbits() const { return __builtin_tvm_sbits(sl_); }
   unsigned srefs() const { return __builtin_tvm_srefs(sl_); }
   std::tuple<unsigned, unsigned> sbitrefs() const {

@@ -71,9 +71,46 @@ pipeline {
               }
             }
           }
-          stage('Build & Run Tests') {
+          stage('Build & Run LLVM Regression Tests') {
             steps {
               sh 'cd ${WORKDIR}/llvm/build && ninja check-all'
+            }
+          }
+          stage('Build the installation') {
+            //when {
+            //    expression {
+            //        return GIT_BRANCH == 'master' || GIT_BRANCH ==~ '^PR-[0-9]+'
+            //    }
+            //}
+            environment {
+              HOME = "$WORKSPACE"
+            }
+            steps {
+              script {
+                sh 'rm -rf ${WORKDIR}/llvm/*'
+                sh 'cp -R llvm/* ${WORKDIR}/llvm'
+                sh 'cp -R cmake/Cache/ton-compiler.cmake ${WORKDIR}/llvm'
+                sh 'mkdir ${WORKDIR}/llvm/build'
+                sh 'cd ${WORKDIR}/llvm/build &&   \
+                cmake -G Ninja                    \
+                -DCMAKE_C_COMPILER=clang          \
+                -DCMAKE_CXX_COMPILER=clang++      \
+                -DLLVM_USE_LINKER=lld             \
+                -DCMAKE_INSTALL_PREFIX=../install \
+                -C ../ton-compiler.cmake          \
+                ..'
+                sh 'cd ${WORKDIR}/llvm/build && ninja install-distribution'
+                sh 'rm -rf ${WORKDIR}/llvm/build/*'
+                sh 'tar -czvf cpp_toolchain.tar.gz ${WORKDIR}/llvm/install'
+                sh 'ls ${WORKDIR}/llvm'
+                withAWS(credentials: 'CI_bucket_writer', region: 'eu-central-1') {
+                  identity = awsIdentity()
+                  s3Upload \
+                    bucket: 'sdkbinaries-ws.tonlabs.io', \
+                    includePathPattern:"${WORKDIR}/llvm/*.gz", path: "tvm_llvm", \
+                    workingDir:'.'
+                }
+              }
             }
           }
         }

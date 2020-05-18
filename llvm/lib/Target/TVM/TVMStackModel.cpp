@@ -276,6 +276,30 @@ bool TVMStackModel::runOnBasicBlocks(MachineFunction &MF,
                                      const Stack &StartStack) {
   bool Changed = false;
 
+  for (auto &MBB : MF) {
+    auto It = MBB.getFirstInstrTerminator();
+    if (It.isEnd())
+      continue;
+    auto &TI = *It++;
+    if (!It.isEnd())
+      continue;
+    auto *InsertPt = &TI;
+    for (int i = TI.getNumOperands() - 1; i >= 0; --i) {
+      auto &MO = TI.getOperand(i);
+      if (MO.isReg()) {
+        unsigned DefR = MO.getReg();
+        auto *Def = MRI->getUniqueVRegDef(DefR);
+        if (Def &&
+            Def->getOpcode() == TVM::PUSHCONT_MBB &&
+            Def->getParent() == TI.getParent() &&
+            MRI->hasOneNonDBGUse(DefR)) {
+          MBB.splice(InsertPt, &MBB, Def);
+          InsertPt = Def;
+        }
+      }
+    }
+  }
+
   auto &FirstBB = MF.front();
   BBInfo[&FirstBB].setFixedBegin(StartStack);
 

@@ -23,6 +23,7 @@ public:
 
   schema::uint32 size() const { return size_; }
 
+  inline
   std::optional<Element> lookup(unsigned key) const {
     auto [slice, succ] = dict_.dictuget(key, KeyLen);
     if (succ)
@@ -30,6 +31,7 @@ public:
     return {};
   }
 
+  inline
   Element get_or_throw(unsigned key, unsigned exception) const {
     auto opt_val = lookup(key);
     require(!!opt_val, exception);
@@ -38,30 +40,35 @@ public:
 
   // Returns {Key, Element, Success} to match the solidity array.min() function
   //  (not {Element, Key, Success} as dictumin returns)
+  inline
   std::tuple<unsigned, Element, bool> min() const {
     auto [val, idx, succ] = dict_.dictumin(KeyLen);
     if (succ)
       return {idx, schema::parse<Element>(val), succ};
     return {0, {}, succ};
   }
+  inline
   std::tuple<unsigned, Element, bool> next(unsigned idx) const {
     auto [val, next_idx, succ] = dict_.dictugetnext(idx, KeyLen);
     if (succ)
       return {next_idx, schema::parse<Element>(val), succ};
     return {0, {}, succ};
   }
+  inline
   std::tuple<unsigned, Element, bool> max() const {
     auto [val, idx, succ] = dict_.dictumax(KeyLen);
     if (succ)
       return {idx, schema::parse<Element>(val), succ};
     return {0, {}, succ};
   }
+  inline
   std::tuple<unsigned, Element, bool> prev(unsigned idx) const {
     auto [val, prev_idx, succ] = dict_.dictugetprev(idx, KeyLen);
     if (succ)
       return {prev_idx, schema::parse<Element>(val), succ};
     return {0, {}, succ};
   }
+  inline
   std::tuple<unsigned, Element, bool> rem_min() {
     auto [val, idx, succ] = dict_.dicturemmin(KeyLen);
     if (succ) {
@@ -70,6 +77,7 @@ public:
     }
     return {0, {}, succ};
   }
+  inline
   std::tuple<unsigned, Element, bool> rem_max() {
     auto [val, idx, succ] = dict_.dicturemmax(KeyLen);
     if (succ) {

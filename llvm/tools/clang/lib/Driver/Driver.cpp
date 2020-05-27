@@ -2937,6 +2937,14 @@ void Driver::BuildActions(Compilation &C, DerivedArgList &Args,
   Arg *FinalPhaseArg;
   phases::ID FinalPhase = getFinalPhase(Args, &FinalPhaseArg);
 
+  // TVM local change begin
+  if (getTargetTriple() == "tvm" && FinalPhase == phases::Assemble) {
+    Diag(clang::diag::warn_tvm_unsupported_assembler);
+    FinalPhase = phases::Link;
+    FinalPhaseArg = nullptr;
+  }
+  // TVM local change end
+
   if (FinalPhase == phases::Link) {
     if (Args.hasArg(options::OPT_emit_llvm))
       Diag(clang::diag::err_drv_emit_llvm_link);
@@ -3178,6 +3186,11 @@ Action *Driver::ConstructPhaseAction(
   // arguments. Just special case here.
   if (Phase == phases::Assemble && Input->getType() != types::TY_PP_Asm)
     return Input;
+
+  // TVM local change begin
+  if (Phase == phases::Assemble && getTargetTriple() == "tvm")
+    return Input;
+  // TVM local change end
 
   // Build the appropriate action.
   switch (Phase) {

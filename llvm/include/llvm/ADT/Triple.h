@@ -96,8 +96,10 @@ public:
     wasm64,         // WebAssembly with 64-bit pointers
     renderscript32, // 32-bit RenderScript
     renderscript64, // 64-bit RenderScript
-    tvm,            // Telegram Virtual Machine
+    // TVM local begin
+    tvm,            // TVM
     LastArchType = tvm
+    // TVM local end
   };
   enum SubArchType {
     NoSubArch,
@@ -676,6 +678,13 @@ public:
   bool isMIPS() const {
     return isMIPS32() || isMIPS64();
   }
+
+  // TVM local begin
+  /// Tests whether the target is TVM
+  bool isTVM() const {
+    return getArch() == Triple::tvm;
+  }
+  // TVM local end
 
   /// Tests whether the target supports comdat
   bool supportsCOMDAT() const {

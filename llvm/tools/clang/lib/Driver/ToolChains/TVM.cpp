@@ -21,7 +21,7 @@ using namespace clang::driver::toolchains;
 using namespace clang;
 using namespace llvm::opt;
 
-tvm::Linker::Linker(const ToolChain &TC) : GnuTool("tvm::Linker", "tvm_linker", TC) {}
+tvm::Linker::Linker(const ToolChain &TC) : Tool("tvm::Linker", "tvm_linker", TC) {}
 
 bool tvm::Linker::isLinkJob() const { return true; }
 

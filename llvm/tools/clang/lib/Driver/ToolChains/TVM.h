@@ -19,7 +19,7 @@ namespace driver {
 namespace tools {
 namespace tvm {
 
-class LLVM_LIBRARY_VISIBILITY Linker : public GnuTool {
+class LLVM_LIBRARY_VISIBILITY Linker : public Tool {
 public:
   explicit Linker(const ToolChain &TC);
   bool isLinkJob() const override;
@@ -67,7 +67,7 @@ private:
                            llvm::opt::ArgStringList &CmdArgs) const override;
   std::string getThreadModel() const override;
 
-  const char *getDefaultLinker() const override { return "lld"; }
+  const char *getDefaultLinker() const override { return "tvm_linker"; }
 
   Tool *buildLinker() const override;
 };

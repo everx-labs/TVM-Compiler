@@ -392,4 +392,10 @@ def warn_drv_experimental_isel_incomplete_opt : Warning<
 def warn_drv_moutline_unsupported_opt : Warning<
   "The '%0' architecture does not support -moutline; flag ignored">,
   InGroup<OptionIgnored>;
+
+// TVM local change begin
+def warn_tvm_unsupported_assembler : Warning<
+  "TVM doesn't support assembler; -c flag ignored">,
+  InGroup<OptionIgnored>;
+// TVM local change end
 }

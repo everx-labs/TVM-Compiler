@@ -104,7 +104,7 @@ if args.cxxflags:
 for filename in input_cpp:
   _, tmp_file = tempfile.mkstemp()
   execute([os.path.join(tvm_llvm_bin, 'clang++'), '-target', 'tvm'] +
-    cxxflags + ['-c', '-emit-llvm', filename, '-o', tmp_file], args.verbose)
+    cxxflags + ['-S', '-emit-llvm', filename, '-o', tmp_file], args.verbose)
   input_bc += [tmp_file]
 
 cflags = ['-O1']
@@ -114,7 +114,7 @@ if args.cflags:
 for filename in input_c:
   _, tmp_file = tempfile.mkstemp()
   execute([os.path.join(tvm_llvm_bin, 'clang'), '-target', 'tvm', '-isystem', tvm_stdlib] +
-    cflags + ['-c', '-emit-llvm', filename, '-o', tmp_file], args.verbose)
+    cflags + ['-S', '-emit-llvm', filename, '-o', tmp_file], args.verbose)
   input_bc += [tmp_file]
 
 for filename in input_ll:

@@ -2938,7 +2938,8 @@ void Driver::BuildActions(Compilation &C, DerivedArgList &Args,
   phases::ID FinalPhase = getFinalPhase(Args, &FinalPhaseArg);
 
   // TVM local change begin
-  if (getTargetTriple() == "tvm" && FinalPhase == phases::Assemble) {
+  if (getTargetTriple() == "tvm" && FinalPhase == phases::Assemble
+      && !Args.hasArg(options::OPT_emit_llvm)) {
     Diag(clang::diag::warn_tvm_unsupported_assembler);
     FinalPhase = phases::Link;
     FinalPhaseArg = nullptr;

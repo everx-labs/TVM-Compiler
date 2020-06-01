@@ -30,6 +30,7 @@ extern "C" void LLVMInitializeTVMTarget() {
   RegisterTargetMachine<TVMTargetMachine> X(getTheTVMTarget());
   auto &PR = *PassRegistry::getPassRegistry();
   initializeLowerSwitchPass(PR);
+  initializeTVMAdHocScalarizerPass(PR);
   initializeTVMArgumentMovePass(PR);
   initializeTVMControlFlowPreparePass(PR);
   initializeTVMReplacePhysRegsPass(PR);

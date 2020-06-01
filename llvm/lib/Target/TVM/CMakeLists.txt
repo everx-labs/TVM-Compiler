@@ -11,6 +11,7 @@ tablegen(LLVM TVMInstMappingInfo.inc -gen-tvm-instr-mapping-info)
 add_public_tablegen_target(TVMTableGen)
 
 add_llvm_target(TVMCodeGen
+  TVMAdHocScalarizer.cpp
   TVMArgumentMove.cpp
   TVMControlFlowPrepare.cpp
   TVMSubtarget.cpp

@@ -1,4 +1,4 @@
-// RUN: %clang -O3 -S -c -target tvm %s -o - | FileCheck %s
+// RUN: %clang -O3 -S -target tvm %s -o - | FileCheck %s
 // REQUIRES: tvm-registered-target
 
 void setcode_Impl(__tvm_cell c) {

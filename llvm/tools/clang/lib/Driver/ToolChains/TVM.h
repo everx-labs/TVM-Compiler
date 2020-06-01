@@ -28,6 +28,26 @@ public:
                     const InputInfo &Output, const InputInfoList &Inputs,
                     const llvm::opt::ArgList &TCArgs,
                     const char *LinkingOutput) const override;
+private:
+  /// \return llvm-link output file name.
+  const char *constructLLVMLinkCommand(Compilation &C, const JobAction &JA,
+                                       const InputInfoList &Inputs,
+                                       const llvm::opt::ArgList &Args,
+                                       llvm::StringRef OutputFilePrefix) const;
+
+  /// \return opt output file name.
+  const char *constructOptCommand(Compilation &C, const JobAction &JA,
+                                  const InputInfoList &Inputs,
+                                  const llvm::opt::ArgList &Args,
+                                  llvm::StringRef OutputFilePrefix,
+                                  const char *InputFileName, bool Internalize) const;
+
+  /// \return llc output file name.
+  const char *constructLlcCommand(Compilation &C, const JobAction &JA,
+                                  const InputInfoList &Inputs,
+                                  const llvm::opt::ArgList &Args,
+                                  llvm::StringRef SubArchName,
+                                  const char *InputFileName) const;
 };
 
 } // end namespace tvm

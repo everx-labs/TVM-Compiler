@@ -3039,6 +3039,14 @@ void Driver::BuildActions(Compilation &C, DerivedArgList &Args,
     types::ID InputType = I.first;
     const Arg *InputArg = I.second;
 
+    // TVM local begin
+    // The only "objects" that are possible for TVM are really -Xlinker / -Wl
+    // options, so ignore them as "inputs" and make the linker responsible for
+    // their proper handling.
+    if (getTargetTriple() == "tvm" && InputType == types::TY_Object)
+      continue;
+    // TVM local end
+
     PL.clear();
     types::getCompilationPhases(InputType, PL);
 
@@ -3261,6 +3269,10 @@ Action *Driver::ConstructPhaseAction(
         Args.hasArg(options::OPT_export_json_abi)) {
       types::ID Output = types::TY_TextConst;
       return C.MakeAction<BackendJobAction>(Input, Output);
+    }
+    if (getTargetTriple() == "tvm") {
+      if (!Args.hasArg(options::OPT_S))
+        return C.MakeAction<BackendJobAction>(Input, types::TY_LLVM_BC);
     }
     // TVM local end
     return C.MakeAction<BackendJobAction>(Input, types::TY_PP_Asm);

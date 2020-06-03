@@ -1439,16 +1439,22 @@ void Driver::PrintVersion(const Compilation &C, raw_ostream &OS) const {
   // know what the client would like to do.
   OS << getClangFullVersion() << '\n';
   const ToolChain &TC = C.getDefaultToolChain();
-  OS << "Target: " << TC.getTripleString() << '\n';
+  // TVM local begin
+  // Don't display target and the thread model if the compiler is built
+  // with cmake/Cache/ton-compiler.cmake
+  if (TC.getTripleString() != "tvm") {
+    OS << "Target: " << TC.getTripleString() << '\n';
 
-  // Print the threading model.
-  if (Arg *A = C.getArgs().getLastArg(options::OPT_mthread_model)) {
-    // Don't print if the ToolChain would have barfed on it already
-    if (TC.isThreadModelSupported(A->getValue()))
-      OS << "Thread model: " << A->getValue();
-  } else
-    OS << "Thread model: " << TC.getThreadModel();
-  OS << '\n';
+    // Print the threading model.
+    if (Arg *A = C.getArgs().getLastArg(options::OPT_mthread_model)) {
+      // Don't print if the ToolChain would have barfed on it already
+      if (TC.isThreadModelSupported(A->getValue()))
+        OS << "Thread model: " << A->getValue();
+    } else
+      OS << "Thread model: " << TC.getThreadModel();
+    OS << '\n';
+  }
+  // TVM local end
 
   // Print out the install directory.
   OS << "InstalledDir: " << InstalledDir << '\n';

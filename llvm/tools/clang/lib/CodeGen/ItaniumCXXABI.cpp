@@ -252,7 +252,7 @@ public:
                                            CodeGenFunction::VPtr Vptr) override;
 
   bool doStructorsInitializeVPtrs(const CXXRecordDecl *VTableClass) override {
-    return true;
+    return CGM.getTriple().getArch() != llvm::Triple::tvm; // TVM local
   }
 
   llvm::Constant *

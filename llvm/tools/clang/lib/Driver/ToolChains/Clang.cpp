@@ -3770,6 +3770,9 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
     } else {
       A->render(Args, CmdArgs);
     }
+  // TVM local begin
+  } else if (Triple.isTVM())  {
+    CmdArgs.push_back("-O3");
   }
 
   // Warn about ignored options to clang.

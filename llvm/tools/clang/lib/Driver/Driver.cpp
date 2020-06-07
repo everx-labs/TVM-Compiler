@@ -1442,7 +1442,7 @@ void Driver::PrintVersion(const Compilation &C, raw_ostream &OS) const {
   // TVM local begin
   // Don't display target and the thread model if the compiler is built
   // with cmake/Cache/ton-compiler.cmake
-  if (TC.getTripleString() != "tvm") {
+  if (TC.getTriple().isTVM()) {
     OS << "Target: " << TC.getTripleString() << '\n';
 
     // Print the threading model.
@@ -2943,9 +2943,10 @@ void Driver::BuildActions(Compilation &C, DerivedArgList &Args,
   Arg *FinalPhaseArg;
   phases::ID FinalPhase = getFinalPhase(Args, &FinalPhaseArg);
 
+
+
   // TVM local change begin
-  if (getTargetTriple() == "tvm" && FinalPhase == phases::Assemble
-      && !Args.hasArg(options::OPT_emit_llvm)) {
+  if (C.getDefaultToolChain().getTriple().isTVM()) {
     Diag(clang::diag::warn_tvm_unsupported_assembler);
     FinalPhase = phases::Link;
     FinalPhaseArg = nullptr;
@@ -3049,7 +3050,7 @@ void Driver::BuildActions(Compilation &C, DerivedArgList &Args,
     // The only "objects" that are possible for TVM are really -Xlinker / -Wl
     // options, so ignore them as "inputs" and make the linker responsible for
     // their proper handling.
-    if (getTargetTriple() == "tvm" && InputType == types::TY_Object)
+    if (C.getDefaultToolChain().getTriple().isTVM())
       continue;
     // TVM local end
 
@@ -3203,7 +3204,7 @@ Action *Driver::ConstructPhaseAction(
     return Input;
 
   // TVM local change begin
-  if (Phase == phases::Assemble && getTargetTriple() == "tvm")
+  if (Phase == phases::Assemble && C.getDefaultToolChain().getTriple().isTVM())
     return Input;
   // TVM local change end
 
@@ -3276,7 +3277,7 @@ Action *Driver::ConstructPhaseAction(
       types::ID Output = types::TY_TextConst;
       return C.MakeAction<BackendJobAction>(Input, Output);
     }
-    if (getTargetTriple() == "tvm") {
+    if (C.getDefaultToolChain().getTriple().isTVM()) {
       if (!Args.hasArg(options::OPT_S))
         return C.MakeAction<BackendJobAction>(Input, types::TY_LLVM_BC);
     }

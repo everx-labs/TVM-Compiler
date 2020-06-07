@@ -13,6 +13,7 @@ set(CLANG_VENDOR                         "TON Labs"    CACHE STRING "")
 set(LLVM_INSTALL_TOOLCHAIN_ONLY          ON            CACHE BOOL "")
 set(CLANG_ENABLE_ARCMT                   OFF           CACHE BOOL "")
 set(CLANG_ENABLE_STATIC_ANALYZER         OFF           CACHE BOOL "")
+set(TVM_BUILD_WO_TOOLCHAIN               OFF           CACHE BOOL "")
 set(BUG_REPORT_URL
   "https://github.com/tonlabs/TON-Compiler/issues"
   CACHE STRING "")

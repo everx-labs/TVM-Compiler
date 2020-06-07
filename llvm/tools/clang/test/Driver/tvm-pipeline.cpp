@@ -3,6 +3,7 @@
 // CHECK: warning: TVM doesn't support assembler; -c flag ignored
 // CHECK: clang
 // CHECK: llvm-link
+// CHECK: clang
 // CHECK: opt
 // CHECK: opt
 // CHECK: llc
@@ -12,6 +13,7 @@
 // RUN:   | FileCheck %s -check-prefix=CHECKO
 // CHECKO: clang
 // CHECKO: llvm-link
+// CHECKO: clang
 // CHECKO: opt
 // CHECKO: opt
 // CHECKO: llc

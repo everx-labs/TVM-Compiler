@@ -28,6 +28,7 @@ public:
                     const InputInfo &Output, const InputInfoList &Inputs,
                     const llvm::opt::ArgList &TCArgs,
                     const char *LinkingOutput) const override;
+
 private:
   /// \return llvm-link output file name.
   const char *constructLLVMLinkCommand(Compilation &C, const JobAction &JA,
@@ -35,12 +36,19 @@ private:
                                        const llvm::opt::ArgList &Args,
                                        llvm::StringRef OutputFilePrefix) const;
 
+  /// \return abi-json output file name.
+  const char *constructClangCommand(Compilation &C, const JobAction &JA,
+                                    const InputInfoList &Inputs,
+                                    const llvm::opt::ArgList &Args,
+                                    llvm::StringRef OutputFilePrefix,
+                                    const char *InputFileName) const;
   /// \return opt output file name.
   const char *constructOptCommand(Compilation &C, const JobAction &JA,
                                   const InputInfoList &Inputs,
                                   const llvm::opt::ArgList &Args,
                                   llvm::StringRef OutputFilePrefix,
-                                  const char *InputFileName, bool Internalize) const;
+                                  const char *InputFileName,
+                                  bool Internalize) const;
 
   /// \return llc output file name.
   const char *constructLlcCommand(Compilation &C, const JobAction &JA,
@@ -58,7 +66,7 @@ namespace toolchains {
 class LLVM_LIBRARY_VISIBILITY TVM final : public ToolChain {
 public:
   TVM(const Driver &D, const llvm::Triple &Triple,
-              const llvm::opt::ArgList &Args);
+      const llvm::opt::ArgList &Args);
 
 private:
   bool IsMathErrnoDefault() const override;

@@ -23,11 +23,34 @@ using namespace clang::driver::toolchains;
 using namespace clang;
 using namespace llvm::opt;
 
-tvm::Linker::Linker(const ToolChain &TC) : Tool("tvm::Linker", "tvm_linker", TC) {}
+tvm::Linker::Linker(const ToolChain &TC)
+    : Tool("tvm::Linker", "tvm_linker", TC) {}
 
 bool tvm::Linker::isLinkJob() const { return true; }
 
 bool tvm::Linker::hasIntegratedCPP() const { return false; }
+
+static const char* getOptimizationLevel(const llvm::opt::ArgList &Args) {
+  StringRef OOpt = "3";
+  if (Arg *A = Args.getLastArg(options::OPT_O_Group)) {
+    if (A->getOption().matches(options::OPT_O4) ||
+        A->getOption().matches(options::OPT_Ofast))
+      OOpt = "3";
+    else if (A->getOption().matches(options::OPT_O0))
+      OOpt = "0";
+    else if (A->getOption().matches(options::OPT_O)) {
+      // -Os, -Oz, and -O(anything else) map to -O3
+      OOpt = llvm::StringSwitch<const char *>(A->getValue())
+                 .Case("1", "1")
+                 .Case("2", "2")
+                 .Case("3", "3")
+                 .Case("s", "3")
+                 .Case("z", "3")
+                 .Default("3");
+    }
+  }
+  return Args.MakeArgString("-O" + OOpt);
+}
 
 const char *tvm::Linker::constructLLVMLinkCommand(
     Compilation &C, const JobAction &JA, const InputInfoList &Inputs,
@@ -53,45 +76,48 @@ const char *tvm::Linker::constructLLVMLinkCommand(
   return OutputFileName;
 }
 
+const char *tvm::Linker::constructClangCommand(
+    Compilation &C, const JobAction &JA, const InputInfoList &Inputs,
+    const llvm::opt::ArgList &Args, llvm::StringRef OutputFilePrefix,
+    const char *InputFileName) const {
+  // Construct clang command.
+  ArgStringList ClangArgs{InputFileName, "-export-json-abi", "-o"};
+  const char *ClangOutputFile =
+      C.getArgs().MakeArgString(OutputFilePrefix + ".abi");
+  ClangArgs.push_back(ClangOutputFile);
+  SmallString<128> ClangPath(C.getDriver().Dir);
+  llvm::sys::path::append(ClangPath, "clang");
+  const char *Clang = Args.MakeArgString(ClangPath);
+  C.addCommand(llvm::make_unique<Command>(JA, *this, Clang, ClangArgs, Inputs));
+  return ClangOutputFile;
+}
+
 const char *tvm::Linker::constructOptCommand(
     Compilation &C, const JobAction &JA, const InputInfoList &Inputs,
-    const llvm::opt::ArgList &Args,
-    llvm::StringRef OutputFilePrefix, const char *InputFileName, bool Internalize) const {
+    const llvm::opt::ArgList &Args, llvm::StringRef OutputFilePrefix,
+    const char *InputFileName, bool Internalize) const {
   // Construct opt command.
   ArgStringList OptArgs;
   // The input to opt is the output from llvm-link.
   OptArgs.push_back(InputFileName);
+
   // Pass optimization arg to opt.
-  if (Arg *A = Args.getLastArg(options::OPT_O_Group)) {
-    StringRef OOpt = "3";
-    if (A->getOption().matches(options::OPT_O4) ||
-        A->getOption().matches(options::OPT_Ofast))
-      OOpt = "3";
-    else if (A->getOption().matches(options::OPT_O0))
-      OOpt = "0";
-    else if (A->getOption().matches(options::OPT_O)) {
-      // -Os, -Oz, and -O(anything else) map to -O2
-      OOpt = llvm::StringSwitch<const char *>(A->getValue())
-                 .Case("1", "1")
-                 .Case("2", "2")
-                 .Case("3", "3")
-                 .Case("s", "2")
-                 .Case("z", "2")
-                 .Default("2");
-    }
-    if (!Internalize)
-      OptArgs.push_back(Args.MakeArgString("-O" + OOpt));
-    else 
-      OptArgs.push_back(Args.MakeArgString("-O0"));
-  }
+  if (!Internalize)
+    OptArgs.push_back(getOptimizationLevel(Args));
+  else
+    OptArgs.push_back(Args.MakeArgString("-O0"));
+
   if (Internalize) {
-    std::vector EntryPoints { "main_external", "main_internal", "main_ticktock", "main_split", "main_merge"};
+    std::vector EntryPoints{"main_external", "main_internal", "main_ticktock",
+                            "main_split", "main_merge"};
     std::string InternalizeVal = EntryPoints[0];
-    for (auto EP : llvm::make_range(std::next(std::begin(EntryPoints)), std::end(EntryPoints))) {
+    for (auto EP : llvm::make_range(std::next(std::begin(EntryPoints)),
+                                    std::end(EntryPoints))) {
       InternalizeVal += std::string(",") + EP;
     }
     OptArgs.push_back("-internalize");
-    OptArgs.push_back(Args.MakeArgString("-internalize-public-api-list=" + InternalizeVal));
+    OptArgs.push_back(
+        Args.MakeArgString("-internalize-public-api-list=" + InternalizeVal));
   }
   OptArgs.push_back("-mtriple=tvm");
   OptArgs.push_back("-o");
@@ -107,19 +133,20 @@ const char *tvm::Linker::constructOptCommand(
   return OutputFileName;
 }
 
-const char *tvm::Linker::constructLlcCommand(
-    Compilation &C, const JobAction &JA, const InputInfoList &Inputs,
-    const llvm::opt::ArgList &Args,
-    llvm::StringRef OutputFilePrefix, const char *InputFileName) const {
+const char *tvm::Linker::constructLlcCommand(Compilation &C,
+                                             const JobAction &JA,
+                                             const InputInfoList &Inputs,
+                                             const llvm::opt::ArgList &Args,
+                                             llvm::StringRef OutputFilePrefix,
+                                             const char *InputFileName) const {
   // Construct llc command.
-  ArgStringList LlcArgs{InputFileName, "-mtriple=tvm",
-                        "-filetype=asm",
-                        "-o"};
+  ArgStringList LlcArgs{InputFileName, "-mtriple=tvm", "-filetype=asm", "-o"};
   std::string LlcOutputFileName =
       C.getDriver().GetTemporaryPath(OutputFilePrefix, "s");
   const char *LlcOutputFile =
       C.addTempFile(C.getArgs().MakeArgString(LlcOutputFileName));
   LlcArgs.push_back(LlcOutputFile);
+  LlcArgs.push_back(getOptimizationLevel(Args));
   SmallString<128> LlcPath(C.getDriver().Dir);
   llvm::sys::path::append(LlcPath, "llc");
   const char *Llc = Args.MakeArgString(LlcPath);
@@ -138,16 +165,21 @@ void tvm::Linker::ConstructJob(Compilation &C, const JobAction &JA,
          "Unsupported target");
 
   // Prefix for temporary file name.
-  std::string Prefix =
-      llvm::sys::path::stem(Inputs[0].getFilename()).str();
+  std::string Prefix = llvm::sys::path::stem(Inputs[0].getFilename());
+  // Prefix for output file name.
+  std::string OutPrefix = llvm::sys::path::stem(Output.getFilename());
 
-  // Each command outputs different files.
   const char *LLVMLinkCommand =
       constructLLVMLinkCommand(C, JA, Inputs, Args, Prefix);
-  const char *OptIntCommand = constructOptCommand(C, JA, Inputs, Args,
-                                                  Prefix, LLVMLinkCommand, true);
-  const char *OptCommand = constructOptCommand(C, JA, Inputs, Args,
-                                               Prefix, OptIntCommand, false);
+  // TODO: We now reinvoke the driver to produce the ABI output.
+  // Constant printing pass can't be invoked from opt or llc, it's better to
+  // fix it one day by moving ABI generation to llc.
+  const char *JsExport =
+      constructClangCommand(C, JA, Inputs, Args, OutPrefix, LLVMLinkCommand);
+  const char *OptIntCommand =
+      constructOptCommand(C, JA, Inputs, Args, Prefix, LLVMLinkCommand, true);
+  const char *OptCommand =
+      constructOptCommand(C, JA, Inputs, Args, Prefix, OptIntCommand, false);
   const char *LlcCommand =
       constructLlcCommand(C, JA, Inputs, Args, Prefix, OptCommand);
 
@@ -166,8 +198,13 @@ void tvm::Linker::ConstructJob(Compilation &C, const JobAction &JA,
   std::string StdLib = getToolChain().GetFilePath("stdlib_cpp.tvm");
   LinkerArgs.push_back("--lib");
   LinkerArgs.push_back(Args.MakeArgString(StdLib));
+  LinkerArgs.push_back("--abi-json");
+  LinkerArgs.push_back(JsExport);
+  LinkerArgs.push_back("-o");
+  LinkerArgs.push_back(Output.getFilename());
 
-  C.addCommand(llvm::make_unique<Command>(JA, *this, Linker, LinkerArgs, Inputs));
+  C.addCommand(
+      llvm::make_unique<Command>(JA, *this, Linker, LinkerArgs, Inputs));
 }
 
 TVM::TVM(const Driver &D, const llvm::Triple &Triple,
@@ -201,8 +238,7 @@ bool TVM::HasNativeLLVMSupport() const { return false; }
 
 void TVM::addClangTargetOptions(const ArgList &DriverArgs,
                                 ArgStringList &CC1Args,
-                                Action::OffloadKind) const {
-}
+                                Action::OffloadKind) const {}
 
 ToolChain::RuntimeLibType TVM::GetDefaultRuntimeLibType() const {
   return ToolChain::RLT_CompilerRT;
@@ -216,11 +252,9 @@ void TVM::AddClangSystemIncludeArgs(const ArgList &DriverArgs,
                                     ArgStringList &CC1Args) const {
   if (!DriverArgs.hasArg(options::OPT_nostdinc)) {
     // Distribution include paths.
-    addSystemInclude(DriverArgs, CC1Args,
-                     getDriver().SysRoot + "/include/");
+    addSystemInclude(DriverArgs, CC1Args, getDriver().SysRoot + "/include/");
     // Build include paths for tests.
-    addSystemInclude(DriverArgs, CC1Args,
-                     getDriver().SysRoot);
+    addSystemInclude(DriverArgs, CC1Args, getDriver().SysRoot);
   }
 }
 
@@ -229,15 +263,12 @@ void TVM::AddClangCXXStdlibIncludeArgs(const ArgList &DriverArgs,
   if (!DriverArgs.hasArg(options::OPT_nostdlibinc) &&
       !DriverArgs.hasArg(options::OPT_nostdincxx)) {
     // Distribution include paths.
-    addSystemInclude(DriverArgs, CC1Args,
-                     getDriver().SysRoot + "/include/std");
+    addSystemInclude(DriverArgs, CC1Args, getDriver().SysRoot + "/include/std");
     addSystemInclude(DriverArgs, CC1Args,
                      getDriver().SysRoot + "/include/std/target");
     // Build include paths for tests.
-    addSystemInclude(DriverArgs, CC1Args,
-                     getDriver().SysRoot + "/std");
-    addSystemInclude(DriverArgs, CC1Args,
-                     getDriver().SysRoot + "/std/target");
+    addSystemInclude(DriverArgs, CC1Args, getDriver().SysRoot + "/std");
+    addSystemInclude(DriverArgs, CC1Args, getDriver().SysRoot + "/std/target");
     // FIXME: CI does the installation via manual copying.
     addSystemInclude(DriverArgs, CC1Args, "/usr/include/cpp-sdk/std");
     addSystemInclude(DriverArgs, CC1Args, "/usr/include/cpp-sdk");
@@ -246,8 +277,7 @@ void TVM::AddClangCXXStdlibIncludeArgs(const ArgList &DriverArgs,
 }
 
 void TVM::AddCXXStdlibLibArgs(const llvm::opt::ArgList &Args,
-                              llvm::opt::ArgStringList &CmdArgs) const {
-}
+                              llvm::opt::ArgStringList &CmdArgs) const {}
 
 std::string TVM::getThreadModel() const {
   // TVM does not support threads.

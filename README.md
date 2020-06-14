@@ -1,15 +1,19 @@
 # C and C++ compiler for TVM
-`Clang for TVM 0.2.0 based on LLVM 7.0.0`.
-This repository stores source code of Clang for TON Virtual Machine and a runtime library that will later be moved to a separate repository. TON VM (https://test.ton.org/tvm.pdf) is designed to run smart contracts in TON blockchain (https://test.ton.org/ton.pdf). The compiler and the runtime library (`stdlib` subdirectory) are components of the toolchain that also includes Assembler/Linker/Emulator tool, `tvm_linker` (the source code will be open later).
-All relevant binaries are delivered within TON Labs Node SE at https://ton.dev/.
-## Prerequesites
+`Clang for TVM based on LLVM 7.0.0`.
+This repository contain
+* Clang for TVM C and C++ compiler
+* [C++ runtime and SDK headers-only library](https://github.com/tonlabs/TON-Compiler/tree/master/llvm/projects/ton-compiler)
+* [C runtime and SDK library](https://github.com/tonlabs/TON-Compiler/tree/master/llvm/projects/ton-compiler)
+The following guide is about building the compilers and installing them, to find a user guide and example contracts, please refer to [the samples repository](https://github.com/tonlabs/samples).
+
+## Prerequisites
 To build the toolchain, you need a recent C++ toolchain supporting C++17:
 - MSVC 2017 or newer
 - Clang 6.0.0 or newer
 - GCC 7.3.0 or newer
 Stable operation of older toolchains is not guaranteed.
 You also need zlib 1.2.3.4 or newer. Python 2.7 is required to run tests. Optionally, you can use ninja-build.
-For more info about LLVM software requirements visit: https://llvm.org/docs/GettingStarted.html.
+For more info about LLVM software requirements visit: [https://llvm.org/docs/GettingStarted.html](https://llvm.org/docs/GettingStarted.html).
 
 ## Supported operation systems
 We expect the project to build successfully on
@@ -18,16 +22,27 @@ We expect the project to build successfully on
 - Windows 10
 
 ## Building and installing
-File `cmake/Cache/ton-compiler.cmake` has all the parameters required for a build. We recommend however to use installed version of the compiler, so specifying the installation prefix might be a good idea.
+To build and to install the compiler use the following script:
 ```
 $ git clone git@github.com:tonlabs/TON-Compiler.git
 $ mkdir build
 $ cd build
-$ cmake -DCMAKE_INSTALL_PREFIX=/path/to/install -C /path/to/TON-Compiler/cmake/Cache/ton-compiler.cmake  -GNinja /path/to/TON-Compiler/llvm
+$ cmake -DCMAKE_INSTALL_PREFIX=/path/to/install -C /path/to/TON-Compiler/cmake/Cache/ton-compiler.cmake
 $ cmake --build . --target install-distribution
 ```
-Note that a full C/C++ toolchain also required [tvm_linker](https://github.com/tonlabs/TVM-linker/) to be built. You might want to put it to the installation, because in that case the compiler driver would be able to find it. Otherwise you'd need to specify path to the linker or link manually.
-`install-distribution` installs only required minimum of tools, while `install` target copies all the LLVM tools to the installation folder. These additional tools doesn't necessary work with TVM target properly.
+Notes:
+* `/path/to/install` must be complete path to the installation folder, otherwise Clang might be unable to find all the libraries, headers and tools by default.
+* We strongly recommend to use the installed version of the compiler, otherwise it might be unable to find the required headers and tools by itself, so they have to be specified by hands.
+* A complete C and C++ toolchain require [tvm_linker](https://github.com/tonlabs/TVM-linker/) to be built. We recommend to put the liker binary to `/path/to/install/bin` directory. Otherwise you might need to use `-fuse-ld` option to spicify full name of the linker.
+* `install-distribution` installs only required minimum of tools, while `install` target copies all the LLVM tools to the installation folder. These additional tools doesn't necessary work with TVM target properly.
+### Troubleshooting and speeding up the build
+Building Clang takes quite a bit of time, below we list some options to speed it up:
+* Use faster build system via `-GXXX` option. We recommend to choose `ninja-build` (you might need to install it first) using `-GNinja`.
+* Use a faster linker via `-DCMAKE_LINKER=<linker name>`. It's known that `lld` is faster than `gold`, and gold is faster than `ld`. On Linux, however, `lld` might not be a part of the default toolchain, so you might have to install it first.
+* Use a faster compiler via `-DCMAKE_C_COMPILER=<compiler>` and `-DCMAKE_CXX_COMPILER=<compiler>`. Clang might be slightly faster than GCC.
+* Build dynamically linked version of Clang via `-DBUILD_SHARED_LIB=On`.
+Note that building Clang also require a tens of gigabytes of disk space (especially for a static build) and several gigabytes of RAM to be build. In case, you run out of memory `-DLLVM_PARALLEL_LINK_JOBS=N` might be of help. This option limits the number of link jobs running in parallel does the footpring. There is also a separate option `-DLLVM_PARALLEL_COMPILE_JOBS=N` to limit number of compilation jobs running in parallel.
+To learn more about possible configurations of LLVM build, please refer to [LLVM documentation](https://llvm.org/docs/CMake.html). In case you are experiencing problems with build, we would appreciete raising an issue in this repository.
 
 ## Running tests
 To run tests for TVM, execute
@@ -43,31 +58,12 @@ $ cmake --build . --target check all
 For more details see [testing.md](https://github.com/tonlabs/TON-Compiler/blob/readme/testing.md).
 
 ## Example of usage
-`samples/sdk-prototype/piggybank.c` contains a sample contract in C.
-To compile it to TVM assembly run
-```
-clang -S -O3 -target tvm -I/path/to/stdlib/ton-sdk piggybank.c
-```
-TVM target is currently only supports assembly emission, so `clang` invocation without `-S` will return an error.
-`-O3` is recommended optimization level, the compiler is tested with O3 enabled, so O0 is less reliable.
-
-## Language limitations and performance issues
-* A contract has a limited gas supply. Once it is exceeded, the contract terminates with an error.
-* TVM doesn't have float point arithmetic, so float point operations results in an error.
-* Contrary to the C specification, unsigned integers overflow can be expected resulting in an exception.
-* TVM has stack, but it doesn't have memory. The runtime currently emulates it via dictionaries. Accessing dictionaries incurs high gas costs, so we strongly discourage the use of globals and getting variable addresses.
-* TVM uses 257-bits wide numbers and 1 byte = 257 bit. So we encourage to not to make assumption about behavior of implementation-defined features of C and C++.
-
-## Unsupported features
-* C and C++ standard libraries (partial support is planned).
-* Exception handling.
-* Pointers to functions and virtual methods.
-* Free store memory allocation / deallocation.
+You can learn more about C++ for TVM and find examples of usage of C++ toolchain [here](https://github.com/tonlabs/samples/tree/master/cpp). C toolchain is mostly for geeks who want to follow TVM assembly closely, but doesn't want to work with stack. C examples might be found [here](https://github.com/tonlabs/samples/tree/master/c).
 
 ## Getting support
-Samples, demonstrating contracts is C are available at [https://github.com/tonlabs/samples/tree/master/c](https://github.com/tonlabs/samples/tree/master/c).
+C and C++ for TVM, being similar to conventional C and C++, has their own extensions and limitations, so if you are getting started with programming for TVM, we recommend to first refer to [the examples repository](https://github.com/tonlabs/samples).
 Texts, videos and samples illustrating how to use the compiler will soon appear at https://ton.dev/ and https://www.youtube.com/channel/UC9kJ6DKaxSxk6T3lEGdq-Gg. Stay tuned.
-You can also get support in TON Dev Telegram chanel: https://t.me/tondev_en.
+You can also get support in [TON Dev Telegram channel](https://t.me/tondev_en).
 In case you found a bug, raise an issue in the repository. Please attach the source file, the command to reproduce the failure and your machine description.
 
 ## Contribution policy

@@ -1009,7 +1009,7 @@ struct ArgPromotion : public CallGraphSCCPass {
   // Pass identification, replacement for typeid
   static char ID;
 
-  explicit ArgPromotion(unsigned MaxElements = 3)
+  explicit ArgPromotion(unsigned MaxElements = 256)
       : CallGraphSCCPass(ID), MaxElements(MaxElements) {
     initializeArgPromotionPass(*PassRegistry::getPassRegistry());
   }

@@ -1,3 +1,42 @@
+//===----------- TVMAdHocScalarizer.cpp -----------------------------------===//
+//
+//                     The LLVM Compiler Infrastructure
+//
+// This file is distributed under the University of Illinois Open Source
+// License. See LICENSE.TXT for details.
+//
+//===----------------------------------------------------------------------===//
+//
+/// \file
+/// This pass transforms any function with a pointer-to-struct first argument
+/// in the following way (pseudo code):
+///
+///   R foo(T *p, ...) {
+///     v = load p->field1;
+///     store u, p->field2;
+///     return r;
+///   }
+///   // a call site:
+///   r = foo(p, ...);
+/// =>
+///   struct { T t; R r; } NewR;
+///   NewR foo_wrapper(T *p, ...) {
+///     T *newp = alloca T;
+///     memcpy(newp, p, sizeof(T));
+///     R r = foo(newp, ...); // to be inlined
+///     // note no more stores into object behind p
+///     return { *newp, r };
+///   }
+///   // a call site:
+///   NewR newr = foo_wrapper(p, ...);
+///   *p = newr.t;
+///   r = newr.r;
+///
+/// The point is to make it possible for the argpromotion pass to further
+/// promote the pointer argument of foo_wrapper().
+//
+//===----------------------------------------------------------------------===//
+
 #include "TVM.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Instructions.h"

@@ -7,6 +7,10 @@ set(TVM_SUPPLEMENTS
   abi_parser.py
 )
 
+set(TVM_C_HEADERS
+  ton-sdk
+)
+
 add_custom_target(tvm-runtimes)
 
 install(FILES ${TVM_RUNTIMES}
@@ -38,6 +42,21 @@ if (NOT CMAKE_CONFIGURATION_TYPES)
                             -P "${CMAKE_BINARY_DIR}/cmake_install.cmake")
   # Stripping is a no-op for scripts
   add_custom_target(install-tvm-supplements-stripped DEPENDS install-tvm-supplements)
+endif()
+
+add_custom_target(tvm-c-headers ALL DEPENDS ${TVM_C_HEADERS})
+
+install(DIRECTORY ${TVM_C_HEADERS}
+  DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+  COMPONENT tvm-c-headers)
+
+if (NOT CMAKE_CONFIGURATION_TYPES)
+  add_custom_target(install-tvm-c-headers
+                    DEPENDS tvm-c-headers
+                    COMMAND "${CMAKE_COMMAND}"
+                            -DCMAKE_INSTALL_COMPONENT=tvm-c-headers
+                            -P "${CMAKE_BINARY_DIR}/cmake_install.cmake")
+  add_custom_target(install-tvm-c-headers-stripped DEPENDS install-tvm-c-headers)
 endif()
 
 add_subdirectory(cpp-sdk)

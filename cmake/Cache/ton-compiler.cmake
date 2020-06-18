@@ -36,6 +36,7 @@ set(LLVM_DISTRIBUTION_COMPONENTS
   tvm-runtimes
   tvm-supplements
   tvm-cxx-headers
+  tvm-c-headers
   clang-headers
 
   CACHE STRING "")

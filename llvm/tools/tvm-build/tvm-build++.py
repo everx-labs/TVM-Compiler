@@ -146,12 +146,36 @@ if args.opt_flags:
 else:
   opt_flags = ['-O3']
 
-_, bitcode_opt = tempfile.mkstemp()
+_, bitcode_opt0 = tempfile.mkstemp()
 execute([os.path.join(tvm_llvm_bin, 'opt')] + opt_flags + [bitcode_int, '-o',
-  bitcode_opt], args.verbose)
+  bitcode_opt0], args.verbose)
+
+_, bitcode_opt1 = tempfile.mkstemp()
+execute([os.path.join(tvm_llvm_bin, 'opt'), '-tvm-ad-hoc-scalarizer',
+  bitcode_opt0, '-o', bitcode_opt1], args.verbose)
+
+_, bitcode_opt2 = tempfile.mkstemp()
+execute([os.path.join(tvm_llvm_bin, 'opt'), '-O2',
+  bitcode_opt1, '-o', bitcode_opt2], args.verbose)
+
+_, bitcode_opt3 = tempfile.mkstemp()
+execute([os.path.join(tvm_llvm_bin, 'opt'), '-argpromotion',
+  bitcode_opt2, '-o', bitcode_opt3], args.verbose)
+
+_, bitcode_opt4 = tempfile.mkstemp()
+execute([os.path.join(tvm_llvm_bin, 'opt'), '-O1',
+  bitcode_opt3, '-o', bitcode_opt4], args.verbose)
+
+_, bitcode_opt5 = tempfile.mkstemp()
+execute([os.path.join(tvm_llvm_bin, 'opt'), '-argpromotion',
+  bitcode_opt4, '-o', bitcode_opt5], args.verbose)
+
+_, bitcode_opt6 = tempfile.mkstemp()
+execute([os.path.join(tvm_llvm_bin, 'opt'), '-O1',
+  bitcode_opt5, '-o', bitcode_opt6], args.verbose)
 
 _, asm = tempfile.mkstemp()
-execute([os.path.join(tvm_llvm_bin, 'llc'), '-march', 'tvm', bitcode_opt,
+execute([os.path.join(tvm_llvm_bin, 'llc'), '-march', 'tvm', bitcode_opt6,
   '-o', asm], args.verbose)
 
 if input_asm:

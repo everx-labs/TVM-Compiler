@@ -1057,4 +1057,7 @@ ExternalProject_Add(tvm_linker
 )
 #add_dependencies(install-distribution tvm_linker)
 endif()
+add_custom_target(check-tvm
+  DEPENDS check-llvm-codegen-tvm check-clang-codegen-tvm check-clang-driver-tvm
+  )
 # TVM local end

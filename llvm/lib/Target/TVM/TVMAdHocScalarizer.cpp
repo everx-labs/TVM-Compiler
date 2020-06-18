@@ -62,6 +62,7 @@ Function *TVMAdHocScalarizer::transformMethod(Function *F) {
       F->getName().str() + "_wrapper", F->getParent());
   NewF->copyAttributesFrom(F);
   F->removeFnAttr(Attribute::NoInline);
+  F->addFnAttr(Attribute::AlwaysInline);
 
   BasicBlock::Create(NewF->getContext(), "entry", NewF);
   IRBuilder<> Builder(&NewF->getEntryBlock(), NewF->getEntryBlock().begin());

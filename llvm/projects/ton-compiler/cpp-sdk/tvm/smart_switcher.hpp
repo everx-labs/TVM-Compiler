@@ -4,6 +4,8 @@
 #include <tvm/contract.hpp>
 #include <tvm/smart_contract_info.hpp>
 #include <tvm/chain_builder.hpp>
+#include <tvm/chain_tuple.hpp>
+#include <tvm/message_flags.hpp>
 
 #include <experimental/type_traits>
 
@@ -36,6 +38,17 @@ template<typename T>
 using int_sender_t = decltype(&T::int_sender);
 template<typename T>
 constexpr bool supports_int_sender_v = std::experimental::is_detected_v<int_sender_t, T>;
+// Check that contract have field to specify return message flag
+template<typename T>
+using int_return_flag_t = decltype(&T::int_return_flag);
+template<typename T>
+constexpr bool supports_int_return_flag_v = std::experimental::is_detected_v<int_return_flag_t, T>;
+// Check that contract have field to specify return message value
+template<typename T>
+using int_return_value_t = decltype(&T::int_return_value);
+template<typename T>
+constexpr bool supports_int_return_value_v = std::experimental::is_detected_v<int_return_value_t, T>;
+
 // Check that contract have field to store parsed external sender from incoming message
 template<typename T>
 using ext_sender_t = decltype(&T::ext_sender);
@@ -43,7 +56,7 @@ template<typename T>
 constexpr bool supports_ext_sender_v = std::experimental::is_detected_v<ext_sender_t, T>;
 
 template<class Contract>
-inline schema::lazy<schema::MsgAddressExt> ext_return_address(Contract c) {
+__always_inline schema::lazy<schema::MsgAddressExt> ext_return_address(Contract c) {
   if constexpr (supports_ext_sender_v<Contract>)
     return c.ext_sender();
   else
@@ -51,7 +64,7 @@ inline schema::lazy<schema::MsgAddressExt> ext_return_address(Contract c) {
 }
 
 template<class Contract, class ReturnValue>
-inline void send_external_answer(Contract c, unsigned func_id, ReturnValue rv) {
+__always_inline void send_external_answer(Contract c, unsigned func_id, ReturnValue rv) {
   using namespace schema;
   abiv1::external_outbound_msg_header hdr{ uint32(func_id) };
   auto hdr_plus_rv = std::make_tuple(hdr, rv);
@@ -61,35 +74,72 @@ inline void send_external_answer(Contract c, unsigned func_id, ReturnValue rv) {
   out_info.created_lt = 0;
   out_info.created_at = 0;
 
-  message_relaxed<decltype(hdr_plus_rv)> out_msg;
-  out_msg.info = out_info;
-  out_msg.body = hdr_plus_rv;
-  tvm_sendmsg(build(out_msg).endc(), 0);
+  using est_t = estimate_element<message<decltype(hdr_plus_rv)>>;
+  if constexpr (est_t::max_bits > cell::max_bits || est_t::max_refs > cell::max_refs) {
+    auto chain_tup = make_chain_tuple(hdr_plus_rv);
+    message_relaxed<decltype(chain_tup)> out_msg;
+    out_msg.info = out_info;
+    out_msg.body = ref<decltype(chain_tup)>{chain_tup};
+    tvm_sendmsg(build(out_msg).endc(), 0);
+  } else {
+    message_relaxed<decltype(hdr_plus_rv)> out_msg;
+    out_msg.info = out_info;
+    out_msg.body = hdr_plus_rv;
+    tvm_sendmsg(build(out_msg).endc(), 0);
+  }
 }
 
 template<class Contract>
-inline schema::lazy<schema::MsgAddressInt> int_return_address(Contract c) {
+__always_inline schema::lazy<schema::MsgAddressInt> int_return_address(Contract c) {
   if constexpr (supports_int_sender_v<Contract>)
     return c.int_sender();
   else
     return int_msg().unpack().int_sender();
 }
 
+template<class Contract>
+__always_inline unsigned int_return_flag(Contract c) {
+  if constexpr (supports_int_return_flag_v<Contract>)
+    return c.int_return_flag();
+  else
+    return DEFAULT_MSG_FLAGS;
+}
+
+template<class Contract>
+__always_inline unsigned int_return_value(Contract c) {
+  if constexpr (supports_int_return_value_v<Contract>)
+    return c.int_return_value();
+  else
+    return 0;
+}
+
 template<class Contract, class ReturnValue>
-inline void send_internal_answer(Contract c, unsigned func_id, ReturnValue rv) {
+__always_inline void send_internal_answer(Contract c, unsigned func_id, ReturnValue rv) {
   using namespace schema;
-  abiv1::internal_msg_header hdr{ uint32(func_id) };
+  abiv1::internal_msg_header hdr{ uint32(abiv1::answer_id(func_id)) };
   auto hdr_plus_rv = std::make_tuple(hdr, rv);
   int_msg_info_relaxed out_info;
+  out_info.ihr_disabled = true;
+  out_info.bounce = true;
   out_info.src = addr_none{};
   out_info.dest = int_return_address(c);
   out_info.created_lt = 0;
   out_info.created_at = 0;
+  out_info.value.grams = int_return_value(c);
 
-  message_relaxed<decltype(hdr_plus_rv)> out_msg;
-  out_msg.info = out_info;
-  out_msg.body = hdr_plus_rv;
-  tvm_sendmsg(build(out_msg).endc(), 0);
+  using est_t = estimate_element<message<decltype(hdr_plus_rv)>>;
+  if constexpr (est_t::max_bits > cell::max_bits || est_t::max_refs > cell::max_refs) {
+    auto chain_tup = make_chain_tuple(hdr_plus_rv);
+    message_relaxed<decltype(chain_tup)> out_msg;
+    out_msg.info = out_info;
+    out_msg.body = ref<decltype(chain_tup)>{chain_tup};
+    tvm_sendmsg(build(out_msg).endc(), int_return_flag(c));
+  } else {
+    message_relaxed<decltype(hdr_plus_rv)> out_msg;
+    out_msg.info = out_info;
+    out_msg.body = hdr_plus_rv;
+    tvm_sendmsg(build(out_msg).endc(), int_return_flag(c));
+  }
 }
 
 struct no_replay_protection {
@@ -134,7 +184,12 @@ __always_inline Data parse_smart(parser p) {
   if constexpr (dyn_chain) {
     return parse_chain_dynamic<Data>(p);
   } else {
-    return parse<Data>(p);
+    using est_t = estimate_element<Data>;
+    if constexpr (est_t::max_bits > cell::max_bits || est_t::max_refs > cell::max_refs) {
+      return parse_chain<Data, 0>(p);
+    } else {
+      return parse<Data>(p);
+    }
   }
 }
 

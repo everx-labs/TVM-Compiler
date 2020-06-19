@@ -5,20 +5,14 @@
 
 #include <experimental/type_traits>
 
+#include <tvm/message_flags.hpp>
+
 namespace tvm {
 
 template<class Interface, class Func, class... Args>
 using good_call_args_t = decltype( (((Interface*)nullptr)->*(Func::value))(Args{}...) );
 template<class Interface, auto Func, class... Args>
 constexpr bool good_call_args_v = std::experimental::is_detected_v<good_call_args_t, Interface, proxy_method<Func>, Args...>;
-
-constexpr unsigned SEND_ALL_GAS = 128;
-constexpr unsigned SEND_REST_GAS_FROM_INCOMING = 64;
-constexpr unsigned DELETE_ME_IF_I_AM_EMPTY = 32;
-constexpr unsigned IGNORE_ACTION = 2;
-constexpr unsigned SENDER_WANTS_TO_PAY_FEES_SEPARATELY = 1;
-
-constexpr unsigned DEFAULT_MSG_FLAGS = SENDER_WANTS_TO_PAY_FEES_SEPARATELY | IGNORE_ACTION;
 
 template<class Interface, auto Func, class... Args>
 inline void contract_call_impl(schema::lazy<schema::MsgAddressInt> addr, schema::Grams amount,
@@ -39,10 +33,19 @@ inline void contract_call_impl(schema::lazy<schema::MsgAddressInt> addr, schema:
   out_info.created_at = 0;
   out_info.value.grams = amount;
 
-  message_relaxed<decltype(hdr_plus_args)> out_msg;
-  out_msg.info = out_info;
-  out_msg.body = hdr_plus_args;
-  tvm_sendmsg(build(out_msg).endc(), flags);
+  using est_t = estimate_element<message<decltype(hdr_plus_args)>>;
+  if constexpr (est_t::max_bits > cell::max_bits || est_t::max_refs > cell::max_refs) {
+    auto chain_tup = make_chain_tuple(hdr_plus_args);
+    message_relaxed<decltype(chain_tup)> out_msg;
+    out_msg.info = out_info;
+    out_msg.body = ref<decltype(chain_tup)>{chain_tup};
+    tvm_sendmsg(build(out_msg).endc(), flags);
+  } else {
+    message_relaxed<decltype(hdr_plus_args)> out_msg;
+    out_msg.info = out_info;
+    out_msg.body = hdr_plus_args;
+    tvm_sendmsg(build(out_msg).endc(), flags);
+  }
 }
 
 template<class Interface, auto Func, class... Args>
@@ -64,11 +67,12 @@ inline void contract_deploy_impl(schema::lazy<schema::MsgAddressInt> addr, schem
   out_info.created_at = 0;
   out_info.value.grams = amount;
 
-  message_relaxed<decltype(hdr_plus_args)> out_msg;
+  auto chain_tup = make_chain_tuple(hdr_plus_args);
+  message_relaxed<decltype(chain_tup)> out_msg;
   out_msg.info = out_info;
   Either<StateInit, ref<StateInit>> init_ref = ref<StateInit>{init};
   out_msg.init = init_ref;
-  out_msg.body = hdr_plus_args;
+  out_msg.body = ref<decltype(chain_tup)>{chain_tup};
   tvm_sendmsg(build(out_msg).endc(), flags);
 }
 

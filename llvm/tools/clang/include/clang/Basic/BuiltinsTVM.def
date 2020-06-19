@@ -71,8 +71,6 @@ BUILTIN(__builtin_tvm_print_value, "vWi", "nc")
 BUILTIN(__builtin_tvm_logstr, "vc*", "nc")
 BUILTIN(__builtin_tvm_printstr, "vc*", "nc")
 BUILTIN(__builtin_tvm_logflush, "v", "nc")
-BUILTIN(__builtin_tvm_accept, "v", "nc")
-BUILTIN(__builtin_tvm_commit, "v", "nc")
 BUILTIN(__builtin_tvm_hashcu, "WiTc", "nc")
 BUILTIN(__builtin_tvm_hashsu, "WiTs", "nc")
 BUILTIN(__builtin_tvm_chksignu, "WiWiTsWi", "nc")
@@ -171,6 +169,14 @@ BUILTIN(__builtin_tvm_plddict, "TcTs", "nc")
 BUILTIN(__builtin_tvm_stdicts, "TbTsTb", "nc")
 BUILTIN(__builtin_tvm_stdict, "TbTcTb", "nc")
 
+// A.11.2. Gas-related primitives.
+BUILTIN(__builtin_tvm_accept, "v", "nc")
+BUILTIN(__builtin_tvm_setgaslimit, "vWi", "nc")
+BUILTIN(__builtin_tvm_buygas, "vWi", "nc")
+BUILTIN(__builtin_tvm_gramtogas, "WiWi", "nc")
+BUILTIN(__builtin_tvm_gastogram, "WiWi", "nc")
+BUILTIN(__builtin_tvm_commit, "v", "nc")
+
 // A.11.4 Configuration primitives.
 BUILTIN(__builtin_tvm_getparam, "WiWi", "nc")
 BUILTIN(__builtin_tvm_now, "Wi", "nc")
@@ -196,8 +202,9 @@ BUILTIN(__builtin_tvm_rewritestdaddrq, "{WiWiWi}Ts", "nc")
 BUILTIN(__builtin_tvm_rewritevaraddr, "{WiTs}Ts", "c")
 BUILTIN(__builtin_tvm_rewritevaraddrq, "{WiTsWi}Ts", "nc")
 
-// A.11.9. Outbound message and output action primitives.
+// A.11.10. Outbound message and output action primitives.
 BUILTIN(__builtin_tvm_setcode, "vTc", "n")
+BUILTIN(__builtin_tvm_rawreserve, "vWiWi", "n")
 
 // TODO: Maybe implement explode intrinsic
 BUILTIN(__builtin_tvm_tuple, "Tt.", "nc")

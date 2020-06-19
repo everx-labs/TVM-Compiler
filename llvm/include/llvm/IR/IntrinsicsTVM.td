@@ -332,12 +332,6 @@ let TargetPrefix = "tvm" in {
               llvm_TVMBuilder_ty], [IntrNoMem, Throws]>;
 
   // A.11 Application-specific primitives
-  def int_tvm_accept :
-    GCCBuiltin<"__builtin_tvm_accept">,
-    Intrinsic<[], []>;
-  def int_tvm_commit :
-    GCCBuiltin<"__builtin_tvm_commit">,
-    Intrinsic<[], []>;
   def int_tvm_hashcu :
     GCCBuiltin<"__builtin_tvm_hashcu">,
     Intrinsic<[llvm_i257_ty], [llvm_TVMCell_ty],
@@ -350,6 +344,26 @@ let TargetPrefix = "tvm" in {
     GCCBuiltin<"__builtin_tvm_chksignu">,
     Intrinsic<[llvm_i257_ty], [llvm_i257_ty, llvm_TVMSlice_ty, llvm_i257_ty],
               [IntrNoMem, Throws]>;
+
+  // A.11.2. Gas-related primitives.
+  def int_tvm_accept :
+    GCCBuiltin<"__builtin_tvm_accept">,
+    Intrinsic<[], []>;
+  def int_tvm_setgaslimit :
+   GCCBuiltin<"__builtin_tvm_setgaslimit">,
+    Intrinsic<[], [llvm_i257_ty]>;
+  def int_tvm_buygas :
+    GCCBuiltin<"__builtin_tvm_buygas">,
+    Intrinsic<[], [llvm_i257_ty]>;
+  def int_tvm_gramtogas :
+    GCCBuiltin<"__builtin_tvm_gramtogas">,
+    Intrinsic<[llvm_i257_ty], [llvm_i257_ty]>;
+  def int_tvm_gastogram :
+    GCCBuiltin<"__builtin_tvm_gastogram">,
+    Intrinsic<[llvm_i257_ty], [llvm_i257_ty]>;
+  def int_tvm_commit :
+    GCCBuiltin<"__builtin_tvm_commit">,
+    Intrinsic<[], []>;
 
   // A.11.4. Configuration primitives.
   def int_tvm_getparam :
@@ -430,7 +444,10 @@ let TargetPrefix = "tvm" in {
               [llvm_TVMSlice_ty],
               [IntrNoMem]>;
 
-  // A.11.9. Outbound message and output action primitives.
+  // A.11.10. Outbound message and output action primitives.
+  def int_tvm_rawreserve :
+    GCCBuiltin<"__builtin_tvm_rawreserve">,
+    Intrinsic<[], [llvm_i257_ty, llvm_i257_ty], []>;
   def int_tvm_setcode :
     GCCBuiltin<"__builtin_tvm_setcode">,
     Intrinsic<[], [llvm_TVMCell_ty], []>;

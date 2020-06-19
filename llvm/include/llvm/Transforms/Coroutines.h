@@ -26,6 +26,11 @@ Pass *createCoroEarlyPass();
 /// Split up coroutines into multiple functions driving their state machines.
 Pass *createCoroSplitPass();
 
+// TVM local begin
+// Expand TVM-specific coroutine intrinsics
+Pass *createCoroTVMExpandPass();
+// TVM local end
+
 /// Analyze coroutines use sites, devirtualize resume/destroy calls and elide
 /// heap allocation for coroutine frame where possible.
 Pass *createCoroElidePass();

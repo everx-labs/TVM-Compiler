@@ -79,14 +79,12 @@ def TVMcall1 : SDNode<"TVMISD::CALL1", SDT_TVMCall1,
 
 def TVMctos     : SDNode<"TVMISD::CTOS", SDT_TVMCtos>;
 def TVMstslice  : SDNode<"TVMISD::STSLICE", SDT_TVMStSlice>;
-def TVMendc     : SDNode<"TVMISD::ENDC", SDT_TVMEndc>;
 def TVMdictuget : SDNode<"TVMISD::DICTUGET", SDT_TVMDictGet, [SDNPHasChain]>;
 def TVMsti      : SDNode<"TVMISD::STI", SDT_TVMDictSt, []>;
 def TVMstu      : SDNode<"TVMISD::STU", SDT_TVMDictSt, []>;
 def TVMldref    : SDNode<"TVMISD::LDREF", SDT_TVMLdRef, []>;
-def TVMnewc     : SDNode<"TVMISD::NEWC", SDT_TVMNewc, []>;
 def TVMldslicex : SDNode<"TVMISD::LDSLICEX", SDT_TVMDictLd, []>;
-def TVMsendrawmsg : SDNode<"TVMISD::SENDRAWMSG", SDT_TVMSendRawMsg, [SDNPHasChain]>;
+def TVMsendrawmsg : SDNode<"TVMISD::SENDRAWMSG", SDT_TVMSendRawMsg, [SDNPHasChain, SDNPMayStore]>;
 def TVMifelse   : SDNode<"TVMISD::IFELSE", SDT_TVMIfElse, [SDNPHasChain]>;
 def TVMjumpx    : SDNode<"TVMISD::JUMPX", SDT_TVMJumpX, [SDNPHasChain]>;
 def TVMifjmp    : SDNode<"TVMISD::IFJMP", SDT_TVMIfJmp, [SDNPHasChain]>;

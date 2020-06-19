@@ -650,19 +650,21 @@ struct MsgAddressSlice {
 
 template<typename _Tp>
 struct lazy {
-  inline _Tp operator()(); // implemented in make_parser.hpp
+  __always_inline _Tp operator()() const;  // implemented in make_parser.hpp
+  __always_inline _Tp val() const;         // implemented in make_parser.hpp
+  __always_inline slice sl() const {
+    return sl_;
+  }
 
-  void operator()(_Tp val) { val_ = val; }
-  void operator=(_Tp val) { val_ = val; }
-  void operator=(slice sl) { val_ = sl; }
+  __always_inline lazy(slice sl) : sl_(sl) {}
 
-  bool is_slice() const { return std::holds_alternative<slice>(val_); }
-  bool is_val() const { return std::holds_alternative<_Tp>(val_); }
-  slice raw_slice() const { return std::get<slice>(val_); }
-  _Tp raw_val() const { return std::get<_Tp>(val_); }
+  __always_inline lazy() {}
+  __always_inline lazy(_Tp val);           // implemented in make_builder.hpp
+  __always_inline void operator=(_Tp val); // implemented in make_builder.hpp
+  __always_inline void operator=(slice sl) { sl_ = sl; }
 
   DEFAULT_EQUAL(lazy<_Tp>)
-  std::variant<slice, _Tp> val_;
+  slice sl_;
 };
 
 struct empty {};
@@ -679,6 +681,9 @@ struct ParseContext : _ParentTuple {
     return *static_cast<const _ParentTuple*>(this);
   }
 };
+
+template<typename _Tp>
+struct resumable;
 
 using std::optional;
 using std::variant;

@@ -256,13 +256,13 @@ inline auto parse(slice sl, unsigned err_code = error_code::custom_data_parse_er
 }
 
 template<typename _Tp>
-__always_inline _Tp lazy<_Tp>::operator()() {
-  if (is_slice()) {
-    _Tp parsed_v = parse<_Tp>(std::get<slice>(val_), error_code::custom_data_parse_error, true);
-    val_ = parsed_v;
-    return parsed_v;
-  }
-  return std::get<_Tp>(val_);
+__always_inline _Tp lazy<_Tp>::operator()() const {
+  return val();
+}
+
+template<typename _Tp>
+__always_inline _Tp lazy<_Tp>::val() const {
+  return parse<_Tp>(sl_, error_code::custom_data_parse_error, true);
 }
 
 }} // namespace tvm::schema

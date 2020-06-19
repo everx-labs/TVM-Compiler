@@ -23,8 +23,10 @@ bool canCoerceMustAliasedValueToLoad(Value *StoredVal, Type *LoadTy,
   uint64_t StoreSize = DL.getTypeSizeInBits(StoredVal->getType());
 
   // The store size must be byte-aligned to support future type casts.
-  if (llvm::alignTo(StoreSize, 8) != StoreSize)
+  // TVM local begin
+  if (llvm::alignTo(StoreSize, ByteSizeInBits) != StoreSize)
     return false;
+  // TVM local end
 
   // The store has to be at least as big as the load.
   if (StoreSize < DL.getTypeSizeInBits(LoadTy))
@@ -176,10 +178,12 @@ static int analyzeLoadFromClobberingWrite(Type *LoadTy, Value *LoadPtr,
   // must have gotten confused.
   uint64_t LoadSize = DL.getTypeSizeInBits(LoadTy);
 
-  if ((WriteSizeInBits & 7) | (LoadSize & 7))
+  // TVM local begin
+  if ((WriteSizeInBits % ByteSizeInBits) | (LoadSize % ByteSizeInBits))
     return -1;
-  uint64_t StoreSize = WriteSizeInBits / 8; // Convert to bytes.
-  LoadSize /= 8;
+  uint64_t StoreSize = WriteSizeInBits / ByteSizeInBits; // Convert to bytes.
+  LoadSize /= ByteSizeInBits;
+  // TVM local end
 
   bool isAAFailure = false;
   if (StoreOffset < LoadOffset)
@@ -251,7 +255,9 @@ int analyzeLoadFromClobberingLoad(Type *LoadTy, Value *LoadPtr, LoadInst *DepLI,
   assert(DepLI->isSimple() && "Cannot widen volatile/atomic load!");
   assert(DepLI->getType()->isIntegerTy() && "Can't widen non-integer load");
 
-  return analyzeLoadFromClobberingWrite(LoadTy, LoadPtr, DepPtr, Size * 8, DL);
+  // TVM local begin
+  return analyzeLoadFromClobberingWrite(LoadTy, LoadPtr, DepPtr, Size * ByteSizeInBits, DL);
+  // TVM local end
 }
 
 int analyzeLoadFromClobberingMemInst(Type *LoadTy, Value *LoadPtr,
@@ -260,7 +266,9 @@ int analyzeLoadFromClobberingMemInst(Type *LoadTy, Value *LoadPtr,
   ConstantInt *SizeCst = dyn_cast<ConstantInt>(MI->getLength());
   if (!SizeCst)
     return -1;
-  uint64_t MemSizeInBits = SizeCst->getZExtValue() * 8;
+  // TVM local begin
+  uint64_t MemSizeInBits = SizeCst->getZExtValue() * ByteSizeInBits;
+  // TVM local end
 
   // If this is memset, we just need to see if the offset is valid in the size
   // of the memset..
@@ -321,28 +329,36 @@ static T *getStoreValueForLoadHelper(T *SrcVal, unsigned Offset, Type *LoadTy,
     return SrcVal;
   }
 
-  uint64_t StoreSize = (DL.getTypeSizeInBits(SrcVal->getType()) + 7) / 8;
-  uint64_t LoadSize = (DL.getTypeSizeInBits(LoadTy) + 7) / 8;
+  // TVM local begin
+  uint64_t StoreSize = (DL.getTypeSizeInBits(SrcVal->getType()) + (ByteSizeInBits - 1)) / ByteSizeInBits;
+  uint64_t LoadSize = (DL.getTypeSizeInBits(LoadTy) + (ByteSizeInBits - 1)) / ByteSizeInBits;
+  // TVM local end
   // Compute which bits of the stored value are being used by the load.  Convert
   // to an integer type to start with.
   if (SrcVal->getType()->isPtrOrPtrVectorTy())
     SrcVal = Helper.CreatePtrToInt(SrcVal, DL.getIntPtrType(SrcVal->getType()));
+  // TVM local begin
   if (!SrcVal->getType()->isIntegerTy())
-    SrcVal = Helper.CreateBitCast(SrcVal, IntegerType::get(Ctx, StoreSize * 8));
+    SrcVal = Helper.CreateBitCast(SrcVal, IntegerType::get(Ctx, StoreSize * ByteSizeInBits));
+  // TVM local end
 
   // Shift the bits to the least significant depending on endianness.
   unsigned ShiftAmt;
+  // TVM local begin
   if (DL.isLittleEndian())
-    ShiftAmt = Offset * 8;
+    ShiftAmt = Offset * ByteSizeInBits;
   else
-    ShiftAmt = (StoreSize - LoadSize - Offset) * 8;
+    ShiftAmt = (StoreSize - LoadSize - Offset) * ByteSizeInBits;
+  // TVM local end
   if (ShiftAmt)
     SrcVal = Helper.CreateLShr(SrcVal,
                                ConstantInt::get(SrcVal->getType(), ShiftAmt));
 
+  // TVM local begin
   if (LoadSize != StoreSize)
     SrcVal = Helper.CreateTruncOrBitCast(SrcVal,
-                                         IntegerType::get(Ctx, LoadSize * 8));
+                                         IntegerType::get(Ctx, LoadSize * ByteSizeInBits));
+  // TVM local end
   return SrcVal;
 }
 
@@ -390,7 +406,9 @@ Value *getLoadValueForLoad(LoadInst *SrcVal, unsigned Offset, Type *LoadTy,
     // memdep queries will find the new load.  We can't easily remove the old
     // load completely because it is already in the value numbering table.
     IRBuilder<> Builder(SrcVal->getParent(), ++BasicBlock::iterator(SrcVal));
-    Type *DestPTy = IntegerType::get(LoadTy->getContext(), NewLoadSize * 8);
+    // TVM local begin
+    Type *DestPTy = IntegerType::get(LoadTy->getContext(), NewLoadSize * ByteSizeInBits);
+    // TVM local end
     DestPTy =
         PointerType::get(DestPTy, PtrVal->getType()->getPointerAddressSpace());
     Builder.SetCurrentDebugLocation(SrcVal->getDebugLoc());
@@ -405,8 +423,10 @@ Value *getLoadValueForLoad(LoadInst *SrcVal, unsigned Offset, Type *LoadTy,
     // Replace uses of the original load with the wider load.  On a big endian
     // system, we need to shift down to get the relevant bits.
     Value *RV = NewLoad;
+    // TVM local begin
     if (DL.isBigEndian())
-      RV = Builder.CreateLShr(RV, (NewLoadSize - SrcValStoreSize) * 8);
+      RV = Builder.CreateLShr(RV, (NewLoadSize - SrcValStoreSize) * ByteSizeInBits);
+    // TVM local end
     RV = Builder.CreateTrunc(RV, SrcVal->getType());
     SrcVal->replaceAllUsesWith(RV);
 

@@ -780,8 +780,8 @@ def int_experimental_gc_relocate : Intrinsic<[llvm_any_ty],
 // These are documented in docs/Coroutines.rst
 
 // Coroutine Structure Intrinsics.
-
-def int_coro_id : Intrinsic<[llvm_token_ty], [llvm_i32_ty, llvm_ptr_ty,
+// TVM local begin
+def int_coro_id : Intrinsic<[llvm_token_ty], [llvm_i257_ty, llvm_ptr_ty,
                              llvm_ptr_ty, llvm_ptr_ty],
                             [IntrArgMemOnly, IntrReadMem,
                              ReadNone<1>, ReadOnly<2>, NoCapture<2>]>;
@@ -799,10 +799,16 @@ def int_coro_noop : Intrinsic<[llvm_ptr_ty], [], [IntrNoMem]>;
 def int_coro_size : Intrinsic<[llvm_anyint_ty], [], [IntrNoMem]>;
 
 def int_coro_save : Intrinsic<[llvm_token_ty], [llvm_ptr_ty], []>;
-def int_coro_suspend : Intrinsic<[llvm_i8_ty], [llvm_token_ty, llvm_i1_ty], []>;
+def int_coro_suspend : Intrinsic<[llvm_i257_ty], [llvm_token_ty, llvm_i1_ty], []>;
 
 def int_coro_param : Intrinsic<[llvm_i1_ty], [llvm_ptr_ty, llvm_ptr_ty],
                                [IntrNoMem, ReadNone<0>, ReadNone<1>]>;
+
+// TVM coroutine serialization intrinsics
+def int_coro_tvm_serialize :
+  Intrinsic<[llvm_TVMCell_ty], [llvm_TVMBuilder_ty, llvm_ptr_ty, llvm_ptr_ty], []>;
+def int_coro_tvm_deserialize :
+  Intrinsic<[llvm_ptr_ty], [llvm_TVMSlice_ty, llvm_ptr_ty, llvm_ptr_ty], []>;
 
 // Coroutine Manipulation Intrinsics.
 
@@ -811,14 +817,15 @@ def int_coro_destroy : Intrinsic<[], [llvm_ptr_ty], [Throws]>;
 def int_coro_done : Intrinsic<[llvm_i1_ty], [llvm_ptr_ty],
                               [IntrArgMemOnly, ReadOnly<0>, NoCapture<0>]>;
 def int_coro_promise : Intrinsic<[llvm_ptr_ty],
-                                 [llvm_ptr_ty, llvm_i32_ty, llvm_i1_ty],
+                                 [llvm_ptr_ty, llvm_i257_ty, llvm_i1_ty],
                                  [IntrNoMem, NoCapture<0>]>;
 
 // Coroutine Lowering Intrinsics. Used internally by coroutine passes.
 
-def int_coro_subfn_addr : Intrinsic<[llvm_ptr_ty], [llvm_ptr_ty, llvm_i8_ty],
+def int_coro_subfn_addr : Intrinsic<[llvm_ptr_ty], [llvm_ptr_ty, llvm_i257_ty],
                                     [IntrReadMem, IntrArgMemOnly, ReadOnly<0>,
                                      NoCapture<0>]>;
+// TVM local end
 
 ///===-------------------------- Other Intrinsics --------------------------===//
 //

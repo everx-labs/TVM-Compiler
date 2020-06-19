@@ -132,3 +132,9 @@ struct message_relaxed {
 };
 
 }} // namespace tvm::schema
+
+namespace tvm {
+using address = schema::lazy<schema::MsgAddressInt>;
+using address_ext = schema::lazy<schema::MsgAddressExt>;
+}
+

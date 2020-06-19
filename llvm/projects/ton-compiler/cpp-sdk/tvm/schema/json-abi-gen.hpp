@@ -225,6 +225,10 @@ template<class T>
 struct make_struct_json<lazy<T>> {
   static constexpr auto value = make_field_impl<lazy<T>, 1>("value0"_s);
 };
+template<class T>
+struct make_struct_json<resumable<T>> {
+  static constexpr auto value = make_struct_json<T>::value;
+};
 
 constexpr auto make_abi_version() {
   return "\"ABI version\": 1"_s;

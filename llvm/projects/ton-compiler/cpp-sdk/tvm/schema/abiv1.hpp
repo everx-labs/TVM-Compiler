@@ -19,8 +19,16 @@ struct internal_msg_header {
   uint32 function_id;
 };
 
-static inline unsigned answer_id(unsigned func_id) {
+static __always_inline unsigned answer_id(unsigned func_id) {
   return func_id | (1ul << 31);
+}
+
+static __always_inline unsigned is_answer_id(unsigned func_id) {
+  return func_id & (1ul << 31);
+}
+
+static __always_inline unsigned from_answer_id(unsigned func_id) {
+  return func_id ^ (1ul << 31);
 }
 
 } // namespace abiv1

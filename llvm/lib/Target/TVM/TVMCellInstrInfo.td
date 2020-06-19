@@ -13,23 +13,22 @@
 //===----------------------------------------------------------------------===//
 
 /// TODO: If to remove the following line Pat doesn't work. Investigate why.
-let hasSideEffects = 1 in
+// newc is declared as mayLoad from inaccessible memory to avoid empty builder
+//  serialization at coroutine suspension point
+let hasSideEffects = 1, mayLoad=1 in
 defm NEWC : I<(outs Builder:$bldr), (ins), (outs), (ins),
-              [(set Builder:$bldr, (TVMnewc))],
+              [(set Builder:$bldr, (int_tvm_newc))],
               "NEWC\t$bldr", "NEWC", 0xc8>;
-def : Pat<(int_tvm_newc), (NEWC)>;
 
 let hasSideEffects = 1 in
 defm ENDC : I<(outs Cell:$cell), (ins Builder:$bldr), (outs), (ins),
-              [(set Cell:$cell, (TVMendc Builder:$bldr))],
+              [(set Cell:$cell, (int_tvm_endc Builder:$bldr))],
               "ENDC\t$cell, $bldr", "ENDC", 0xc9>;
-def : Pat<(int_tvm_endc Builder:$bldr), (ENDC Builder:$bldr)>;
 
 let hasSideEffects = 1 in
 defm CTOS : I<(outs Slice:$slice), (ins Cell:$cell), (outs), (ins),
-              [(set Slice:$slice, (TVMctos Cell:$cell))],
+              [(set Slice:$slice, (int_tvm_ctos Cell:$cell))],
               "CTOS\t$slice, $cell", "CTOS", 0xd0>;
-def : Pat<(int_tvm_ctos Cell:$cell), (CTOS Cell:$cell)>;
 
 defm ENDS : I0<(outs), (ins Slice : $slice),
                [(int_tvm_ends Slice : $slice)],
@@ -230,9 +229,17 @@ defm BBITS : I<(outs I257:$result), (ins Builder:$b), (outs), (ins),
                [(set I257:$result, (int_tvm_bbits Builder:$b))],
                "BBITS\t$result, $b", "BBITS", 0xcf31>;
 
+defm BREFS : I<(outs I257:$result), (ins Builder:$b), (outs), (ins),
+               [(set I257:$result, (int_tvm_brefs Builder:$b))],
+               "BREFS\t$result, $b", "BREFS", 0xcf32>;
+
 defm BREMBITS : I<(outs I257:$result), (ins Builder:$b), (outs), (ins),
                   [(set I257:$result, (int_tvm_brembits Builder:$b))],
                   "BREMBITS\t$result, $b", "BREMBITS", 0xcf35>;
+
+defm BREMREFS : I<(outs I257:$result), (ins Builder:$b), (outs), (ins),
+                  [(set I257:$result, (int_tvm_bremrefs Builder:$b))],
+                  "BREMREFS\t$result, $b", "BREMREFS", 0xcf36>;
 
 let hasSideEffects = 1 in
 defm LDSLICEX : I<(outs Slice:$result, Slice:$remainder),
@@ -255,7 +262,7 @@ defm STSLICE : I<(outs Builder:$out_bldr), (ins Slice:$slicei, Builder:$bldr),
 def : Pat<(int_tvm_stslice Slice:$slicei, Builder:$bldr),
           (STSLICE Slice:$slicei, Builder:$bldr)>;
 
-let hasSideEffects = 1 in
+let mayStore = 1, hasSideEffects = 1 in
 defm SENDRAWMSG : I<(outs), (ins Cell:$cell, I257:$flags),
                     (outs), (ins),
                     [(TVMsendrawmsg Cell:$cell, I257:$flags)],

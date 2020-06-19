@@ -324,6 +324,9 @@ public:
   ConstantInt *getByte(uint64_t C) {
     return ConstantInt::get(getIntNTy(ByteSizeInBits), C);
   }
+  ConstantInt *getInt257(uint64_t C) {
+    return ConstantInt::get(getInt257Ty(), C);
+  }
   // TVM local end
 
   /// Get a constant integer value.
@@ -373,6 +376,7 @@ public:
   IntegerType *getByteTy() {
     return Type::getByteTy(Context);
   }
+  IntegerType *getInt257Ty() { return Type::getInt257Ty(Context); }
   // TVM local end
 
   /// Fetch the type representing a 16-bit floating point value.

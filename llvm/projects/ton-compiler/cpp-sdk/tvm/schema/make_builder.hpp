@@ -123,9 +123,7 @@ template<class _Tp>
 struct make_builder_impl<lazy<_Tp>> {
   using value_type = lazy<_Tp>;
   inline static builder build(builder b, value_type v) {
-    if (v.is_slice())
-      return b.stslice(v.raw_slice());
-    return make_builder_impl<_Tp>::build(b, v.raw_val());
+    return b.stslice(v.sl());
   }
 };
 
@@ -161,6 +159,16 @@ inline builder build(builder b, _Tp val) {
 template<class _Tp>
 inline builder build(_Tp val) {
   return make_builder<_Tp>::build(builder(), val);
+}
+
+template<typename _Tp>
+__always_inline lazy<_Tp>::lazy(_Tp val) {
+  sl_ = build(val).make_slice();
+}
+
+template<typename _Tp>
+__always_inline void lazy<_Tp>::operator=(_Tp val) {
+  sl_ = build(val).make_slice();
 }
 
 }} // namespace tvm::schema

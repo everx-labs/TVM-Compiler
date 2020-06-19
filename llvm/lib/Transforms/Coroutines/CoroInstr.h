@@ -37,7 +37,9 @@ class LLVM_LIBRARY_VISIBILITY CoroSubFnInst : public IntrinsicInst {
 
 public:
   enum ResumeKind {
+    // TVM local begin
     RestartTrigger = -1,
+    // TVM local end
     ResumeIndex,
     DestroyIndex,
     CleanupIndex,
@@ -47,6 +49,10 @@ public:
 
   Value *getFrame() const { return getArgOperand(FrameArg); }
   ResumeKind getIndex() const {
+    // TVM local begin
+    if (getRawIndex()->getValue().getMinSignedBits() > 64)
+      return RestartTrigger;
+    // TVM local end
     int64_t Index = getRawIndex()->getValue().getSExtValue();
     assert(Index >= IndexFirst && Index < IndexLast &&
            "unexpected CoroSubFnInst index argument");

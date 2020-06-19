@@ -59,6 +59,22 @@ let mayLoad = 1 in {
         (int_tvm_dictugetref I257:$key, Cell:$dict, I257:$precision))],
       "DICTUGETREF\t$result, $status, $key, $dict, $precision",
       "DICTUGETREF NULLSWAPIFNOT", 0xf40f>;
+
+  defm DICTMIN :
+    I<(outs Slice:$result, Slice:$key, I257:$status),
+      (ins Cell:$dict, I257:$precision), (outs), (ins),
+      [(set Slice:$result, Slice:$key, I257:$status,
+        (int_tvm_dictmin Cell:$dict, I257:$precision))],
+      "DICTMIN\t$result, $key, $status, $dict, $precision",
+      "DICTMIN NULLSWAPIFNOT NULLSWAPIFNOT", 0xf482>;
+  defm DICTGETNEXT :
+    I<(outs Slice:$result, Slice:$next, I257:$status),
+      (ins Slice:$key, Cell:$dict, I257:$precision), (outs), (ins),
+      [(set Slice:$result, Slice:$next, I257:$status,
+        (int_tvm_dictgetnext Slice:$key, Cell:$dict, I257:$precision))],
+      "DICTGETNEXT\t$result, $next, $status, $key, $dict, $precision",
+      "DICTGETNEXT NULLSWAPIFNOT NULLSWAPIFNOT", 0xf474>;
+
   defm DICTUMIN :
     I<(outs Slice:$result, I257:$key, I257:$status),
       (ins Cell:$dict, I257:$precision), (outs), (ins),
@@ -242,7 +258,22 @@ let mayStore = 1 in {
         (int_tvm_dictuaddref Cell:$c, I257:$key, Cell:$D, I257:$key_len))],
       "DICTUADDREF\t$newdict, $succ, $c, $key, $D, $key_len",
       "DICTUADDREF", 0xf437>;
-
+  defm DICTDELGET :
+    I<(outs Cell:$newdict, Slice:$result, I257:$status),
+      (ins Slice:$key, Cell:$dict, I257:$precision),
+      (outs), (ins),
+      [(set Cell:$newdict, Slice:$result, I257:$status,
+        (int_tvm_dictdelget Slice:$key, Cell:$dict, I257:$precision))],
+      "DICTDELGET\t$newdict, $result, $status, $key, $dict, $precision",
+      "DICTDELGET NULLSWAPIFNOT", 0xf462>;
+  defm DICTDELGETREF :
+    I<(outs Cell:$newdict, Cell:$result, I257:$status),
+      (ins Slice:$key, Cell:$dict, I257:$precision),
+      (outs), (ins),
+      [(set Cell:$newdict, Cell:$result, I257:$status,
+        (int_tvm_dictdelgetref Slice:$key, Cell:$dict, I257:$precision))],
+      "DICTDELGETREF\t$newdict, $result, $status, $key, $dict, $precision",
+      "DICTDELGETREF NULLSWAPIFNOT", 0xf463>;
   defm DICTUDEL :
     I<(outs Cell:$newdict, I257:$modified),
       (ins I257:$key, Cell:$dict, I257:$w), (outs), (ins),

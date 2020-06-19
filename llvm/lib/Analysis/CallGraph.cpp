@@ -76,13 +76,19 @@ void CallGraph::addToCallGraph(Function *F) {
     for (Instruction &I : BB) {
       if (auto CS = CallSite(&I)) {
         const Function *Callee = CS.getCalledFunction();
-        if (!Callee || !Intrinsic::isLeaf(Callee->getIntrinsicID()))
+        // TVM local begin
+        if (Callee && Callee->getIntrinsicID() == Intrinsic::coro_tvm_deserialize) {
+          const auto* FuncOp =
+            dyn_cast<Function>(I.getOperand(1)->stripPointerCasts());
+          Node->addCalledFunction(CS, getOrInsertFunction(FuncOp));
+        } else if (!Callee || !Intrinsic::isLeaf(Callee->getIntrinsicID()))
           // Indirect calls of intrinsics are not allowed so no need to check.
           // We can be more precise here by using TargetArg returned by
           // Intrinsic::isLeaf.
           Node->addCalledFunction(CS, CallsExternalNode.get());
         else if (!Callee->isIntrinsic())
           Node->addCalledFunction(CS, getOrInsertFunction(Callee));
+        // TVM local end
       }
     }
 }

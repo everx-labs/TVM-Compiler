@@ -1065,13 +1065,17 @@ Type *InstCombiner::FindElementAtOffset(PointerType *PtrTy, int64_t Offset,
     assert((uint64_t)Offset < (uint64_t)TySize && "Out of range offset");
   }
 
-  NewIndices.push_back(ConstantInt::get(IndexTy, FirstIdx));
+  // TVM local begin
+  NewIndices.push_back(ConstantInt::get(IndexTy, FirstIdx, true));
+  // TVM local end
 
   // Index into the types.  If we fail, set OrigBase to null.
   while (Offset) {
     // Indexing into tail padding between struct/array elements.
-    if (uint64_t(Offset * 8) >= DL.getTypeSizeInBits(Ty))
+    // TVM local begin
+    if (uint64_t(Offset * ByteSizeInBits) >= DL.getTypeSizeInBits(Ty))
       return nullptr;
+    // TVM local end
 
     if (StructType *STy = dyn_cast<StructType>(Ty)) {
       const StructLayout *SL = DL.getStructLayout(STy);
@@ -1079,15 +1083,19 @@ Type *InstCombiner::FindElementAtOffset(PointerType *PtrTy, int64_t Offset,
              "Offset must stay within the indexed type");
 
       unsigned Elt = SL->getElementContainingOffset(Offset);
+      // TVM local begin
       NewIndices.push_back(ConstantInt::get(Type::getInt32Ty(Ty->getContext()),
-                                            Elt));
+                                            Elt, true));
+      // TVM local end
 
       Offset -= SL->getElementOffset(Elt);
       Ty = STy->getElementType(Elt);
     } else if (ArrayType *AT = dyn_cast<ArrayType>(Ty)) {
       uint64_t EltSize = DL.getTypeAllocSize(AT->getElementType());
       assert(EltSize && "Cannot index into a zero-sized array");
-      NewIndices.push_back(ConstantInt::get(IndexTy,Offset/EltSize));
+      // TVM local begin
+      NewIndices.push_back(ConstantInt::get(IndexTy,Offset/EltSize, true));
+      // TVM local end
       Offset %= EltSize;
       Ty = AT->getElementType();
     } else {

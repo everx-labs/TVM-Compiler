@@ -1607,7 +1607,10 @@ bool CastExpr::CastConsistency() const {
 
   case CK_FunctionToPointerDecay:
     assert(getType()->isPointerType());
-    assert(getSubExpr()->getType()->isFunctionType());
+    // TVM local begin
+    assert(getSubExpr()->getType()->isFunctionType() ||
+           getSubExpr()->getType()->isMemberFunctionPointerType());
+    // TVM local end
     goto CheckNoBasePath;
 
   case CK_AddressSpaceConversion:

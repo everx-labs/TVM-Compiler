@@ -220,8 +220,10 @@ static LValueOrRValue emitSuspendExpression(CodeGenFunction &CGF, CGCoroData &Co
 
   // Create a switch capturing three possible continuations.
   auto *Switch = Builder.CreateSwitch(SuspendResult, Coro.SuspendBB, 2);
-  Switch->addCase(Builder.getInt8(0), ReadyBlock);
-  Switch->addCase(Builder.getInt8(1), CleanupBlock);
+  // TVM local begin
+  Switch->addCase(Builder.getInt257(0), ReadyBlock);
+  Switch->addCase(Builder.getInt257(1), CleanupBlock);
+  // TVM local end
 
   // Emit cleanup for this suspend point.
   CGF.EmitBlock(CleanupBlock);
@@ -561,14 +563,18 @@ void CodeGenFunction::EmitCoroutineBody(const CoroutineBodyStmt &S) {
   auto *FinalBB = createBasicBlock("coro.final");
   auto *RetBB = createBasicBlock("coro.ret");
 
+  // TVM local begin
   auto *CoroId = Builder.CreateCall(
       CGM.getIntrinsic(llvm::Intrinsic::coro_id),
-      {Builder.getInt32(NewAlign), NullPtr, NullPtr, NullPtr});
+      {Builder.getInt257(NewAlign), NullPtr, NullPtr, NullPtr});
+  // TVM local end
   createCoroData(*this, CurCoro, CoroId);
   CurCoro.Data->SuspendBB = RetBB;
 
+  // TVM local begin
   // Backend is allowed to elide memory allocations, to help it, emit
-  // auto mem = coro.alloc() ? 0 : ... allocation code ...;
+  // auto mem = coro.alloc() ? ... allocation code ... : 0;
+  // TVM local end
   auto *CoroAlloc = Builder.CreateCall(
       CGM.getIntrinsic(llvm::Intrinsic::coro_alloc), {CoroId});
 

@@ -23,6 +23,9 @@ class PassRegistry;
 
 void initializeCoroEarlyPass(PassRegistry &);
 void initializeCoroSplitPass(PassRegistry &);
+// TVM local begin
+void initializeCoroTVMExpandPass(PassRegistry &);
+// TVM local end
 void initializeCoroElidePass(PassRegistry &);
 void initializeCoroCleanupPass(PassRegistry &);
 

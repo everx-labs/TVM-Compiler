@@ -16,11 +16,13 @@
 using namespace llvm;
 
 static unsigned getLoopOperandSizeInBytes(Type *Type) {
+  // TVM local begin
   if (VectorType *VTy = dyn_cast<VectorType>(Type)) {
-    return VTy->getBitWidth() / 8;
+    return VTy->getBitWidth() / ByteSizeInBits;
   }
 
-  return Type->getPrimitiveSizeInBits() / 8;
+  return Type->getPrimitiveSizeInBits() / ByteSizeInBits;
+  // TVM local end
 }
 
 void llvm::createMemCpyLoopKnownSize(Instruction *InsertBefore, Value *SrcAddr,

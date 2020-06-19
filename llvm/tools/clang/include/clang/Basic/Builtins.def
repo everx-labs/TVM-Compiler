@@ -1437,6 +1437,12 @@ BUILTIN(__builtin_coro_begin, "v*v*", "n")
 BUILTIN(__builtin_coro_end, "bv*Ib", "n")
 BUILTIN(__builtin_coro_suspend, "cIb", "n")
 BUILTIN(__builtin_coro_param, "bv*v*", "n")
+
+// TVM local begin
+BUILTIN(__builtin_coro_tvm_serialize, "TcTbv*v*", "n")
+BUILTIN(__builtin_coro_tvm_deserialize, "v*Tsv*v*", "n")
+// TVM local end
+
 // OpenCL v2.0 s6.13.16, s9.17.3.5 - Pipe functions.
 // We need the generic prototype, since the packet type could be anything.
 LANGBUILTIN(read_pipe, "i.", "tn", OCLC20_LANG)

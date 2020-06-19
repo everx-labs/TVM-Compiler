@@ -154,8 +154,11 @@ define slice @itos(i257 %arg) nounwind {
 ; CHECK-NEXT: STU 256
 ; CHECK-NEXT: ENDC
 ; CHECK-NEXT: CTOS
-  %1 = call slice @llvm.tvm.inttoslice(i257 %arg)
-  ret slice %1
+  %1 = call builder @llvm.tvm.newc()
+  %2 = call builder @llvm.tvm.stu(i257 %arg, builder %1, i257 256)
+  %3 = call cell @llvm.tvm.endc(builder %2)
+  %4 = call slice @llvm.tvm.ctos(cell %3)
+  ret slice %4
 }
 
 ; CHECK-LABEL: stoc
@@ -163,8 +166,10 @@ define cell @stoc(slice %slice) nounwind {
 ; CHECK: NEWC
 ; CHECK-NEXT: STSLICE
 ; CHECK-NEXT: ENDC
-  %1 = call cell @llvm.tvm.stoc(slice %slice)
-  ret cell %1
+  %1 = call builder @llvm.tvm.newc()
+  %2 = call builder @llvm.tvm.stslice(slice %slice, builder %1)
+  %3 = call cell @llvm.tvm.endc(builder %2)
+  ret cell %3
 }
 
 ; CHECK-LABEL: stslice
@@ -361,13 +366,12 @@ declare builder @llvm.tvm.stu(i257 %value, builder %builder, i257 %size)
 declare {i257, slice} @llvm.tvm.ldi(slice %slice, i257 %size)
 declare cell @llvm.tvm.newdict() nounwind
 declare builder @llvm.tvm.newc() nounwind
+declare cell @llvm.tvm.endc(builder %b) nounwind
 declare cell @llvm.tvm.get.persistent.data() nounwind
 declare i257 @llvm.tvm.getreg(i257 %regno) nounwind
 declare void @llvm.tvm.setreg(i257 %regno, i257 %value) nounwind
 declare void @llvm.tvm.set.persistent.data(cell %root) nounwind
-declare slice @llvm.tvm.inttoslice(i257 %val) nounwind
 declare builder @llvm.tvm.stslice(slice %slice, builder %builder) nounwind
-declare cell @llvm.tvm.stoc(slice %slice) nounwind
 declare {slice, slice} @llvm.tvm.ldslice(slice %slice, i257 %size) nounwind
 declare {cell, slice} @llvm.tvm.ldref(slice %slice) nounwind
 declare cell @llvm.tvm.plddict(slice %dict)

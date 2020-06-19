@@ -154,10 +154,12 @@ static BasicBlock *createResumeEntryBlock(Function &F, coro::Shape &Shape) {
     Switch->addCase(IndexVal, ResumeBB);
 
     cast<BranchInst>(SuspendBB->getTerminator())->setSuccessor(0, LandingBB);
-    auto *PN = PHINode::Create(Builder.getInt8Ty(), 2, "", &LandingBB->front());
+    // TVM local begin
+    auto *PN = PHINode::Create(Builder.getByteTy(), 2, "", &LandingBB->front());
     S->replaceAllUsesWith(PN);
-    PN->addIncoming(Builder.getInt8(-1), SuspendBB);
+    PN->addIncoming(Builder.getByte(-1), SuspendBB);
     PN->addIncoming(S, ResumeBB);
+    // TVM local end
 
     ++SuspendIndex;
   }
@@ -318,7 +320,7 @@ static Function *createClone(Function &F, Twine Suffix, coro::Shape &Shape,
   // a resume label associated with a suspend point, replacing it with (1) will
   // result in control flow proceeding to a cleanup label associated with this
   // suspend point.
-  auto *NewValue = Builder.getInt8(FnIndex ? 1 : 0);
+  auto *NewValue = Builder.getByte(FnIndex ? 1 : 0);
   for (CoroSuspendInst *CS : Shape.CoroSuspends) {
     auto *MappedCS = cast<CoroSuspendInst>(VMap[CS]);
     MappedCS->replaceAllUsesWith(NewValue);

@@ -86,6 +86,12 @@ public:
       insert(key_type(v));
     return *this;
   }
+  template<class It>
+  dict_set(It begin, It end) {
+    size_ = 0;
+    for (auto it = begin; it != end; ++it)
+      insert(*it);
+  }
 
   bool contains(key_type key) const {
     auto [slice, succ] = dict_.dictuget(key.get(), KeyLen);

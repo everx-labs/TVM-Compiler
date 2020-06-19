@@ -168,7 +168,8 @@ bool Lowerer::shouldElide(Function *F, DominatorTree &DT) const {
   SmallPtrSet<CoroSubFnInst *, 4> DAs;
   for (CoroSubFnInst *DA : DestroyAddr) {
     for (Instruction *TI : Terminators) {
-      if (DT.dominates(DA, TI)) {
+      // We don't need exceptional path check in TVM
+      if (Triple(TheModule.getTargetTriple()).isTVM() || DT.dominates(DA, TI)) {
         DAs.insert(DA);
         break;
       }

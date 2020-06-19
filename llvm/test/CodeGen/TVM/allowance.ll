@@ -2,6 +2,14 @@
 target datalayout = "E-S257-i1:257:257-i8:257:257-i16:257:257-i32:257:257-i64:257:257-i257:257:257-p:257:257-a:257:257"
 target triple = "tvm"
 
+define slice @itos(i257 %arg) nounwind {
+  %1 = call builder @llvm.tvm.newc()
+  %2 = call builder @llvm.tvm.stu(i257 %arg, builder %1, i257 256)
+  %3 = call cell @llvm.tvm.endc(builder %2)
+  %4 = call slice @llvm.tvm.ctos(cell %3)
+  ret slice %4
+}
+
 ; CHECK-LABEL: allowance
 define i257 @allowance(i257 %tokenOwner, i257 %spender) nounwind {
 entry:
@@ -26,7 +34,7 @@ bb3:
   %cond1 = icmp ne i257 %status1, 0
   br i1 %cond1, label %bb5, label %bb4
 bb4:
-  %new_slice = call slice @llvm.tvm.inttoslice(i257 0)
+  %new_slice = call slice @itos(i257 0)
   br label %bb5
 bb5:
   %result_slice = phi slice [%amount, %bb3], [%new_slice, %bb4]
@@ -40,5 +48,7 @@ declare cell @llvm.tvm.get.persistent.data() nounwind
 declare slice @llvm.tvm.ctos(cell %cell) nounwind
 declare {slice, i257} @llvm.tvm.dictuget(i257 %key, cell %dict_id, i257 %keylen) nounwind
 declare {cell, slice} @llvm.tvm.ldref(slice %slice) nounwind
-declare slice @llvm.tvm.inttoslice(i257 %val) nounwind
 declare {i257, slice} @llvm.tvm.ldu(slice %slice, i257 %precision)
+declare builder @llvm.tvm.newc() nounwind
+declare cell @llvm.tvm.endc(builder %b) nounwind
+declare builder @llvm.tvm.stu(i257 %value, builder %builder, i257 %size)

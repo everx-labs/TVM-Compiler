@@ -144,7 +144,7 @@ struct estimate_element<std::optional<_Tp>> {
   using Est = estimate_element<_Tp>;
   static constexpr unsigned min_bits = 1;
   static constexpr unsigned max_bits = 1 + Est::max_bits;
-  static constexpr unsigned min_refs = Est::min_refs;
+  static constexpr unsigned min_refs = 0;
   static constexpr unsigned max_refs = Est::max_refs;
 };
 

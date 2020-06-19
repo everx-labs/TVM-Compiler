@@ -1048,6 +1048,8 @@ bool Intrinsic::isLeaf(ID id) {
   case Intrinsic::experimental_gc_statepoint:
   case Intrinsic::experimental_patchpoint_void:
   case Intrinsic::experimental_patchpoint_i64:
+  case Intrinsic::coro_tvm_serialize:
+  case Intrinsic::coro_tvm_deserialize:
     return false;
   }
 }

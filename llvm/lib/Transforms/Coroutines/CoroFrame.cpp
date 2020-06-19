@@ -747,10 +747,43 @@ static void rewritePHIs(Function &F) {
 
 // Check for instructions that we can recreate on resume as opposed to spill
 // the result into a coroutine frame.
-static bool materializable(Instruction &V) {
+// TVM local begin
+static bool materializable(Instruction &V, Value *ThisPtr) {
+  if (auto *II = dyn_cast<IntrinsicInst>(&V)) {
+    switch (II->getIntrinsicID()) {
+    default:
+      break;
+    case Intrinsic::tvm_pushnull:
+    case Intrinsic::tvm_pushslice_empty:
+    case Intrinsic::tvm_newc:
+    case Intrinsic::tvm_newdict:
+    case Intrinsic::tvm_cast_to_slice:
+    case Intrinsic::tvm_cast_to_builder:
+    case Intrinsic::tvm_cast_to_cell:
+    case Intrinsic::tvm_cast_to_tuple:
+    case Intrinsic::tvm_cast_from_slice:
+    case Intrinsic::tvm_cast_from_builder:
+    case Intrinsic::tvm_cast_from_cell:
+    case Intrinsic::tvm_cast_from_tuple:
+    case Intrinsic::tvm_ctos:
+    case Intrinsic::tvm_stu:
+    case Intrinsic::tvm_sti:
+      return true;
+    }
+  }
+  // Rematerializing load from contract class data for TVM
+  if (auto *Load = dyn_cast<LoadInst>(&V)) {
+    auto *Ptr = Load->getPointerOperand()->stripInBoundsConstantOffsets();
+    if (Ptr == ThisPtr)
+      return true;
+  }
+  if (isa<Constant>(&V))
+    return true;
+
   return isa<CastInst>(&V) || isa<GetElementPtrInst>(&V) ||
          isa<BinaryOperator>(&V) || isa<CmpInst>(&V) || isa<SelectInst>(&V);
 }
+// TVM local end
 
 // Check for structural coroutine intrinsics that should not be spilled into
 // the coroutine frame.
@@ -898,11 +931,16 @@ void coro::buildCoroutineFrame(Function &F, Shape &Shape) {
 
   for (int Repeat = 0; Repeat < 4; ++Repeat) {
     // See if there are materializable instructions across suspend points.
+    // TVM local begin
+    assert(F.arg_size() >= 2 &&
+           "We only support coroutine methods in TVM (resumable sret + this)");
+    auto *ThisPtr = &*std::next(F.arg_begin());
     for (Instruction &I : instructions(F))
-      if (materializable(I))
+      if (materializable(I, ThisPtr))
         for (User *U : I.users())
           if (Checker.isDefinitionAcrossSuspend(I, U))
             Spills.emplace_back(&I, U);
+    // TVM local end
 
     if (Spills.empty())
       break;
@@ -935,6 +973,14 @@ void coro::buildCoroutineFrame(Function &F, Shape &Shape) {
         if (I.getType()->isTokenTy())
           report_fatal_error(
               "token definition is separated from the use by a suspend point");
+        // TVM local begin
+        if (I.getType()->isTVMTupleTy())
+          report_fatal_error(
+              "TVM tuple definition is separated from the use by a suspend point");
+        if (I.getType()->isTVMBuilderTy())
+          report_fatal_error(
+              "TVM tuple definition is separated from the use by a suspend point");
+        // TVM local end
         Spills.emplace_back(&I, U);
       }
   }

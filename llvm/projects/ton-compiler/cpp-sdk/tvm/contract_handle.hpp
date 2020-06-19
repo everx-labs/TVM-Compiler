@@ -2,8 +2,13 @@
 
 #include <tvm/reflection.hpp>
 #include <tvm/contract.hpp>
+#include <tvm/schema/estimate_element.hpp>
+#include <tvm/chain_tuple.hpp>
 
 #include <experimental/type_traits>
+#include <experimental/coroutine>
+
+#include <tvm/message_flags.hpp>
 
 namespace tvm {
 
@@ -12,17 +17,10 @@ using good_call_args_t = decltype( (((Interface*)nullptr)->*(Func::value))(Args{
 template<class Interface, auto Func, class... Args>
 constexpr bool good_call_args_v = std::experimental::is_detected_v<good_call_args_t, Interface, proxy_method<Func>, Args...>;
 
-constexpr unsigned SEND_ALL_GAS = 128;
-constexpr unsigned SEND_REST_GAS_FROM_INCOMING = 64;
-constexpr unsigned DELETE_ME_IF_I_AM_EMPTY = 32;
-constexpr unsigned IGNORE_ACTION = 2;
-constexpr unsigned SENDER_WANTS_TO_PAY_FEES_SEPARATELY = 1;
-
-constexpr unsigned DEFAULT_MSG_FLAGS = SENDER_WANTS_TO_PAY_FEES_SEPARATELY | IGNORE_ACTION;
-
 template<class Interface, auto Func, class... Args>
-inline void contract_call_impl(schema::lazy<schema::MsgAddressInt> addr, schema::Grams amount,
-                               unsigned flags, Args... args) {
+__always_inline
+void contract_call_impl(schema::lazy<schema::MsgAddressInt> addr, schema::Grams amount,
+                        unsigned flags, Args... args) {
   static_assert(good_call_args_v<Interface, Func, Args...>, "Wrong contract handle call arguments");
 
   using namespace schema;
@@ -39,15 +37,25 @@ inline void contract_call_impl(schema::lazy<schema::MsgAddressInt> addr, schema:
   out_info.created_at = 0;
   out_info.value.grams = amount;
 
-  message_relaxed<decltype(hdr_plus_args)> out_msg;
-  out_msg.info = out_info;
-  out_msg.body = hdr_plus_args;
-  tvm_sendmsg(build(out_msg).endc(), flags);
+  using est_t = estimate_element<message<decltype(hdr_plus_args)>>;
+  if constexpr (est_t::max_bits > cell::max_bits || est_t::max_refs > cell::max_refs) {
+    auto chain_tup = make_chain_tuple(hdr_plus_args);
+    message_relaxed<decltype(chain_tup)> out_msg;
+    out_msg.info = out_info;
+    out_msg.body = ref<decltype(chain_tup)>{chain_tup};
+    tvm_sendmsg(build(out_msg).endc(), flags);
+  } else {
+    message_relaxed<decltype(hdr_plus_args)> out_msg;
+    out_msg.info = out_info;
+    out_msg.body = hdr_plus_args;
+    tvm_sendmsg(build(out_msg).endc(), flags);
+  }
 }
 
 template<class Interface, auto Func, class... Args>
-inline void contract_deploy_impl(schema::lazy<schema::MsgAddressInt> addr, schema::StateInit init,
-                                 schema::Grams amount, unsigned flags, Args... args) {
+__always_inline
+void contract_deploy_impl(schema::lazy<schema::MsgAddressInt> addr, schema::StateInit init,
+                          schema::Grams amount, unsigned flags, Args... args) {
   static_assert(good_call_args_v<Interface, Func, Args...>, "Wrong contract handle call arguments");
 
   using namespace schema;
@@ -64,13 +72,26 @@ inline void contract_deploy_impl(schema::lazy<schema::MsgAddressInt> addr, schem
   out_info.created_at = 0;
   out_info.value.grams = amount;
 
-  message_relaxed<decltype(hdr_plus_args)> out_msg;
+  auto chain_tup = make_chain_tuple(hdr_plus_args);
+  message_relaxed<decltype(chain_tup)> out_msg;
   out_msg.info = out_info;
   Either<StateInit, ref<StateInit>> init_ref = ref<StateInit>{init};
   out_msg.init = init_ref;
-  out_msg.body = hdr_plus_args;
+  out_msg.body = ref<decltype(chain_tup)>{chain_tup};
   tvm_sendmsg(build(out_msg).endc(), flags);
 }
+
+template<class RetT>
+struct wait_call_result {
+  __always_inline
+  bool await_ready() const { return false; }
+  __always_inline
+  void await_suspend(std::experimental::coroutine_handle<>) const {}
+  __always_inline
+  RetT await_resume() const {
+    return schema::parse<RetT>(__builtin_tvm_cast_to_slice(temporary_data::getglob(3)));
+  }
+};
 
 template<class Interface>
 class contract_call_configured {
@@ -78,11 +99,17 @@ public:
   contract_call_configured(schema::lazy<schema::MsgAddressInt> addr, schema::Grams amount, unsigned flags)
     : addr_(addr), amount_(amount), flags_(flags) {}
   template<auto Func, class... Args>
-  inline void call(Args... args) const {
+  __always_inline void call(Args... args) const {
     contract_call_impl<Interface, Func>(addr_, amount_, flags_, args...);
   }
+  template<auto Func, class... Args>
+  __always_inline wait_call_result<std::invoke_result_t<decltype(Func), Interface, Args...>> call_await(Args... args) const {
+    contract_call_impl<Interface, Func>(addr_, amount_, flags_, args...);
+    temporary_data::setglob(2, __builtin_tvm_cast_from_slice(addr_.sl()));
+    return {};
+  }
 private:
-  schema::lazy<schema::MsgAddressInt> addr_;
+  mutable schema::lazy<schema::MsgAddressInt> addr_;
   schema::Grams amount_;
   unsigned flags_;
 };
@@ -94,7 +121,7 @@ public:
                              schema::Grams amount, unsigned flags)
     : addr_(addr), init_(init), amount_(amount), flags_(flags) {}
   template<auto Func, class... Args>
-  inline void call(Args... args) const {
+  __always_inline void call(Args... args) const {
     contract_deploy_impl<Interface, Func>(addr_, init_, amount_, flags_, args...);
   }
 private:
@@ -110,19 +137,23 @@ public:
   explicit contract_handle(schema::lazy<schema::MsgAddressInt> addr) : addr_(addr) {}
 
   template<auto Func, class... Args>
+  __always_inline
   void call(schema::Grams amount, Args... args) {
     contract_call_impl<Interface, Func>(addr_, amount, DEFAULT_MSG_FLAGS, args...);
   }
 
   template<auto Func, class... Args>
+  __always_inline
   void deploy_call(schema::StateInit init, schema::Grams amount, Args... args) {
     contract_deploy_impl<Interface, Func>(addr_, init, amount, DEFAULT_MSG_FLAGS, args...);
   }
 
+  __always_inline
   contract_call_configured<Interface> operator()(
       schema::Grams amount = 10000000, unsigned flags = DEFAULT_MSG_FLAGS) const {
     return contract_call_configured<Interface>(addr_, amount, flags);
   }
+  __always_inline
   contract_deploy_configured<Interface> deploy(
       schema::StateInit init, schema::Grams amount, unsigned flags = DEFAULT_MSG_FLAGS) const {
     return contract_deploy_configured<Interface>(addr_, init, amount, flags);

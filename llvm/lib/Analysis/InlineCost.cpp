@@ -2026,6 +2026,13 @@ InlineCost llvm::getInlineCost(
 }
 
 bool llvm::isInlineViable(Function &F) {
+  // TVM local begin
+  #define CORO_PRESPLIT_ATTR "coroutine.presplit"
+  // Disallow inlining of pre-split coroutines
+  if (F.hasFnAttribute(CORO_PRESPLIT_ATTR)) {
+    return false;
+  }
+  // TVM local end
   bool ReturnsTwice = F.hasFnAttribute(Attribute::ReturnsTwice);
   for (Function::iterator BI = F.begin(), BE = F.end(); BI != BE; ++BI) {
     // Disallow inlining of functions which contain indirect branches or

@@ -479,6 +479,7 @@ private:
   template<size_t _UnrollIdx>
   struct __unroll_fdiagonal_case {
     template<class _Fdiagonal, class _Visitor, class... _Vs>
+    __always_inline
     static decltype(auto) unroll(_Fdiagonal __fdiagonal, size_t __index,
                                  _Visitor&& __visitor, _Vs&&... __vs) {
       if (__index == _UnrollIdx)
@@ -493,6 +494,7 @@ private:
   template<>
   struct __unroll_fdiagonal_case<0> {
     template<class _Fdiagonal, class _Visitor, class... _Vs>
+    __always_inline
     static decltype(auto) unroll(_Fdiagonal __fdiagonal, size_t __index,
                                  _Visitor&& __visitor, _Vs&&... __vs) {
       // assert(__index == 0)
@@ -504,6 +506,7 @@ private:
   template<size_t _UnrollIdx>
   struct __unroll_fmatrix1_case {
     template<class _Fmatrix, class _Visitor, class _Vs>
+    __always_inline
     static decltype(auto) unroll(_Fmatrix __fmatrix, size_t __index,
                                  _Visitor&& __visitor, _Vs&& __vs) {
       if (__index == _UnrollIdx)
@@ -519,6 +522,7 @@ private:
   template<>
   struct __unroll_fmatrix1_case<0> {
     template<class _Fmatrix, class _Visitor, class _Vs>
+    __always_inline
     static decltype(auto) unroll(_Fmatrix __fmatrix, size_t __index,
                                  _Visitor&& __visitor, _Vs&& __vs) {
       // assert(dyn_index == 0)
@@ -530,6 +534,7 @@ private:
   template<size_t _UnrollIdx0, size_t _UnrollIdx1>
   struct __unroll_fmatrix2_1_case {
     template<class _Fmatrix, class _Visitor, class _Vs0, class _Vs1>
+    __always_inline
     static decltype(auto) unroll(_Fmatrix __fmatrix, size_t __index1,
                                  _Visitor&& __visitor,
                                  _Vs0&& __vs0, _Vs1&& __vs1) {
@@ -546,6 +551,7 @@ private:
   template<size_t _UnrollIdx0>
   struct __unroll_fmatrix2_1_case<_UnrollIdx0, 0> {
     template<class _Fmatrix, class _Visitor, class _Vs0, class _Vs1>
+    __always_inline
     static auto unroll(_Fmatrix __fmatrix, size_t __index1,
                        _Visitor&& __visitor,
                        _Vs0&& __vs0, _Vs1&& __vs1) {
@@ -559,6 +565,7 @@ private:
   template<size_t _UnrollIdx0, size_t _UnrollIdx1>
   struct __unroll_fmatrix2_case {
     template<class _Fmatrix, class _Visitor, class _Vs0, class _Vs1>
+    __always_inline
     static auto unroll(_Fmatrix __fmatrix, size_t __index0, size_t __index1,
                        _Visitor&& __visitor, _Vs0&& __vs0, _Vs1&& __vs1) {
       if (__index0 == _UnrollIdx0)
@@ -573,6 +580,7 @@ private:
   template<size_t _UnrollIdx1>
   struct __unroll_fmatrix2_case<0, _UnrollIdx1> {
     template<class _Fmatrix, class _Visitor, class _Vs0, class _Vs1>
+    __always_inline
     static auto unroll(_Fmatrix __fmatrix, size_t __index0, size_t __index1,
                        _Visitor&& __visitor, _Vs0&& __vs0, _Vs1&& __vs1) {
       // assert(__index0 == 0)
@@ -587,6 +595,7 @@ private:
   template<>
   struct __unroller<1> {
     template<class _Fmatrix, class _Visitor, class _Vs>
+    __always_inline
     static auto unroll(_Fmatrix __fmatrix, size_t __index,
                        _Visitor&& __visitor, _Vs&& __vs) {
       constexpr size_t __sz = remove_reference_t<_Vs>::__variant_size;
@@ -598,6 +607,7 @@ private:
   template<>
   struct __unroller<2> {
     template<class _Fmatrix, class _Visitor, class _Vs0, class _Vs1>
+    __always_inline
     static auto unroll(_Fmatrix __fmatrix, size_t __index0, size_t __index1,
                        _Visitor&& __visitor, _Vs0&& __vs0, _Vs1&& __vs1) {
       constexpr size_t __sz0 = remove_reference_t<_Vs0>::__variant_size;

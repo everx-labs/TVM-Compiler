@@ -2185,6 +2185,11 @@ static TryCastResult TryReinterpretCast(Sema &Self, ExprResult &SrcExpr,
   }
 
   if (!destIsPtr || !srcIsPtr) {
+    if (Self.Context.getTargetInfo().getTriple().getArch() == llvm::Triple::tvm)
+      if (SrcMemPtr->isMemberFunctionPointer() && destIsPtr) {
+        Kind = CK_FunctionToPointerDecay;
+        return TC_Success;
+      }
     // With the valid non-pointer conversions out of the way, we can be even
     // more stringent.
     return TC_NotApplicable;

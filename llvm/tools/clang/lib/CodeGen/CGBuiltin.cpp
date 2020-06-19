@@ -3163,6 +3163,12 @@ RValue CodeGenFunction::EmitBuiltinExpr(const FunctionDecl *FD,
     return EmitCoroutineIntrinsic(E, Intrinsic::coro_suspend);
   case Builtin::BI__builtin_coro_param:
     return EmitCoroutineIntrinsic(E, Intrinsic::coro_param);
+  // TVM local begin
+  case Builtin::BI__builtin_coro_tvm_serialize:
+    return EmitCoroutineIntrinsic(E, Intrinsic::coro_tvm_serialize);
+  case Builtin::BI__builtin_coro_tvm_deserialize:
+    return EmitCoroutineIntrinsic(E, Intrinsic::coro_tvm_deserialize);
+  // TVM local end
 
   // OpenCL v2.0 s6.13.16.2, Built-in pipe read and write functions
   case Builtin::BIread_pipe:

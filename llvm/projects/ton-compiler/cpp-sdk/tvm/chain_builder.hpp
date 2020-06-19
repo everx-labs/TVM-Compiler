@@ -93,17 +93,17 @@ static __always_inline builder build_chain(std::tuple<Elems...> tup) {
   }
 }
 
-template<class Tup, unsigned Offset>
+template<class Tup, unsigned Offset, unsigned RefsOffset>
 struct chain_parser_impl {};
-template<class... Elems, unsigned Offset>
-struct chain_parser_impl<std::tuple<Elems...>, Offset> {
+template<class... Elems, unsigned Offset, unsigned RefsOffset>
+struct chain_parser_impl<std::tuple<Elems...>, Offset, RefsOffset> {
   using Tup = std::tuple<Elems...>;
   static __always_inline std::pair<Tup, parser> parse(parser p) {
     if constexpr (sizeof...(Elems) == 0) {
       return { Tup{}, p };
     } else {
       static constexpr unsigned fit_count =
-        extract_fit<cell::max_bits - Offset, cell::max_refs - 1, 0, Elems...>::value;
+        extract_fit<cell::max_bits - Offset, cell::max_refs - 1 - RefsOffset, 0, Elems...>::value;
       if constexpr (fit_count == 0) {
         // expanding first element
         using first_elem_t = typename std::tuple_element<0, Tup>::type;
@@ -114,20 +114,20 @@ struct chain_parser_impl<std::tuple<Elems...>, Offset> {
           if (p.ldu(1)) {
             using SubElem = typename std::decay<decltype(*elem)>::type;
             using ExpandedTup = typename to_std_tuple_t<SubElem>;
-            auto [elem_tup, =p] = chain_parser_impl<ExpandedTup, 1>::parse(p);
+            auto [elem_tup, =p] = chain_parser_impl<ExpandedTup, 1, 0>::parse(p);
             elem = to_struct<SubElem>(elem_tup);
           } else {
             elem = {};
           }
         } else {
           using ExpandedTup = typename to_std_tuple_t<first_elem_t>::type;
-          auto [elem_tup, =p] = chain_parser_impl<ExpandedTup, Offset>::parse(p);
+          auto [elem_tup, =p] = chain_parser_impl<ExpandedTup, Offset, RefsOffset>::parse(p);
           elem = to_struct<first_elem_t>(elem_tup);
         }
         if constexpr (sizeof...(Elems) > 1) {
           using NextT = decltype(hana::take_back_c<sizeof...(Elems) - 1>(Tup{}));
           parser next_p(p.ldrefrtos());
-          auto [next_tup, =next_p] = chain_parser_impl<NextT, 0>::parse(next_p);
+          auto [next_tup, =next_p] = chain_parser_impl<NextT, 0, 0>::parse(next_p);
           return { std::tuple_cat(std::make_tuple(elem), next_tup), p };
         } else {
           return { std::make_tuple(elem), p };
@@ -139,7 +139,7 @@ struct chain_parser_impl<std::tuple<Elems...>, Offset> {
         if constexpr (sizeof...(Elems) > fit_count) {
           using NextT = decltype(hana::take_back_c<sizeof...(Elems) - fit_count>(Tup{}));
           parser next_p(p.ldrefrtos());
-          auto [next_tup, =next_p] = chain_parser_impl<NextT, 0>::parse(next_p);
+          auto [next_tup, =next_p] = chain_parser_impl<NextT, 0, 0>::parse(next_p);
           return { std::tuple_cat(*front_tup, next_tup), p };
         } else {
           return { *front_tup, p };
@@ -149,10 +149,10 @@ struct chain_parser_impl<std::tuple<Elems...>, Offset> {
   }
 };
 
-template<class Data, unsigned Offset>
+template<class Data, unsigned Offset, unsigned RefsOffset>
 static __always_inline Data parse_chain(parser p) {
   using Tup = to_std_tuple_t<Data>;
-  auto [rv_tup, =p] = chain_parser_impl<Tup, Offset>::parse(p);
+  auto [rv_tup, =p] = chain_parser_impl<Tup, Offset, RefsOffset>::parse(p);
   return to_struct<Data>(rv_tup);
 }
 
@@ -177,9 +177,12 @@ template<class Est>
 __always_inline bool check_sure_unparsable(unsigned bits, unsigned refs) {
   if (bits < Est::min_bits)
     return true;
-  if constexpr (Est::min_refs)
-    if (refs <= Est::min_refs) // '<=' because we need to reserve additional ref for chaining
+  if constexpr (Est::min_refs) {
+    if (refs < Est::min_refs)
       return true;
+    if (refs == Est::min_refs && !bits) // '<=' because we need to reserve additional ref for chaining
+      return true;
+  }
   return false;
 }
 

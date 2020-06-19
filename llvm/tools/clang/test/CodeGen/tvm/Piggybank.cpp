@@ -40,7 +40,7 @@ void Piggybank::deposit() {
 void Piggybank::withdraw() {
   auto sender = int_msg().unpack().int_sender();
 
-  require(sender.raw_slice() == owner.raw_slice(), error_code::wrong_owner);
+  require(sender.sl() == owner.sl(), error_code::wrong_owner);
   require(balance >= limit, error_code::not_enough_balance);
 
   tvm_transfer(sender, balance.get(), false);

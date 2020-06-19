@@ -66,7 +66,9 @@ void Lowerer::lowerResumeOrDestroy(CallSite CS,
 void Lowerer::lowerCoroPromise(CoroPromiseInst *Intrin) {
   Value *Operand = Intrin->getArgOperand(0);
   unsigned Alignement = Intrin->getAlignment();
-  Type *Int8Ty = Builder.getInt8Ty();
+  // TVM local begin
+  Type *Int8Ty = Builder.getByteTy();
+  // TVM local end
 
   auto *SampleStruct =
       StructType::get(Context, {AnyResumeFnPtrTy, AnyResumeFnPtrTy, Int8Ty});
@@ -77,8 +79,11 @@ void Lowerer::lowerCoroPromise(CoroPromiseInst *Intrin) {
     Offset = -Offset;
 
   Builder.SetInsertPoint(Intrin);
-  Value *Replacement =
-      Builder.CreateConstInBoundsGEP1_32(Int8Ty, Operand, Offset);
+  // TVM local begin
+  // Fix: Offset as a signed constant
+  Value *Idx = ConstantInt::get(Type::getInt32Ty(Context), Offset, true);
+  Value *Replacement = Builder.CreateInBoundsGEP(Int8Ty, Operand, Idx);
+  // TVM local end
 
   Intrin->replaceAllUsesWith(Replacement);
   Intrin->eraseFromParent();

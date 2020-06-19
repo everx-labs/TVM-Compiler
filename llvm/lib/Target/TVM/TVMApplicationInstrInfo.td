@@ -13,8 +13,22 @@
 
 //===----------------------------------------------------------------------===//
 // Instruction list..
-defm ACCEPT   : I0<(outs), (ins), [(int_tvm_accept)],
-                   "ACCEPT", 0xf800>;
+defm ACCEPT       : I0<(outs), (ins), [(int_tvm_accept)],
+                       "ACCEPT", 0xf800>;
+
+defm SETGASLIMIT  : I0<(outs), (ins I257:$limit), [(int_tvm_setgaslimit I257:$limit)],
+                       "SETGASLIMIT", 0xf801>;
+
+defm BUYGAS    : I0<(outs), (ins I257:$tons), [(int_tvm_buygas I257:$tons)],
+                    "BUYGAS", 0xf802>;
+
+defm GRAMTOGAS : I0<(outs I257:$gas), (ins I257:$tons),
+                    [(set I257:$gas, (int_tvm_gramtogas I257:$tons))],
+                     "GRAMTOGAS", 0xf804>;
+
+defm GASTOGRAM : I0<(outs I257:$tons), (ins I257:$gas),
+                    [(set I257:$tons, (int_tvm_gastogram I257:$gas))],
+                     "GASTOGRAM", 0xf805>;
 
 defm COMMIT   : I0<(outs), (ins), [(int_tvm_commit)],
                    "COMMIT", 0xf80f>;
@@ -55,7 +69,7 @@ defm CONFIGPARAM : I<(outs Cell:$param, I257:$succ), (ins I257:$idx),
                      (outs), (ins),
                      [(set Cell:$param, I257:$succ,
                        (int_tvm_configparam I257:$idx))],
-                     "CONFIGPARAM\t$param, $succ, $idx", "CONFIGPARAM", 0xf832>;
+                     "CONFIGPARAM\t$param, $succ, $idx", "CONFIGPARAM NULLSWAPIFNOT", 0xf832>;
 
 defm CONFIGOPTPARAM : I<(outs Cell:$param), (ins I257:$idx), (outs), (ins),
                         [(set Cell:$param, (int_tvm_configoptparam I257:$idx))],
@@ -76,7 +90,11 @@ defm SETGLOBVAR : I<(outs), (ins I257:$val, I257:$idx), (outs), (ins),
                     [(int_tvm_setglobal I257:$idx, I257:$val)],
                     "SETGLOBVAR\t$idx, $val", "SETGLOBVAR", 0xf860>;
 
-// A.11.9 Outbound message and output action primitives.
+// A.11.10 Outbound message and output action primitives.
+defm RAWRESERVE : I<(outs), (ins I257:$x, I257:$y), (outs), (ins),
+                    [(int_tvm_rawreserve I257:$x, I257:$y)],
+                    "RAWRESERVE\t$x, $y", "RAWRESERVE", 0xfb02>;
+
 defm SETCODE : I<(outs), (ins Cell:$cell), (outs), (ins),
                  [(int_tvm_setcode Cell:$cell)],
                  "SETCODE\t$cell", "SETCODE", 0xfb04>;

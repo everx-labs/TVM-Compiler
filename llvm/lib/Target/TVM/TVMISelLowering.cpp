@@ -677,30 +677,6 @@ SDValue TVMTargetLowering::LowerINTRINSIC_W_CHAIN(SDValue Op,
   switch (IntNo) {
   default:
     break;
-  case Intrinsic::tvm_inttoslice: {
-    SDValue Precision = DAG.getConstant(256, DL, MVT::i257);
-    SDValue Result = DAG.getNode(TVMISD::NEWC, DL, MVT::TVMBuilder);
-    Result = DAG.getNode(TVMISD::STU, DL, MVT::TVMBuilder, Op->getOperand(2),
-                         Result.getValue(0), Precision);
-    Result = DAG.getNode(TVMISD::ENDC, DL, MVT::TVMCell, Result);
-    Result = DAG.getNode(TVMISD::CTOS, DL, MVT::TVMSlice, Result);
-    return DAG.getMergeValues({Result.getValue(0), Chain}, DL);
-  }
-  case Intrinsic::tvm_stoc: {
-    SDValue Result = DAG.getNode(TVMISD::NEWC, DL, MVT::TVMBuilder);
-    Result = DAG.getNode(TVMISD::STSLICE, DL, MVT::TVMBuilder,
-                         Op->getOperand(2), Result);
-    Result = DAG.getNode(TVMISD::ENDC, DL, MVT::TVMCell, Result);
-    return DAG.getMergeValues({Result.getValue(0), Chain}, DL);
-  }
-  case Intrinsic::tvm_ldu: {
-    SDValue Precision = DAG.getConstant(256, DL, MVT::i257);
-    SDValue Result =
-        DAG.getNode(TVMISD::LDU, DL, DAG.getVTList(MVT::i257, MVT::TVMSlice),
-                    Op->getOperand(2), Precision);
-    return DAG.getMergeValues({Result.getValue(0), Result.getValue(1), Chain},
-                              DL);
-  }
   case Intrinsic::tvm_retrieve_signed: {
     // arguments: slice, from, len
     SDValue Skip1 =

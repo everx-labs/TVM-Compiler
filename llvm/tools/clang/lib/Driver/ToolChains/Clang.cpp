@@ -4193,11 +4193,13 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
   if (getToolChain().IsEncodeExtendedBlockSignatureDefault())
     CmdArgs.push_back("-fencode-extended-block-signature");
 
+  // TVM local begin
   if (Args.hasFlag(options::OPT_fcoroutines_ts, options::OPT_fno_coroutines_ts,
-                   false) &&
+                   Triple.isTVM()) &&
       types::isCXX(InputType)) {
     CmdArgs.push_back("-fcoroutines-ts");
   }
+  // TVM local end
 
   Args.AddLastArg(CmdArgs, options::OPT_fdouble_square_bracket_attributes,
                   options::OPT_fno_double_square_bracket_attributes);

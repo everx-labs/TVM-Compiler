@@ -14,6 +14,7 @@
 #include <tvm/schema/message.hpp>
 #include <tvm/schema/abiv1.hpp>
 #include <tvm/schema/json-abi-gen.hpp>
+#include <tvm/message_flags.hpp>
 
 namespace tvm {
 
@@ -168,7 +169,8 @@ static void tvm_transfer(slice dest, unsigned nanograms, unsigned bounce, unsign
   }
   tvm_sendmsg(b.endc(), flags);
 }
-static void tvm_transfer(schema::lazy<schema::MsgAddressInt> dest, unsigned nanograms, bool bounce) {
+static void tvm_transfer(schema::lazy<schema::MsgAddressInt> dest, unsigned nanograms, bool bounce,
+                         unsigned flags = DEFAULT_MSG_FLAGS) {
   using namespace schema;
 
   message_relaxed<empty> out_msg;
@@ -185,7 +187,7 @@ static void tvm_transfer(schema::lazy<schema::MsgAddressInt> dest, unsigned nano
   msg_info.created_at = 0;
 
   out_msg.info = msg_info;
-  tvm_sendmsg(build(out_msg).endc(), 0);
+  tvm_sendmsg(build(out_msg).endc(), flags);
 }
 
 class contract {

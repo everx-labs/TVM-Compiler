@@ -44,6 +44,7 @@ using namespace llvm;
 void llvm::initializeCoroutines(PassRegistry &Registry) {
   initializeCoroEarlyPass(Registry);
   initializeCoroSplitPass(Registry);
+  initializeCoroTVMExpandPass(Registry);
   initializeCoroElidePass(Registry);
   initializeCoroCleanupPass(Registry);
 }
@@ -51,6 +52,7 @@ void llvm::initializeCoroutines(PassRegistry &Registry) {
 static void addCoroutineOpt0Passes(const PassManagerBuilder &Builder,
                                    legacy::PassManagerBase &PM) {
   PM.add(createCoroSplitPass());
+  PM.add(createCoroTVMExpandPass());
   PM.add(createCoroElidePass());
 
   PM.add(createBarrierNoopPass());
@@ -70,6 +72,7 @@ static void addCoroutineScalarOptimizerPasses(const PassManagerBuilder &Builder,
 static void addCoroutineSCCPasses(const PassManagerBuilder &Builder,
                                   legacy::PassManagerBase &PM) {
   PM.add(createCoroSplitPass());
+  PM.add(createCoroTVMExpandPass());
 }
 
 static void addCoroutineOptimizerLastPasses(const PassManagerBuilder &Builder,
@@ -109,7 +112,7 @@ coro::LowererBase::LowererBase(Module &M)
 Value *coro::LowererBase::makeSubFnCall(Value *Arg, int Index,
                                         Instruction *InsertPt) {
   // TVM local begin
-  auto *IndexVal = ConstantInt::get(Type::getByteTy(Context), Index);
+  auto *IndexVal = ConstantInt::get(Type::getByteTy(Context), Index, true);
   // TVM local end
   auto *Fn = Intrinsic::getDeclaration(&TheModule, Intrinsic::coro_subfn_addr);
 
@@ -126,6 +129,7 @@ Value *coro::LowererBase::makeSubFnCall(Value *Arg, int Index,
 #ifndef NDEBUG
 static bool isCoroutineIntrinsicName(StringRef Name) {
   // NOTE: Must be sorted!
+  // TVM local begin
   static const char *const CoroIntrinsics[] = {
       "llvm.coro.alloc",   "llvm.coro.begin",   "llvm.coro.destroy",
       "llvm.coro.done",    "llvm.coro.end",     "llvm.coro.frame",
@@ -133,7 +137,10 @@ static bool isCoroutineIntrinsicName(StringRef Name) {
       "llvm.coro.param",   "llvm.coro.promise", "llvm.coro.resume",
       "llvm.coro.save",    "llvm.coro.size",    "llvm.coro.subfn.addr",
       "llvm.coro.suspend",
+      "llvm.coro.tvm.deserialize",
+      "llvm.coro.tvm.serialize"
   };
+  // TVM local end
   return Intrinsic::lookupLLVMIntrinsicByName(CoroIntrinsics, Name) != -1;
 }
 #endif

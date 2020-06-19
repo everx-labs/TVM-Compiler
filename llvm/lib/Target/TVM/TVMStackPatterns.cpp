@@ -49,6 +49,9 @@ bool is_ab(unsigned a, unsigned b, unsigned c) {
 bool is_ac(unsigned a, unsigned b, unsigned c) {
   return arg0(a) && arg1(c) && noArg(b);
 }
+bool is_bx(unsigned a, unsigned b, unsigned c) {
+  return arg0(b) && noArg(a) && noArg(c);
+}
 bool is_ba(unsigned a, unsigned b, unsigned c) {
   return arg0(b) && arg1(a) && noArg(c);
 }
@@ -275,7 +278,7 @@ void pattern3_pxx(StackFixup &Rv, unsigned i, unsigned j, unsigned k) {
     return impl_pxx(Rv, i, j, k = j);
 
   // { axc|bx } => { axc|bxa } => { axc|axb } => error j+1=0,j=?
-  if (is_bc(i, j, k)) {
+  if (is_bx(i, j, k)) {
     Rv(StackFixup::xcpu(k, i));     // { axx|bc }, { axx|bca }
     Rv(StackFixup::makeRollRev(2)); // { axx|abc }
     return;

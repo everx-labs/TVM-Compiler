@@ -20,3 +20,20 @@ else()
     ${LIT_BASE_DIR}/${LIT_FILE_NAME}
     )
 endif()
+
+#TVM local begin
+if (NOT CMAKE_CONFIGURATION_TYPES)
+  add_custom_target(install-llvm-lit
+                    COMMAND "${CMAKE_COMMAND}"
+                            -DCMAKE_INSTALL_COMPONENT=llvm-lit
+                            -P "${CMAKE_BINARY_DIR}/cmake_install.cmake")
+  add_custom_target(install-llvm-lit-stripped DEPENDS install-llvm-lit)
+endif()
+
+add_custom_target(llvm-lit ALL DEPENDS ${LIT_BASE_DIR}/${LIT_FILE_NAME})
+
+install(FILES ${LIT_BASE_DIR}/${LIT_FILE_NAME}
+  DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
+  PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ
+  COMPONENT llvm-lit)
+#TVM local end

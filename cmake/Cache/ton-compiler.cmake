@@ -1,4 +1,4 @@
-set(CMAKE_BUILD_TYPE "RelWithDebInfo" CACHE STRING "")
+set(CMAKE_BUILD_TYPE "Release" CACHE STRING "")
 
 # TON-Compiler specific options
 set(LLVM_EXPERIMENTAL_TARGETS_TO_BUILD   "TVM"         CACHE STRING "")

@@ -98,6 +98,7 @@ private:
   const char *getDefaultLinker() const override { return "tvm_linker"; }
 
   Tool *buildLinker() const override;
+  std::string tvmRoot() const;
 };
 
 } // end namespace toolchains

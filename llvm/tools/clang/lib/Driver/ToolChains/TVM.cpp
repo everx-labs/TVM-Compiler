@@ -30,7 +30,7 @@ bool tvm::Linker::isLinkJob() const { return true; }
 
 bool tvm::Linker::hasIntegratedCPP() const { return false; }
 
-static const char* getOptimizationLevel(const llvm::opt::ArgList &Args) {
+static const char *getOptimizationLevel(const llvm::opt::ArgList &Args) {
   StringRef OOpt = "3";
   if (Arg *A = Args.getLastArg(options::OPT_O_Group)) {
     if (A->getOption().matches(options::OPT_O4) ||
@@ -210,10 +210,9 @@ void tvm::Linker::ConstructJob(Compilation &C, const JobAction &JA,
 TVM::TVM(const Driver &D, const llvm::Triple &Triple,
          const llvm::opt::ArgList &Args)
     : ToolChain(D, Triple, Args) {
-
   getProgramPaths().push_back(getDriver().getInstalledDir());
-
   getFilePaths().push_back(getDriver().SysRoot + "/lib");
+  getFilePaths().push_back(std::string(getDriver().getInstalledDir()) + "/../lib");
 }
 
 bool TVM::IsMathErrnoDefault() const { return false; }
@@ -251,11 +250,14 @@ ToolChain::CXXStdlibType TVM::GetCXXStdlibType(const ArgList &) const {
 void TVM::AddClangSystemIncludeArgs(const ArgList &DriverArgs,
                                     ArgStringList &CC1Args) const {
   if (!DriverArgs.hasArg(options::OPT_nostdinc)) {
-    // Distribution include paths.
-    llvm::outs() << "SYSROOT: " << getDriver().SysRoot + "/include/\n";
+    // Sysroot based include paths.
     addSystemInclude(DriverArgs, CC1Args, getDriver().SysRoot + "/include/");
-    // Build include paths for tests.
+    // Include paths for tests.
     addSystemInclude(DriverArgs, CC1Args, getDriver().SysRoot);
+    // Distribution include paths.
+    llvm::SmallString<256> Root(tvmRoot());
+    llvm::sys::path::append(Root, "include");
+    addSystemInclude(DriverArgs, CC1Args, Root);
   }
 }
 
@@ -263,17 +265,20 @@ void TVM::AddClangCXXStdlibIncludeArgs(const ArgList &DriverArgs,
                                        ArgStringList &CC1Args) const {
   if (!DriverArgs.hasArg(options::OPT_nostdlibinc) &&
       !DriverArgs.hasArg(options::OPT_nostdincxx)) {
-    // Distribution include paths.
+    // Sysroot based include paths.
+    addSystemInclude(DriverArgs, CC1Args, getDriver().SysRoot + "/std");
+    addSystemInclude(DriverArgs, CC1Args, getDriver().SysRoot + "/std/target");
     addSystemInclude(DriverArgs, CC1Args, getDriver().SysRoot + "/include/std");
     addSystemInclude(DriverArgs, CC1Args,
                      getDriver().SysRoot + "/include/std/target");
-    // Build include paths for tests.
-    addSystemInclude(DriverArgs, CC1Args, getDriver().SysRoot + "/std");
-    addSystemInclude(DriverArgs, CC1Args, getDriver().SysRoot + "/std/target");
-    // FIXME: CI does the installation via manual copying.
-    addSystemInclude(DriverArgs, CC1Args, "/usr/include/cpp-sdk/std");
-    addSystemInclude(DriverArgs, CC1Args, "/usr/include/cpp-sdk");
-    addSystemInclude(DriverArgs, CC1Args, "/usr/include/cpp-sdk/std/target");
+    llvm::SmallString<256> Root(tvmRoot());
+    llvm::sys::path::append(Root, "include");
+    addSystemInclude(DriverArgs, CC1Args, Root);
+    llvm::sys::path::append(Root, "std");
+    // Distribution include paths.
+    addSystemInclude(DriverArgs, CC1Args, Root);
+    llvm::sys::path::append(Root, "target");
+    addSystemInclude(DriverArgs, CC1Args, Root);
   }
 }
 
@@ -286,3 +291,11 @@ std::string TVM::getThreadModel() const {
 }
 
 Tool *TVM::buildLinker() const { return new tools::tvm::Linker(*this); }
+
+std::string TVM::tvmRoot() const {
+  std::string Root = getDriver().Dir;
+  if (!llvm::sys::fs::exists(Root))
+    return {};
+  Root = llvm::sys::path::parent_path(Root);
+  return Root;
+}

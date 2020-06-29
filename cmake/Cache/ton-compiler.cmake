@@ -17,9 +17,6 @@ set(TVM_BUILD_WO_TOOLCHAIN               OFF           CACHE BOOL "")
 set(BUG_REPORT_URL
   "https://github.com/tonlabs/TON-Compiler/issues"
   CACHE STRING "")
-set(DEFAULT_SYSROOT
-    ${CMAKE_INSTALL_PREFIX}
-    CACHE PATH "")
 
 set(LLVM_TOOLCHAIN_TOOLS
   llvm-link

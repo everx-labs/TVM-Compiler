@@ -1,4 +1,10 @@
 # C and C++ compiler for TVM
+
+`Getting C++ toolchain in binary form`
+This README is mostly about building C++ for TVM which is the most appropriate way to get the compiler and the library for contributors. If your intent is only to use the compiler, we provide binary package you can simply download:
+- [For Ubuntu](http://sdkbinaries-ws.tonlabs.io/clang-for-tvm/clang-for-tvm.tar.gz)
+The binaries are updated on every commit in master, so they are always up to date.
+
 `Clang for TVM based on LLVM 7.0.0`.
 This repository contain
 * Clang for TVM C and C++ compiler

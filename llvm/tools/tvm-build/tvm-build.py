@@ -70,7 +70,6 @@ bindir = os.path.dirname(os.path.realpath(__file__))
 if not os.path.exists(os.path.join(bindir, 'llvm-link')):
   bindir = 'non-existent'
 
-tvm_llvm_bin = get_path(args.llvm_bin, '--llvm-bin', 'TVM_LLVM_BINARY_DIR', bindir)
 tvm_linker = get_path(args.linker, '--linker', 'TVM_LINKER', os.path.join(bindir, 'tvm_linker'))
 tvm_stdlib = get_path(args.stdlib, '--stdlib', 'TVM_LIBRARY_PATH', os.path.join(bindir, '../../stdlib'))
 
@@ -103,7 +102,7 @@ if args.cxxflags:
 
 for filename in input_cpp:
   _, tmp_file = tempfile.mkstemp()
-  execute([os.path.join(tvm_llvm_bin, 'clang++'), '-target', 'tvm'] +
+  execute(['clang++', '-target', 'tvm'] +
     cxxflags + ['-S', '-emit-llvm', filename, '-o', tmp_file], args.verbose)
   input_bc += [tmp_file]
 
@@ -113,19 +112,12 @@ if args.cflags:
 
 for filename in input_c:
   _, tmp_file = tempfile.mkstemp()
-  execute([os.path.join(tvm_llvm_bin, 'clang'), '-target', 'tvm', '-isystem', tvm_stdlib] +
+  execute(['clang', '-target', 'tvm', '-isystem', tvm_stdlib] +
     cflags + ['-S', '-emit-llvm', filename, '-o', tmp_file], args.verbose)
   input_bc += [tmp_file]
 
-for filename in input_ll:
-  _, tmp_file = tempfile.mkstemp()
-  execute([os.path.join(tvm_llvm_bin, 'llvm-as'), filename, '-o',
-    tmp_file], args.verbose)
-  input_bc += [tmp_file]
-
 _, bitcode = tempfile.mkstemp()
-execute([os.path.join(tvm_llvm_bin, 'llvm-link')] + input_bc +
-  ['-o', bitcode], args.verbose)
+execute(['llvm-link'] + input_bc + input_ll + ['-o', bitcode], args.verbose)
 
 entry_points = [ "main_external", "main_internal", "main_ticktock", "main_split", "main_merge" ]
 with open(args.abi) as abi_file:
@@ -143,7 +135,7 @@ if args.inline_loads_stores:
   replace_loads_stores = ['-tvm-load-store-replace']
 
 _, bitcode_int = tempfile.mkstemp()
-execute([os.path.join(tvm_llvm_bin, 'opt'), bitcode, '-o', bitcode_int] +
+execute(['opt', bitcode, '-o', bitcode_int] +
   replace_loads_stores + ['-internalize', '-internalize-public-api-list=' +
   ','.join(entry_points)], args.verbose)
 
@@ -153,11 +145,11 @@ else:
   opt_flags = ['-O3']
 
 _, bitcode_opt = tempfile.mkstemp()
-execute([os.path.join(tvm_llvm_bin, 'opt')] + opt_flags + [bitcode_int, '-o',
+execute(['opt'] + opt_flags + [bitcode_int, '-o',
   bitcode_opt], args.verbose)
 
 _, asm = tempfile.mkstemp()
-execute([os.path.join(tvm_llvm_bin, 'llc'), '-march', 'tvm', bitcode_opt,
+execute(['llc', '-march', 'tvm', bitcode_opt,
   '-o', asm], args.verbose)
 
 if input_asm:

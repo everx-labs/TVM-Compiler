@@ -1046,17 +1046,6 @@ if (MSVC AND CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows" AND CMAKE_INSTALL_UCRT_LI
 endif()
 
 # TVM local begin
-if (NOT TVM_BUILD_WO_TOOLCHAIN)
-ExternalProject_Add(tvm_linker
-  PREFIX ${CMAKE_CURRENT_SOURCE_DIR}/tvm_linker
-  BUILD_IN_SOURCE On
-  GIT_REPOSITORY https://github.com/tonlabs/TVM-linker/
-  CONFIGURE_COMMAND cd tvm_linker && cargo update
-  BUILD_COMMAND cd tvm_linker && cargo build --release
-  INSTALL_COMMAND cp tvm_linker/target/release/tvm_linker ${CMAKE_INSTALL_PREFIX}/bin
-)
-#add_dependencies(install-distribution tvm_linker)
-endif()
 add_custom_target(check-tvm
   DEPENDS check-llvm-codegen-tvm check-clang-codegen-tvm check-clang-driver-tvm
   )

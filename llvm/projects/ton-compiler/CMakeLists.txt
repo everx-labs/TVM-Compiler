@@ -60,3 +60,17 @@ if (NOT CMAKE_CONFIGURATION_TYPES)
 endif()
 
 add_subdirectory(cpp-sdk)
+
+ExternalProject_Add(tvm_linker
+  PREFIX ${CMAKE_CURRENT_SOURCE_DIR}/tvm_linker
+  BUILD_IN_SOURCE On
+  GIT_REPOSITORY https://github.com/tonlabs/TVM-linker/
+  CONFIGURE_COMMAND cd tvm_linker && cargo update
+  BUILD_COMMAND cd tvm_linker && cargo build --release
+  INSTALL_COMMAND cp tvm_linker/target/release/tvm_linker ${CMAKE_INSTALL_PREFIX}/bin
+)
+
+if (NOT CMAKE_CONFIGURATION_TYPES)
+  add_custom_target(install-tvm_linker DEPENDS tvm_linker)
+  add_custom_target(install-tvm_linker-stripped DEPENDS install-tvm_linker)
+endif()

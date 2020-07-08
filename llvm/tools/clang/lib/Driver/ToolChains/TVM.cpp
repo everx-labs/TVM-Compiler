@@ -211,8 +211,12 @@ TVM::TVM(const Driver &D, const llvm::Triple &Triple,
          const llvm::opt::ArgList &Args)
     : ToolChain(D, Triple, Args) {
   getProgramPaths().push_back(getDriver().getInstalledDir());
-  getFilePaths().push_back(getDriver().SysRoot + "/lib");
-  getFilePaths().push_back(std::string(getDriver().getInstalledDir()) + "/../lib");
+  llvm::SmallString<256> SysRootPath(getDriver().SysRoot);
+  llvm::sys::path::append(SysRootPath, "lib");
+  getFilePaths().push_back(SysRootPath.c_str());
+  llvm::SmallString<256> FilePath(tvmRoot());
+  llvm::sys::path::append(FilePath, "lib");
+  getFilePaths().push_back(FilePath.c_str());
 }
 
 bool TVM::IsMathErrnoDefault() const { return false; }
@@ -266,11 +270,17 @@ void TVM::AddClangCXXStdlibIncludeArgs(const ArgList &DriverArgs,
   if (!DriverArgs.hasArg(options::OPT_nostdlibinc) &&
       !DriverArgs.hasArg(options::OPT_nostdincxx)) {
     // Sysroot based include paths.
-    addSystemInclude(DriverArgs, CC1Args, getDriver().SysRoot + "/std");
-    addSystemInclude(DriverArgs, CC1Args, getDriver().SysRoot + "/std/target");
-    addSystemInclude(DriverArgs, CC1Args, getDriver().SysRoot + "/include/std");
-    addSystemInclude(DriverArgs, CC1Args,
-                     getDriver().SysRoot + "/include/std/target");
+    llvm::SmallString<256> SysRoot(getDriver().SysRoot);
+    llvm::sys::path::append(SysRoot, "std");
+    addSystemInclude(DriverArgs, CC1Args, SysRoot);
+    llvm::sys::path::append(SysRoot, "target");
+    addSystemInclude(DriverArgs, CC1Args, SysRoot);
+    SysRoot = getDriver().SysRoot;
+    llvm::sys::path::append(SysRoot, "include");
+    llvm::sys::path::append(SysRoot, "std");
+    addSystemInclude(DriverArgs, CC1Args, SysRoot);
+    llvm::sys::path::append(SysRoot, "target");
+    addSystemInclude(DriverArgs, CC1Args, SysRoot);
     llvm::SmallString<256> Root(tvmRoot());
     llvm::sys::path::append(Root, "include");
     addSystemInclude(DriverArgs, CC1Args, Root);

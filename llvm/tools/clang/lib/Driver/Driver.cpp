@@ -3052,8 +3052,10 @@ void Driver::BuildActions(Compilation &C, DerivedArgList &Args,
     // options, so ignore them as "inputs" and make the linker responsible for
     // their proper handling.
     if (C.getDefaultToolChain().getTriple().isTVM() &&
-        InputType == types::TY_Object)
+        InputType == types::TY_Object) {
+      InputArg->claim();
       continue;
+    }
     // TVM local end
 
     PL.clear();

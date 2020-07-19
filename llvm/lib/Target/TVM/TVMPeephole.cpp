@@ -34,7 +34,14 @@ static cl::opt<bool>
     DisableTVMIfElseOpt("disable-tvm-ifelse-peephole-opt", cl::Hidden,
                         cl::desc("TVM: Disable IFELSE peephole optimizations."),
                         cl::init(false));
-
+static cl::opt<bool>
+    DisableTVMDropOpt("disable-tvm-drop-opt", cl::Hidden,
+                      cl::desc("TVM: Disable DROP peephole optimizations."),
+                      cl::init(false));
+static cl::opt<bool> DisableTVMBlkPushOpt(
+    "disable-tvm-push-opt", cl::Hidden,
+    cl::desc("TVM: Disable BLKPUSH peephole optimizations."), cl::init(false));
+static unsigned BlkPushLimit = 15;
 namespace {
 class TVMPeephole final : public MachineFunctionPass {
   StringRef getPassName() const override { return "TVM peephole optimizer"; }
@@ -49,6 +56,8 @@ class TVMPeephole final : public MachineFunctionPass {
                               const TargetInstrInfo &TII);
   bool runImplicitReturnOptimization(MachineBasicBlock &MBB,
                                      const TargetInstrInfo &TII);
+  bool runBlkDropCombine(MachineBasicBlock &MBB, const TargetInstrInfo &TII);
+  bool runBlkPushCombine(MachineBasicBlock &MBB, const TargetInstrInfo &TII);
   bool runMbbInlineOptimization(MachineBasicBlock &MBB,
                                 const TargetInstrInfo &TII);
   bool runIfElseOptimization(MachineBasicBlock &MBB,
@@ -88,6 +97,89 @@ static bool MaybeOptimizeReturn(MachineInstr &MI, const TargetInstrInfo &TII) {
   MI.eraseFromParent();
 
   return true;
+}
+
+bool TVMPeephole::runBlkDropCombine(MachineBasicBlock &MBB,
+                                    const TargetInstrInfo &TII) {
+  bool Changed = false;
+  std::vector<MachineInstr *> MIRemove;
+  for (auto It = std::begin(MBB), E = std::end(MBB); It != E; ++It) {
+    unsigned count = 1;
+    auto DropIt = std::next(It);
+    if (It->getOpcode() == TVM::DROP) {
+      for (; DropIt != E; ++DropIt) {
+        if (DropIt->getOpcode() != TVM::DROP)
+          break;
+        else
+          ++count;
+      }
+    }
+    if (count > 1u) {
+      for (auto RmIt = It; RmIt != DropIt; ++RmIt)
+        MIRemove.push_back(&*RmIt);
+      It = BuildMI(&*DropIt, TII.get(TVM::BLKDROP)).addImm(count);
+      LLVM_DEBUG(dbgs() << "Replaced " << count << "DROPs with BLKDROP");
+      Changed = true;
+    }
+    count = 0;
+  }
+  for (auto *I : MIRemove)
+    I->eraseFromParent();
+  return Changed;
+}
+
+bool TVMPeephole::runBlkPushCombine(MachineBasicBlock &MBB,
+                                    const TargetInstrInfo &TII) {
+  bool Changed = false;
+  std::vector<MachineInstr *> MIRemove;
+  for (auto It = std::begin(MBB), E = std::end(MBB); It != E; ++It) {
+    std::vector<MachineInstr *> MaybeRemove;
+    unsigned Reg = TVMFunctionInfo::UnusedReg;
+    const ConstantInt *ConstVal;
+    bool IsConstant = false;
+    if (It->getOpcode() == TVM::PUSH) {
+      Reg = It->getOperand(0).getImm();
+      MaybeRemove.push_back(&*It);
+    } else if (It->getOpcode() == TVM::CONST_I257_S) {
+      IsConstant = true;
+      ConstVal = It->getOperand(0).getCImm();
+    } else {
+      continue;
+    }
+    auto PushIt = std::next(It);
+    for (; PushIt != E; ++PushIt) {
+      if (MaybeRemove.size() == BlkPushLimit)
+        break;
+      if (PushIt->getOpcode() == TVM::PUSH) {
+        unsigned R = It->getOperand(0).getImm();
+        if (R > BlkPushLimit)
+          break;
+        if ((IsConstant || R != Reg + MaybeRemove.size()) &&
+            R >= MaybeRemove.size())
+          break;
+        MaybeRemove.push_back(&*PushIt);
+      } else if (PushIt->getOpcode() == TVM::CONST_I257_S) {
+        if (!IsConstant || ConstVal != PushIt->getOperand(0).getCImm())
+          break;
+        MaybeRemove.push_back(&*PushIt);
+      } else {
+        break;
+      }
+    }
+    if (MaybeRemove.size() > 1u) {
+      std::copy(std::begin(MaybeRemove), std::end(MaybeRemove),
+                std::back_inserter(MIRemove));
+      It = BuildMI(&*PushIt, TII.get(TVM::BLKPUSH))
+               .addImm(MaybeRemove.size())
+               .addImm((Reg == TVMFunctionInfo::UnusedReg) ? 0 : Reg);
+      LLVM_DEBUG(dbgs() << "Replaced " << MaybeRemove.size()
+                        << " PUSH/PUSHINT with BLKPUSH");
+      Changed = true;
+    }
+  }
+  for (auto *I : MIRemove)
+    I->eraseFromParent();
+  return Changed;
 }
 
 bool TVMPeephole::runImplicitReturnOptimization(MachineBasicBlock &MBB,
@@ -458,6 +550,10 @@ bool TVMPeephole::runOnMachineBasicBlock(MachineBasicBlock &MBB,
     Changed |= true;
 
   Changed |= runImplicitReturnOptimization(MBB, TII);
+  if (!DisableTVMDropOpt)
+    Changed |= runBlkDropCombine(MBB, TII);
+  if (!DisableTVMBlkPushOpt)
+    Changed |= runBlkPushCombine(MBB, TII);
 
   return Changed;
 }

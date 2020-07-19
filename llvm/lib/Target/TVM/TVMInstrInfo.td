@@ -238,6 +238,7 @@ defm PUSH3 : SI<(ins stack_op:$i, stack_op:$j, stack_op:$k),
 let isPseudo=1 in
 def HIDDENSTACK : NI<(outs I257:$dst), (ins uimm8:$src), [(set I257:$dst, (int_tvm_hiddenstack uimm8:$src))], 1>;
 
+defm BLKPUSH : SI<(ins uimm8: $sz, uimm8:$slot), "BLKPUSH\t$sz, $slot", 0x5F>;
 defm POP  : SI<(ins stack_op:$dst), "POP\t$dst", 0x30>;
 defm DROP : SI<(ins), "DROP", 0x30>;
 defm BLKDROP : SI<(ins uimm8:$sz), "BLKDROP\t$sz", 0x5F0>;

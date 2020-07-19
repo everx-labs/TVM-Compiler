@@ -28,6 +28,7 @@ using namespace llvm;
 #define DEBUG_TYPE "asm-printer"
 
 // Include the auto-generated portion of the assembly writer.
+#define PRINT_ALIAS_INSTR
 #include "TVMGenAsmWriter.inc"
 
 void TVMInstPrinter::printInst(const MCInst *MI, raw_ostream &O,
@@ -54,7 +55,8 @@ void TVMInstPrinter::printInst(const MCInst *MI, raw_ostream &O,
   {
     std::string Str;
     raw_string_ostream OStr(Str);
-    printInstruction(MI, OStr);
+    if (!printAliasInstr(MI, OStr))
+      printInstruction(MI, OStr);
     OStr.flush();
     // Auto-generated printInstruction prints \t before instruction name
     // For nice-looking 2-space offsets (inside PUSHCONT) we need to remove it.

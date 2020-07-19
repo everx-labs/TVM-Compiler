@@ -663,9 +663,6 @@ operator()(const std::pair<Change, std::string> &pair) const {
                      .getInstr();
           },
           [&](pushI v) {
-            if (!v.i)
-              MI = BuildMI(*MBB, InsertPt, DL, TII->get(TVM::DUP)).getInstr();
-            else
               MI = BuildMI(*MBB, InsertPt, DL, TII->get(TVM::PUSH))
                        .addImm(v.i)
                        .getInstr();

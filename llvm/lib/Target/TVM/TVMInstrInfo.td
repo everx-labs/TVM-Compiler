@@ -252,9 +252,10 @@ defm REVERSE : SI<(ins uimm8:$sz, uimm8:$topIdx),
                    "REVERSE\t$sz, $topIdx", 0x5E>;
 defm REVX: SI<(ins), "REVX", 0x64>;
 defm NIP  : SI<(ins), "NIP", 0x31>;
-defm DUP  : SI<(ins), "DUP", 0x20>;
 defm ZERO : SI<(ins), "ZERO", 0x70>;
 }
+
+def DUP  : InstAlias<"DUP", (PUSH 0)>;
 
 let isCodeGenOnly = 1 in {
 defm REG_TO_REG_COPY : I<(outs I257:$dst), (ins I257:$src), (outs), (ins), []>;

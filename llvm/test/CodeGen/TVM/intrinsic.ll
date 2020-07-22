@@ -50,7 +50,7 @@ define void @ends(slice %cell) {
 
 ; CHECK-LABEL: sti
 define builder @sti(i257 %value, builder %builder) {
-; CHECK: PUSHINT 0
+; CHECK: ZERO
 ; CHECK: STIX
   %builder.1 = call builder @llvm.tvm.sti(i257 %value, builder %builder, i257 0)
 ; CHECK: STI 42
@@ -82,7 +82,7 @@ define slice @ldi(slice %slice, i257 %size) {
 ; CHECK: LDIX
   %ldi.1 = call {i257, slice} @llvm.tvm.ldi(slice %slice, i257 %size)
   %slice.1 = extractvalue {i257, slice} %ldi.1, 1
-; CHECK: PUSHINT 0
+; CHECK: ZERO
 ; CHECK: LDIX
   %ldi.2 = call {i257, slice} @llvm.tvm.ldi(slice %slice.1, i257 0)
   %slice.2 = extractvalue {i257, slice} %ldi.2, 1
@@ -249,7 +249,7 @@ define void @dump() {
 
 ; CHECK-LABEL: dump_value
 define void @dump_value() {
-; CHECK: PUSHINT 1
+; CHECK: ONE
 ; CHECK: DUMP 0
 ; CHECK: DROP
   call void @llvm.tvm.dump.value(i257 1)
@@ -265,7 +265,7 @@ define void @print() {
 
 ; CHECK-LABEL: print_value
 define void @print_value() {
-; CHECK: PUSHINT 1
+; CHECK: ONE
 ; CHECK: PRINT 0
 ; CHECK: DROP
   call void @llvm.tvm.print.value(i257 1)

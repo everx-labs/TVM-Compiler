@@ -31,7 +31,6 @@ namespace TVM {
 
 bool isArgument(const MachineInstr &MI);
 bool isArgumentNum(const MachineInstr &MI);
-
 } // end namespace TVM
 
 } // end namespace llvm

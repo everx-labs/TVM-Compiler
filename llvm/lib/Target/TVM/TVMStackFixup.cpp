@@ -481,12 +481,12 @@ void StackFixup::removeElem(Stack &stack, const StackVreg &vreg) {
   auto &rv = (*this);
   auto i = stack.position(vreg);
   if (i == 0) {
-    rv(stack += rv(drop()));
+    rv(stack += rv(pop(0)));
   } else if (i == 1) {
-    rv(stack += rv(nip()));
+    rv(stack += rv(pop(1)));
   } else {
     rv(stack += rv(makeRoll(i)));
-    rv(stack += rv(drop()));
+    rv(stack += rv(pop(0)));
   }
 }
 
@@ -539,7 +539,7 @@ StackFixup::Change StackFixup::makeReverse(unsigned Sz) {
 StackFixup::Change StackFixup::makeBlkdrop(unsigned Sz) {
   assert(Sz > 0);
   if (Sz == 1)
-    return drop();
+    return pop(0);
   return blkdrop(Sz);
 }
 
@@ -594,7 +594,7 @@ void StackFixup::operator()(const Stack &stack) {
 void StackFixup::printElem(raw_ostream &OS, const Change &change) const {
   visit(
       overloaded{
-          [&](drop) { OS << "drop"; }, [&](nip) { OS << "nip"; },
+          [&](pop v) { OS << "pop s(" << v.i << ")"; },
           [&](xchgTop v) { OS << "xchg s(" << v.i << ")"; },
           [&](xchg v) { OS << "xchg s(" << v.i << "), s(" << v.j << ")"; },
           [&](pushI v) { OS << "push s(" << v.i << ")"; },
@@ -634,18 +634,16 @@ void StackFixup::dump() const { print(dbgs()); }
 MachineInstr *StackFixup::InstructionGenerator::
 operator()(const std::pair<Change, std::string> &pair) const {
   MachineInstr *MI = nullptr;
+  LLVMContext &C = MBB->getParent()->getFunction().getContext();
   visit(
       overloaded{
-          [&](drop) {
-            MI = BuildMI(*MBB, InsertPt, DL, TII->get(TVM::DROP)).getInstr();
-          },
-          [&](nip) {
-            MI = BuildMI(*MBB, InsertPt, DL, TII->get(TVM::NIP)).getInstr();
+          [&](pop v) {
+            MI = BuildMI(*MBB, InsertPt, DL, TII->get(TVM::POP))
+                     .addImm(v.i)
+                     .getInstr();
           },
           [&](xchgTop v) {
-            if (v.i == 1) {
-              MI = BuildMI(*MBB, InsertPt, DL, TII->get(TVM::SWAP)).getInstr();
-            } else if (v.i <= XchgLimit) {
+            if (v.i <= XchgLimit) {
 
               MI = BuildMI(*MBB, InsertPt, DL, TII->get(TVM::XCHG_TOP))
                        .addImm(v.i)
@@ -663,12 +661,14 @@ operator()(const std::pair<Change, std::string> &pair) const {
                      .getInstr();
           },
           [&](pushI v) {
-              MI = BuildMI(*MBB, InsertPt, DL, TII->get(TVM::PUSH))
-                       .addImm(v.i)
-                       .getInstr();
+            MI = BuildMI(*MBB, InsertPt, DL, TII->get(TVM::PUSH))
+                     .addImm(v.i)
+                     .getInstr();
           },
           [&](pushUndef) {
-            MI = BuildMI(*MBB, InsertPt, DL, TII->get(TVM::ZERO)).getInstr();
+            MI = BuildMI(*MBB, InsertPt, DL, TII->get(TVM::CONST_I257_S))
+                     .addCImm(cimm(C, 0))
+                     .getInstr();
           },
           [&](blkswap v) {
             if (v.isImm()) {
@@ -678,9 +678,9 @@ operator()(const std::pair<Change, std::string> &pair) const {
                        .getInstr();
             } else {
               BuildMI(*MBB, InsertPt, DL, TII->get(TVM::CONST_U257_S))
-                  .addImm(v.deepSz);
+                  .addCImm(cimm(C, v.deepSz));
               BuildMI(*MBB, InsertPt, DL, TII->get(TVM::CONST_U257_S))
-                  .addImm(v.topSz);
+                  .addCImm(cimm(C, v.topSz));
               MI =
                   BuildMI(*MBB, InsertPt, DL, TII->get(TVM::BLKSWX)).getInstr();
             }
@@ -694,7 +694,7 @@ operator()(const std::pair<Change, std::string> &pair) const {
             } else {
               auto rollOp = v.i > 0 ? TVM::ROLLX : TVM::ROLLREVX;
               BuildMI(*MBB, InsertPt, DL, TII->get(TVM::CONST_U257_S))
-                  .addImm(std::abs(v.i));
+                  .addCImm(cimm(C, std::abs(v.i)));
               MI = BuildMI(*MBB, InsertPt, DL, TII->get(rollOp)).getInstr();
             }
           },
@@ -706,9 +706,9 @@ operator()(const std::pair<Change, std::string> &pair) const {
                        .getInstr();
             } else {
               BuildMI(*MBB, InsertPt, DL, TII->get(TVM::CONST_U257_S))
-                  .addImm(v.deepSz);
+                  .addCImm(cimm(C, v.deepSz));
               BuildMI(*MBB, InsertPt, DL, TII->get(TVM::CONST_U257_S))
-                  .addImm(v.topIdx);
+                  .addCImm(cimm(C, v.topIdx));
               MI = BuildMI(*MBB, InsertPt, DL, TII->get(TVM::REVX)).getInstr();
             }
           },
@@ -719,7 +719,7 @@ operator()(const std::pair<Change, std::string> &pair) const {
                        .getInstr();
             } else {
               BuildMI(*MBB, InsertPt, DL, TII->get(TVM::CONST_U257_S))
-                  .addImm(v.sz);
+                  .addCImm(cimm(C, v.sz));
               MI = BuildMI(*MBB, InsertPt, DL, TII->get(TVM::DROPX)).getInstr();
             }
           },

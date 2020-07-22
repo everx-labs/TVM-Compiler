@@ -71,6 +71,11 @@ bool operator!=(const std::variant<Ts...> &Lhs, T &&Rhs) {
 template <class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
 template <class... Ts> overloaded(Ts...)->overloaded<Ts...>;
 
+inline ConstantInt *cimm(LLVMContext &C, unsigned value) {
+  auto *Ty = IntegerType::get(C, 257);
+  return ConstantInt::get(Ty, value, false);
+}
+
 } // namespace llvm
 
 #endif // LLVM_LIB_TARGET_TVM_TVMEXTRAS_H

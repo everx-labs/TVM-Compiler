@@ -107,18 +107,6 @@ def : Pat<(TVMTuple (TVMcall1 (TVMGlobalAddressWrapper texternalsym:$callee))),
 def : Pat<(TVMcall0 (TVMGlobalAddressWrapper texternalsym:$callee)),
           (CALL_VOID texternalsym:$callee)>;
 
-let isMoveImm = 1, isAsCheapAsAMove = 1, isReMaterializable = 1 in {
-defm CONST_I257 : I<(outs I257:$res), (ins i257imm:$imm),
-                    (outs), (ins i257imm:$imm),
-                    [(set I257:$res, imm:$imm)],
-                    "PUSHINT\t$res, $imm", "PUSHINT\t$imm", 0x82>;
-
-defm CONST_U257 : I<(outs I257:$res), (ins UImm257:$uimm),
-                    (outs), (ins UImm257:$uimm),
-                    [(set I257:$res, (TVMconst_u257 timm:$uimm))],
-                    "PUSHINT\t$res, $uimm", "PUSHINT\t$uimm", 0x82>;
-}
-
 let isMoveImm = 1, AddedComplexity = 99 in
 defm PUSHCONT_MBB : I<(outs I257:$res), (ins bb_op:$bb, i257imm:$fake_op),
                       (outs), (ins bb_op:$bb),

@@ -140,112 +140,109 @@ void Stack::addDef(unsigned Reg, const DILocalVariable *DbgVar) {
 }
 
 Stack& Stack::operator += (const StackFixup::Change &change) {
-  std::visit(overloaded{
-      [this](StackFixup::drop){
-        Data.pop_front();
-      },
-      [this](StackFixup::nip) {
-        Data.erase(std::next(Data.begin()));
-      },
-      [this](StackFixup::xchgTop v) {
-        std::swap(Data[0], Data[v.i]);
-      },
-      [this](StackFixup::xchg v) {
-        std::swap(Data[v.i], Data[v.j]);
-      },
-      [this](StackFixup::pushI v){ Data.push_front(Data[v.i]); },
-      [    ](StackFixup::pushHidden v){ },
-      [this](StackFixup::pushUndef){
-        Data.push_front(StackVreg(TVMFunctionInfo::UnusedReg));
-      },
-      [this](StackFixup::blkswap v) {
-        assert(v.deepSz + v.topSz <= Data.size() && "Wrong blkswap");
-        decltype(Data) topCopy(Data.begin(), Data.begin() + v.topSz);
-        Data.erase(Data.begin(), Data.begin() + v.topSz);
-        Data.insert(Data.begin() + v.deepSz, topCopy.begin(), topCopy.end());
-      },
-      [this](StackFixup::roll v) {
-        assert((unsigned)std::abs(v.i) < Data.size() && "Wrong blkswap");
-        if (v.i > 0) {
-          auto deepElem = Data[v.i];
-          Data.erase(Data.begin() + v.i);
-          Data.push_front(deepElem);
-        } else {
-          auto topElem = Data.front();
-          Data.pop_front();
-          Data.insert(Data.begin() + (-v.i), topElem);
-        }
-      },
-      [this](StackFixup::reverse v) {
-        assert(v.topIdx + v.deepSz <= Data.size() && "Wrong reverse");
-        std::reverse(Data.begin() + v.topIdx,
-                 Data.begin() + v.topIdx + v.deepSz);
-      },
-      [this](StackFixup::blkdrop v) {
-        assert(v.sz <= Data.size() && "Wrong blkdrop");
-        Data.erase(Data.begin(), Data.begin() + v.sz);
-      },
-      [&](const StackFixup::doubleChange &v) {
-        for ([[maybe_unused]] unsigned Arg : v.args)
-          assert(Arg < Data.size() && "Bad doubleChange");
-        if (v.isPush(0) && v.isPush(1)) {
-          (*this) += StackFixup::pushI(v.args[0], false);
-          (*this) += StackFixup::pushI(v.args[1] + 1, false);
-        } else if (v.isPush(0) && v.isXchg(1)) {
-          (*this) += StackFixup::pushI(v.args[0], false);
-          (*this) += StackFixup::swap();
-          (*this) += StackFixup::xchgTop(v.args[1] + 1, false);
-        } else if (v.isXchg(0) && v.isPush(1)) {
-          (*this) += StackFixup::xchgTop(v.args[0], false);
-          (*this) += StackFixup::pushI(v.args[1], false);
-        } else if (v.isXchg(0) && v.isXchg(1)) {
-          (*this) += StackFixup::xchg(1, v.args[0], false);
-          (*this) += StackFixup::xchgTop(v.args[1], false);
-        }
-      },
-      [&](const StackFixup::tripleChange &v) {
-        for ([[maybe_unused]] unsigned Arg : v.args)
-          assert(Arg < Data.size() && "Bad tripleChange");
-        if (v.isPush(0) && v.isPush(1) && v.isPush(2)) {
-          (*this) += StackFixup::pushI(v.args[0], false);
-          (*this) += StackFixup::pushI(v.args[1] + 1, false);
-          (*this) += StackFixup::pushI(v.args[2] + 2, false);
-        } else if (v.isPush(0) && v.isPush(1) && v.isXchg(2)) {
-          (*this) += StackFixup::pushI(v.args[0], false);
-          (*this) += StackFixup::swap();
-          (*this) += StackFixup::pushI(v.args[1] + 1, false);
-          (*this) += StackFixup::swap();
-          (*this) += StackFixup::xchgTop(v.args[2] + 2, false);
-        } else if (v.isPush(0) && v.isXchg(1) && v.isPush(2)) {
-          (*this) += StackFixup::pushI(v.args[0], false);
-          (*this) += StackFixup::swap();
-          (*this) += StackFixup::xchgTop(v.args[1] + 1, false);
-          (*this) += StackFixup::pushI(v.args[2] + 1, false);
-        } else if (v.isPush(0) && v.isXchg(1) && v.isXchg(2)) {
-          (*this) += StackFixup::pushI(v.args[0], false);
-          (*this) += StackFixup::xchgTop(2, false);
-          (*this) += StackFixup::xchg(1, v.args[1] + 1, false);
-          (*this) += StackFixup::xchgTop(v.args[2] + 1, false);
-        } else if (v.isXchg(0) && v.isPush(1) && v.isPush(2)) {
-          (*this) += StackFixup::xchgTop(v.args[0], false);
-          (*this) += StackFixup::pushI(v.args[1], false);
-          (*this) += StackFixup::pushI(v.args[2] + 1, false);
-        } else if (v.isXchg(0) && v.isPush(1) && v.isXchg(2)) {
-          (*this) += StackFixup::xchg(1, v.args[0], false);
-          (*this) += StackFixup::pushI(v.args[1], false);
-          (*this) += StackFixup::swap();
-          (*this) += StackFixup::xchgTop(v.args[2] + 1, false);
-        } else if (v.isXchg(0) && v.isXchg(1) && v.isPush(2)) {
-          (*this) += StackFixup::xchg(1, v.args[0], false);
-          (*this) += StackFixup::xchgTop(v.args[1], false);
-          (*this) += StackFixup::pushI(v.args[2], false);
-        } else if (v.isXchg(0) && v.isXchg(1) && v.isXchg(2)) {
-          (*this) += StackFixup::xchg(2, v.args[0], false);
-          (*this) += StackFixup::xchg(1, v.args[1], false);
-          (*this) += StackFixup::xchgTop(v.args[2], false);
-        }
-      }
-    }, change);
+  std::visit(
+      overloaded{
+          [this](StackFixup::pop v) {
+            assert(Data.size() >= v.i && "Wrong stack slot for pop");
+            Data[v.i] = Data[0];
+            Data.erase(std::begin(Data));
+          },
+          [this](StackFixup::xchgTop v) { std::swap(Data[0], Data[v.i]); },
+          [this](StackFixup::xchg v) { std::swap(Data[v.i], Data[v.j]); },
+          [this](StackFixup::pushI v) { Data.push_front(Data[v.i]); },
+          [](StackFixup::pushHidden v) {},
+          [this](StackFixup::pushUndef) {
+            Data.push_front(StackVreg(TVMFunctionInfo::UnusedReg));
+          },
+          [this](StackFixup::blkswap v) {
+            assert(v.deepSz + v.topSz <= Data.size() && "Wrong blkswap");
+            decltype(Data) topCopy(Data.begin(), Data.begin() + v.topSz);
+            Data.erase(Data.begin(), Data.begin() + v.topSz);
+            Data.insert(Data.begin() + v.deepSz, topCopy.begin(),
+                        topCopy.end());
+          },
+          [this](StackFixup::roll v) {
+            assert((unsigned)std::abs(v.i) < Data.size() && "Wrong blkswap");
+            if (v.i > 0) {
+              auto deepElem = Data[v.i];
+              Data.erase(Data.begin() + v.i);
+              Data.push_front(deepElem);
+            } else {
+              auto topElem = Data.front();
+              Data.pop_front();
+              Data.insert(Data.begin() + (-v.i), topElem);
+            }
+          },
+          [this](StackFixup::reverse v) {
+            assert(v.topIdx + v.deepSz <= Data.size() && "Wrong reverse");
+            std::reverse(Data.begin() + v.topIdx,
+                         Data.begin() + v.topIdx + v.deepSz);
+          },
+          [this](StackFixup::blkdrop v) {
+            assert(v.sz <= Data.size() && "Wrong blkdrop");
+            Data.erase(Data.begin(), Data.begin() + v.sz);
+          },
+          [&](const StackFixup::doubleChange &v) {
+            for ([[maybe_unused]] unsigned Arg : v.args)
+              assert(Arg < Data.size() && "Bad doubleChange");
+            if (v.isPush(0) && v.isPush(1)) {
+              (*this) += StackFixup::pushI(v.args[0], false);
+              (*this) += StackFixup::pushI(v.args[1] + 1, false);
+            } else if (v.isPush(0) && v.isXchg(1)) {
+              (*this) += StackFixup::pushI(v.args[0], false);
+              (*this) += StackFixup::swap();
+              (*this) += StackFixup::xchgTop(v.args[1] + 1, false);
+            } else if (v.isXchg(0) && v.isPush(1)) {
+              (*this) += StackFixup::xchgTop(v.args[0], false);
+              (*this) += StackFixup::pushI(v.args[1], false);
+            } else if (v.isXchg(0) && v.isXchg(1)) {
+              (*this) += StackFixup::xchg(1, v.args[0], false);
+              (*this) += StackFixup::xchgTop(v.args[1], false);
+            }
+          },
+          [&](const StackFixup::tripleChange &v) {
+            for ([[maybe_unused]] unsigned Arg : v.args)
+              assert(Arg < Data.size() && "Bad tripleChange");
+            if (v.isPush(0) && v.isPush(1) && v.isPush(2)) {
+              (*this) += StackFixup::pushI(v.args[0], false);
+              (*this) += StackFixup::pushI(v.args[1] + 1, false);
+              (*this) += StackFixup::pushI(v.args[2] + 2, false);
+            } else if (v.isPush(0) && v.isPush(1) && v.isXchg(2)) {
+              (*this) += StackFixup::pushI(v.args[0], false);
+              (*this) += StackFixup::swap();
+              (*this) += StackFixup::pushI(v.args[1] + 1, false);
+              (*this) += StackFixup::swap();
+              (*this) += StackFixup::xchgTop(v.args[2] + 2, false);
+            } else if (v.isPush(0) && v.isXchg(1) && v.isPush(2)) {
+              (*this) += StackFixup::pushI(v.args[0], false);
+              (*this) += StackFixup::swap();
+              (*this) += StackFixup::xchgTop(v.args[1] + 1, false);
+              (*this) += StackFixup::pushI(v.args[2] + 1, false);
+            } else if (v.isPush(0) && v.isXchg(1) && v.isXchg(2)) {
+              (*this) += StackFixup::pushI(v.args[0], false);
+              (*this) += StackFixup::xchgTop(2, false);
+              (*this) += StackFixup::xchg(1, v.args[1] + 1, false);
+              (*this) += StackFixup::xchgTop(v.args[2] + 1, false);
+            } else if (v.isXchg(0) && v.isPush(1) && v.isPush(2)) {
+              (*this) += StackFixup::xchgTop(v.args[0], false);
+              (*this) += StackFixup::pushI(v.args[1], false);
+              (*this) += StackFixup::pushI(v.args[2] + 1, false);
+            } else if (v.isXchg(0) && v.isPush(1) && v.isXchg(2)) {
+              (*this) += StackFixup::xchg(1, v.args[0], false);
+              (*this) += StackFixup::pushI(v.args[1], false);
+              (*this) += StackFixup::swap();
+              (*this) += StackFixup::xchgTop(v.args[2] + 1, false);
+            } else if (v.isXchg(0) && v.isXchg(1) && v.isPush(2)) {
+              (*this) += StackFixup::xchg(1, v.args[0], false);
+              (*this) += StackFixup::xchgTop(v.args[1], false);
+              (*this) += StackFixup::pushI(v.args[2], false);
+            } else if (v.isXchg(0) && v.isXchg(1) && v.isXchg(2)) {
+              (*this) += StackFixup::xchg(2, v.args[0], false);
+              (*this) += StackFixup::xchg(1, v.args[1], false);
+              (*this) += StackFixup::xchgTop(v.args[2], false);
+            }
+          }},
+      change);
   return *this;
 }
 

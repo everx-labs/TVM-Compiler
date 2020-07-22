@@ -196,7 +196,6 @@ defm NOP : I<(outs), (ins), (outs), (ins), [(int_tvm_nop)], "NOP", "NOP", 0x00>;
 
 let mayLoad = 1, isAsCheapAsAMove = 1 in {
 defm PUSH : SI<(ins stack_op:$local), "PUSH\t$local", 0x20>;
-defm SWAP : SI<(ins), "SWAP", 0x01>;
 defm XCHG_TOP : SI<(ins stack_op:$src), "XCHG\ts0, $src", 0x01>;
 defm XCHG_TOP_DEEP : SI<(ins stack_op:$src), "XCHG\ts0, $src", 0x11>;
 defm XCHG : SI<(ins stack_op:$src, stack_op:$dst), "XCHG\t$src, $dst", 0x10>;
@@ -240,7 +239,6 @@ def HIDDENSTACK : NI<(outs I257:$dst), (ins uimm8:$src), [(set I257:$dst, (int_t
 
 defm BLKPUSH : SI<(ins uimm8: $sz, uimm8:$slot), "BLKPUSH\t$sz, $slot", 0x5F>;
 defm POP  : SI<(ins stack_op:$dst), "POP\t$dst", 0x30>;
-defm DROP : SI<(ins), "DROP", 0x30>;
 defm BLKDROP : SI<(ins uimm8:$sz), "BLKDROP\t$sz", 0x5F0>;
 defm DROPX: SI<(ins), "DROPX", 0x65>;
 defm BLKSWAP : SI<(ins uimm8:$deep, uimm8:$top), "BLKSWAP\t$deep, $top", 0x55>;
@@ -252,11 +250,30 @@ defm ROLLREVX : SI<(ins), "ROLLREVX", 0x62>;
 defm REVERSE : SI<(ins uimm8:$sz, uimm8:$topIdx),
                    "REVERSE\t$sz, $topIdx", 0x5E>;
 defm REVX: SI<(ins), "REVX", 0x64>;
-defm NIP  : SI<(ins), "NIP", 0x31>;
-defm ZERO : SI<(ins), "ZERO", 0x70>;
 }
 
+let isMoveImm = 1, isAsCheapAsAMove = 1, isReMaterializable = 1 in {
+defm CONST_I257 : I<(outs I257:$res), (ins i257imm:$imm),
+                    (outs), (ins i257imm:$imm),
+                    [(set I257:$res, imm:$imm)],
+                    "PUSHINT\t$res, $imm", "PUSHINT\t$imm", 0x82>;
+
+defm CONST_U257 : I<(outs I257:$res), (ins UImm257:$uimm),
+                    (outs), (ins UImm257:$uimm),
+                    [(set I257:$res, (TVMconst_u257 timm:$uimm))],
+                    "PUSHINT\t$res, $uimm", "PUSHINT\t$uimm", 0x82>;
+}
+
+
 def DUP  : InstAlias<"DUP", (PUSH 0)>;
+def DROP  : InstAlias<"DROP", (POP 0)>;
+def NIP  : InstAlias<"NIP", (POP 1)>;
+def ZERO : InstAlias<"ZERO", (CONST_I257_S 0)>;
+def FALSE : InstAlias<"FALSE", (CONST_I257_S 0), 0>;
+def ONE : InstAlias<"ONE", (CONST_I257_S 1)>;
+def TEN : InstAlias<"TEN", (CONST_I257_S 10)>;
+def TRUE : InstAlias<"TRUE", (CONST_I257_S -1), 0>;
+def SWAP : InstAlias<"SWAP", (XCHG_TOP 1)>;
 
 let isCodeGenOnly = 1 in {
 defm REG_TO_REG_COPY : I<(outs I257:$dst), (ins I257:$src), (outs), (ins), []>;

@@ -24,7 +24,7 @@ define dso_local i257 @check_main() local_unnamed_addr nounwind {
 ; CHECK-NEXT: ADDCONST -1
 ; CHECK-NEXT: SETGLOB 5
 ; CHECK:	GETGLOB 5
-; CHECK:	PUSHINT	0
+; CHECK:	ZERO
 ; CHECK:	GETGLOB 14 CALLX
 ; CHECK:	GETGLOB 5
 ; CHECK:	CALL	$f$

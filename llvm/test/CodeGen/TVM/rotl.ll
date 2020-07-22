@@ -9,7 +9,7 @@ entry:
   %neg = xor i257 %shl, -1
   %and = and i257 %neg, %mask
   ret i257 %and
-; CHECK:      PUSHINT 1
+; CHECK:      ONE
 ; CHECK-NEXT: XCHG2 s0, s2
 ; CHECK-NEXT: LSHIFT
 ; CHECK-NEXT: NOT

@@ -7,7 +7,7 @@ target triple = "tvm"
 ; CHECK-LABEL: make_store
 define void @make_store() {
 ; CHECK: PUSHINT $value2$
-; CHECK: PUSHINT 1
+; CHECK: ONE
 ; CHECK: GETGLOB 14 CALLX
   store i257 1, i257* @value2
   ret void

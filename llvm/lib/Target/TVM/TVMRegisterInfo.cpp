@@ -13,6 +13,7 @@
 
 #include "TVMRegisterInfo.h"
 #include "TVM.h"
+#include "TVMExtras.h"
 #include "TVMMachineFunctionInfo.h"
 #include "TVMTargetMachine.h"
 #include "llvm/ADT/BitVector.h"
@@ -57,6 +58,7 @@ void TVMRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
 
   MachineBasicBlock &MBB = *MI.getParent();
   MachineFunction &MF = *MBB.getParent();
+  LLVMContext &C = MF.getFunction().getContext();
   MachineRegisterInfo &MRI = MF.getRegInfo();
   int FrameIndex = MI.getOperand(FIOperandNum).getIndex();
   const MachineFrameInfo &MFI = MF.getFrameInfo();
@@ -89,7 +91,7 @@ void TVMRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
     // %RegConst:i257 = PUSHINT i257 FrameOffset
     unsigned RegConst = MRI.createVirtualRegister(&TVM::I257RegClass);
     BuildMI(MBB, *II, II->getDebugLoc(), TII->get(TVM::CONST_I257), RegConst)
-        .addImm(FrameOffset);
+        .addCImm(cimm(C, FrameOffset));
     // %RegFrameOffset:i257 = ADD %RegFrameBase:i257, %RegConst:i257
     RegFrameOffset = MRI.createVirtualRegister(&TVM::I257RegClass);
     BuildMI(MBB, *II, II->getDebugLoc(), TII->get(TVM::ADD), RegFrameOffset)

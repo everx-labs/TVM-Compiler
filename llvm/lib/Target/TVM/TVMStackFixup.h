@@ -75,8 +75,10 @@ public:
   // Remove all copies of this elem
   void removeAllElem(Stack &stack, const StackVreg &vreg);
 
-  struct drop {};
-  struct nip {};
+  struct pop {
+    pop(unsigned i) : i(i) {}
+    unsigned i;
+  };
   struct xchgTop {
     explicit xchgTop(unsigned i, bool checkLimits = true) : i(i) {
       if (checkLimits) {
@@ -114,9 +116,6 @@ public:
         : pushI(i, checkLimits), reg(reg) {}
     unsigned i;
     unsigned reg;
-  };
-  struct dup : pushI {
-    dup() : pushI(0) {}
   };
   struct pushUndef {};
   struct blkswap {
@@ -251,8 +250,8 @@ public:
         : tripleChange(true, true, false, i, j, k) {}
   };
   using Change =
-      std::variant<drop, nip, xchgTop, xchg, pushI, pushHidden, pushUndef,
-                   blkswap, blkdrop, roll, reverse, doubleChange, tripleChange>;
+      std::variant<pop, xchgTop, xchg, pushI, pushHidden, pushUndef, blkswap,
+                   blkdrop, roll, reverse, doubleChange, tripleChange>;
   using ChangesVec = std::vector<std::pair<Change, std::string>>;
 
 #if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)

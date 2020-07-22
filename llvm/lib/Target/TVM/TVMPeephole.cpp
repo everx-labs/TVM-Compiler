@@ -104,15 +104,14 @@ bool TVMPeephole::runBlkDropCombine(MachineBasicBlock &MBB,
   bool Changed = false;
   std::vector<MachineInstr *> MIRemove;
   for (auto It = std::begin(MBB), E = std::end(MBB); It != E; ++It) {
-    unsigned count = 1;
-    auto DropIt = std::next(It);
-    if (It->getOpcode() == TVM::DROP) {
-      for (; DropIt != E; ++DropIt) {
-        if (DropIt->getOpcode() != TVM::DROP)
-          break;
-        else
-          ++count;
-      }
+    unsigned count = 0;
+    auto DropIt = It;
+    for (; DropIt != E; ++DropIt) {
+      if (DropIt->getOpcode() != TVM::POP ||
+          DropIt->getOperand(0).getImm() != 0)
+        break;
+      else
+        ++count;
     }
     if (count > 1u) {
       for (auto RmIt = It; RmIt != DropIt; ++RmIt)
@@ -140,7 +139,8 @@ bool TVMPeephole::runBlkPushCombine(MachineBasicBlock &MBB,
     if (It->getOpcode() == TVM::PUSH) {
       Reg = It->getOperand(0).getImm();
       MaybeRemove.push_back(&*It);
-    } else if (It->getOpcode() == TVM::CONST_I257_S) {
+    } else if (It->getOpcode() == TVM::CONST_I257_S ||
+               It->getOpcode() == TVM::CONST_I257_S) {
       IsConstant = true;
       ConstVal = It->getOperand(0).getCImm();
     } else {
@@ -151,14 +151,15 @@ bool TVMPeephole::runBlkPushCombine(MachineBasicBlock &MBB,
       if (MaybeRemove.size() == BlkPushLimit)
         break;
       if (PushIt->getOpcode() == TVM::PUSH) {
-        unsigned R = It->getOperand(0).getImm();
+        unsigned R = PushIt->getOperand(0).getImm();
         if (R > BlkPushLimit)
           break;
         if ((IsConstant || R != Reg + MaybeRemove.size()) &&
             R >= MaybeRemove.size())
           break;
         MaybeRemove.push_back(&*PushIt);
-      } else if (PushIt->getOpcode() == TVM::CONST_I257_S) {
+      } else if (PushIt->getOpcode() == TVM::CONST_I257_S ||
+                 PushIt->getOpcode() == TVM::CONST_U257_S) {
         if (!IsConstant || ConstVal != PushIt->getOperand(0).getCImm())
           break;
         MaybeRemove.push_back(&*PushIt);
@@ -214,8 +215,11 @@ bool TVMPeephole::runMbbInlineOptimization(MachineBasicBlock &MBB,
       break;
     // Auxilary stack operations should be skipped here and then converted
     // below to transform the MI sequence to (PUSHCONT, JMPX) form
-    case TVM::NIP:
-      ++InstrIter;
+    case TVM::POP:
+      if (InstrIter->getOperand(0).getImm() == 1)
+        ++InstrIter;
+      else
+        return false;
       break;
     default:
       return false;
@@ -248,8 +252,10 @@ bool TVMPeephole::runMbbInlineOptimization(MachineBasicBlock &MBB,
   // stack operations between PUSHCONT and JMPX before the PUSHCONT
   // (the list of possible transformations may be extended in future)
   for (InstrIter = FirstStackInstrIter; InstrIter != LastStackInstrIter;) {
-    if (InstrIter->getOpcode() == TVM::NIP) {
-      MFI->clearIntermediateData(BuildMI(&*InsertionIter, TII.get(TVM::DROP)));
+    if (InstrIter->getOpcode() == TVM::POP &&
+        InstrIter->getOperand(0).getImm() == 1) {
+      MFI->clearIntermediateData(
+          BuildMI(&*InsertionIter, TII.get(TVM::POP)).addImm(0));
     }
 
     auto Next = InstrIter;
@@ -297,7 +303,7 @@ bool TVMPeephole::runIfElseInlining(
         Matcher.match(PushContC, TVM::PUSHCONT_MBB_S) &&
         Matcher.match(Roll, TVM::ROLL, 3) &&
         Matcher.match(Blkswap, TVM::BLKSWAP, 2, 2) &&
-        Matcher.match(Swap, TVM::SWAP) &&
+        Matcher.match(Swap, TVM::XCHG_TOP, 1) &&
         Matcher.match(Ifelse, TVM::IFELSE_S)) {
       MatchFound = true;
       InstrToRemove[NumInstrToRemove++] = Roll;
@@ -320,10 +326,11 @@ bool TVMPeephole::runIfElseInlining(
         Matcher.match(PushContB, TVM::PUSHCONT_MBB_S) &&
         Matcher.match(PushContC, TVM::PUSHCONT_MBB_S) &&
         Matcher.match(Blkswap1, TVM::BLKSWAP, 2, 4) &&
-        Matcher.match(Swap1, TVM::SWAP) && Matcher.match(Roll1, TVM::ROLL, 2) &&
+        Matcher.match(Swap1, TVM::XCHG_TOP, 1) &&
+        Matcher.match(Roll1, TVM::ROLL, 2) &&
         Matcher.match(Roll2, TVM::ROLL, 5) &&
         Matcher.match(Blkswap2, TVM::BLKSWAP, 2, 4) &&
-        Matcher.match(Swap2, TVM::SWAP) &&
+        Matcher.match(Swap2, TVM::XCHG_TOP, 1) &&
         Matcher.match(Ifelse, TVM::IFELSE_S)) {
       MatchFound = true;
       NeedInsertSwapBeforePostDominator = true;
@@ -389,14 +396,15 @@ bool TVMPeephole::runIfElseInlining(
   // NULL instead of post-dominator continuation
   DebugLoc DL;
   MFI->clearIntermediateData(BuildMI(PushContA, TII.get(TVM::PUSHNULL_S)));
-  MFI->clearIntermediateData(BuildMI(PushContA, TII.get(TVM::SWAP)));
   MFI->clearIntermediateData(
-      BuildMI(MBB, InsertionIter, DL, TII.get(TVM::DROP)));
+      BuildMI(PushContA, TII.get(TVM::XCHG_TOP)).addImm(1));
+  MFI->clearIntermediateData(
+      BuildMI(MBB, InsertionIter, DL, TII.get(TVM::POP)).addImm(0));
 
   // Insert swap for case #2
   if (NeedInsertSwapBeforePostDominator) {
     MFI->clearIntermediateData(
-        BuildMI(MBB, InsertionIter, DL, TII.get(TVM::SWAP)));
+        BuildMI(MBB, InsertionIter, DL, TII.get(TVM::XCHG_TOP)).addImm(1));
   }
 
   // Copy post-dominator commands after IFELSE
@@ -479,7 +487,8 @@ bool TVMPeephole::runIfElseEmptyBranchRemoving(
 
     InstrIter = Matcher.iter(); // move to the next instruction after IFELSE
 
-    MFI->clearIntermediateData(BuildMI(&*PushContA, TII.get(TVM::DROP)));
+    MFI->clearIntermediateData(
+        BuildMI(&*PushContA, TII.get(TVM::POP)).addImm(0));
 
     PushContA->eraseFromParent();
     PushContB->eraseFromParent();

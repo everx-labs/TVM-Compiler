@@ -47,6 +47,7 @@ bool TVMFrameLowering::hasReservedCallFrame(const MachineFunction &MF) const {
 
 void TVMFrameLowering::emitPrologue(MachineFunction &MF,
                                     MachineBasicBlock &MBB) const {
+  LLVMContext &C = MF.getFunction().getContext();
   const auto *TII = MF.getSubtarget<TVMSubtarget>().getInstrInfo();
   auto &MFI = MF.getFrameInfo();
   auto &MRI = MF.getRegInfo();
@@ -83,7 +84,7 @@ void TVMFrameLowering::emitPrologue(MachineFunction &MF,
     // %RegStSize:i257 = PUSHINT i257 StackSize
     unsigned RegStSize = MRI.createVirtualRegister(&TVM::I257RegClass);
     BuildMI(MBB, InsertPt, DL, TII->get(TVM::CONST_I257), RegStSize)
-        .addImm(StackSize);
+        .addCImm(cimm(C, StackSize));
     // %RegFrameBaseNew:i257 = SUB %RegFrameBase:i257, %RegStSize:i257
     BuildMI(MBB, InsertPt, DL, TII->get(TVM::SUB), RegFrameBaseNew)
         .addReg(RegFrameBase)
@@ -98,6 +99,7 @@ void TVMFrameLowering::emitPrologue(MachineFunction &MF,
 
 void TVMFrameLowering::emitEpilogue(MachineFunction &MF,
                                     MachineBasicBlock &MBB) const {
+  LLVMContext &C = MF.getFunction().getContext();
   const auto *TII = MF.getSubtarget<TVMSubtarget>().getInstrInfo();
   auto &MFI = MF.getFrameInfo();
   auto &MRI = MF.getRegInfo();
@@ -126,7 +128,7 @@ void TVMFrameLowering::emitEpilogue(MachineFunction &MF,
     // %RegStSize:i257 = PUSHINT i257 StackSize
     unsigned RegStSize = MRI.createVirtualRegister(&TVM::I257RegClass);
     BuildMI(MBB, InsertPt, DL, TII->get(TVM::CONST_I257), RegStSize)
-        .addImm(StackSize);
+        .addCImm(cimm(C, StackSize));
     // %RegFrameBaseNew:i257 = SUB %RegFrameBase:i257, %RegStSize:i257
     BuildMI(MBB, InsertPt, DL, TII->get(TVM::ADD), RegFrameBaseNew)
         .addReg(RegFrameBase)

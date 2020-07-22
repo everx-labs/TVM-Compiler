@@ -10,7 +10,7 @@ define i257 @g(i257 %N) nounwind {
 define i257 @f(i257 %N) nounwind {
 ; CHECK: PUSH c0
 ; CHECK: PUSHCONT
-; CHECK: PUSHINT 1
+; CHECK: ONE
 ; CHECK: CALL $g$
 ; CHECK: SWAP
 ; CHECK: POP	c0

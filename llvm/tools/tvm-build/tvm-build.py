@@ -190,7 +190,7 @@ with cd(tmpdir):
   if args.linkerflags:
     linkerflags = args.linkerflags.split()
   execute([tvm_linker, 'compile', asm, '--lib', os.path.join(tvm_stdlib,
-    'stdlib_c.tvm'), '--abi-json', abi_path] + linkerflags, args.verbose)
+    'stdlib_c.tvm'), '--abi-json', abi_path, '--language', 'C'] + linkerflags, args.verbose)
   for filename in glob.glob('*'):
     if args.verbose:
       print('cp ' + filename + ' ' + output)

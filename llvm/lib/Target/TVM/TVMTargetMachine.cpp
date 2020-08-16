@@ -44,6 +44,7 @@ extern "C" void LLVMInitializeTVMTarget() {
   initializeTVMContinuationsHoistPass(PR);
   initializeTVMLoadStoreReplacePass(PR);
   initializeTVMStoreCombinePass(PR);
+  initializeTVMLowerIntrinsicsPass(PR);
 }
 
 static Reloc::Model getEffectiveRelocModel(Optional<Reloc::Model> RM) {
@@ -90,6 +91,11 @@ void TVMTargetMachine::adjustPassManager(PassManagerBuilder &Builder) {
     [](const PassManagerBuilder &, legacy::PassManagerBase &PM) {
       PM.add(createArgumentPromotionPass(0));
   });
+  Builder.addExtension(
+    PassManagerBuilder::EP_ModuleOptimizerEarly,
+    [](const PassManagerBuilder &, legacy::PassManagerBase &PM) {
+      PM.add(createTVMLowerIntrinsicsPass());
+  });
 }
 
 namespace {
@@ -125,6 +131,7 @@ TargetPassConfig *TVMTargetMachine::createPassConfig(PassManagerBase &PM) {
 }
 
 void TVMPassConfig::addIRPasses() {
+  addPass(createTVMLowerIntrinsicsPass());
   // TODO: once setcc is supported, we need to remove it.
   addPass(createLowerSwitchPass());
   addPass(createTVMLoopPrepare());

@@ -10,7 +10,6 @@ target triple = "tvm"
 ; CHECK-LABEL: do_copy
 define void @do_copy() {
 entry:
-; CHECK: memcpy
   call void @llvm.memcpy.p0i8.p0i8.i257(i8* align 1 bitcast (%struct.anon* @X to i8*), i8* align 1 bitcast (%struct.anon* @Y to i8*), i257 100, i1 false)
   ret void
 }

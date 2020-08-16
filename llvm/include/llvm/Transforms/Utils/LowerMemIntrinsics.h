@@ -51,6 +51,12 @@ void expandMemMoveAsLoop(MemMoveInst *MemMove);
 /// Expand \p MemSet as a loop. \p MemSet is not deleted.
 void expandMemSetAsLoop(MemSetInst *MemSet);
 
+// TVM local begin
+void expandMemCpyAsLoopTVM(MemCpyInst *MemCpy, const TargetTransformInfo &TTI);
+void expandMemMoveAsLoopTVM(MemMoveInst *MemMove);
+void expandMemSetAsLoopTVM(MemSetInst *MemSet);
+// TVM local end
+
 } // End llvm namespace
 
 #endif

@@ -210,7 +210,7 @@ struct make_parser_impl<optional<_Tp>> {
     if (p.ldu(1)) {
       auto [parsed, new_p, new_ctx] = make_parser_impl<_Tp>::parse(p, ctx);
       if (parsed)
-        return std::tuple(parsed, p, new_ctx);
+        return std::tuple(parsed, new_p, new_ctx);
       return std::tuple(optional<value_type>{}, p, ctx);
     } else {
       return std::tuple(value_type{}, p, ctx);

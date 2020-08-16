@@ -429,7 +429,8 @@ struct smart_switcher_impl {
               if constexpr (supports_set_persistent_data_header_v<Contract>)
                 c.set_persistent_data_header(persistent_data_header);
             } else {
-              send_answer<Internal>(c, in_hdr->function_id(), rv.return_val());
+              if constexpr (!std::is_same_v<rv_t, resumable<void>>)
+                send_answer<Internal>(c, in_hdr->function_id(), rv.return_val());
             }
           } else {
             send_answer<Internal>(c, in_hdr->function_id(), rv);
@@ -454,7 +455,8 @@ struct smart_switcher_impl {
               if constexpr (supports_set_persistent_data_header_v<Contract>)
                 c.set_persistent_data_header(persistent_data_header);
             } else {
-              send_answer<Internal>(c, in_hdr->function_id(), rv.return_val());
+              if constexpr (!std::is_same_v<rv_t, resumable<void>>)
+                send_answer<Internal>(c, in_hdr->function_id(), rv.return_val());
             }
           } else {
             send_answer<Internal>(c, in_hdr->function_id(), rv);
@@ -589,8 +591,10 @@ struct smart_process_answer_impl {
           if constexpr (supports_set_persistent_data_header_v<Contract>)
             c.set_persistent_data_header(persistent_data_header);
         } else {
-          // coroutine is done, sending an answer
-          send_answer<is_internal>(c, my_method_id, res.return_val());
+          if constexpr (!std::is_same_v<rv_t, resumable<void>>) {
+            // coroutine is done, sending an answer
+            send_answer<is_internal>(c, my_method_id, res.return_val());
+          }
         }
         // Store persistent data
         auto &base = static_cast<DContract&>(c);

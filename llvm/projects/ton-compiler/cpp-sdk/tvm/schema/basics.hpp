@@ -618,6 +618,25 @@ struct Either {
   bool operator == (const Either& v) const {
     return val_ == v.val_;
   }
+  template<class T>
+  __always_inline bool isa() const {
+    if constexpr (std::is_same_v<T, X>)
+      return std::holds_alternative<EitherLeft<X>>(val_);
+    else if constexpr (std::is_same_v<T, Y>)
+      return std::holds_alternative<EitherRight<Y>>(val_);
+    else
+      return false;
+  }
+  template<class T>
+  __always_inline T get() const {
+    if constexpr (std::is_same_v<T, X>)
+      return std::get<EitherLeft<X>>(val_).val;
+    else if constexpr (std::is_same_v<T, Y>)
+      return std::get<EitherRight<Y>>(val_).val;
+    else
+      static_assert(std::is_same_v<T, X> || std::is_same_v<T, Y>,
+                    "bad get in Either variant");
+  }
   base_t operator()() const { return val_; }
   base_t val_;
 };

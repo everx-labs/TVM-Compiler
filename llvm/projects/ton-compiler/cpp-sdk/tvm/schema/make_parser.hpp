@@ -117,9 +117,9 @@ struct make_parser_impl<ref<_Tp>> {
   inline static std::tuple<optional<value_type>, parser, _Ctx> parse(parser p, _Ctx ctx) {
     auto inner_slice = p.ldrefrtos();
     parser inner_parser(inner_slice);
-    auto [rv, new_p, new_ctx] = make_parser_impl<_Tp>::parse(inner_parser, ctx);
+    auto [rv, =inner_parser, new_ctx] = make_parser_impl<_Tp>::parse(inner_parser, ctx);
     inner_parser.ends();
-    return std::tuple(rv, new_p, new_ctx);
+    return std::tuple(value_type{*rv}, p, new_ctx);
   }
 };
 template<>
@@ -137,8 +137,7 @@ struct make_parser_impl<anyval> {
   using value_type = anyval;
   template<class _Ctx>
   inline static std::tuple<optional<value_type>, parser, _Ctx> parse(parser p, _Ctx ctx) {
-    // TODO: implement PUSHSLICE for empty slices instead of "builder().make_slice()"
-    return std::tuple(anyval{p.get_cur_slice()}, builder().make_slice(), ctx);
+    return { anyval{p.get_cur_slice()}, parser(slice::create_empty()), ctx };
   }
 };
 

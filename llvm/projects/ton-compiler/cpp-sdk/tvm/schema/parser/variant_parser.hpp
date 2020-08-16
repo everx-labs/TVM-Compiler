@@ -38,4 +38,21 @@ struct make_parser_impl<std::variant<Types...>> {
   }
 };
 
+template<class X, class Y>
+struct make_parser_impl<Either<X, Y>> {
+  using value_type = Either<X, Y>;
+  using base_t = typename value_type::base_t;
+
+  template<class _Ctx>
+  inline static std::tuple<optional<value_type>, parser, _Ctx> parse(parser p, _Ctx ctx) {
+    auto [opt_rv, new_p, new_ctx] = make_parser_impl<base_t>::parse(p, ctx);
+    if (opt_rv) {
+      value_type rv;
+      rv.val_ = *opt_rv;
+      return { rv, new_p, new_ctx };
+    }
+    return { {}, p, ctx };
+  }
+};
+
 }} // namespace tvm::schema

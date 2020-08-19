@@ -12,6 +12,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "CoroInternal.h"
+#include "llvm/ADT/Triple.h"
 #include "llvm/IR/CallSite.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/InstIterator.h"
@@ -80,9 +81,14 @@ void Lowerer::lowerCoroPromise(CoroPromiseInst *Intrin) {
 
   Builder.SetInsertPoint(Intrin);
   // TVM local begin
+  Value *Replacement;
   // Fix: Offset as a signed constant
-  Value *Idx = ConstantInt::get(Type::getInt32Ty(Context), Offset, true);
-  Value *Replacement = Builder.CreateInBoundsGEP(Int8Ty, Operand, Idx);
+  if (Triple((Intrin->getModule()->getTargetTriple())).isTVM()) {
+    Value *Idx = ConstantInt::get(Type::getInt32Ty(Context), Offset, true);
+    Replacement = Builder.CreateInBoundsGEP(Int8Ty, Operand, Idx);
+  } else {
+    Replacement = Builder.CreateConstInBoundsGEP1_32(Int8Ty, Operand, Offset);
+  }
   // TVM local end
 
   Intrin->replaceAllUsesWith(Replacement);

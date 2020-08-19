@@ -458,6 +458,8 @@ struct CoroTVMExpand : FunctionPass {
   }
 
   bool runOnFunction(Function &F) override {
+    if (!Triple(F.getParent()->getTargetTriple()).isTVM())
+      return false;
     if (!L)
       return false;
 

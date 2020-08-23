@@ -13,6 +13,10 @@ namespace detail {
   struct bits {
     static constexpr unsigned min_bits = _min, max_bits = _max;
   };
+  template<unsigned _min, unsigned _max>
+  struct refs {
+    static constexpr unsigned min_refs = _min, max_refs = _max;
+  };
   struct no_refs {
     static constexpr unsigned min_refs = 0, max_refs = 0;
   };
@@ -78,11 +82,6 @@ template<>
 struct estimate_element<varint<32>>
   : detail::bits<5, 5 + 31 * 8>
   , detail::no_refs {};
-template<unsigned _keylen, class _element_type>
-struct estimate_element<HashmapE<_keylen, _element_type>>
-  : detail::bits<1, 1>
-  , detail::one_ref {};
-
 template<class _Tp>
 struct estimate_element<ref<_Tp>>
   : detail::bits<0, 0>
@@ -91,6 +90,14 @@ template<>
 struct estimate_element<cell>
   : detail::bits<0, 0>
   , detail::one_ref {};
+template<>
+struct estimate_element<anydict>
+  : detail::bits<1, 1>
+  , detail::refs<0, 1> {};
+template<unsigned _keylen, class _element_type>
+struct estimate_element<HashmapE<_keylen, _element_type>>
+  : detail::bits<1, 1>
+  , detail::refs<0, 1> {};
 template<>
 struct estimate_element<anyval>
   : detail::bits<0, cell::max_bits>

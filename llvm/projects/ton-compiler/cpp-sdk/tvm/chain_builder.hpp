@@ -162,34 +162,23 @@ __always_inline bool check_sure_parsable(unsigned bits, unsigned refs) {
   // If estimated element is more than cell size
   if constexpr (Est::max_bits > cell::max_bits)
     return false;
-  if constexpr (Est::max_refs >= cell::max_refs)
+  if constexpr (Est::max_refs > cell::max_refs)
     return false;
   if (bits < Est::max_bits)
     return false;
   if constexpr (Est::max_refs)
-    if (refs <= Est::max_refs) // '<=' because we need to reserve additional ref for chaining
+    if (refs < Est::max_refs)
+      return false;
+    if (refs == Est::max_refs && bits != Est::max_bits)
       return false;
   return true;
 }
 
-// If element with such estimation Est is for sure not parsable ({bits, refs} < estimation min)
-template<class Est>
-__always_inline bool check_sure_unparsable(unsigned bits, unsigned refs) {
-  if (bits < Est::min_bits)
-    return true;
-  if constexpr (Est::min_refs) {
-    if (refs < Est::min_refs)
-      return true;
-    if (refs == Est::min_refs && !bits) // '<=' because we need to reserve additional ref for chaining
-      return true;
-  }
-  return false;
-}
-
-template<class Tup>
+template<class Tup, bool IsLast>
 struct dyn_chain_parser_impl {};
-template<class... Elems>
-struct dyn_chain_parser_impl<std::tuple<Elems...>> {
+
+template<class... Elems, bool IsLast>
+struct dyn_chain_parser_impl<std::tuple<Elems...>, IsLast> {
   using Tup = std::tuple<Elems...>;
   static __always_inline std::pair<Tup, parser> parse(parser p, unsigned bits, unsigned refs) {
     if constexpr (sizeof...(Elems) == 0) {
@@ -202,11 +191,13 @@ struct dyn_chain_parser_impl<std::tuple<Elems...>> {
         return { *full_tup, p };
       } else {
         using PrevT = decltype(hana::take_front_c<sizeof...(Elems) - 1>(Tup{}));
-        auto [prev_tup, =p] = dyn_chain_parser_impl<PrevT>::parse(p, bits, refs);
+        auto [prev_tup, =p] = dyn_chain_parser_impl<PrevT, false>::parse(p, bits, refs);
         using last_elem_t = typename std::tuple_element<sizeof...(Elems) - 1, Tup>::type;
         using est_last_t = schema::estimate_element<last_elem_t>;
         auto [last_bits, last_refs] = p.sl().sbitrefs();
-        if (check_sure_unparsable<est_last_t>(last_bits, last_refs)) {
+        // Chaining ref
+        static constexpr bool last_fit_element = (IsLast && (est_t::max_bits == 0) && (est_t::max_refs == 1));
+        if ((last_bits == 0 && last_refs == 1) && !last_fit_element) {
           require(last_bits == 0, error_code::non_empty_bits_at_cell_wrap);
           require(last_refs == 1, error_code::non_single_refs_at_cell_wrap);
           p = parser(p.ldrefrtos());
@@ -225,7 +216,7 @@ static Data parse_chain_dynamic(parser p) {
     return Data{};
   } else {
     auto [bits, refs] = p.sl().sbitrefs();
-    auto [rv_tup, =p] = dyn_chain_parser_impl<Tup>::parse(p, bits, refs);
+    auto [rv_tup, =p] = dyn_chain_parser_impl<Tup, true>::parse(p, bits, refs);
     p.ends();
     return to_struct<Data>(rv_tup);
   }

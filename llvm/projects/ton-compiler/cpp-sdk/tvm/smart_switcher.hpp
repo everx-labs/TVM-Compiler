@@ -352,7 +352,6 @@ struct smart_switcher_impl {
 
             using Est = estimate_element<HeaderT>;
             static_assert(Est::max_bits == Est::min_bits, "Persistent data header can't be dynamic-size");
-            static_assert(Est::max_refs == Est::min_refs, "Persistent data header can't be dynamic-size");
 
             // Only 1 + bitsize(Header) bits to skip
             base = parse_chain<DContract, 1 + Est::max_bits, Est::max_refs>(persist);
@@ -549,7 +548,6 @@ struct smart_process_answer_impl {
 
           using Est = estimate_element<HeaderT>;
           static_assert(Est::max_bits == Est::min_bits, "Persistent data header can't be dynamic-size");
-          static_assert(Est::max_refs == Est::min_refs, "Persistent data header can't be dynamic-size");
 
           // Only 1 + bitsize(Header) bits to skip
           base = parse_chain<DContract, 1 + Est::max_bits, Est::max_refs>(persist);

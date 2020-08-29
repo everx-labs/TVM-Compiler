@@ -193,7 +193,11 @@ struct ElementRef {
       ++size_;
     return *this;
   }
-  operator bool() const { return !!static_cast<Element>(*this); }
+  __always_inline operator Element() const {
+    auto [sl, succ] = dict_.dictuget(idx_, KeyLen);
+    require(succ, error_code::iterator_overflow);
+    return schema::parse<Element>(sl);
+  }
 
   __always_inline void swap(ElementRef v) const {
     auto [sl1, succ1] = dict_.dictuget(idx_, KeyLen);
@@ -207,7 +211,14 @@ struct ElementRef {
   schema::uint32& size_;
   unsigned idx_;
 };
-  
+template<class Element, unsigned KeyLen>
+void swap(ElementRef<Element, KeyLen>& ref1, ElementRef<Element, KeyLen>& ref2) {
+  auto v1 = static_cast<Element>(ref1);
+  auto v2 = static_cast<Element>(ref2);
+  ref1 = v2;
+  ref2 = v1;
+}
+
 template<class Element, unsigned KeyLen>
 struct dictionary_array_iterator : boost::operators<dictionary_array_iterator<Element, KeyLen>> {
   using iterator_category = std::random_access_iterator_tag;

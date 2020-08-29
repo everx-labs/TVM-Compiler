@@ -1626,6 +1626,28 @@ createReflectSmartInterfaceParameterList(const ASTContext &C, DeclContext *DC) {
                                        SourceLocation(), nullptr);
 }
 
+// __reflect_proxy<Interface, Impl> - Proxy class for Interface
+static TemplateParameterList *
+createReflectProxyParameterList(const ASTContext &C, DeclContext *DC) {
+
+  // typename Interface
+  auto *Interface = TemplateTypeParmDecl::Create(
+      C, DC, SourceLocation(), SourceLocation(), /*Depth=*/0, /*Position=*/0,
+      /*Id=*/nullptr, /*Typename=*/true, /*ParameterPack=*/false);
+  Interface->setImplicit(true);
+
+  // typename Impl
+  auto *Impl = TemplateTypeParmDecl::Create(
+      C, DC, SourceLocation(), SourceLocation(), /*Depth=*/0, /*Position=*/1,
+      /*Id=*/nullptr, /*Typename=*/true, /*ParameterPack=*/false);
+  Impl->setImplicit(true);
+
+  NamedDecl *Params[] = { Interface, Impl };
+  return TemplateParameterList::Create(C, SourceLocation(), SourceLocation(),
+                                       llvm::makeArrayRef(Params),
+                                       SourceLocation(), nullptr);
+}
+
 // __reflect_method_ptr<Proxy, Contract, Interface, Index> -
 //   Proxy<&Contract::Method> for method number #Index from Interface
 static TemplateParameterList *
@@ -1719,6 +1741,8 @@ static TemplateParameterList *createBuiltinTemplateParameterList(
     return createReflectMethodPtrArgStructParameterList(C, DC);
   case BTK__reflect_smart_interface:
     return createReflectSmartInterfaceParameterList(C, DC);
+  case BTK__reflect_proxy:
+    return createReflectProxyParameterList(C, DC);
   case BTK__reflect_method_ptr:
     return createReflectMethodPtrParameterList(C, DC);
   // TVM local end

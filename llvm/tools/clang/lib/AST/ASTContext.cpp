@@ -1182,6 +1182,14 @@ ASTContext::getReflectSmartInterfaceDecl() const {
 }
 
 BuiltinTemplateDecl *
+ASTContext::getReflectProxyDecl() const {
+  if (!ReflectProxyDecl)
+    ReflectProxyDecl = buildBuiltinTemplateDecl(
+        BTK__reflect_proxy, getReflectProxyName());
+  return ReflectProxyDecl;
+}
+
+BuiltinTemplateDecl *
 ASTContext::getReflectMethodPtrDecl() const {
   if (!ReflectMethodPtrDecl)
     ReflectMethodPtrDecl = buildBuiltinTemplateDecl(

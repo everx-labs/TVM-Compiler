@@ -255,9 +255,11 @@ void TVM::AddClangSystemIncludeArgs(const ArgList &DriverArgs,
                                     ArgStringList &CC1Args) const {
   if (!DriverArgs.hasArg(options::OPT_nostdinc)) {
     // Sysroot based include paths.
-    addSystemInclude(DriverArgs, CC1Args, getDriver().SysRoot + "/include/");
-    // Include paths for tests.
-    addSystemInclude(DriverArgs, CC1Args, getDriver().SysRoot);
+    if (!getDriver().SysRoot.empty()) {
+      addSystemInclude(DriverArgs, CC1Args, getDriver().SysRoot + "/include/");
+      // Include paths for tests.
+      addSystemInclude(DriverArgs, CC1Args, getDriver().SysRoot);
+    }
     // Distribution include paths.
     llvm::SmallString<256> Root(tvmRoot());
     llvm::sys::path::append(Root, "include");

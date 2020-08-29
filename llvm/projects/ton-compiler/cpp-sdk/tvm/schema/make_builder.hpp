@@ -5,6 +5,7 @@
 #include <tvm/schema/builder/struct_builder.hpp>
 #include <tvm/schema/builder/variant_builder.hpp>
 #include <tvm/schema/builder/dynamic_field_builder.hpp>
+#include <tvm/schema/message.hpp>
 
 namespace tvm { namespace schema {
 
@@ -169,6 +170,13 @@ __always_inline lazy<_Tp>::lazy(_Tp val) {
 template<typename _Tp>
 __always_inline void lazy<_Tp>::operator=(_Tp val) {
   sl_ = build(val).make_slice();
+}
+
+template<typename _Tp>
+__always_inline
+lazy<_Tp> lazy<_Tp>::make_std(int8 workchain, uint256 addr) {
+  lazy<_Tp> rv{ MsgAddressInt{ addr_std{ {}, {}, int8{workchain}, addr } } };
+  return rv;
 }
 
 }} // namespace tvm::schema

@@ -368,6 +368,8 @@ class ASTContext : public RefCountedBase<ASTContext> {
   mutable IdentifierInfo *ReflectMethodPtrArgStructName = nullptr;
   /// The identifier '__reflect_smart_interface'.
   mutable IdentifierInfo *ReflectSmartInterfaceName = nullptr;
+  /// The identifier '__reflect_proxy'.
+  mutable IdentifierInfo *ReflectProxyName = nullptr;
   /// The identifier '__reflect_method_ptr'.
   mutable IdentifierInfo *ReflectMethodPtrName = nullptr;
   // TVM local end
@@ -569,6 +571,7 @@ private:
   mutable BuiltinTemplateDecl *ReflectMethodArgStructDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectMethodPtrArgStructDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectSmartInterfaceDecl = nullptr;
+  mutable BuiltinTemplateDecl *ReflectProxyDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectMethodPtrDecl = nullptr;
   // TVM local end
 
@@ -1091,6 +1094,7 @@ public:
   BuiltinTemplateDecl *getReflectMethodArgStructDecl() const;
   BuiltinTemplateDecl *getReflectMethodPtrArgStructDecl() const;
   BuiltinTemplateDecl *getReflectSmartInterfaceDecl() const;
+  BuiltinTemplateDecl *getReflectProxyDecl() const;
   BuiltinTemplateDecl *getReflectMethodPtrDecl() const;
   // TVM local end
 
@@ -1952,6 +1956,12 @@ public:
     if (!ReflectSmartInterfaceName)
       ReflectSmartInterfaceName = &Idents.get("__reflect_smart_interface");
     return ReflectSmartInterfaceName;
+  }
+
+  IdentifierInfo *getReflectProxyName() const {
+    if (!ReflectProxyName)
+      ReflectProxyName = &Idents.get("__reflect_proxy");
+    return ReflectProxyName;
   }
 
   IdentifierInfo *getReflectMethodPtrName() const {

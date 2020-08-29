@@ -140,6 +140,11 @@ template<unsigned _left_len, unsigned _right_len>
 auto operator*(int_t<_left_len> l, int_t<_right_len> r) {
   return int_t<std::max(_left_len, _right_len)>(l.val_ * r.val_);
 }
+auto operator*(int_t<8> l, int_t<8> r) { return int_t<8>{l.val_ * r.val_}; }
+auto operator*(int_t<16> l, int_t<16> r) { return int_t<16>{l.val_ * r.val_}; }
+auto operator*(int_t<32> l, int_t<32> r) { return int_t<32>{l.val_ * r.val_}; }
+auto operator*(int_t<64> l, int_t<64> r) { return int_t<64>{l.val_ * r.val_}; }
+auto operator*(int_t<128> l, int_t<128> r) { return int_t<128>{l.val_ * r.val_}; }
 template<unsigned _len>
 auto operator*(int_t<_len> l, unsigned r) {
   return int_t<_len>(l.val_ * r);
@@ -681,6 +686,9 @@ struct lazy {
   __always_inline lazy(_Tp val);           // implemented in make_builder.hpp
   __always_inline void operator=(_Tp val); // implemented in make_builder.hpp
   __always_inline void operator=(slice sl) { sl_ = sl; }
+
+  __always_inline
+  static lazy make_std(int8 workchain, uint256 addr); // implemented in make_builder.hpp
 
   DEFAULT_EQUAL(lazy<_Tp>)
   slice sl_;

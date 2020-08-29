@@ -740,6 +740,9 @@ static bool LookupBuiltin(Sema &S, LookupResult &R) {
         } else if (II == S.getASTContext().getReflectSmartInterfaceName()) {
           R.addDecl(S.getASTContext().getReflectSmartInterfaceDecl());
           return true;
+        } else if (II == S.getASTContext().getReflectProxyName()) {
+          R.addDecl(S.getASTContext().getReflectProxyDecl());
+          return true;
         } else if (II == S.getASTContext().getReflectMethodPtrName()) {
           R.addDecl(S.getASTContext().getReflectMethodPtrDecl());
           return true;

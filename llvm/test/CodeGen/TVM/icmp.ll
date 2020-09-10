@@ -33,6 +33,15 @@ define i257 @icmpneq(i257 %par1, i257 %par2) nounwind {
   ret i257 %2
 }
 
+; CHECK-LABEL: icmpneq2
+define i257 @icmpneq2(i257 %par1, i257 %par2) nounwind {
+; CHECK-NOT: SWAP
+; CHECK: NEQ
+  %1 = icmp ne i257 %par2, %par1
+  %2 = select i1 %1, i257 42, i257 77
+  ret i257 %2
+}
+
 ; CHECK-LABEL: icmpneq0
 ; (par != 0) ? 42 : 77  => (par) ? 42 : 77
 define i257 @icmpneq0(i257 %par1) nounwind {
@@ -45,10 +54,19 @@ define i257 @icmpneq0(i257 %par1) nounwind {
   ret i257 %2
 }
 
-; CHECK-LABEL: icmple
-define i257 @icmple(i257 %par1, i257 %par2) nounwind {
+; CHECK-LABEL: icmplt
+define i257 @icmplt(i257 %par1, i257 %par2) nounwind {
 ; CHECK: LESS
   %1 = icmp slt i257 %par1, %par2
+  %2 = select i1 %1, i257 42, i257 77
+  ret i257 %2
+}
+
+; CHECK-LABEL: icmplt_gt
+define i257 @icmplt_gt(i257 %par1, i257 %par2) nounwind {
+; CHECK-NOT: SWAP
+; CHECK: GREATER
+  %1 = icmp slt i257 %par2, %par1
   %2 = select i1 %1, i257 42, i257 77
   ret i257 %2
 }
@@ -61,8 +79,17 @@ define i257 @icmpleq(i257 %par1, i257 %par2) nounwind {
   ret i257 %2
 }
 
-; CHECK-LABEL: icmpge
-define i257 @icmpge(i257 %par1, i257 %par2) nounwind {
+; CHECK-LABEL: icmpleq_ge
+define i257 @icmpleq_ge(i257 %par1, i257 %par2) nounwind {
+; CHECK-NOT: SWAP
+; CHECK: GEQ
+  %1 = icmp sle i257 %par2, %par1
+  %2 = select i1 %1, i257 42, i257 77
+  ret i257 %2
+}
+
+; CHECK-LABEL: icmpgt
+define i257 @icmpgt(i257 %par1, i257 %par2) nounwind {
 ; CHECK: GREATER
   %1 = icmp sgt i257 %par1, %par2
   %2 = select i1 %1, i257 42, i257 77

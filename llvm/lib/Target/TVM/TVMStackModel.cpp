@@ -199,7 +199,11 @@ MachineInstr *TVMStackModel::optimizeReversible(MachineInstr &MI,
                                                       {TVM::STI, TVM::STIR},
                                                       {TVM::STU, TVM::STUR},
                                                       {TVM::STIX, TVM::STIXR},
-                                                      {TVM::STUX, TVM::STUXR}};
+                                                      {TVM::STUX, TVM::STUXR},
+                                                      {TVM::SGT, TVM::SLT},
+                                                      {TVM::SGE, TVM::SLE},
+                                                      {TVM::SLT, TVM::SGT},
+                                                      {TVM::SLE, TVM::SGE}};
   switch (MI.getOpcode()) {
   case TVM::SUB:
   case TVM::STU:
@@ -241,6 +245,27 @@ MachineInstr *TVMStackModel::optimizeReversible(MachineInstr &MI,
                 .addReg(MI.getOperand(2).getReg())
                 .addReg(MI.getOperand(1).getReg())
                 .addReg(MI.getOperand(3).getReg());
+    } else {
+      return nullptr;
+    }
+    break;
+  }
+  case TVM::SGT:
+  case TVM::SGE:
+  case TVM::SLT:
+  case TVM::SLE: {
+    assert(MI.getOperand(0).isReg() && MI.getOperand(1).isReg() &&
+           "Operands must be registers");
+    size_t OrigScore = TheStack.position(MI.getOperand(1).getReg()) == 1;
+    OrigScore += TheStack.position(MI.getOperand(2).getReg()) == 0;
+    size_t RScore = TheStack.position(MI.getOperand(1).getReg()) == 0;
+    RScore += TheStack.position(MI.getOperand(2).getReg()) == 1;
+    if (RScore > OrigScore) {
+      MIB = BuildMI(*MI.getParent(), &MI, MI.getDebugLoc(),
+                    TII->get(OpcodeMap.at(MI.getOpcode())),
+                    MI.getOperand(0).getReg())
+                .addReg(MI.getOperand(2).getReg())
+                .addReg(MI.getOperand(1).getReg());
     } else {
       return nullptr;
     }

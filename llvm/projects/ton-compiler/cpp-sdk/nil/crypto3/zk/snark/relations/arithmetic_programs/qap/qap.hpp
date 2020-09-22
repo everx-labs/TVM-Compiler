@@ -25,7 +25,7 @@
 #include <map>
 #include <memory>
 
-#include <nil/crypto3/algebra/multiexp/multiexp.hpp>
+////#include <nil/crypto3/algebra/multiexp/multiexp.hpp>
 
 #include <nil/crypto3/algebra/random_element.hpp>
 
@@ -35,6 +35,12 @@ namespace nil {
     namespace crypto3 {
         namespace zk {
             namespace snark {
+
+                template<typename FieldType>
+                struct qap_witness;
+
+                template<typename FieldType>
+                struct qap_instance_evaluation;
 
                 /**
                  * A QAP instance.
@@ -94,7 +100,7 @@ namespace nil {
                     qap_instance &operator=(qap_instance<FieldType> &&other) = default;
 
                     bool is_satisfied(const qap_witness<FieldType> &witness) const {
-                        const typename FieldType::value_type t = random_element<FieldType>();
+                        const typename FieldType::value_type t = field_random_element<FieldType>();
 
                         std::vector<typename FieldType::value_type> At(this->num_variables + 1,
                                                                        FieldType::value_type::zero());
@@ -242,7 +248,7 @@ namespace nil {
                         FieldType ans_C = this->Ct[0] + witness.d3 * this->Zt;
                         FieldType ans_H = FieldType::value_type::zero();
 
-                        ans_A = ans_A + algebra::inner_product<FieldType>(this->At.begin() + 1,
+                        /*ans_A = ans_A + algebra::inner_product<FieldType>(this->At.begin() + 1,
                                                                         this->At.begin() + 1 + this->num_variables,
                                                                         witness.coefficients_for_ABCs.begin(),
                                                                         witness.coefficients_for_ABCs.begin() +
@@ -261,7 +267,10 @@ namespace nil {
                                 algebra::inner_product<FieldType>(this->Ht.begin(),
                                                                 this->Ht.begin() + this->degree + 1,
                                                                 witness.coefficients_for_H.begin(),
-                                                                witness.coefficients_for_H.begin() + this->degree + 1);
+                                                                witness.coefficients_for_H.begin() + this->degree + 1);*/
+
+                        // uncomment
+                        // when inner_product ready
 
                         if (ans_A * ans_B - ans_C != ans_H * this->Zt) {
                             return false;

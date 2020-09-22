@@ -9,8 +9,8 @@
 // @file Declaration of interfaces for a protoboard for TinyRAM.
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_ZK_TINYRAM_PROTOBOARD_HPP_
-#define CRYPTO3_ZK_TINYRAM_PROTOBOARD_HPP_
+#ifndef CRYPTO3_ZK_TINYRAM_BLUEPRINT_HPP_
+#define CRYPTO3_ZK_TINYRAM_BLUEPRINT_HPP_
 
 #include <nil/crypto3/zk/snark/components/basic_components.hpp>
 #include <nil/crypto3/zk/snark/blueprint.hpp>
@@ -39,7 +39,7 @@ namespace nil {
                     tinyram_component(tinyram_blueprint<FieldType> &pb);
                 };
 
-                // standard gadgets provide two methods: generate_r1cs_constraints and generate_r1cs_witness
+                // standard components provide two methods: generate_r1cs_constraints and generate_r1cs_witness
                 template<typename FieldType>
                 class tinyram_standard_component : public tinyram_component<FieldType> {
                 public:
@@ -54,18 +54,17 @@ namespace nil {
                 }
 
                 template<typename FieldType>
-                tinyram_component<FieldType>::tinyram_component(tinyram_protoboard<FieldType> &pb) :
+                tinyram_component<FieldType>::tinyram_component(tinyram_blueprint<FieldType> &pb) :
                     component<FieldType>(pb), pb(pb) {
                 }
 
                 template<typename FieldType>
-                tinyram_standard_component<FieldType>::tinyram_standard_component(tinyram_protoboard<FieldType> &pb) :
+                tinyram_standard_component<FieldType>::tinyram_standard_component(tinyram_blueprint<FieldType> &pb) :
                     tinyram_component<FieldType>(pb) {
                 }
-
             }    // namespace snark
         }        // namespace zk
     }            // namespace crypto3
 }    // namespace nil
 
-#endif    // TINYRAM_PROTOBOARD_HPP_
+#endif    // TINYRAM_BLUEPRINT_HPP_

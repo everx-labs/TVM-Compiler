@@ -6,14 +6,14 @@
 // See accompanying file LICENSE_1_0.txt or copy at
 // http://www.boost.org/LICENSE_1_0.txt
 //---------------------------------------------------------------------------//
-// @file Declaration of interfaces for the memory load&store gadget.
+// @file Declaration of interfaces for the memory load&store component.
 //
-// The gadget can be used to verify a memory load, followed by a store to the
+// The component can be used to verify a memory load, followed by a store to the
 // same address, from a "delegated memory".
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_ZK_MEMORY_LOAD_STORE_GADGET_HPP_
-#define CRYPTO3_ZK_MEMORY_LOAD_STORE_GADGET_HPP_
+#ifndef CRYPTO3_ZK_MEMORY_LOAD_STORE_COMPONENT_HPP_
+#define CRYPTO3_ZK_MEMORY_LOAD_STORE_COMPONENT_HPP_
 
 #include <nil/crypto3/zk/snark/components/merkle_tree/merkle_tree_check_update_components.hpp>
 
@@ -30,4 +30,4 @@ namespace nil {
     }        // namespace crypto3
 }    // namespace nil
 
-#endif    // MEMORY_LOAD_STORE_GADGET_HPP_
+#endif    // MEMORY_LOAD_STORE_COMPONENT_HPP_

@@ -26,9 +26,9 @@
 #include <map>
 #include <memory>
 
-#include <nil/crypto3/algebra/multiexp/multiexp.hpp>
+//#include <nil/crypto3/algebra/multiexp/multiexp.hpp>
 
-#include <nil/crypto3/algebra/utils/random_element.hpp>
+#include <nil/crypto3/algebra/random_element.hpp>
 
 #include <nil/crypto3/fft/evaluation_domain.hpp>
 
@@ -88,7 +88,7 @@ namespace nil {
                     sap_instance &operator=(sap_instance<FieldType> &&other) = default;
 
                     bool is_satisfied(const sap_witness<FieldType> &witness) const {
-                        const typename FieldType::value_type t = random_element<FieldType>();
+                        const typename FieldType::value_type t = field_random_element<FieldType>();
 
                         std::vector<typename FieldType::value_type> At(this->num_variables + 1,
                                                                        typename FieldType::value_type::zero());

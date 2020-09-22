@@ -6,11 +6,11 @@
 // See accompanying file LICENSE_1_0.txt or copy at
 // http://www.boost.org/LICENSE_1_0.txt
 //---------------------------------------------------------------------------//
-// @file Declaration of interfaces for an auxiliarry gadget for the FOORAM CPU.
+// @file Declaration of interfaces for an auxiliarry component for the FOORAM CPU.
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_ZK_BAR_GADGET_HPP
-#define CRYPTO3_ZK_BAR_GADGET_HPP
+#ifndef CRYPTO3_ZK_BAR_COMPONENT_HPP
+#define CRYPTO3_ZK_BAR_COMPONENT_HPP
 
 #include <nil/crypto3/zk/snark/component.hpp>
 #include <nil/crypto3/zk/snark/components/basic_components.hpp>
@@ -21,12 +21,12 @@ namespace nil {
             namespace snark {
 
                 /**
-                 * The bar gadget checks linear combination
+                 * The bar component checks linear combination
                  *                   Z = aX + bY (mod 2^w)
                  * for a, b - const, X, Y - vectors of w bits,
                  * where w is implicitly inferred, Z - a packed variable.
                  *
-                 * This gadget is used four times in fooram:
+                 * This component is used four times in fooram:
                  * - PC' = PC + 1
                  * - load_addr = 2 * x + PC'
                  * - store_addr = x + PC
@@ -34,27 +34,27 @@ namespace nil {
                 template<typename FieldType>
                 class bar_component : public component<FieldType> {
                 public:
-                    pb_linear_combination_array<FieldType> X;
+                    blueprint_linear_combination_vector<FieldType> X;
                     typename FieldType::value_type a;
-                    pb_linear_combination_array<FieldType> Y;
+                    blueprint_linear_combination_vector<FieldType> Y;
                     typename FieldType::value_type b;
-                    pb_linear_combination<FieldType> Z_packed;
-                    pb_variable_array<FieldType> Z_bits;
+                    blueprint_linear_combination<FieldType> Z_packed;
+                    blueprint_variable_vector<FieldType> Z_bits;
 
-                    variable<FieldType> result;
-                    pb_variable_array<FieldType> overflow;
-                    pb_variable_array<FieldType> unpacked_result;
+                    blueprint_variable<FieldType> result;
+                    blueprint_variable_vector<FieldType> overflow;
+                    blueprint_variable_vector<FieldType> unpacked_result;
 
                     std::shared_ptr<packing_component<FieldType>> unpack_result;
                     std::shared_ptr<packing_component<FieldType>> pack_Z;
 
                     std::size_t width;
                     bar_component(blueprint<FieldType> &pb,
-                               const pb_linear_combination_array<FieldType> &X,
+                               const blueprint_linear_combination_vector<FieldType> &X,
                                const typename FieldType::value_type &a,
-                               const pb_linear_combination_array<FieldType> &Y,
+                               const blueprint_linear_combination_vector<FieldType> &Y,
                                const typename FieldType::value_type &b,
-                               const pb_linear_combination<FieldType> &Z_packed) :
+                               const blueprint_linear_combination<FieldType> &Z_packed) :
                         component<FieldType>(pb),
                         X(X), a(a), Y(Y), b(b), Z_packed(Z_packed) {
                         assert(X.size() == Y.size());
@@ -87,10 +87,9 @@ namespace nil {
                         pack_Z->generate_r1cs_witness_from_bits();
                     }
                 };
-
             }    // namespace snark
         }        // namespace zk
     }            // namespace crypto3
 }    // namespace nil
 
-#endif    // CRYPTO3_ZK_BAR_GADGET_HPP
+#endif    // CRYPTO3_ZK_BAR_COMPONENT_HPP

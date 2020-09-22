@@ -6,14 +6,14 @@
 // See accompanying file LICENSE_1_0.txt or copy at
 // http://www.boost.org/LICENSE_1_0.txt
 //---------------------------------------------------------------------------//
-// @file Declaration of interfaces for Fp4 gadgets.
+// @file Declaration of interfaces for Fp4 components.
 //
-// The gadgets verify field arithmetic in Fp4 = Fp2[V]/(V^2-U) where
+// The components verify field arithmetic in Fp4 = Fp2[V]/(V^2-U) where
 // Fp2 = Fp[U]/(U^2-non_residue) and non_residue is in Fp.
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_ZK_FP4_GADGETS_HPP
-#define CRYPTO3_ZK_FP4_GADGETS_HPP
+#ifndef CRYPTO3_ZK_FP4_COMPONENTS_HPP
+#define CRYPTO3_ZK_FP4_COMPONENTS_HPP
 
 #include <nil/crypto3/zk/snark/component.hpp>
 #include <nil/crypto3/zk/snark/components/fields/fp2_components.hpp>
@@ -24,13 +24,12 @@ namespace nil {
             namespace snark {
 
                 /**
-                 * Gadget that represents an Fp4 variable.
+                 * Component that represents an Fp4 variable.
                  */
                 template<typename Fp4T>
-                class Fp4_variable : public component<typename Fp4T::my_Fp> {
-                public:
-                    typedef typename Fp4T::my_Fp FieldType;
-                    typedef typename Fp4T::my_Fpe Fp2T;
+                struct Fp4_variable : public component<typename Fp4T::base_field_type> {
+                    typedef typename Fp4T::base_field_type FieldType;
+                    typedef typename Fp4T::underlying_field_type Fp2T;
 
                     Fp2_variable<Fp2T> c0;
                     Fp2_variable<Fp2T> c1;
@@ -47,34 +46,34 @@ namespace nil {
                 };
 
                 /**
-                 * Gadget that creates constraints for Fp4 multiplication (towering formulas).
+                 * Component that creates constraints for Fp4 multiplication (towering formulas).
                  */
                 template<typename Fp4T>
-                class Fp4_tower_mul_component : public component<typename Fp4T::my_Fp> {
+                class Fp4_tower_mul_component : public component<typename Fp4T::base_field_type> {
                 public:
-                    typedef typename Fp4T::my_Fp FieldType;
-                    typedef typename Fp4T::my_Fpe Fp2T;
+                    typedef typename Fp4T::base_field_type FieldType;
+                    typedef typename Fp4T::underlying_field_type Fp2T;
 
                     Fp4_variable<Fp4T> A;
                     Fp4_variable<Fp4T> B;
                     Fp4_variable<Fp4T> result;
 
-                    pb_linear_combination<FieldType> v0_c0;
-                    pb_linear_combination<FieldType> v0_c1;
+                    blueprint_linear_combination<FieldType> v0_c0;
+                    blueprint_linear_combination<FieldType> v0_c1;
 
-                    pb_linear_combination<FieldType> Ac0_plus_Ac1_c0;
-                    pb_linear_combination<FieldType> Ac0_plus_Ac1_c1;
+                    blueprint_linear_combination<FieldType> Ac0_plus_Ac1_c0;
+                    blueprint_linear_combination<FieldType> Ac0_plus_Ac1_c1;
                     std::shared_ptr<Fp2_variable<Fp2T>> Ac0_plus_Ac1;
 
                     std::shared_ptr<Fp2_variable<Fp2T>> v0;
                     std::shared_ptr<Fp2_variable<Fp2T>> v1;
 
-                    pb_linear_combination<FieldType> Bc0_plus_Bc1_c0;
-                    pb_linear_combination<FieldType> Bc0_plus_Bc1_c1;
+                    blueprint_linear_combination<FieldType> Bc0_plus_Bc1_c0;
+                    blueprint_linear_combination<FieldType> Bc0_plus_Bc1_c1;
                     std::shared_ptr<Fp2_variable<Fp2T>> Bc0_plus_Bc1;
 
-                    pb_linear_combination<FieldType> result_c1_plus_v0_plus_v1_c0;
-                    pb_linear_combination<FieldType> result_c1_plus_v0_plus_v1_c1;
+                    blueprint_linear_combination<FieldType> result_c1_plus_v0_plus_v1_c0;
+                    blueprint_linear_combination<FieldType> result_c1_plus_v0_plus_v1_c1;
 
                     std::shared_ptr<Fp2_variable<Fp2T>> result_c1_plus_v0_plus_v1;
 
@@ -91,13 +90,13 @@ namespace nil {
                 };
 
                 /**
-                 * Gadget that creates constraints for Fp4 multiplication (direct formulas).
+                 * Component that creates constraints for Fp4 multiplication (direct formulas).
                  */
                 template<typename Fp4T>
-                class Fp4_direct_mul_component : public component<typename Fp4T::my_Fp> {
+                class Fp4_direct_mul_component : public component<typename Fp4T::base_field_type> {
                 public:
-                    typedef typename Fp4T::my_Fp FieldType;
-                    typedef typename Fp4T::my_Fpe Fp2T;
+                    typedef typename Fp4T::base_field_type FieldType;
+                    typedef typename Fp4T::underlying_field_type Fp2T;
 
                     Fp4_variable<Fp4T> A;
                     Fp4_variable<Fp4T> B;
@@ -116,38 +115,38 @@ namespace nil {
                 };
 
                 /**
-                 * Alias default multiplication gadget
+                 * Alias default multiplication component
                  */
                 template<typename Fp4T>
                 using Fp4_mul_component = Fp4_direct_mul_component<Fp4T>;
 
                 /**
-                 * Gadget that creates constraints for Fp4 squaring.
+                 * Component that creates constraints for Fp4 squaring.
                  */
                 template<typename Fp4T>
-                class Fp4_sqr_component : public component<typename Fp4T::my_Fp> {
+                class Fp4_sqr_component : public component<typename Fp4T::base_field_type> {
                 public:
-                    typedef typename Fp4T::my_Fp FieldType;
-                    typedef typename Fp4T::my_Fpe Fp2T;
+                    typedef typename Fp4T::base_field_type FieldType;
+                    typedef typename Fp4T::underlying_field_type Fp2T;
 
                     Fp4_variable<Fp4T> A;
                     Fp4_variable<Fp4T> result;
 
                     std::shared_ptr<Fp2_variable<Fp2T>> v1;
 
-                    pb_linear_combination<FieldType> v0_c0;
-                    pb_linear_combination<FieldType> v0_c1;
+                    blueprint_linear_combination<FieldType> v0_c0;
+                    blueprint_linear_combination<FieldType> v0_c1;
                     std::shared_ptr<Fp2_variable<Fp2T>> v0;
 
                     std::shared_ptr<Fp2_sqr_component<Fp2T>> compute_v0;
                     std::shared_ptr<Fp2_sqr_component<Fp2T>> compute_v1;
 
-                    pb_linear_combination<FieldType> Ac0_plus_Ac1_c0;
-                    pb_linear_combination<FieldType> Ac0_plus_Ac1_c1;
+                    blueprint_linear_combination<FieldType> Ac0_plus_Ac1_c0;
+                    blueprint_linear_combination<FieldType> Ac0_plus_Ac1_c1;
                     std::shared_ptr<Fp2_variable<Fp2T>> Ac0_plus_Ac1;
 
-                    pb_linear_combination<FieldType> result_c1_plus_v0_plus_v1_c0;
-                    pb_linear_combination<FieldType> result_c1_plus_v0_plus_v1_c1;
+                    blueprint_linear_combination<FieldType> result_c1_plus_v0_plus_v1_c0;
+                    blueprint_linear_combination<FieldType> result_c1_plus_v0_plus_v1_c1;
 
                     std::shared_ptr<Fp2_variable<Fp2T>> result_c1_plus_v0_plus_v1;
 
@@ -161,30 +160,30 @@ namespace nil {
                 };
 
                 /**
-                 * Gadget that creates constraints for Fp4 cyclotomic squaring
+                 * Component that creates constraints for Fp4 cyclotomic squaring
                  */
                 template<typename Fp4T>
-                class Fp4_cyclotomic_sqr_component : public component<typename Fp4T::my_Fp> {
+                class Fp4_cyclotomic_sqr_component : public component<typename Fp4T::base_field_type> {
                 public:
                     /*
                      */
-                    typedef typename Fp4T::my_Fp FieldType;
-                    typedef typename Fp4T::my_Fpe Fp2T;
+                    typedef typename Fp4T::base_field_type FieldType;
+                    typedef typename Fp4T::underlying_field_type Fp2T;
 
                     Fp4_variable<Fp4T> A;
                     Fp4_variable<Fp4T> result;
 
-                    pb_linear_combination<FieldType> c0_expr_c0;
-                    pb_linear_combination<FieldType> c0_expr_c1;
+                    blueprint_linear_combination<FieldType> c0_expr_c0;
+                    blueprint_linear_combination<FieldType> c0_expr_c1;
                     std::shared_ptr<Fp2_variable<Fp2T>> c0_expr;
                     std::shared_ptr<Fp2_sqr_component<Fp2T>> compute_c0_expr;
 
-                    pb_linear_combination<FieldType> A_c0_plus_A_c1_c0;
-                    pb_linear_combination<FieldType> A_c0_plus_A_c1_c1;
+                    blueprint_linear_combination<FieldType> A_c0_plus_A_c1_c0;
+                    blueprint_linear_combination<FieldType> A_c0_plus_A_c1_c1;
                     std::shared_ptr<Fp2_variable<Fp2T>> A_c0_plus_A_c1;
 
-                    pb_linear_combination<FieldType> c1_expr_c0;
-                    pb_linear_combination<FieldType> c1_expr_c1;
+                    blueprint_linear_combination<FieldType> c1_expr_c0;
+                    blueprint_linear_combination<FieldType> c1_expr_c1;
                     std::shared_ptr<Fp2_variable<Fp2T>> c1_expr;
                     std::shared_ptr<Fp2_sqr_component<Fp2T>> compute_c1_expr;
 
@@ -234,7 +233,7 @@ namespace nil {
 
                 template<typename Fp4T>
                 Fp4_variable<Fp4T> Fp4_variable<Fp4T>::Frobenius_map(const std::size_t power) const {
-                    pb_linear_combination<FieldType> new_c0c0, new_c0c1, new_c1c0, new_c1c1;
+                    blueprint_linear_combination<FieldType> new_c0c0, new_c0c1, new_c1c0, new_c1c1;
                     new_c0c0.assign(this->pb, c0.c0);
                     new_c0c1.assign(this->pb, c0.c1 * Fp2T::Frobenius_coeffs_c1[power % 2]);
                     new_c1c0.assign(this->pb, c1.c0 * Fp4T::Frobenius_coeffs_c1[power % 4]);
@@ -398,9 +397,9 @@ namespace nil {
                 template<typename Fp4T>
                 void Fp4_direct_mul_component<Fp4T>::generate_r1cs_constraints() {
                     const typename FieldType::value_type beta = Fp4T::non_residue;
-                    const typename FieldType::value_type u = (FieldType::value_type::zero() - beta).inverse();
+                    const typename FieldType::value_type u = (FieldType::value_type::zero() - beta).inversed();
 
-                    const pb_linear_combination<FieldType> &a0 = A.c0.c0, &a1 = A.c1.c0, &a2 = A.c0.c1, &a3 = A.c1.c1,
+                    const blueprint_linear_combination<FieldType> &a0 = A.c0.c0, &a1 = A.c1.c0, &a2 = A.c0.c1, &a3 = A.c1.c1,
                                                            &b0 = B.c0.c0, &b1 = B.c1.c0, &b2 = B.c0.c1, &b3 = B.c1.c1,
                                                            &c0 = result.c0.c0, &c1 = result.c1.c0, &c2 = result.c0.c1,
                                                            &c3 = result.c1.c1;
@@ -412,8 +411,8 @@ namespace nil {
                     this->pb.add_r1cs_constraint(r1cs_constraint<FieldType>(
                         a0,
                         b0,
-                        u * c0 + beta * u * c2 - beta * u * typename FieldType::value_type(2).inverse() * v1 -
-                            beta * u * typename FieldType::value_type(2).inverse() * v2 + beta * v6));
+                        u * c0 + beta * u * c2 - beta * u * typename FieldType::value_type(2).inversed() * v1 -
+                            beta * u * typename FieldType::value_type(2).inversed() * v2 + beta * v6));
                     this->pb.add_r1cs_constraint(r1cs_constraint<FieldType>(
                         a0 + typename FieldType::value_type(2) * a1 + typename FieldType::value_type(4) * a2 +
                             typename FieldType::value_type(8) * a3,
@@ -423,9 +422,9 @@ namespace nil {
                             typename FieldType::value_type(3) * (typename FieldType::value_type(4) + beta) * u * c2 -
                             typename FieldType::value_type(6) * (typename FieldType::value_type(4) + beta) * u * c3 +
                             (typename FieldType::value_type(24) -
-                             typename FieldType::value_type(3) * beta * typename FieldType::value_type(2).inverse()) *
+                             typename FieldType::value_type(3) * beta * typename FieldType::value_type(2).inversed()) *
                                 u * v1 +
-                            (-typename FieldType::value_type(8) + beta * typename FieldType::value_type(2).inverse()) *
+                            (-typename FieldType::value_type(8) + beta * typename FieldType::value_type(2).inversed()) *
                                 u * v2 -
                             typename FieldType::value_type(3) * (-typename FieldType::value_type(16) + beta) * v6));
                     this->pb.add_r1cs_constraint(r1cs_constraint<FieldType>(
@@ -437,9 +436,9 @@ namespace nil {
                             typename FieldType::value_type(3) * (typename FieldType::value_type(4) + beta) * u * c2 +
                             typename FieldType::value_type(6) * (typename FieldType::value_type(4) + beta) * u * c3 +
                             (typename FieldType::value_type(24) -
-                             typename FieldType::value_type(3) * beta * typename FieldType::value_type(2).inverse()) *
+                             typename FieldType::value_type(3) * beta * typename FieldType::value_type(2).inversed()) *
                                 u * v2 +
-                            (-typename FieldType::value_type(8) + beta * typename FieldType::value_type(2).inverse()) *
+                            (-typename FieldType::value_type(8) + beta * typename FieldType::value_type(2).inversed()) *
                                 u * v1 -
                             typename FieldType::value_type(3) * (-typename FieldType::value_type(16) + beta) * v6));
                     this->pb.add_r1cs_constraint(r1cs_constraint<FieldType>(
@@ -457,7 +456,7 @@ namespace nil {
 
                 template<typename Fp4T>
                 void Fp4_direct_mul_component<Fp4T>::generate_r1cs_witness() {
-                    const pb_linear_combination<FieldType> &a0 = A.c0.c0, &a1 = A.c1.c0, &a2 = A.c0.c1, &a3 = A.c1.c1,
+                    const blueprint_linear_combination<FieldType> &a0 = A.c0.c0, &a1 = A.c1.c0, &a2 = A.c0.c1, &a3 = A.c1.c1,
                                                            &b0 = B.c0.c0, &b1 = B.c1.c0, &b2 = B.c0.c1, &b3 = B.c1.c1;
 
                     this->pb.val(v1) =
@@ -571,14 +570,14 @@ namespace nil {
 
                       Corresponding test code:
 
-                        assert(B.squared() == A + G + my_Fp2(A.c1 * non_residue + my_Fp::one(), A.c0));
-                        assert(this->c1.squared().c0 == F.c1 * my_Fp(2).inverse());
-                        assert(this->c1.squared().c1 == (F.c0 - my_Fp(1)) * (my_Fp(2) * non_residue).inverse());
+                        assert(B.squared() == A + G + underlying_field_type(A.c1 * non_residue + base_field_type::one(), A.c0));
+                        assert(this->c1.squared().c0 == F.c1 * base_field_type(2).inversed());
+                        assert(this->c1.squared().c1 == (F.c0 - base_field_type(1)) * (base_field_type(2) * non_residue).inversed());
                     */
-                    c0_expr_c0.assign(pb, result.c0.c1 * typename FieldType::value_type(2).inverse());
+                    c0_expr_c0.assign(pb, result.c0.c1 * typename FieldType::value_type(2).inversed());
                     c0_expr_c1.assign(pb,
                                       (result.c0.c0 - typename FieldType::value_type(1)) *
-                                          (typename FieldType::value_type(2) * Fp4T::non_residue).inverse());
+                                          (typename FieldType::value_type(2) * Fp4T::non_residue).inversed());
                     c0_expr.reset(new Fp2_variable<Fp2T>(pb, c0_expr_c0, c0_expr_c1));
                     compute_c0_expr.reset(new Fp2_sqr_component<Fp2T>(pb, A.c1, *c0_expr));
 
@@ -588,12 +587,12 @@ namespace nil {
 
                     c1_expr_c0.assign(pb,
                                       (result.c0.c1 + result.c0.c0 - typename FieldType::value_type(1)) *
-                                              typename FieldType::value_type(2).inverse() +
+                                              typename FieldType::value_type(2).inversed() +
                                           result.c1.c0 + typename FieldType::value_type(1));
                     c1_expr_c1.assign(pb,
                                       (result.c0.c0 - typename FieldType::value_type(1)) *
-                                              (typename FieldType::value_type(2) * Fp4T::non_residue).inverse() +
-                                          result.c1.c1 + result.c0.c1 * typename FieldType::value_type(2).inverse());
+                                              (typename FieldType::value_type(2) * Fp4T::non_residue).inversed() +
+                                          result.c1.c1 + result.c0.c1 * typename FieldType::value_type(2).inversed());
                     c1_expr.reset(new Fp2_variable<Fp2T>(pb, c1_expr_c0, c1_expr_c1));
 
                     compute_c1_expr.reset(new Fp2_sqr_component<Fp2T>(pb, *A_c0_plus_A_c1, *c1_expr));
@@ -623,4 +622,4 @@ namespace nil {
     }            // namespace crypto3
 }    // namespace nil
 
-#endif    // CRYPTO3_ZK_FP4_GADGETS_HPP
+#endif    // CRYPTO3_ZK_FP4_COMPONENTS_HPP

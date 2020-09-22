@@ -48,6 +48,18 @@ defm CHKSIGNU : I0<(outs I257 : $result),
                                                            I257  : $key))],
                    "CHKSIGNU", 0xf910>;
 
+defm PRVGRTH16   : I0<(outs I257 : $result), (ins Slice : $slice),
+                   [(set I257 : $result, (int_tvm_prvgrth16 Slice : $slice))],
+                   "PRVGRTH16", 0xf912>;
+
+defm KGGRTH16   : I0<(outs I257 : $result), (ins Slice : $slice),
+                   [(set I257 : $result, (int_tvm_kggrth16 Slice : $slice))],
+                   "KGGRTH16", 0xf913>;
+
+defm CHKGRTH16   : I0<(outs I257 : $result), (ins Slice : $slice),
+                   [(set I257 : $result, (int_tvm_chkgrth16 Slice : $slice))],
+                   "CHKGRTH16", 0xf914>;
+
 def : Pat<(int_tvm_get_temporary_data), (TO_TUPLE_COPY (PUSHC 7))>;
 
 // A.11.4. Configuration primitives.

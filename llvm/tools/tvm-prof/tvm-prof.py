@@ -784,6 +784,9 @@ inst_classes = {
         'SHA256U',
         'CHKSIGNU',
         'CHKSIGNS',
+        'PRVGRTH16',
+        'KGGRTH16',
+        'CHKGRTH16',
 
         # A.11.7. Currency manipulation primitives.
         'LDGRAMS',

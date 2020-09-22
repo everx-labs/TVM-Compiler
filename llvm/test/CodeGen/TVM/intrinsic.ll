@@ -342,6 +342,28 @@ define i257 @chksignu(i257 %hash, slice %signature, i257 %key) {
   %result = call i257 @llvm.tvm.chksignu(i257 %hash, slice %signature, i257 %key)
   ret i257 %result
 }
+
+; CHECK-LABEL: prvgrth16
+define i257 @prvgrth16(slice %sl) {
+; CHECK: PRVGRTH16
+  %result = call i257 @llvm.tvm.prvgrth16(slice %sl)
+  ret i257 %result
+}
+
+; CHECK-LABEL: kggrth16
+define i257 @kggrth16(slice %sl) {
+; CHECK: KGGRTH16
+  %result = call i257 @llvm.tvm.kggrth16(slice %sl)
+  ret i257 %result
+}
+
+; CHECK-LABEL: chkgrth16
+define i257 @chkgrth16(slice %sl) {
+; CHECK: CHKGRTH16
+  %result = call i257 @llvm.tvm.chkgrth16(slice %sl)
+  ret i257 %result
+}
+
 ; =================================== A.13 ====================================
 ; CHECK-LABEL: setcp
 define void @setcp() {
@@ -383,6 +405,9 @@ declare void @llvm.tvm.accept()
 declare i257 @llvm.tvm.chksignu(i257 %hash, slice %signature, i257 %key)
 declare i257 @llvm.tvm.hashcu(cell %cell)
 declare i257 @llvm.tvm.hashsu(slice %sl)
+declare i257 @llvm.tvm.prvgrth16(slice %sl)
+declare i257 @llvm.tvm.kggrth16(slice %sl)
+declare i257 @llvm.tvm.chkgrth16(slice %sl)
 declare void @llvm.tvm.setcp(i257 %codepage)
 declare void @llvm.tvm.dump(i257 %slot)
 declare void @llvm.tvm.dump.value(i257 %slot)

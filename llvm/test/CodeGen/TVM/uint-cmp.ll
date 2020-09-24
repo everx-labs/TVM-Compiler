@@ -6,7 +6,7 @@ target triple = "tvm"
 ; Function Attrs: norecurse nounwind readnone
 define dso_local i257 @ult_test(i257 %a, i257 %b) local_unnamed_addr norecurse nounwind readnone {
 ; CHECK-LABEL: ult_test:
-; CHECK:	PUSH2
+; CHECK:	DUP2
 ; CHECK:	LESS
 ; CHECK:	CONDSEL
 entry:
@@ -18,7 +18,7 @@ entry:
 ; Function Attrs: norecurse nounwind readnone
 define dso_local i257 @ule_test(i257 %a, i257 %b) local_unnamed_addr norecurse nounwind readnone {
 ; CHECK-LABEL: ule_test:
-; CHECK:	PUSH2
+; CHECK:	DUP2
 ; CHECK:	LEQ
 ; CHECK:	CONDSEL
 entry:
@@ -30,7 +30,7 @@ entry:
 ; Function Attrs: norecurse nounwind readnone
 define dso_local i257 @ugt_test(i257 %a, i257 %b) local_unnamed_addr norecurse nounwind readnone {
 ; CHECK-LABEL: ugt_test:
-; CHECK:	PUSH2
+; CHECK:	DUP2
 ; CHECK:	GREATER
 ; CHECK:	CONDSEL
 entry:
@@ -42,7 +42,7 @@ entry:
 ; Function Attrs: norecurse nounwind readnone
 define dso_local i257 @uge_test(i257 %a, i257 %b) local_unnamed_addr norecurse nounwind readnone {
 ; CHECK-LABEL: uge_test:
-; CHECK:	PUSH2
+; CHECK:	DUP2
 ; CHECK:	GEQ
 ; CHECK:	CONDSEL
 entry:

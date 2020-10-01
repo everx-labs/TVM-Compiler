@@ -48,11 +48,17 @@ namespace nil {
                     using Fqk_type = typename basic_policy::Fqk_field;
                     using GT_type = typename basic_policy::gt;
 
-                    using G1_precomp_type = typename policy_type::g1_precomp;
-                    using G2_precomp_type = typename policy_type::g2_precomp;
+                    using G1_precomp = typename policy_type::g1_precomp;
+                    using G2_precomp = typename policy_type::g2_precomp;
+
+                    using affine_ate_G1_precomp = typename policy_type::affine_ate_g1_precomputation;
+                    using affine_ate_G2_precomp = typename policy_type::affine_ate_g2_precomputation;
 
                     using policy_type::precompute_g1;
                     using policy_type::precompute_g2;
+
+                    using policy_type::affine_ate_precompute_g1;
+                    using policy_type::affine_ate_precompute_g2;
 
                     using policy_type::reduced_pairing;
                     using policy_type::pairing;

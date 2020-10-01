@@ -104,17 +104,25 @@ namespace nil {
             }
 
             /*!
-             * @brief
-             * @tparam T
-             * @tparam M
-             * @tparam N
-             * @param v
-             * @param m
-             * @return
+             * @brief computes the product of vector and matrix
+             * @param v an M-vector
+             * @param m an \f$M \times N\f$ matrix
+             * @return an N-vector of type T
              */
             template<typename T, std::size_t M, std::size_t N>
             constexpr vector<T, N> vectmatmul(const vector<T, M> &v, const matrix<T, M, N> &m) {
                 return generate<N>([&v, &m](auto i) { return sum(v * m.column(i)); });
+            }
+
+            /*!
+             * @brief computes the product of matrix and vector
+             * @param m an \f$M \times N\f$ matrix
+             * @param v an N-vector
+             * @return an M-vector of type T
+             */
+            template<typename T, std::size_t M, std::size_t N>
+            constexpr vector<T, M> matvectmul(const matrix<T, M, N> &m, const vector<T, N> &v) {
+                return generate<M>([&v, &m](auto i) { return sum(m.row(i) * v); });
             }
 
             /** @brief Computes the kronecker tensor product
@@ -179,7 +187,7 @@ namespace nil {
                                 m[ip][jp] = m[i][jp];
                                 m[i][jp] = tmp;
                             }
-                            det *= -1;
+                            det = -det;
                             break;
                         }
                     }
@@ -220,7 +228,7 @@ namespace nil {
             /// @private
             template<typename T, std::size_t M, std::size_t N>
             constexpr std::tuple<matrix<T, M, N>, std::size_t, T> gauss_jordan_impl(const matrix<T, M, N> &m) {
-                T tol = std::max(N, M) * std::numeric_limits<T>::epsilon() * mars(m);
+                T tol = T(std::max(N, M)) * std::numeric_limits<T>::epsilon() * mars(m);
                 return gauss_jordan_impl(m, tol);
             }
 
@@ -288,7 +296,7 @@ namespace nil {
             constexpr matrix<T, M, M> inverse(const matrix<T, M, M> &m) {
                 if (rank(m) < M)
                     throw "matrix is not invertible";
-                return submat<M, M>(rref(horzcat(m, identity<T, M>)), 0, M);
+                return submat<M, M>(rref(horzcat(m, get_identity<T, M>())), 0, M);
             }
 
             /** @brief computes the trace

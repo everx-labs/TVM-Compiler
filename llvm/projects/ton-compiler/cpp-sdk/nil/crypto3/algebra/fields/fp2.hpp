@@ -11,14 +11,12 @@
 #define CRYPTO3_ALGEBRA_FIELDS_FP2_EXTENSION_HPP
 
 #include <nil/crypto3/algebra/fields/detail/element/fp2.hpp>
-#include <nil/crypto3/algebra/fields/detail/extension_params/alt_bn128.hpp>
-#include <nil/crypto3/algebra/fields/detail/extension_params/bls12.hpp>
-#include <nil/crypto3/algebra/fields/detail/extension_params/bn128.hpp>
-#include <nil/crypto3/algebra/fields/detail/extension_params/edwards.hpp>
+#include <nil/crypto3/algebra/fields/detail/extension_params/alt_bn128/fp2.hpp>
+#include <nil/crypto3/algebra/fields/detail/extension_params/bls12/fp2.hpp>
+#include <nil/crypto3/algebra/fields/detail/extension_params/bn128/fp2.hpp>
 /*#include <nil/crypto3/algebra/fields/detail/extension_params/frp_v1.hpp>
 #include <nil/crypto3/algebra/fields/detail/extension_params/gost_A.hpp>*/
-#include <nil/crypto3/algebra/fields/detail/extension_params/mnt4.hpp>
-#include <nil/crypto3/algebra/fields/detail/extension_params/mnt6.hpp>
+#include <nil/crypto3/algebra/fields/detail/extension_params/mnt4/fp2.hpp>
 /*#include <nil/crypto3/algebra/fields/detail/extension_params/secp.hpp>
 #include <nil/crypto3/algebra/fields/detail/extension_params/sm2p_v1.hpp>
 #include <nil/crypto3/algebra/fields/detail/extension_params/x962_p.hpp>*/
@@ -37,8 +35,10 @@ namespace nil {
                  */
                 template<typename BaseField>
                 struct fp2 {
-                    typedef BaseField field_type;
-                    typedef field_type policy_type;
+                    typedef BaseField base_field_type;
+                    typedef base_field_type policy_type;
+                    typedef detail::fp2_extension_params<policy_type> extension_policy;
+                    typedef typename extension_policy::underlying_field_type underlying_field_type;
 
                     constexpr static const std::size_t modulus_bits = policy_type::modulus_bits;
                     typedef typename policy_type::modulus_type modulus_type;
@@ -55,9 +55,10 @@ namespace nil {
 
                     // constexpr static const generator_type mul_generator = policy_type::mul_generator;
 
-                    typedef typename detail::element_fp2<detail::fp2_extension_params<policy_type>> value_type;
+                    typedef typename detail::element_fp2<extension_policy> value_type;
 
                     constexpr static const std::size_t arity = 2;
+                    constexpr static const std::size_t value_bits = arity * modulus_bits;
                 };
 
                 template<typename BaseField>

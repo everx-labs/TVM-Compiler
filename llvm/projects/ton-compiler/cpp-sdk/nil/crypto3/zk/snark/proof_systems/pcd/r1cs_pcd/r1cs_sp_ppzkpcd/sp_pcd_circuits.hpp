@@ -23,8 +23,8 @@
 // <http://eprint.iacr.org/2014/595>
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_ZK_SP_PCD_CIRCUITS_HPP_
-#define CRYPTO3_ZK_SP_PCD_CIRCUITS_HPP_
+#ifndef CRYPTO3_ZK_SP_PCD_CIRCUITS_HPP
+#define CRYPTO3_ZK_SP_PCD_CIRCUITS_HPP
 
 #include <nil/crypto3/zk/snark/components/component_from_r1cs.hpp>
 #include <nil/crypto3/zk/snark/components/hashes/crh_component.hpp>
@@ -434,7 +434,7 @@ namespace nil {
 
                 template<typename CurveType>
                 std::size_t sp_compliance_step_pcd_circuit_maker<CurveType>::field_logsize() {
-                    return typename CurveType::scalar_field_type::size_in_bits();
+                    return typename CurveType::scalar_field_type::value_bits;
                 }
 
                 template<typename CurveType>
@@ -529,7 +529,7 @@ namespace nil {
 
                 template<typename CurveType>
                 std::size_t sp_translation_step_pcd_circuit_maker<CurveType>::field_logsize() {
-                    return typename CurveType::scalar_field_type::size_in_bits();
+                    return typename CurveType::scalar_field_type::value_bits;
                 }
 
                 template<typename CurveType>
@@ -611,4 +611,4 @@ namespace nil {
     }            // namespace crypto3
 }    // namespace nil
 
-#endif    // SP_PCD_CIRCUITS_HPP_
+#endif    // CRYPTO3_ZK_SP_PCD_CIRCUITS_HPP

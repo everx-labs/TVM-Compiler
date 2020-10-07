@@ -37,5 +37,14 @@ private:
   slice modified_slice_;
 };
 
+class signature_checker_v2 {
+public:
+  // msg_sl - slice from header begin
+  inline static bool check(slice msg_sl, slice signature, schema::uint256 pubkey) {
+    auto hash = __builtin_tvm_hashsu(msg_sl.get());
+    return __builtin_tvm_chksignu(hash, signature, pubkey.get());
+  }
+};
+
 } // namespace tvm
 

@@ -161,6 +161,13 @@ defm THROWIFNOT : I<(outs), (ins I257:$cond, uimm11:$exception),
                     "THROWIFNOT\t$exception", 0xf2a>;
 }
 
+let isTerminator = 1, isBarrier = 1, hasCtrlDep = 1,
+    hasSideEffects = 1 in
+defm THROWANY : I<(outs), (ins I257:$exception),
+                  (outs), (ins),
+                  [(int_tvm_throw I257:$exception)],
+                  "THROWANY\t$exception", "THROWANY", 0xf2f0>;
+
 // Load and store subroutine calls
 multiclass CALL_LOAD<TVMRegClass RegClass, string suffix> :
     I<(outs RegClass : $value), (ins I257 : $addr),

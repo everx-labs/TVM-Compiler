@@ -31,6 +31,7 @@ struct error_code {
   // test/temp error codes
   static constexpr int non_empty_bits_at_cell_wrap  = 66;
   static constexpr int non_single_refs_at_cell_wrap = 67;
+  static constexpr int no_pubkey                    = 68;
 };
 
 } // namespace tvm

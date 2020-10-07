@@ -372,6 +372,8 @@ class ASTContext : public RefCountedBase<ASTContext> {
   mutable IdentifierInfo *ReflectProxyName = nullptr;
   /// The identifier '__reflect_method_ptr'.
   mutable IdentifierInfo *ReflectMethodPtrName = nullptr;
+  /// The identifier '__reflect_interface_has_pubkey'.
+  mutable IdentifierInfo *ReflectInterfaceHasPubkeyName = nullptr;
   // TVM local end
 
   QualType ObjCConstantStringType;
@@ -573,6 +575,7 @@ private:
   mutable BuiltinTemplateDecl *ReflectSmartInterfaceDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectProxyDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectMethodPtrDecl = nullptr;
+  mutable BuiltinTemplateDecl *ReflectInterfaceHasPubkeyDecl = nullptr;
   // TVM local end
 
   /// The associated SourceManager object.
@@ -1096,6 +1099,7 @@ public:
   BuiltinTemplateDecl *getReflectSmartInterfaceDecl() const;
   BuiltinTemplateDecl *getReflectProxyDecl() const;
   BuiltinTemplateDecl *getReflectMethodPtrDecl() const;
+  BuiltinTemplateDecl *getReflectInterfaceHasPubkeyDecl() const;
   // TVM local end
 
   // Builtin Types.
@@ -1968,6 +1972,12 @@ public:
     if (!ReflectMethodPtrName)
       ReflectMethodPtrName = &Idents.get("__reflect_method_ptr");
     return ReflectMethodPtrName;
+  }
+
+  IdentifierInfo *getReflectInterfaceHasPubkeyName() const {
+    if (!ReflectInterfaceHasPubkeyName)
+      ReflectInterfaceHasPubkeyName = &Idents.get("__reflect_interface_has_pubkey");
+    return ReflectInterfaceHasPubkeyName;
   }
   // TVM local end
 

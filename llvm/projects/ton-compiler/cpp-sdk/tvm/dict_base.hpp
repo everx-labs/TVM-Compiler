@@ -9,12 +9,15 @@
 
 #include <tvm/schema/make_parser.hpp>
 #include <tvm/schema/make_builder.hpp>
+#include <tvm/dict_traits.hpp>
 
 namespace tvm {
 
 template<class Element, unsigned KeyLen>
 class dict_base {
 public:
+  using traits = dict_traits<Element, KeyLen>;
+
   void clear() {
     size_ = 0;
     dict_.clear();
@@ -24,10 +27,7 @@ public:
   schema::uint32 size() const { return size_; }
 
   std::optional<Element> lookup(unsigned key) const {
-    auto [slice, succ] = dict_.dictuget(key, KeyLen);
-    if (succ)
-      return schema::parse<Element>(slice);
-    return {};
+    return traits::lookup(dict_, key);
   }
 
   Element get_or_throw(unsigned key, unsigned exception) const {
@@ -39,44 +39,22 @@ public:
   // Returns {Key, Element, Success} to match the solidity array.min() function
   //  (not {Element, Key, Success} as dictumin returns)
   std::tuple<unsigned, Element, bool> min() const {
-    auto [val, idx, succ] = dict_.dictumin(KeyLen);
-    if (succ)
-      return {idx, schema::parse<Element>(val), succ};
-    return {0, {}, succ};
+    return traits::min(dict_);
   }
   std::tuple<unsigned, Element, bool> next(unsigned idx) const {
-    auto [val, next_idx, succ] = dict_.dictugetnext(idx, KeyLen);
-    if (succ)
-      return {next_idx, schema::parse<Element>(val), succ};
-    return {0, {}, succ};
+    return traits::next(dict_, idx);
   }
   std::tuple<unsigned, Element, bool> max() const {
-    auto [val, idx, succ] = dict_.dictumax(KeyLen);
-    if (succ)
-      return {idx, schema::parse<Element>(val), succ};
-    return {0, {}, succ};
+    return traits::max(dict_);
   }
   std::tuple<unsigned, Element, bool> prev(unsigned idx) const {
-    auto [val, prev_idx, succ] = dict_.dictugetprev(idx, KeyLen);
-    if (succ)
-      return {prev_idx, schema::parse<Element>(val), succ};
-    return {0, {}, succ};
+    return traits::prev(dict_, idx);
   }
   std::tuple<unsigned, Element, bool> rem_min() {
-    auto [val, idx, succ] = dict_.dicturemmin(KeyLen);
-    if (succ) {
-      size_--;
-      return {idx, schema::parse<Element>(val), succ};
-    }
-    return {0, {}, succ};
+    return traits::rem_min(dict_, size_);
   }
   std::tuple<unsigned, Element, bool> rem_max() {
-    auto [val, idx, succ] = dict_.dicturemmax(KeyLen);
-    if (succ) {
-      size_--;
-      return {idx, schema::parse<Element>(val), succ};
-    }
-    return {0, {}, succ};
+    return traits::rem_max(dict_, size_);
   }
 
   schema::uint32 size_;

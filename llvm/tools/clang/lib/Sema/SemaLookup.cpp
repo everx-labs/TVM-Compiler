@@ -746,6 +746,9 @@ static bool LookupBuiltin(Sema &S, LookupResult &R) {
         } else if (II == S.getASTContext().getReflectMethodPtrName()) {
           R.addDecl(S.getASTContext().getReflectMethodPtrDecl());
           return true;
+        } else if (II == S.getASTContext().getReflectInterfaceHasPubkeyName()) {
+          R.addDecl(S.getASTContext().getReflectInterfaceHasPubkeyDecl());
+          return true;
         }
         // TVM local end
       }

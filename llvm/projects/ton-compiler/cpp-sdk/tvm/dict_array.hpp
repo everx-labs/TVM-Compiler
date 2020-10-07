@@ -1,6 +1,9 @@
 #pragma once
 
 #include <tvm/dict_base.hpp>
+#include <tvm/ElementRef.hpp>
+#include <tvm/dictionary_const_iterator.hpp>
+#include <tvm/dictionary_array_iterator.hpp>
 
 namespace tvm {
 
@@ -55,11 +58,11 @@ public:
   }
 
   void push_back(Element elem) {
-    base::dict_.dictuset(schema::build(elem).make_slice(), base::size_.get(), KeyLen);
+    base::traits::set(base::dict_, base::size_.get(), elem);
     ++base::size_;
   }
   void pop_back() {
-    auto [val, idx, succ] = base::dict_.dicturemmax(KeyLen);
+    auto [val, idx, succ] = base::dict_.dictureremmax(KeyLen);
     require(succ, error_code::iterator_overflow);
     --base::size_;
   }
@@ -70,12 +73,12 @@ public:
 
   void set_at(unsigned idx, Element val) {
     require(idx < base::size_, error_code::iterator_overflow);
-    base::dict_.dictuset(schema::build(val).make_slice(), idx, KeyLen);
+    base::traits::set(base::dict_, idx, val);
   }
   Element get_at(unsigned idx) const {
-    auto [slice, succ] = base::dict_.dictuget(idx, KeyLen);
-    tvm_assert(succ, error_code::iterator_overflow);
-    return schema::parse<Element>(slice);
+    auto opt_val = base::lookup(idx);
+    require(!!opt_val, error_code::iterator_overflow);
+    return *opt_val;
   }
 
   Element operator[](unsigned idx) const {

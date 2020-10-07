@@ -82,6 +82,13 @@ let mayLoad = 1 in {
         (int_tvm_dictumin Cell:$dict, I257:$precision))],
       "DICTUMIN\t$result, $key, $status, $dict, $precision",
       "DICTUMIN NULLSWAPIFNOT NULLSWAPIFNOT", 0xf486>;
+  defm DICTUMINREF :
+    I<(outs Cell:$result, I257:$key, I257:$status),
+      (ins Cell:$dict, I257:$precision), (outs), (ins),
+      [(set Cell:$result, I257:$key, I257:$status,
+        (int_tvm_dictuminref Cell:$dict, I257:$precision))],
+      "DICTUMINREF\t$result, $key, $status, $dict, $precision",
+      "DICTUMINREF NULLSWAPIFNOT NULLSWAPIFNOT", 0xf487>;
   defm DICTUGETNEXT :
     I<(outs Slice:$result, I257:$next, I257:$status),
       (ins I257:$key, Cell:$dict, I257:$precision), (outs), (ins),
@@ -89,34 +96,55 @@ let mayLoad = 1 in {
         (int_tvm_dictugetnext I257:$key, Cell:$dict, I257:$precision))],
       "DICTUGETNEXT\t$result, $next, $status, $key, $dict, $precision",
       "DICTUGETNEXT NULLSWAPIFNOT NULLSWAPIFNOT", 0xf47c>;
-    defm DICTUMAX :
-      I<(outs Slice:$result, I257:$key, I257:$status),
-        (ins Cell:$dict, I257:$precision), (outs), (ins),
-        [(set Slice:$result, I257:$key, I257:$status,
-          (int_tvm_dictumax Cell:$dict, I257:$precision))],
-        "DICTUMAX\t$result, $key, $status, $dict, $precision",
-        "DICTUMAX NULLSWAPIFNOT NULLSWAPIFNOT", 0xf48e>;
-    defm DICTUGETPREV :
-      I<(outs Slice:$result, I257:$next, I257:$status),
-        (ins I257:$key, Cell:$dict, I257:$precision), (outs), (ins),
-        [(set Slice:$result, I257:$next, I257:$status,
-          (int_tvm_dictugetprev I257:$key, Cell:$dict, I257:$precision))],
-        "DICTUGETPREV\t$result, $next, $status, $key, $dict, $precision",
-        "DICTUGETPREV NULLSWAPIFNOT NULLSWAPIFNOT", 0xf47a>;
-    defm DICTUREMMIN :
-      I<(outs Cell:$newdict, Slice:$result, I257:$idx, I257:$status),
-        (ins Cell:$dict, I257:$precision), (outs), (ins),
-        [(set Cell:$newdict, Slice:$result, I257:$idx, I257:$status,
-          (int_tvm_dicturemmin Cell:$dict, I257:$precision))],
-        "DICTUREMMIN\t$result, $idx, $status, $dict, $precision",
-        "DICTUREMMIN NULLSWAPIFNOT NULLSWAPIFNOT", 0xf496>;
-    defm DICTUREMMAX :
-      I<(outs Cell:$newdict, Slice:$result, I257:$idx, I257:$status),
-        (ins Cell:$dict, I257:$precision), (outs), (ins),
-        [(set Cell:$newdict, Slice:$result, I257:$idx, I257:$status,
-          (int_tvm_dicturemmax Cell:$dict, I257:$precision))],
-        "DICTUREMMAX\t$result, $idx, $status, $dict, $precision",
-        "DICTUREMMAX NULLSWAPIFNOT NULLSWAPIFNOT", 0xf496>;
+  defm DICTUMAX :
+    I<(outs Slice:$result, I257:$key, I257:$status),
+      (ins Cell:$dict, I257:$precision), (outs), (ins),
+      [(set Slice:$result, I257:$key, I257:$status,
+        (int_tvm_dictumax Cell:$dict, I257:$precision))],
+      "DICTUMAX\t$result, $key, $status, $dict, $precision",
+      "DICTUMAX NULLSWAPIFNOT NULLSWAPIFNOT", 0xf48e>;
+  defm DICTUMAXREF :
+    I<(outs Cell:$result, I257:$key, I257:$status),
+      (ins Cell:$dict, I257:$precision), (outs), (ins),
+      [(set Cell:$result, I257:$key, I257:$status,
+        (int_tvm_dictumax Cell:$dict, I257:$precision))],
+      "DICTUMAXREF\t$result, $key, $status, $dict, $precision",
+      "DICTUMAXREF NULLSWAPIFNOT NULLSWAPIFNOT", 0xf48f>;
+  defm DICTUGETPREV :
+    I<(outs Slice:$result, I257:$next, I257:$status),
+      (ins I257:$key, Cell:$dict, I257:$precision), (outs), (ins),
+      [(set Slice:$result, I257:$next, I257:$status,
+        (int_tvm_dictugetprev I257:$key, Cell:$dict, I257:$precision))],
+      "DICTUGETPREV\t$result, $next, $status, $key, $dict, $precision",
+      "DICTUGETPREV NULLSWAPIFNOT NULLSWAPIFNOT", 0xf47a>;
+  defm DICTUREMMIN :
+    I<(outs Cell:$newdict, Slice:$result, I257:$idx, I257:$status),
+      (ins Cell:$dict, I257:$precision), (outs), (ins),
+      [(set Cell:$newdict, Slice:$result, I257:$idx, I257:$status,
+        (int_tvm_dicturemmin Cell:$dict, I257:$precision))],
+      "DICTUREMMIN\t$result, $idx, $status, $dict, $precision",
+      "DICTUREMMIN NULLSWAPIFNOT NULLSWAPIFNOT", 0xf496>;
+  defm DICTUREMMINREF :
+    I<(outs Cell:$newdict, Cell:$result, I257:$idx, I257:$status),
+      (ins Cell:$dict, I257:$precision), (outs), (ins),
+      [(set Cell:$newdict, Cell:$result, I257:$idx, I257:$status,
+        (int_tvm_dicturemminref Cell:$dict, I257:$precision))],
+      "DICTUREMMINREF\t$result, $idx, $status, $dict, $precision",
+      "DICTUREMMINREF NULLSWAPIFNOT NULLSWAPIFNOT", 0xf497>;
+  defm DICTUREMMAX :
+    I<(outs Cell:$newdict, Slice:$result, I257:$idx, I257:$status),
+      (ins Cell:$dict, I257:$precision), (outs), (ins),
+      [(set Cell:$newdict, Slice:$result, I257:$idx, I257:$status,
+        (int_tvm_dicturemmax Cell:$dict, I257:$precision))],
+      "DICTUREMMAX\t$result, $idx, $status, $dict, $precision",
+      "DICTUREMMAX NULLSWAPIFNOT NULLSWAPIFNOT", 0xf496>;
+  defm DICTUREMMAXREF :
+    I<(outs Cell:$newdict, Cell:$result, I257:$idx, I257:$status),
+      (ins Cell:$dict, I257:$precision), (outs), (ins),
+      [(set Cell:$newdict, Cell:$result, I257:$idx, I257:$status,
+        (int_tvm_dicturemmaxref Cell:$dict, I257:$precision))],
+      "DICTUREMMAXREF\t$result, $idx, $status, $dict, $precision",
+      "DICTUREMMAXREF NULLSWAPIFNOT NULLSWAPIFNOT", 0xf49f>;
 }
 
 let mayStore = 1 in {
@@ -169,6 +197,13 @@ let mayStore = 1 in {
         (int_tvm_dictusetget Slice:$val, I257:$key, Cell:$dict, I257:$precision))],
       "DICTUSETGET\t$newdict, $oldval, $succ, $val, $key, $dict, $precision",
       "DICTUSETGET NULLSWAPIFNOT", 0xf41e>;
+  defm DICTUSETGETREF :
+    I<(outs Cell:$newdict, Cell:$oldval, I257:$succ),
+      (ins Cell:$val, I257:$key, Cell:$dict, I257:$precision), (outs), (ins),
+      [(set Cell:$newdict, Cell:$oldval, I257:$succ,
+        (int_tvm_dictusetgetref Cell:$val, I257:$key, Cell:$dict, I257:$precision))],
+      "DICTUSETGETREF\t$newdict, $oldval, $succ, $val, $key, $dict, $precision",
+      "DICTUSETGETREF NULLSWAPIFNOT", 0xf41f>;
 
   defm DICTREPLACE :
     I<(outs Cell:$newdict, I257:$succ),

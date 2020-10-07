@@ -2,7 +2,7 @@
 
 #include <tvm/smart_contract_info.hpp>
 #include <tvm/schema/basics.hpp>
-#include <tvm/schema/abiv1.hpp>
+#include <tvm/schema/abiv2.hpp>
 
 namespace tvm { namespace replay_attack_protection {
 
@@ -13,8 +13,9 @@ public:
   static inline persistent_t init() {
     return persistent_t(0);
   }
+  template<class Header>
   static inline std::optional<persistent_t> check(
-      schema::abiv1::external_inbound_msg_header hdr, persistent_t last) {
+      Header hdr, persistent_t last) {
     return check(hdr.timestamp.get(), last);
   }
   static inline std::optional<persistent_t> check(unsigned msg_time, persistent_t last) {

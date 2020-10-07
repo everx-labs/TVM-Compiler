@@ -45,6 +45,9 @@ template<class Interface, unsigned Index>
 using get_interface_method_rv = __reflect_method_rv<Interface, Index>;
 template<class Interface, unsigned Index>
 using get_interface_method_arg_struct = __reflect_method_arg_struct<Interface, Index>;
+template<class Interface>
+using get_interface_has_pubkey =
+  __reflect_interface_has_pubkey<std::integral_constant, bool, Interface>;
 
 template<auto MethodPtr>
 using args_struct_t = __reflect_method_ptr_arg_struct<MethodPtr>;

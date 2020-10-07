@@ -3584,6 +3584,24 @@ checkBuiltinTemplateIdType(Sema &SemaRef, BuiltinTemplateDecl *BTD,
     return SemaRef.CheckTemplateIdType(Proxy.getAsTemplate(),
                                        TemplateLoc, SyntheticTemplateArgs);
   }
+  case BTK__reflect_interface_has_pubkey: {
+    ASTContext &Context = SemaRef.getASTContext();
+    assert(Converted.size() == 3 &&
+      "__reflect_interface_has_pubkey'<T, IntType, Interface>");
+    TemplateArgument IntType = Converted[1], InterfaceArg = Converted[2];
+    QualType InterfaceTy = InterfaceArg.getAsType();
+    QualType IntTy = IntType.getAsType();
+    llvm::APSInt Rv(static_cast<uint32_t>(Context.getTypeSize(IntTy)));
+    Rv = !InterfaceTy.getTypePtr()->isTVMNoPubkeyInterfaceType();
+
+    TemplateArgumentListInfo SyntheticTemplateArgs;
+    SyntheticTemplateArgs.addArgument(TemplateArgs[1]);
+    TemplateArgument RvArg(Context, Rv, IntTy);
+    SyntheticTemplateArgs.addArgument(SemaRef.getTrivialTemplateArgumentLoc(
+        RvArg, IntTy, TemplateArgs[0].getLocation()));
+    return SemaRef.CheckTemplateIdType(Converted[0].getAsTemplate(),
+                                       TemplateLoc, SyntheticTemplateArgs);
+  }
   // TVM local end
   }
   llvm_unreachable("unexpected BuiltinTemplateDecl!");

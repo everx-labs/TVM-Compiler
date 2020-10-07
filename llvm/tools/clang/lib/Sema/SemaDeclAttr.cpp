@@ -6379,6 +6379,9 @@ static void ProcessDeclAttribute(Sema &S, Scope *scope, Decl *D,
     handleSimpleAttribute<TVMTupleStructAttr>(S, D, AL);
     D->setLiteral();
     break;
+  case ParsedAttr::AT_TVMNoPubkeyInterface:
+    handleSimpleAttribute<TVMNoPubkeyInterfaceAttr>(S, D, AL);
+    break;
   case ParsedAttr::AT_TVMRawFunc:
     handleSimpleAttribute<TVMRawFuncAttr>(S, D, AL);
     break;

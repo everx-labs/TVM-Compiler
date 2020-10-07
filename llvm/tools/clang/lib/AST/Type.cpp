@@ -3962,6 +3962,14 @@ bool Type::isTVMTupleStructType() const {
   return false;
 }
 
+bool Type::isTVMNoPubkeyInterfaceType() const {
+  if (const auto *RT = getAs<RecordType>())
+    return RT->getDecl()->hasAttr<TVMNoPubkeyInterfaceAttr>();
+  if (const auto *typedefType = dyn_cast<TypedefType>(this))
+    return typedefType->getDecl()->hasAttr<TVMNoPubkeyInterfaceAttr>();
+  return false;
+}
+
 bool Type::isTVMLiteralStructType() const {
   if (const auto *RT = getAs<RecordType>())
     return RT->getDecl()->isLiteral() &&

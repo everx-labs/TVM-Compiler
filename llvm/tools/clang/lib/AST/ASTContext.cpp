@@ -1197,6 +1197,14 @@ ASTContext::getReflectMethodPtrDecl() const {
   return ReflectMethodPtrDecl;
 }
 
+BuiltinTemplateDecl *
+ASTContext::getReflectInterfaceHasPubkeyDecl() const {
+  if (!ReflectInterfaceHasPubkeyDecl)
+    ReflectInterfaceHasPubkeyDecl = buildBuiltinTemplateDecl(
+        BTK__reflect_interface_has_pubkey, getReflectInterfaceHasPubkeyName());
+  return ReflectInterfaceHasPubkeyDecl;
+}
+
 RecordDecl *ASTContext::buildImplicitRecord(StringRef Name,
                                             RecordDecl::TagKind TK,
                                             SourceLocation Loc) const {

@@ -2,6 +2,7 @@ set(TVM_CXX_HEADERS
   boost
   std
   tvm
+  sha256_literal
 )
 
 add_custom_target(tvm-cxx-headers ALL DEPENDS ${TVM_CXX_HEADERS})

@@ -208,6 +208,9 @@ struct dyn_chain_parser_impl<IsTop, std::tuple<Elems...>> {
         using est_last_t = schema::estimate_element<last_elem_t>;
         auto [last_bits, last_refs] = p.sl().sbitrefs();
         if (check_sure_unparsable<IsTop, est_last_t>(last_bits, last_refs)) {
+          // TODO: investigate problem with RootTokenContractNF constructor without this `if`
+          if (last_refs != 1)
+            tvm_throw(error_code::non_single_refs_at_cell_wrap);
           require(last_bits == 0, error_code::non_empty_bits_at_cell_wrap);
           require(last_refs == 1, error_code::non_single_refs_at_cell_wrap);
           p = parser(p.ldrefrtos());

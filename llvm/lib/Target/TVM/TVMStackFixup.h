@@ -13,6 +13,7 @@
 #include <deque>
 #include <optional>
 #include <sstream>
+#include <unordered_map>
 #include <variant>
 
 #include "llvm/CodeGen/MachineInstrBuilder.h"
@@ -304,6 +305,9 @@ public:
   }
 
   void annotate(const Stack &stack);
+
+  /// Calculates gas cost of the instructions in the fixup.
+  unsigned cost() const;
 
   static Change makeRoll(unsigned deepElem);
   static Change makeRollRev(unsigned toDeepElem);

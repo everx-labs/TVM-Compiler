@@ -32,6 +32,7 @@ add_llvm_target(TVMCodeGen
   TVMRegStackify.cpp
   TVMRegNumbering.cpp
   TVMPeephole.cpp
+  TVMScheduler.cpp
   TVMStack.cpp
   TVMStackBlockInfo.cpp
   TVMStackFixup.cpp

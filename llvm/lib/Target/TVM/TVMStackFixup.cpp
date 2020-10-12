@@ -754,4 +754,12 @@ void StackFixup::InstructionGenerator::operator()(const StackFixup &v) const {
   llvm::for_each(v.getChanges(), *this);
 }
 
+unsigned StackFixup::cost() const {
+  unsigned result = 0;
+  for (auto ChangePair : Changes) {
+    result += 16;
+  }
+  return result;
+}
+
 } // namespace llvm

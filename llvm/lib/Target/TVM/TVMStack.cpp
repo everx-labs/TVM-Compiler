@@ -44,13 +44,19 @@ static bool isKilled(const MachineInstr &MI, unsigned Register,
   return false;
 }
 
-MIArgs::MIArgs(MachineInstr &MI, const LiveIntervals &LIS, SlotIndex LIIndex) {
+MIArgs::MIArgs(MachineInstr &MI, const LiveIntervals &LIS, SlotIndex LIIndex)
+  : MIArgs(MI, LIS, LIIndex, {}) {}
+
+MIArgs::MIArgs(MachineInstr &MI, const LiveIntervals &LIS, SlotIndex LIIndex,
+               const std::unordered_map<unsigned, unsigned> &Corrections) {
   auto regUses = llvm::make_filter_range(MI.uses(),
                    [](const MachineOperand &Op) { return Op.isReg(); });
   for (auto Arg : regUses) {
     auto Vreg = Arg.isUndef() ? TVMFunctionInfo::UnusedReg : Arg.getReg();
     bool Killed =
         Arg.isUndef() ? true : isKilled(MI, Arg.getReg(), LIS, LIIndex);
+    if (!Corrections.empty())
+      Killed &= Corrections.at(Vreg) == 1u;
     Args.emplace_back(StackVreg(Vreg), Killed);
   }
 }

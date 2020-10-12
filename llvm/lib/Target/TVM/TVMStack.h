@@ -38,12 +38,22 @@ struct MIArg {
   StackVreg Vreg;
   bool IsKilled;
 };
+
 class MIArgs {
 public:
   MIArgs() = default;
+  /// Construct MIArguments for \p MI using live intervals info at \p LIIndex.
   MIArgs(MachineInstr &MI, const LiveIntervals &LIS, SlotIndex LIIndex);
+  /// Construct MIArguments for \p MI.
+  /// Unlike another constructor \p LIIndex is intended to point to the end of
+  /// the BB \p MI belongs to. The info is updated using \p Corrections map
+  /// which contain number of uses of VRs in the rest of the BB. The constructor
+  /// is for scheduling where LI at MI can't be relied on.
+  MIArgs(MachineInstr &MI, const LiveIntervals &LIS, SlotIndex LIIndex,
+         const std::unordered_map<unsigned, unsigned> &Corrections);
   size_t size() const { return Args.size(); }
   const SmallVector<MIArg, 4> &getArgs() const { return Args; }
+
 private:
   SmallVector<MIArg, 4> Args;
 };
@@ -111,6 +121,10 @@ public:
   }
   size_t position(unsigned Reg) const {
     return std::distance(std::begin(Data), llvm::find_or_fail(Data, Reg));
+  }
+  /// Return if \p Elem is on the stack.
+  bool has(const StackVreg& Elem) const {
+    return llvm::exist(Data, Elem);
   }
   /// Return position of \par N occurrence of \par Elem from stack deep
   /// \par N - starts from 0

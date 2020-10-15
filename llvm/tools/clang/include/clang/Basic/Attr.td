@@ -1646,57 +1646,86 @@ def ObjCIndependentClass : InheritableAttr {
 
 // TVM local begin
 def TVMTupleStruct : InheritableAttr {
-  let Spellings = [Clang<"tvm_tuple">];
+  let Spellings = [GCC<"tvm_tuple">, CXX11<"", "tvm_tuple", 201309>,
+                   C2x<"", "tvm_tuple">];
   let Documentation = [Undocumented];
   let MeaningfulToClassTemplateDefinition = 1;
 }
 def TVMNoPubkeyInterface : InheritableAttr {
-  let Spellings = [Clang<"no_pubkey">];
+  let Spellings = [GCC<"no_pubkey">, CXX11<"", "no_pubkey", 201309>,
+                   C2x<"", "no_pubkey">];
   let Documentation = [Undocumented];
   let MeaningfulToClassTemplateDefinition = 1;
 }
 def TVMRawFunc : Attr {
-  let Spellings = [Clang<"tvm_raw_func">];
+  let Spellings = [GCC<"tvm_raw_func">, CXX11<"", "tvm_raw_func", 201309>,
+                   C2x<"", "tvm_raw_func">];
   let Documentation = [Undocumented];
   let Subjects = SubjectList<[Function]>;
 }
 def TVMInternalFunc : Attr {
-  let Spellings = [Clang<"internal">];
+  let Spellings = [GCC<"internal">, CXX11<"", "internal", 201309>,
+                   C2x<"", "internal">];
   let Documentation = [Undocumented];
   let Subjects = SubjectList<[Function]>;
 }
-def TVMExternalFunc : Attr {
-  let Spellings = [Clang<"external">];
+def TVMExternalFunc : InheritableAttr {
+  let Spellings = [GCC<"external">, CXX11<"", "external", 201309>,
+                   C2x<"", "external">];
   let Documentation = [Undocumented];
   let Subjects = SubjectList<[Function]>;
 }
 def TVMGetterFunc : Attr {
-  let Spellings = [Clang<"getter">];
+  let Spellings = [GCC<"getter">, CXX11<"", "getter", 201309>,
+                   C2x<"", "getter">];
   let Documentation = [Undocumented];
   let Subjects = SubjectList<[Function]>;
 }
 def TVMNoAcceptFunc : Attr {
-  let Spellings = [Clang<"noaccept">];
+  let Spellings = [GCC<"noaccept">, CXX11<"", "noaccept", 201309>,
+                   C2x<"", "noaccept">];
   let Documentation = [Undocumented];
   let Subjects = SubjectList<[Function]>;
 }
-def TVMDynChainParseFunc : Attr {
-  let Spellings = [Clang<"dyn_chain_parse">];
+def TVMImplicitFuncIdFunc : InheritableAttr {
+  let Spellings = [GCC<"implicit_func_id">,
+                   CXX11<"", "implicit_func_id", 201309>,
+                   C2x<"", "implicit_func_id">];
+  let Documentation = [Undocumented];
+  let Subjects = SubjectList<[Function]>;
+}
+def TVMDynChainParseFunc : InheritableAttr {
+  let Spellings = [GCC<"dyn_chain_parse">,
+                   CXX11<"", "dyn_chain_parse", 201309>,
+                   C2x<"", "dyn_chain_parse">];
+  let Documentation = [Undocumented];
+  let Subjects = SubjectList<[Function]>;
+}
+def TVMReturnNameFunc : InheritableAttr {
+  let Spellings = [GCC<"return_name">, CXX11<"", "return_name", 201309>,
+                   C2x<"", "return_name">];
+  let Args = [StringArgument<"ReturnName">];
+  let MeaningfulToClassTemplateDefinition = 1;
   let Documentation = [Undocumented];
   let Subjects = SubjectList<[Function]>;
 }
 def TVMNoReadPersistentFunc : Attr {
-  let Spellings = [Clang<"no_read_persistent">];
+  let Spellings = [GCC<"no_read_persistent">,
+                   CXX11<"", "no_read_persistent", 201309>,
+                   C2x<"", "no_read_persistent">];
   let Documentation = [Undocumented];
   let Subjects = SubjectList<[Function]>;
 }
 def TVMNoWritePersistentFunc : Attr {
-  let Spellings = [Clang<"no_write_persistent">];
+  let Spellings = [GCC<"no_write_persistent">,
+                   CXX11<"", "no_write_persistent", 201309>,
+                   C2x<"", "no_write_persistent">];
   let Documentation = [Undocumented];
   let Subjects = SubjectList<[Function]>;
 }
 def TVMNoPersistentFunc : Attr {
-  let Spellings = [Clang<"no_persistent">];
+  let Spellings = [GCC<"no_persistent">, CXX11<"", "no_persistent", 201309>,
+                   C2x<"", "no_persistent">];
   let Documentation = [Undocumented];
   let Subjects = SubjectList<[Function]>;
 }

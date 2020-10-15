@@ -18,6 +18,8 @@ using get_interface_methods_count =
 template<class Interface, unsigned Index>
 using get_interface_method_name = __reflect_method_name<hana::string, Interface, Index>;
 template<class Interface, unsigned Index>
+using get_interface_return_name = __reflect_return_name<hana::string, Interface, Index>;
+template<class Interface, unsigned Index>
 using get_interface_method_func_id =
   __reflect_method_func_id<std::integral_constant, unsigned, Interface, Index>;
 template<class Interface, unsigned Index>
@@ -32,6 +34,9 @@ using get_interface_method_getter =
 template<class Interface, unsigned Index>
 using get_interface_method_noaccept =
   __reflect_method_noaccept<std::integral_constant, bool, Interface, Index>;
+template<class Interface, unsigned Index>
+using get_interface_method_implicit_func_id =
+  __reflect_method_implicit_func_id<std::integral_constant, bool, Interface, Index>;
 template<class Interface, unsigned Index>
 using get_interface_method_dyn_chain_parse =
   __reflect_method_dyn_chain_parse<std::integral_constant, bool, Interface, Index>;

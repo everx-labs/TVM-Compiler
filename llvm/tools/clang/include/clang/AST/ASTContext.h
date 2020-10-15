@@ -342,6 +342,8 @@ class ASTContext : public RefCountedBase<ASTContext> {
   mutable IdentifierInfo *ReflectMethodsCountName = nullptr;
   /// The identifier '__reflect_method_name'.
   mutable IdentifierInfo *ReflectMethodNameName = nullptr;
+  /// The identifier '__reflect_return_name'.
+  mutable IdentifierInfo *ReflectReturnNameName = nullptr;
   /// The identifier '__reflect_method_func_id'.
   mutable IdentifierInfo *ReflectMethodFuncIdName = nullptr;
   /// The identifier '__reflect_method_internal'.
@@ -352,6 +354,8 @@ class ASTContext : public RefCountedBase<ASTContext> {
   mutable IdentifierInfo *ReflectMethodGetterName = nullptr;
   /// The identifier '__reflect_method_noaccept'.
   mutable IdentifierInfo *ReflectMethodNoAcceptName = nullptr;
+  /// The identifier '__reflect_method_implicit_func_id'.
+  mutable IdentifierInfo *ReflectMethodImplicitFuncIdName = nullptr;
   /// The identifier '__reflect_method_dyn_chain_parse'.
   mutable IdentifierInfo *ReflectMethodDynChainParseName = nullptr;
   /// The identifier '__reflect_method_no_read_persistent'.
@@ -560,11 +564,13 @@ private:
   mutable BuiltinTemplateDecl *ReflectFieldsCountDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectMethodsCountDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectMethodNameDecl = nullptr;
+  mutable BuiltinTemplateDecl *ReflectReturnNameDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectMethodFuncIdDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectMethodInternalDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectMethodExternalDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectMethodGetterDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectMethodNoAcceptDecl = nullptr;
+  mutable BuiltinTemplateDecl *ReflectMethodImplicitFuncIdDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectMethodDynChainParseDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectMethodNoReadPersistentDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectMethodNoWritePersistentDecl = nullptr;
@@ -1084,11 +1090,13 @@ public:
   BuiltinTemplateDecl *getReflectFieldsCountDecl() const;
   BuiltinTemplateDecl *getReflectMethodsCountDecl() const;
   BuiltinTemplateDecl *getReflectMethodNameDecl() const;
+  BuiltinTemplateDecl *getReflectReturnNameDecl() const;
   BuiltinTemplateDecl *getReflectMethodFuncIdDecl() const;
   BuiltinTemplateDecl *getReflectMethodInternalDecl() const;
   BuiltinTemplateDecl *getReflectMethodExternalDecl() const;
   BuiltinTemplateDecl *getReflectMethodGetterDecl() const;
   BuiltinTemplateDecl *getReflectMethodNoAcceptDecl() const;
+  BuiltinTemplateDecl *getReflectMethodImplicitFuncIdDecl() const;
   BuiltinTemplateDecl *getReflectMethodDynChainParseDecl() const;
   BuiltinTemplateDecl *getReflectMethodNoReadPersistentDecl() const;
   BuiltinTemplateDecl *getReflectMethodNoWritePersistentDecl() const;
@@ -1882,6 +1890,12 @@ public:
     return ReflectMethodNameName;
   }
 
+  IdentifierInfo *getReflectReturnNameName() const {
+    if (!ReflectReturnNameName)
+      ReflectReturnNameName = &Idents.get("__reflect_return_name");
+    return ReflectReturnNameName;
+  }
+
   IdentifierInfo *getReflectMethodFuncIdName() const {
     if (!ReflectMethodFuncIdName)
       ReflectMethodFuncIdName = &Idents.get("__reflect_method_func_id");
@@ -1910,6 +1924,12 @@ public:
     if (!ReflectMethodNoAcceptName)
       ReflectMethodNoAcceptName = &Idents.get("__reflect_method_noaccept");
     return ReflectMethodNoAcceptName;
+  }
+
+  IdentifierInfo *getReflectMethodImplicitFuncIdName() const {
+    if (!ReflectMethodImplicitFuncIdName)
+      ReflectMethodImplicitFuncIdName = &Idents.get("__reflect_method_implicit_func_id");
+    return ReflectMethodImplicitFuncIdName;
   }
 
   IdentifierInfo *getReflectMethodDynChainParseName() const {

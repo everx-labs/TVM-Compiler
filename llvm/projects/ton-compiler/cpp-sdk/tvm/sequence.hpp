@@ -4,6 +4,7 @@
 #include <tvm/schema/make_parser.hpp>
 #include <tvm/schema/make_builder.hpp>
 #include <tvm/schema/get_bitsize.hpp>
+#include <experimental/type_traits>
 
 namespace tvm {
 
@@ -12,6 +13,53 @@ constexpr size_t strlength(const char* str) {
   size_t __len = 0;
   for (; str[__len]; ++__len);
   return __len;
+}
+
+template<unsigned Count, class Iterator>
+__always_inline
+constexpr unsigned combine_bytes(Iterator it) {
+  constexpr unsigned BYTE_SZ = 8;
+  if constexpr (Count > 1)
+    return (*it << (BYTE_SZ * (Count - 1))) | combine_bytes<Count - 1>(std::next(it));
+  else
+    return *it;
+}
+
+template<unsigned Size, class Iterator>
+__always_inline
+cell string_into_cells(Iterator it) {
+  constexpr unsigned MAX_UINT_SZ = 256;
+  constexpr unsigned BYTE_SZ = 8;
+  constexpr unsigned MAX_BYTES_IN_CELL = cell::max_bits / BYTE_SZ;
+  constexpr unsigned MAX_BYTES_IN_UINT = MAX_UINT_SZ / BYTE_SZ;
+
+  builder b;
+  if constexpr (Size > MAX_BYTES_IN_CELL) {
+    cell next_cell = string_into_cells<Size - MAX_BYTES_IN_CELL, Iterator>(
+      std::next(it, MAX_BYTES_IN_CELL));
+    b.stref(next_cell);
+  }
+  if constexpr (Size >= MAX_BYTES_IN_UINT) {
+    unsigned value = combine_bytes<MAX_BYTES_IN_UINT>(it);
+    b.stu(value, MAX_UINT_SZ);
+    std::advance(it, MAX_BYTES_IN_UINT);
+  }
+  if constexpr (Size >= 2 * MAX_BYTES_IN_UINT) {
+    unsigned value = combine_bytes<MAX_BYTES_IN_UINT>(it);
+    b.stu(value, MAX_UINT_SZ);
+    std::advance(it, MAX_BYTES_IN_UINT);
+  }
+  if constexpr (Size >= 3 * MAX_BYTES_IN_UINT) {
+    unsigned value = combine_bytes<MAX_BYTES_IN_UINT>(it);
+    b.stu(value, MAX_UINT_SZ);
+    std::advance(it, MAX_BYTES_IN_UINT);
+  }
+  if constexpr (Size % MAX_BYTES_IN_UINT) {
+    static constexpr unsigned Rest = Size % MAX_BYTES_IN_UINT;
+    unsigned value = combine_bytes<Rest>(it);
+    b.stu(value, Rest * BYTE_SZ);
+  }
+  return b.make_cell();
 }
 
 // Array represented in flat sequence of elements
@@ -24,36 +72,48 @@ class sequence {
 public:
   // WARNING: this is not constructor of empty sequence, this is null sequence
   // use sequence::create() for empty sequence construction
+  __always_inline
   sequence() {}
+  __always_inline
   sequence(cell cl) : cl_(cl) {}
+  __always_inline
   sequence(std::initializer_list<Element> il) {
     assign(il.begin(), il.end());
   }
+  __always_inline
   sequence(std::initializer_list<int> il) {
     assign(il.begin(), il.end());
   }
-  constexpr sequence(const char* str) {
-    assign(str, str + strlength(str));
+  template <std::size_t N>
+  __always_inline
+  constexpr sequence(const char (&str) [N]) {
+    cl_ = string_into_cells<N>(str);
   }
 
+  __always_inline
   sequence& operator=(std::initializer_list<Element> il) {
     assign(il.begin(), il.end());
     return *this;
   }
+  __always_inline
   sequence& operator=(std::initializer_list<int> il) {
     assign(il.begin(), il.end());
     return *this;
   }
-  constexpr sequence& operator=(const char* str) {
-    assign(str, str + strlength(str));
+  template <std::size_t N>
+  __always_inline
+  constexpr sequence& operator=(const char (&str) [N]) {
+    cl_ = string_into_cells<N>(str);
     return *this;
   }
 
+  __always_inline
   static sequence create() {
     return sequence(builder().make_cell());
   }
 
   template<class _Iterator>
+  __always_inline
   void assign(_Iterator __first, _Iterator __last) {
     tuple_stack<builder> bldrs;
     bldrs.push(builder());
@@ -91,6 +151,7 @@ public:
   }
 
   template<class Func>
+  __always_inline
   void enumerate(Func func) {
     slice cur_sl = cl_.ctos();
 
@@ -153,11 +214,13 @@ public:
       auto [=elem_, =p_] = schema::parse_continue<Element>(p_);
       return *this;
     }
+    __always_inline
     bool operator==(const_iterator v) const {
       bool left_end = is_end();
       bool right_end = v.is_end();
       return left_end && right_end;
     }
+    __always_inline
     bool operator!=(const_iterator v) const {
       return !(*this == v);
     }

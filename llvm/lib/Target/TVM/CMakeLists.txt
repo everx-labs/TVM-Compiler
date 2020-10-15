@@ -41,6 +41,7 @@ add_llvm_target(TVMCodeGen
   TVMUtilities.cpp
   TVMContinuationsHoist.cpp
   TVMLoadStoreReplace.cpp
+  TVMMoveMaterializable.cpp
   TVMIfConversionTerm.cpp
   TVMLowerIntrinsics.cpp
 )

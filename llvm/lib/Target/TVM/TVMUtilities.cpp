@@ -31,6 +31,11 @@ bool TVM::isArgumentNum(const MachineInstr &MI) {
   return MI.getOpcode() == TVM::ARGUMENT_NUM;
 }
 
+bool TVM::isConstInt(const MachineInstr &MI) {
+  return MI.getOpcode() == TVM::CONST_I257
+         || MI.getOpcode() == TVM::CONST_U257;
+}
+
 // A shortcut overload for BuildMI() function
 MachineInstrBuilder llvm::BuildMI(MachineInstr *InsertPoint,
                                   const MCInstrDesc &InstrDesc) {

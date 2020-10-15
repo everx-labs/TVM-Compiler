@@ -113,10 +113,13 @@ __always_inline schema::lazy<schema::MsgAddressExt> ext_return_address(Contract 
     return ext_msg().unpack().ext_sender();
 }
 
-template<class Contract, class ReturnValue>
+template<bool ImplicitFuncId, class Contract, class ReturnValue>
 __always_inline void send_external_answer(Contract c, unsigned func_id, ReturnValue rv) {
+  // TODO: re-think in design, answer_id should have (1 << 31) bit set for implicit func_id,
+  // and should not be changed for explicit func_id
+  unsigned answer_id = ImplicitFuncId ? schema::abiv2::answer_id(func_id) : func_id;
   using namespace schema;
-  abiv2::external_outbound_msg_header hdr{ uint32(func_id) };
+  abiv2::external_outbound_msg_header hdr{ uint32(answer_id) };
   auto hdr_plus_rv = std::make_tuple(hdr, rv);
   ext_out_msg_info_relaxed out_info;
   out_info.src = addr_none{};
@@ -213,12 +216,12 @@ __always_inline void send_internal_answer(Contract c, unsigned func_id, ReturnVa
   }
 }
 
-template<bool Internal, class Contract, class ReturnValue>
+template<bool Internal, bool ImplicitFuncId, class Contract, class ReturnValue>
 __always_inline void send_answer(Contract c, unsigned func_id, ReturnValue rv) {
   if constexpr (Internal)
     send_internal_answer(c, func_id, rv);
   else
-    send_external_answer(c, func_id, rv);
+    send_external_answer<ImplicitFuncId>(c, func_id, rv);
 }
 
 struct no_replay_protection {
@@ -319,6 +322,7 @@ struct smart_switcher_impl {
       MsgHeader hdr, cell msg, slice msg_body, slice body_from_header) {
     constexpr bool is_getter = get_interface_method_getter<IContract, Index>::value;
     constexpr bool is_noaccept = get_interface_method_noaccept<IContract, Index>::value;
+    constexpr bool is_implicit_func_id = get_interface_method_implicit_func_id<IContract, Index>::value;
     constexpr bool is_internal = get_interface_method_internal<IContract, Index>::value;
     constexpr bool is_external = get_interface_method_external<IContract, Index>::value;
     constexpr bool is_dyn_chain_parse = get_interface_method_dyn_chain_parse<IContract, Index>::value;
@@ -436,10 +440,10 @@ struct smart_switcher_impl {
                 c.set_persistent_data_header(persistent_data_header);
             } else {
               if constexpr (!std::is_same_v<rv_t, resumable<void>>)
-                send_answer<Internal>(c, hdr.function_id(), rv.return_val());
+                send_answer<Internal, is_implicit_func_id>(c, my_method_id, rv.return_val());
             }
           } else {
-            send_answer<Internal>(c, hdr.function_id(), rv);
+            send_answer<Internal, is_implicit_func_id>(c, my_method_id, rv);
           }
         } else {
           auto rv = (c.*func)();
@@ -462,10 +466,10 @@ struct smart_switcher_impl {
                 c.set_persistent_data_header(persistent_data_header);
             } else {
               if constexpr (!std::is_same_v<rv_t, resumable<void>>)
-                send_answer<Internal>(c, hdr.function_id(), rv.return_val());
+                send_answer<Internal, is_implicit_func_id>(c, my_method_id, rv.return_val());
             }
           } else {
-            send_answer<Internal>(c, hdr.function_id(), rv);
+            send_answer<Internal, is_implicit_func_id>(c, my_method_id, rv);
           }
         }
       } else {
@@ -533,6 +537,7 @@ struct smart_process_answer_impl {
       if (my_method_id == schema::abiv2::from_answer_id(hdr.function_id())) {
         constexpr bool is_internal = get_interface_method_internal<IContract, Index>::value;
         constexpr bool is_external = get_interface_method_external<IContract, Index>::value;
+        constexpr bool is_implicit_func_id = get_interface_method_implicit_func_id<IContract, Index>::value;
         static_assert(is_internal != is_external,
           "Coroutine method must be only internal or external, not both");
 
@@ -599,7 +604,7 @@ struct smart_process_answer_impl {
         } else {
           if constexpr (!std::is_same_v<rv_t, resumable<void>>) {
             // coroutine is done, sending an answer
-            send_answer<is_internal>(c, my_method_id, res.return_val());
+            send_answer<is_internal, is_implicit_func_id>(c, my_method_id, res.return_val());
           }
         }
         // Store persistent data

@@ -701,6 +701,9 @@ static bool LookupBuiltin(Sema &S, LookupResult &R) {
         } else if (II == S.getASTContext().getReflectMethodNameName()) {
           R.addDecl(S.getASTContext().getReflectMethodNameDecl());
           return true;
+        } else if (II == S.getASTContext().getReflectReturnNameName()) {
+          R.addDecl(S.getASTContext().getReflectReturnNameDecl());
+          return true;
         } else if (II == S.getASTContext().getReflectMethodFuncIdName()) {
           R.addDecl(S.getASTContext().getReflectMethodFuncIdDecl());
           return true;
@@ -715,6 +718,9 @@ static bool LookupBuiltin(Sema &S, LookupResult &R) {
           return true;
         } else if (II == S.getASTContext().getReflectMethodNoAcceptName()) {
           R.addDecl(S.getASTContext().getReflectMethodNoAcceptDecl());
+          return true;
+        } else if (II == S.getASTContext().getReflectMethodImplicitFuncIdName()) {
+          R.addDecl(S.getASTContext().getReflectMethodImplicitFuncIdDecl());
           return true;
         } else if (II == S.getASTContext().getReflectMethodDynChainParseName()) {
           R.addDecl(S.getASTContext().getReflectMethodDynChainParseDecl());

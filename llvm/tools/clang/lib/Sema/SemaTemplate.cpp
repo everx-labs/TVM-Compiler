@@ -3190,6 +3190,47 @@ checkBuiltinTemplateIdType(Sema &SemaRef, BuiltinTemplateDecl *BTD,
     return SemaRef.CheckTemplateIdType(Converted[0].getAsTemplate(),
                                        TemplateLoc, SyntheticTemplateArgs);
   }
+  case BTK__reflect_return_name: {
+    // __reflect_return_name<T, Interface, MethodIdx> ==>
+    //     T<MethodName[0], MethodName[1], ..., MethodName[N-1]>
+    assert(Converted.size() == 3 &&
+      "__reflect_return_name should be given a T, Interface and method index");
+    TemplateArgument InterfaceArg = Converted[1], IndexArg = Converted[2];
+    llvm::APSInt Index = IndexArg.getAsIntegral();
+    assert(Index >= 0 && "the index used with __reflect_return_name should be "
+                         "of type std::size_t, and hence be non-negative");
+
+    QualType InterfaceTy = InterfaceArg.getAsType();
+    const auto *Rec = InterfaceTy->getAsCXXRecordDecl();
+    if (!Rec) {
+      SemaRef.Diag(TemplateArgs[1].getLocation(),
+                   diag::err_reflect_method_not_struct_arg);
+      return QualType();
+    }
+    auto it = std::next(Rec->method_begin(),
+                        static_cast<int64_t>(Index.getZExtValue()));
+    assert(it != Rec->method_end() && "method not found by index");
+    StringRef Name = "";
+    if (const auto *Attr = it->getAttr<TVMReturnNameFuncAttr>())
+      Name = Attr->getReturnName();
+    auto ChTy = Context.CharTy;
+    llvm::APSInt NameLen = Index;
+    NameLen = Name.size();
+
+    TemplateArgumentListInfo SyntheticTemplateArgs;
+    // Expand Name into Name[0] ... Name[N-1].
+    for (unsigned i = 0; i < NameLen; ++i) {
+      llvm::APSInt Ch(static_cast<uint32_t>(Context.getCharWidth()));
+      Ch = static_cast<unsigned char>(Name[i]);
+      TemplateArgument TA(Context, Ch, ChTy);
+      SyntheticTemplateArgs.addArgument(SemaRef.getTrivialTemplateArgumentLoc(
+          TA, ChTy, TemplateArgs[0].getLocation()));
+    }
+    // The first template argument will be reused as the template decl that
+    // our synthetic template arguments will be applied to.
+    return SemaRef.CheckTemplateIdType(Converted[0].getAsTemplate(),
+                                       TemplateLoc, SyntheticTemplateArgs);
+  }
   case BTK__reflect_method_func_id: {
     // __reflect_method_func_id<T, IntType, Interface, Index> -
     //   FuncID of the Interface method number #Index,
@@ -3237,6 +3278,9 @@ checkBuiltinTemplateIdType(Sema &SemaRef, BuiltinTemplateDecl *BTD,
   case BTK__reflect_method_noaccept:
     return processFlagAttribute<TVMNoAcceptFuncAttr>(SemaRef, Converted,
                                                      TemplateLoc, TemplateArgs);
+  case BTK__reflect_method_implicit_func_id:
+    return processFlagAttribute<TVMImplicitFuncIdFuncAttr>(
+      SemaRef, Converted, TemplateLoc, TemplateArgs);
   case BTK__reflect_method_dyn_chain_parse:
     return processFlagAttribute<TVMDynChainParseFuncAttr>(
       SemaRef, Converted, TemplateLoc, TemplateArgs);

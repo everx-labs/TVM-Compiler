@@ -7,6 +7,7 @@
 #include <tvm/sequence.hpp>
 #include <tvm/dict_array.hpp>
 #include <tvm/dict_map.hpp>
+#include <boost/hana/is_empty.hpp>
 
 /*
 {
@@ -79,12 +80,12 @@ template<class T> struct is_tuple_type<lazy<T>> : std::false_type {};
 template<class T> struct is_tuple_array : std::false_type {};
 template<class Element> struct is_tuple_array<dict_array<Element, 32>> : is_tuple_type<Element> {};
 
-template<class T, unsigned Offset>
+template<class T, unsigned Offset, class ReturnName>
 constexpr auto make_struct_components();
 
 template<class T, unsigned Offset> struct make_array_components {};
 template<class Element, unsigned Offset> struct make_array_components<dict_array<Element, 32>, Offset> {
-  static constexpr auto value = make_struct_components<Element, Offset>();
+  static constexpr auto value = make_struct_components<Element, Offset, decltype(""_s)>();
 };
 
 template<class T>
@@ -218,69 +219,77 @@ struct make_tuple_json<Offset, ParentT, std::tuple<>> {
   static constexpr auto value = ""_s;
 };
 
-template<class T, unsigned Offset>
+template<class T, unsigned Offset, class ReturnName>
 struct make_struct_json {
   static constexpr auto value = make_tuple_json<Offset, T, tvm::to_std_tuple_t<T>>::value;
 };
-template<unsigned Offset>
-struct make_struct_json<void, Offset> {
+template<unsigned Offset, class ReturnName>
+struct make_struct_json<void, Offset, ReturnName> {
   static constexpr auto value = ""_s;
 };
 
+template<class ReturnName>
+__always_inline constexpr auto make_return_name() {
+  if constexpr (hana::is_empty(ReturnName{}))
+    return "value0"_s;
+  else
+    return ReturnName{};
+}
+
 // For simple-type return value ("MsgAddress func()") we don't have name for field, so just "value0"
-template<unsigned Offset, unsigned _bitlen>
-struct make_struct_json<int_t<_bitlen>, Offset> {
-  static constexpr auto value = make_field_impl<int_t<_bitlen>, 1, Offset>("value0"_s);
+template<unsigned Offset, class ReturnName, unsigned _bitlen>
+struct make_struct_json<int_t<_bitlen>, Offset, ReturnName> {
+  static constexpr auto value = make_field_impl<int_t<_bitlen>, 1, Offset>(make_return_name<ReturnName>());
 };
-template<unsigned Offset, unsigned _bitlen>
-struct make_struct_json<uint_t<_bitlen>, Offset> {
-  static constexpr auto value = make_field_impl<uint_t<_bitlen>, 1, Offset>("value0"_s);
+template<unsigned Offset, class ReturnName, unsigned _bitlen>
+struct make_struct_json<uint_t<_bitlen>, Offset, ReturnName> {
+  static constexpr auto value = make_field_impl<uint_t<_bitlen>, 1, Offset>(make_return_name<ReturnName>());
 };
-template<unsigned Offset>
-struct make_struct_json<uint_t<1>, Offset> {
-  static constexpr auto value = make_field_impl<uint_t<1>, 1, Offset>("value0"_s);
-};
-
-template<unsigned Offset>
-struct make_struct_json<MsgAddress, Offset> {
-  static constexpr auto value = make_field_impl<MsgAddress, 1, Offset>("value0"_s);
-};
-template<unsigned Offset>
-struct make_struct_json<MsgAddressInt, Offset> {
-  static constexpr auto value = make_field_impl<MsgAddressInt, 1, Offset>("value0"_s);
-};
-template<unsigned Offset>
-struct make_struct_json<MsgAddressExt, Offset> {
-  static constexpr auto value = make_field_impl<MsgAddressExt, 1, Offset>("value0"_s);
-};
-template<unsigned Offset, class Element>
-struct make_struct_json<dict_array<Element, 32>, Offset> {
-  static constexpr auto value = make_field_impl<dict_array<Element, 32>, 1, Offset>("value0"_s);
-};
-template<unsigned Offset, class Key, class Value>
-struct make_struct_json<dict_map<Key, Value>, Offset> {
-  static constexpr auto value = make_field_impl<dict_map<Key, Value>, 1, Offset>("value0"_s);
-};
-template<unsigned Offset>
-struct make_struct_json< sequence<uint_t<8>>, Offset > {
-  static constexpr auto value = make_field_impl<sequence<uint_t<8>>, 1, Offset>("value0"_s);
-};
-template<unsigned Offset>
-struct make_struct_json<cell, Offset> {
-  static constexpr auto value = make_field_impl<cell, 1, Offset>("value0"_s);
-};
-template<unsigned Offset, class T>
-struct make_struct_json<lazy<T>, Offset> {
-  static constexpr auto value = make_field_impl<lazy<T>, 1, Offset>("value0"_s);
-};
-template<unsigned Offset, class T>
-struct make_struct_json<resumable<T>, Offset> {
-  static constexpr auto value = make_struct_json<T, Offset>::value;
+template<unsigned Offset, class ReturnName>
+struct make_struct_json<uint_t<1>, Offset, ReturnName> {
+  static constexpr auto value = make_field_impl<uint_t<1>, 1, Offset>(make_return_name<ReturnName>());
 };
 
-template<class T, unsigned Offset>
+template<unsigned Offset, class ReturnName>
+struct make_struct_json<MsgAddress, Offset, ReturnName> {
+  static constexpr auto value = make_field_impl<MsgAddress, 1, Offset>(make_return_name<ReturnName>());
+};
+template<unsigned Offset, class ReturnName>
+struct make_struct_json<MsgAddressInt, Offset, ReturnName> {
+  static constexpr auto value = make_field_impl<MsgAddressInt, 1, Offset>(make_return_name<ReturnName>());
+};
+template<unsigned Offset, class ReturnName>
+struct make_struct_json<MsgAddressExt, Offset, ReturnName> {
+  static constexpr auto value = make_field_impl<MsgAddressExt, 1, Offset>(make_return_name<ReturnName>());
+};
+template<unsigned Offset, class ReturnName, class Element>
+struct make_struct_json<dict_array<Element, 32>, Offset, ReturnName> {
+  static constexpr auto value = make_field_impl<dict_array<Element, 32>, 1, Offset>(make_return_name<ReturnName>());
+};
+template<unsigned Offset, class ReturnName, class Key, class Value>
+struct make_struct_json<dict_map<Key, Value>, Offset, ReturnName> {
+  static constexpr auto value = make_field_impl<dict_map<Key, Value>, 1, Offset>(make_return_name<ReturnName>());
+};
+template<unsigned Offset, class ReturnName>
+struct make_struct_json< sequence<uint_t<8>>, Offset, ReturnName > {
+  static constexpr auto value = make_field_impl<sequence<uint_t<8>>, 1, Offset>(make_return_name<ReturnName>());
+};
+template<unsigned Offset, class ReturnName>
+struct make_struct_json<cell, Offset, ReturnName> {
+  static constexpr auto value = make_field_impl<cell, 1, Offset>(make_return_name<ReturnName>());
+};
+template<unsigned Offset, class ReturnName, class T>
+struct make_struct_json<lazy<T>, Offset, ReturnName> {
+  static constexpr auto value = make_field_impl<lazy<T>, 1, Offset>(make_return_name<ReturnName>());
+};
+template<unsigned Offset, class ReturnName, class T>
+struct make_struct_json<resumable<T>, Offset, ReturnName> {
+  static constexpr auto value = make_struct_json<T, Offset, ReturnName>::value;
+};
+
+template<class T, unsigned Offset, class ReturnName>
 constexpr auto make_struct_components() {
-  return "[\n"_s + make_struct_json<T, Offset + 1>::value + make_offset<Offset>::value + "]"_s;
+  return "[\n"_s + make_struct_json<T, Offset + 1, ReturnName>::value + make_offset<Offset>::value + "]"_s;
 };
 
 constexpr auto make_abi_version() {
@@ -315,30 +324,30 @@ constexpr auto make_events_end() {
   return "\n  ]"_s;
 }
 
-template<class ArgStruct>
+template<class ArgStruct, class ReturnName>
 constexpr auto make_function_inputs() {
-  return "\"inputs\": [\n"_s + make_struct_json<ArgStruct, 2>::value + "    ]"_s;
+  return "\"inputs\": [\n"_s + make_struct_json<ArgStruct, 2, ReturnName>::value + "    ]"_s;
 }
 
-template<class RvStruct>
+template<class RvStruct, class ReturnName>
 constexpr auto make_function_outputs() {
-  return "\"outputs\": [\n"_s + make_struct_json<RvStruct, 2>::value + "    ]"_s;
+  return "\"outputs\": [\n"_s + make_struct_json<RvStruct, 2, ReturnName>::value + "    ]"_s;
 }
 
-template<unsigned FuncID>
+template<unsigned FuncID, bool ImplicitFuncId>
 constexpr auto make_function_id() {
-  if constexpr (FuncID != 0)
+  if constexpr (FuncID != 0 && !ImplicitFuncId)
     return ",\n    \"id\": \"0x"_s + to_string<16>(hana::integral_c<unsigned, FuncID>) + "\""_s;
   else
     return ""_s;
 }
 
-template<unsigned FuncID, class RvStruct, class ArgStruct, class FuncName>
+template<unsigned FuncID, bool ImplicitFuncId, class RvStruct, class ArgStruct, class ReturnName, class FuncName>
 constexpr auto make_function_json(FuncName func_name) {
   constexpr auto hdr = make_function_header(func_name);
-  constexpr auto inputs = make_function_inputs<ArgStruct>();
-  constexpr auto outputs = make_function_outputs<RvStruct>();
-  constexpr auto id = make_function_id<FuncID>();
+  constexpr auto inputs = make_function_inputs<ArgStruct, ReturnName>();
+  constexpr auto outputs = make_function_outputs<RvStruct, ReturnName>();
+  constexpr auto id = make_function_id<FuncID, ImplicitFuncId>();
   return "  {\n    "_s + hdr + ",\n    "_s + inputs + ",\n    "_s + outputs + id + "\n  }"_s;
 }
 
@@ -348,9 +357,12 @@ struct make_json_abi_impl {
   using Rv = get_interface_method_rv<Interface, CurMethod>;
   using Arg = get_interface_method_arg_struct<Interface, CurMethod>;
   using FuncName = get_interface_method_name<Interface, CurMethod>;
+  using ReturnName = get_interface_return_name<Interface, CurMethod>;
+  static constexpr bool ImplicitFuncId = get_interface_method_implicit_func_id<Interface, CurMethod>::value;
 
-  static constexpr auto value = make_function_json<FuncId, Rv, Arg>(FuncName{}) + ",\n"_s +
-    make_json_abi_impl<Interface, CurMethod + 1, RestMethods - 1>::value;
+  static constexpr auto value =
+    make_function_json<FuncId, ImplicitFuncId, Rv, Arg, ReturnName>(FuncName{}) + ",\n"_s +
+      make_json_abi_impl<Interface, CurMethod + 1, RestMethods - 1>::value;
 };
 template<class Interface, unsigned CurMethod>
 struct make_json_abi_impl<Interface, CurMethod, 1> {
@@ -358,8 +370,10 @@ struct make_json_abi_impl<Interface, CurMethod, 1> {
   using Rv = get_interface_method_rv<Interface, CurMethod>;
   using Arg = get_interface_method_arg_struct<Interface, CurMethod>;
   using FuncName = get_interface_method_name<Interface, CurMethod>;
+  using ReturnName = get_interface_return_name<Interface, CurMethod>;
+  static constexpr bool ImplicitFuncId = get_interface_method_implicit_func_id<Interface, CurMethod>::value;
 
-  static constexpr auto value = make_function_json<FuncId, Rv, Arg>(FuncName{});
+  static constexpr auto value = make_function_json<FuncId, ImplicitFuncId, Rv, Arg, ReturnName>(FuncName{});
 };
 template<class Interface, unsigned CurMethod>
 struct make_json_abi_impl<Interface, CurMethod, 0> {

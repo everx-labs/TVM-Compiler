@@ -1076,6 +1076,14 @@ ASTContext::getReflectMethodNameDecl() const {
 }
 
 BuiltinTemplateDecl *
+ASTContext::getReflectReturnNameDecl() const {
+  if (!ReflectReturnNameDecl)
+    ReflectReturnNameDecl = buildBuiltinTemplateDecl(
+        BTK__reflect_return_name, getReflectReturnNameName());
+  return ReflectReturnNameDecl;
+}
+
+BuiltinTemplateDecl *
 ASTContext::getReflectMethodFuncIdDecl() const {
   if (!ReflectMethodFuncIdDecl)
     ReflectMethodFuncIdDecl = buildBuiltinTemplateDecl(
@@ -1113,6 +1121,15 @@ ASTContext::getReflectMethodNoAcceptDecl() const {
     ReflectMethodNoAcceptDecl = buildBuiltinTemplateDecl(
         BTK__reflect_method_noaccept, getReflectMethodNoAcceptName());
   return ReflectMethodNoAcceptDecl;
+}
+
+BuiltinTemplateDecl *
+ASTContext::getReflectMethodImplicitFuncIdDecl() const {
+  if (!ReflectMethodImplicitFuncIdDecl)
+    ReflectMethodImplicitFuncIdDecl = buildBuiltinTemplateDecl(
+        BTK__reflect_method_implicit_func_id,
+        getReflectMethodImplicitFuncIdName());
+  return ReflectMethodImplicitFuncIdDecl;
 }
 
 BuiltinTemplateDecl *

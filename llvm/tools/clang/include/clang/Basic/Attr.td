@@ -1650,6 +1650,11 @@ def TVMTupleStruct : InheritableAttr {
   let Documentation = [Undocumented];
   let MeaningfulToClassTemplateDefinition = 1;
 }
+def TVMNoPubkeyInterface : InheritableAttr {
+  let Spellings = [Clang<"no_pubkey">];
+  let Documentation = [Undocumented];
+  let MeaningfulToClassTemplateDefinition = 1;
+}
 def TVMRawFunc : Attr {
   let Spellings = [Clang<"tvm_raw_func">];
   let Documentation = [Undocumented];

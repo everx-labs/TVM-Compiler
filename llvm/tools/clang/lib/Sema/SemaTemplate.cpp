@@ -2948,6 +2948,31 @@ processFlagAttribute(Sema &SemaRef,
   return SemaRef.CheckTemplateIdType(Converted[0].getAsTemplate(),
                                      TemplateLoc, SyntheticTemplateArgs);
 }
+
+static ExprResult buildMemberCall(Sema &S, Expr *Base, SourceLocation Loc,
+                                  StringRef Name, MultiExprArg Args,
+                                  const TemplateArgumentListInfo *TemplateArgs) {
+  DeclarationNameInfo NameInfo(&S.PP.getIdentifierTable().get(Name), Loc);
+
+  CXXScopeSpec SS;
+  ExprResult Result = S.BuildMemberReferenceExpr(
+      Base, Base->getType(), Loc, /*IsPtr=*/true, SS,
+      SourceLocation(), nullptr, NameInfo, TemplateArgs,
+      /*Scope=*/nullptr);
+  if (Result.isInvalid())
+    return ExprError();
+
+  // We meant exactly what we asked for. No need for typo correction.
+  if (auto *TE = dyn_cast<TypoExpr>(Result.get())) {
+    S.clearDelayedTypo(TE);
+    S.Diag(Loc, diag::err_no_member)
+        << NameInfo.getName() << Base->getType()->getAsCXXRecordDecl()
+        << Base->getSourceRange();
+    return ExprError();
+  }
+
+  return S.ActOnCallExpr(nullptr, Result.get(), Loc, Args, Loc, nullptr);
+}
 // TVM local end
 
 static QualType
@@ -3380,6 +3405,145 @@ checkBuiltinTemplateIdType(Sema &SemaRef, BuiltinTemplateDecl *BTD,
     NewRec->completeDefinition();
     return Context.getRecordType(NewRec);
   }
+  case BTK__reflect_proxy: {
+    // __reflect_proxy<Interface, Impl> - proxy for Interface
+    assert(Converted.size() == 2 && "__reflect_proxy<Interface, Impl>");
+    TemplateArgument InterfaceArg = Converted[0], ImplArg = Converted[1];
+
+    QualType InterfaceTy = InterfaceArg.getAsType();
+    QualType ImplTy = ImplArg.getAsType();
+    auto *InterfaceRec = InterfaceTy->getAsCXXRecordDecl();
+    auto *ImplRec = ImplTy->getAsCXXRecordDecl();
+    if (!InterfaceRec || !ImplRec) {
+      SemaRef.Diag(TemplateArgs[0].getLocation(), CustomDiagID)
+          << "Arguments should be {Interface, Impl}";
+      return QualType();
+    }
+    CXXRecordDecl *NewRec = cast<CXXRecordDecl>(Context.buildImplicitRecord(
+        ("__reflect_proxy<"
+         + InterfaceRec->getName() + "," + ImplRec->getName() + ">").str(),
+        TTK_Class));
+    NewRec->startDefinition();
+    NewRec->addAttr(new (Context) FinalAttr(TemplateLoc, Context, false));
+    SmallVector<CXXBaseSpecifier *, 2> BaseInfo;
+    BaseInfo.push_back(
+      SemaRef.CheckBaseSpecifier(ImplRec, TemplateLoc, false, AS_public,
+                                 Context.getTrivialTypeSourceInfo(ImplTy),
+                                 SourceLocation()));
+    NewRec->setBases(BaseInfo.data(), 1);
+    auto RecTy = Context.getRecordType(NewRec);
+    auto ThisTy = Context.getPointerType(RecTy);
+    auto ImplPtrTy = Context.getPointerType(ImplTy);
+    QualType AutoType = Context.getAutoDeductType();
+
+    {
+      NestedNameSpecifier *NNS =
+        NestedNameSpecifier::Create(Context, nullptr,
+                                    false, ImplTy.getTypePtr());
+
+      Sema::ContextRAII SavedContext(SemaRef, NewRec);
+      CXXScopeSpec SS;
+      SS.MakeTrivial(Context, NNS, SourceRange(TemplateLoc));
+
+      // Generating "using Impl::Impl;"
+      DeclarationName ConstrName =
+        Context.DeclarationNames.getCXXConstructorName(
+          Context.getCanonicalType(ImplTy));
+      DeclarationNameInfo UsingNameInfo(ConstrName, ImplRec->getLocation());
+      SemaRef.BuildUsingDeclaration(
+          /*Scope*/ nullptr, AS_public, TemplateLoc,
+          /*HasTypename*/ false, {}, SS, UsingNameInfo, {},
+          ParsedAttributesView(),
+          /*IsInstantiation*/ true);
+    }
+
+    for (auto *Meth : InterfaceRec->methods()) {
+      if (Meth->isImplicit())
+        continue;
+      if (!Meth->hasAttr<TVMInternalFuncAttr>())
+        continue;
+      if (Meth->getName() == "constructor")
+        continue;
+
+      SmallVector<QualType, 8> MethArgs;
+      for (auto *Arg : Meth->parameters()) {
+        MethArgs.push_back(Arg->getType());
+      }
+
+      auto MethodType = Context.getFunctionType(AutoType, MethArgs,
+                                                FunctionProtoType::ExtProtoInfo());
+      auto *NewMeth = CXXMethodDecl::Create(Context, NewRec, SourceLocation(),
+        Meth->getNameInfo(), MethodType, /*TInfo=*/nullptr,
+        SC_None, true, false, SourceLocation());
+      NewMeth->addAttr(new (Context) FinalAttr(TemplateLoc, Context, false));
+
+      SmallVector<ParmVarDecl*, 8> Params;
+      for (unsigned i = 0, e = NewMeth->getNumParams(); i != e; ++i) {
+        ParmVarDecl *parm =
+            ParmVarDecl::Create(Context, NewMeth, SourceLocation(), SourceLocation(),
+                                nullptr, Meth->getParamDecl(i)->getType(), /*TInfo=*/nullptr,
+                                SC_None, nullptr);
+        parm->setScopeInfo(0, i);
+        Params.push_back(parm);
+      }
+      NewMeth->setParams(Params);
+      NewMeth->setAccess(AS_public);
+      NewMeth->setVirtualAsWritten(false);
+      NewMeth->setPure(false);
+      NewMeth->setTVMFuncId(Meth->getTVMFuncId());
+      TypeSourceInfo *TInfo =
+          Context.getTrivialTypeSourceInfo(NewMeth->getType(), TemplateLoc);
+      NewMeth->setTypeSourceInfo(TInfo);
+      Sema::SynthesizedFunctionScope Scope(SemaRef, NewMeth);
+      Expr *This = new (Context) CXXThisExpr(TemplateLoc, ThisTy, false);
+      CXXCastPath BasePath;
+      if (SemaRef.CheckDerivedToBaseConversion(RecTy, ImplTy,
+          TemplateLoc, ImplRec->getSourceRange(), &BasePath))
+        return QualType();
+      auto ThisBase = SemaRef.ImpCastExprToType(This, ImplPtrTy,
+         CK_UncheckedDerivedToBase, This->getValueKind(), &BasePath).get();
+      // Generating "return Impl::_call_impl<&Interface::function, Args...>(args...);"
+      const Type *ClassType =
+          Context.getTypeDeclType(Meth->getParent()).getTypePtr();
+      auto MethPtrTy = Context.getMemberPointerType(Meth->getType(), ClassType);
+      TemplateArgumentListInfo TArgs(TemplateLoc, TemplateLoc);
+      TemplateArgument MethPtrArg(Meth, MethPtrTy);
+      auto TL = SemaRef.getTrivialTemplateArgumentLoc(MethPtrArg, QualType(),
+                                                      TemplateLoc);
+      TArgs.addArgument(TL);
+
+      SmallVector<Expr *, 8> Args;
+      for (unsigned i = 0, e = NewMeth->getNumParams(); i != e; ++i) {
+        ParmVarDecl *Param = NewMeth->getParamDecl(i);
+        QualType ParamType = Param->getType().getNonReferenceType();
+        TemplateArgument CurArgT(ParamType);
+        TArgs.addArgument(
+          SemaRef.getTrivialTemplateArgumentLoc(CurArgT, QualType(),
+                                                TemplateLoc));
+        Args.push_back(
+          DeclRefExpr::Create(Context, NestedNameSpecifierLoc(),
+                              SourceLocation(), Param, false,
+                              TemplateLoc, ParamType,
+                              VK_LValue, nullptr));
+
+        Param->setReferenced(true);
+        Param->markUsed(Context);
+      }
+
+      ExprResult CallExpr =
+          buildMemberCall(SemaRef, ThisBase, TemplateLoc, "_call_impl",
+                          Args, &TArgs);
+      if (CallExpr.isInvalid())
+        return QualType();
+
+      Stmt *Return = SemaRef.BuildReturnStmt(TemplateLoc, CallExpr.get()).get();
+      NewMeth->setBody(CompoundStmt::Create(Context, Return, TemplateLoc,
+                                            TemplateLoc));
+      NewRec->addDecl(NewMeth);
+    }
+    NewRec->completeDefinition();
+    return Context.getRecordType(NewRec);
+  }
   case BTK__reflect_method_ptr: {
     // __reflect_method_ptr<Proxy, Contract, Interface, Index> -
     // Proxy<&Contract::Method> for Interface method number #Index
@@ -3418,6 +3582,24 @@ checkBuiltinTemplateIdType(Sema &SemaRef, BuiltinTemplateDecl *BTD,
     auto TL = SemaRef.getTrivialTemplateArgumentLoc(MethPtrArg, QualType(), TemplateLoc);
     SyntheticTemplateArgs.addArgument(TL);
     return SemaRef.CheckTemplateIdType(Proxy.getAsTemplate(),
+                                       TemplateLoc, SyntheticTemplateArgs);
+  }
+  case BTK__reflect_interface_has_pubkey: {
+    ASTContext &Context = SemaRef.getASTContext();
+    assert(Converted.size() == 3 &&
+      "__reflect_interface_has_pubkey'<T, IntType, Interface>");
+    TemplateArgument IntType = Converted[1], InterfaceArg = Converted[2];
+    QualType InterfaceTy = InterfaceArg.getAsType();
+    QualType IntTy = IntType.getAsType();
+    llvm::APSInt Rv(static_cast<uint32_t>(Context.getTypeSize(IntTy)));
+    Rv = !InterfaceTy.getTypePtr()->isTVMNoPubkeyInterfaceType();
+
+    TemplateArgumentListInfo SyntheticTemplateArgs;
+    SyntheticTemplateArgs.addArgument(TemplateArgs[1]);
+    TemplateArgument RvArg(Context, Rv, IntTy);
+    SyntheticTemplateArgs.addArgument(SemaRef.getTrivialTemplateArgumentLoc(
+        RvArg, IntTy, TemplateArgs[0].getLocation()));
+    return SemaRef.CheckTemplateIdType(Converted[0].getAsTemplate(),
                                        TemplateLoc, SyntheticTemplateArgs);
   }
   // TVM local end

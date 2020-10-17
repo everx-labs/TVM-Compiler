@@ -11,6 +11,7 @@
 #include <tvm/globals.hpp>
 
 #include <experimental/type_traits>
+#include <tvm/schema/abiv2.hpp>
 
 namespace tvm {
 
@@ -115,7 +116,7 @@ __always_inline schema::lazy<schema::MsgAddressExt> ext_return_address(Contract 
 template<class Contract, class ReturnValue>
 __always_inline void send_external_answer(Contract c, unsigned func_id, ReturnValue rv) {
   using namespace schema;
-  abiv1::external_outbound_msg_header hdr{ uint32(func_id) };
+  abiv2::external_outbound_msg_header hdr{ uint32(func_id) };
   auto hdr_plus_rv = std::make_tuple(hdr, rv);
   ext_out_msg_info_relaxed out_info;
   out_info.src = addr_none{};
@@ -180,13 +181,13 @@ __always_inline schema::uint32 return_func_id(Contract c, unsigned func_id) {
   if constexpr (supports_return_func_id_v<Contract>)
     if (auto v = c.return_func_id())
       return *v;
-  return uint32(abiv1::answer_id(func_id));
+  return uint32(abiv2::answer_id(func_id));
 }
 
 template<class Contract, class ReturnValue>
 __always_inline void send_internal_answer(Contract c, unsigned func_id, ReturnValue rv) {
   using namespace schema;
-  abiv1::internal_msg_header hdr{ return_func_id(c, func_id) };
+  abiv2::internal_msg_header hdr{ return_func_id(c, func_id) };
   auto hdr_plus_rv = std::make_tuple(hdr, rv);
   int_msg_info_relaxed out_info;
   out_info.ihr_disabled = true;
@@ -268,16 +269,17 @@ inline std::tuple<persistent_data_header_t<Interface, ReplayAttackProtection>, D
   }
 }
 
-template<class Data, bool dyn_chain>
+template<class MsgHeader, class Data, bool dyn_chain>
 __always_inline Data parse_smart(parser p) {
   using namespace schema;
 
   if constexpr (dyn_chain) {
     return parse_chain_dynamic<Data>(p);
   } else {
-    using est_t = estimate_element<Data>;
+    using est_header_t = estimate_element<MsgHeader>;
+    using est_t = estimate_element<std::tuple<MsgHeader, Data>>;
     if constexpr (est_t::max_bits > cell::max_bits || est_t::max_refs > cell::max_refs) {
-      return parse_chain<Data, 0, 0>(p);
+      return parse_chain<Data, est_header_t::max_bits, est_header_t::max_refs>(p);
     } else {
       return parse<Data>(p);
     }
@@ -307,11 +309,14 @@ inline void save_persistent_data(persistent_data_header_t<IContract, ReplayAttac
   persistent_data::set(prepare_persistent_data<IContract, ReplayAttackProtection, DContract>(persistent_data_header, base));
 }
 
-template<bool Internal, class Contract, class IContract, class DContract, class ReplayAttackProtection,
+template<bool Internal, class Contract, class MsgHeader, class IContract, class DContract, class ReplayAttackProtection,
          unsigned Index, unsigned RestMethods>
 struct smart_switcher_impl {
   static const unsigned my_method_id = get_interface_method_func_id<IContract, Index>::value;
-  __always_inline static int execute(Contract c, unsigned func_id, cell msg, slice msg_body) {
+
+  __always_inline
+  static int execute(Contract c, std::optional<schema::bitfield<512>> signature,
+      MsgHeader hdr, cell msg, slice msg_body, slice body_from_header) {
     constexpr bool is_getter = get_interface_method_getter<IContract, Index>::value;
     constexpr bool is_noaccept = get_interface_method_noaccept<IContract, Index>::value;
     constexpr bool is_internal = get_interface_method_internal<IContract, Index>::value;
@@ -321,17 +326,22 @@ struct smart_switcher_impl {
     constexpr bool valid = (Internal && is_internal) ||
                            (!Internal && (is_external || is_getter));
     using namespace schema;
-    if (valid && (func_id == my_method_id)) {
+    if constexpr (valid)
+    if (hdr.function_id() == my_method_id) {
       // We need to parse persistent data for contract, parse arguments for method,
       // call method, build return value and send message, build updated persistent data and store
       using ISmart = typename Contract::base;
       constexpr auto func = get_interface_method_ptr<Contract, ISmart, Index>::value;
 
       // Internal methods and getters are not signed
-      if constexpr (!Internal && !is_getter) {
-        auto [pubkey, =msg_body] = signature_checker<error_code::invalid_signature>::check(msg_body);
+      // TODO: support signature check with offchain-constructor predefined pubkey
+      if constexpr (!Internal && !is_getter && get_interface_has_pubkey<IContract>::value) {
+        require(!!signature, error_code::invalid_signature);
+        require(!!hdr.pubkey, error_code::no_pubkey);
+        bool sign_ok = signature_checker_v2::check(body_from_header, (*signature)(), *hdr.pubkey);
+        require(sign_ok, error_code::invalid_signature);
         if constexpr (supports_tvm_pubkey_v<Contract>)
-          c.set_tvm_pubkey(pubkey);
+          c.set_tvm_pubkey(hdr.pubkey->get());
       }
 
       persistent_data_header_t<IContract, ReplayAttackProtection> persistent_data_header;
@@ -365,13 +375,6 @@ struct smart_switcher_impl {
         }
       }
 
-      using MsgHeaderT = std::conditional_t<Internal,
-                                            abiv1::internal_msg_header,
-                                            abiv1::external_inbound_msg_header>;
-      parser body_p(msg_body);
-      auto [in_hdr, =body_p] = parse_continue<MsgHeaderT>(body_p);
-      tvm_assert(!!in_hdr, error_code::bad_arguments);
-
       // If ReplayAttackProtection is specified, we need to perform check
       //   for external & non-constructor methods.
       // And perform ReplayAttackProtection initialization for constructor calls
@@ -379,16 +382,17 @@ struct smart_switcher_impl {
         if constexpr (!is_method_constructor<IContract, my_method_id>()) {
           if constexpr (!Internal) {
             if constexpr (interface_has_coroutines_v<IContract>) {
-              auto verified = ReplayAttackProtection::check(*in_hdr, std::get<0>(persistent_data_header));
+              auto verified = ReplayAttackProtection::check(hdr, std::get<0>(persistent_data_header));
               tvm_assert(!!verified, error_code::replay_attack_check);
               std::get<0>(persistent_data_header) = *verified;
             } else {
-              auto verified = ReplayAttackProtection::check(*in_hdr, persistent_data_header);
+              auto verified = ReplayAttackProtection::check(hdr, persistent_data_header);
               tvm_assert(!!verified, error_code::replay_attack_check);
               persistent_data_header = *verified;
             }
           }
         } else {
+          // Persistent data initialization in constructor
           if constexpr (interface_has_coroutines_v<IContract>) {
             persistent_data_header = { ReplayAttackProtection::init(), {} };
           } else {
@@ -407,10 +411,12 @@ struct smart_switcher_impl {
       constexpr unsigned args_sz = calc_fields_count<Args>::value;
       using rv_t = get_interface_method_rv<ISmart, Index>;
 
+      parser body_p(msg_body);
+
       // Execute and send answer if non-void return value
       if constexpr (!std::is_void_v<rv_t>) {
         if constexpr (args_sz != 0) {
-          auto parsed_args = parse_smart<Args, is_dyn_chain_parse>(body_p);
+          auto parsed_args = parse_smart<MsgHeader, Args, is_dyn_chain_parse>(body_p);
           auto rv = std::apply_f<func>(std::tuple_cat(std::make_tuple(std::ref(c)),
                                                       to_std_tuple(parsed_args)));
           if constexpr (is_coroutine_v<func>) {
@@ -429,10 +435,11 @@ struct smart_switcher_impl {
               if constexpr (supports_set_persistent_data_header_v<Contract>)
                 c.set_persistent_data_header(persistent_data_header);
             } else {
-              send_answer<Internal>(c, in_hdr->function_id(), rv.return_val());
+              if constexpr (!std::is_same_v<rv_t, resumable<void>>)
+                send_answer<Internal>(c, hdr.function_id(), rv.return_val());
             }
           } else {
-            send_answer<Internal>(c, in_hdr->function_id(), rv);
+            send_answer<Internal>(c, hdr.function_id(), rv);
           }
         } else {
           auto rv = (c.*func)();
@@ -454,16 +461,17 @@ struct smart_switcher_impl {
               if constexpr (supports_set_persistent_data_header_v<Contract>)
                 c.set_persistent_data_header(persistent_data_header);
             } else {
-              send_answer<Internal>(c, in_hdr->function_id(), rv.return_val());
+              if constexpr (!std::is_same_v<rv_t, resumable<void>>)
+                send_answer<Internal>(c, hdr.function_id(), rv.return_val());
             }
           } else {
-            send_answer<Internal>(c, in_hdr->function_id(), rv);
+            send_answer<Internal>(c, hdr.function_id(), rv);
           }
         }
       } else {
         // void return (no need to send an answer message)
         if constexpr (args_sz != 0) {
-          auto parsed_args = parse_smart<Args, is_dyn_chain_parse>(body_p);
+          auto parsed_args = parse_smart<MsgHeader, Args, is_dyn_chain_parse>(body_p);
           std::apply_f<func>(std::tuple_cat(std::make_tuple(std::ref(c)),
                                             to_std_tuple(parsed_args)));
         } else {
@@ -477,16 +485,17 @@ struct smart_switcher_impl {
         save_persistent_data<IContract, ReplayAttackProtection>(persistent_data_header, base);
       }
       return my_method_id;
-    } else {
-      return smart_switcher_impl<Internal, Contract, IContract, DContract, ReplayAttackProtection,
-                                 Index + 1, RestMethods - 1>::execute(c, func_id, msg, msg_body);
     }
+    return smart_switcher_impl<Internal, Contract, MsgHeader, IContract, DContract, ReplayAttackProtection,
+                               Index + 1, RestMethods - 1>::execute(c, signature, hdr, msg, msg_body, body_from_header);
   }
 };
-template<bool Internal, class Contract, class IContract, class DContract, class ReplayAttackProtection,
+template<bool Internal, class Contract, class MsgHeader, class IContract, class DContract, class ReplayAttackProtection,
          unsigned Index>
-struct smart_switcher_impl<Internal, Contract, IContract, DContract, ReplayAttackProtection, Index, 0> {
-  __always_inline static int execute(Contract c, unsigned func_id, cell msg, slice msg_body) {
+struct smart_switcher_impl<Internal, Contract, MsgHeader, IContract, DContract, ReplayAttackProtection, Index, 0> {
+  __always_inline
+  static int execute(Contract c, std::optional<schema::bitfield<512>> signature,
+      MsgHeader hdr, cell msg, slice msg_body, slice body_from_header) {
     if constexpr (Internal && supports_fallback_v<Contract>)
       return Contract::_fallback(msg, msg_body);
     else
@@ -495,12 +504,14 @@ struct smart_switcher_impl<Internal, Contract, IContract, DContract, ReplayAttac
   }
 };
 
-template<bool Internal, class Contract, class IContract, class DContract, class ReplayAttackProtection>
+template<bool Internal, class Contract, class MsgHeader, class IContract, class DContract, class ReplayAttackProtection>
 struct smart_switcher {
   static const unsigned methods_count = get_interface_methods_count<IContract>::value;
-  __always_inline static int execute(Contract c, unsigned func_id, cell msg, slice msg_body) {
-    return smart_switcher_impl<Internal, Contract, IContract, DContract, ReplayAttackProtection,
-                               0, methods_count>::execute(c, func_id, msg, msg_body);
+  __always_inline
+  static int execute(Contract c, std::optional<schema::bitfield<512>> signature,
+      MsgHeader hdr, cell msg, slice msg_body, slice body_from_header) {
+    return smart_switcher_impl<Internal, Contract, MsgHeader, IContract, DContract, ReplayAttackProtection,
+                               0, methods_count>::execute(c, signature, hdr, msg, msg_body, body_from_header);
   }
 };
 
@@ -511,15 +522,15 @@ __always_inline bool is_bounced(slice msg_sl) {
   return p.ldu(1) != 0; // bounced != 0
 }
 
-template<class Contract, class IContract, class DContract, class ReplayAttackProtection,
+template<class Contract, class MsgHeader, class IContract, class DContract, class ReplayAttackProtection,
          unsigned Index, unsigned RestMethods>
 struct smart_process_answer_impl {
   static const unsigned my_method_id = get_interface_method_func_id<IContract, Index>::value;
-  __always_inline static int execute(Contract c, unsigned func_id, cell msg, slice msg_body) {
+  __always_inline static int execute(Contract c, MsgHeader hdr, cell msg, slice msg_body) {
     using ISmart = typename Contract::base;
     static constexpr auto func = get_interface_method_ptr<Contract, ISmart, Index>::value;
     if constexpr (is_coroutine_v<func>) {
-      if (my_method_id == func_id) {
+      if (my_method_id == schema::abiv2::from_answer_id(hdr.function_id())) {
         constexpr bool is_internal = get_interface_method_internal<IContract, Index>::value;
         constexpr bool is_external = get_interface_method_external<IContract, Index>::value;
         static_assert(is_internal != is_external,
@@ -553,10 +564,7 @@ struct smart_process_answer_impl {
           base = parse_chain<DContract, 1 + Est::max_bits, Est::max_refs>(persist);
         }
 
-        using MsgHeaderT = abiv1::internal_msg_header;
         parser body_p(msg_body);
-        auto [in_hdr, =body_p] = parse_continue<MsgHeaderT>(body_p);
-        tvm_assert(!!in_hdr, error_code::bad_arguments);
 
         temporary_data::setglob(global_id::coroutine_answer_slice,
           __builtin_tvm_cast_from_slice(body_p.sl()));
@@ -589,8 +597,10 @@ struct smart_process_answer_impl {
           if constexpr (supports_set_persistent_data_header_v<Contract>)
             c.set_persistent_data_header(persistent_data_header);
         } else {
-          // coroutine is done, sending an answer
-          send_answer<is_internal>(c, my_method_id, res.return_val());
+          if constexpr (!std::is_same_v<rv_t, resumable<void>>) {
+            // coroutine is done, sending an answer
+            send_answer<is_internal>(c, my_method_id, res.return_val());
+          }
         }
         // Store persistent data
         auto &base = static_cast<DContract&>(c);
@@ -598,25 +608,25 @@ struct smart_process_answer_impl {
         return my_method_id;
       }
     }
-    return smart_process_answer_impl<Contract, IContract, DContract, ReplayAttackProtection,
-                                       Index + 1, RestMethods - 1>::execute(c, func_id, msg, msg_body);
+    return smart_process_answer_impl<Contract, MsgHeader, IContract, DContract, ReplayAttackProtection,
+                                       Index + 1, RestMethods - 1>::execute(c, hdr, msg, msg_body);
   }
 };
 
-template<class Contract, class IContract, class DContract, class ReplayAttackProtection, unsigned Index>
-struct smart_process_answer_impl<Contract, IContract, DContract, ReplayAttackProtection, Index, 0> {
-  __always_inline static int execute(Contract c, unsigned func_id, cell msg, slice msg_body) {
+template<class Contract, class MsgHeader, class IContract, class DContract, class ReplayAttackProtection, unsigned Index>
+struct smart_process_answer_impl<Contract, MsgHeader, IContract, DContract, ReplayAttackProtection, Index, 0> {
+  __always_inline static int execute(Contract c, MsgHeader hdr, cell msg, slice msg_body) {
     tvm_throw(error_code::wrong_answer_id);
     return 0;
   }
 };
 
-template<class Contract, class IContract, class DContract, class ReplayAttackProtection>
+template<class Contract, class MsgHeader, class IContract, class DContract, class ReplayAttackProtection>
 struct smart_process_answer {
   static const unsigned methods_count = get_interface_methods_count<IContract>::value;
-  __always_inline static int execute(Contract c, unsigned func_id, cell msg, slice msg_body) {
-    return smart_process_answer_impl<Contract, IContract, DContract, ReplayAttackProtection,
-                                     0, methods_count>::execute(c, func_id, msg, msg_body);
+  __always_inline static int execute(Contract c, MsgHeader hdr, cell msg, slice msg_body) {
+    return smart_process_answer_impl<Contract, MsgHeader, IContract, DContract, ReplayAttackProtection,
+                                     0, methods_count>::execute(c, hdr, msg, msg_body);
   }
 };
 
@@ -645,23 +655,46 @@ int smart_switch(cell msg, slice msg_body) {
   }
 
   parser msg_parser(msg_body);
-  unsigned func_id;
-  if constexpr (Internal && supports_fallback_v<Contract>) {
-    if (auto opt_val = msg_parser.lduq(32))
-      func_id = *opt_val;
-    else
-      return Contract::_fallback(msg, msg_body);
-    if (func_id == 0)
-      return Contract::_fallback(msg, msg_body);
+  using namespace schema;
+  if constexpr (Internal) {
+    unsigned func_id;
+    if constexpr (supports_fallback_v<Contract>) {
+      if (auto opt_val = msg_parser.lduq(32))
+        func_id = *opt_val;
+      else
+        return Contract::_fallback(msg, msg_body);
+      if (func_id == 0)
+        return Contract::_fallback(msg, msg_body);
+    } else {
+      func_id = msg_parser.ldu(32);
+    }
+    if (abiv2::is_answer_id(func_id)) {
+      using MsgHeaderT = abiv2::internal_msg_header;
+      parser body_p(msg_body);
+      auto [in_hdr, =body_p] = parse_continue<MsgHeaderT>(body_p);
+      tvm_assert(!!in_hdr, error_code::bad_arguments);
+      return smart_process_answer<Contract, MsgHeaderT, IContract, DContract, ReplayAttackProtection>::execute(
+        c, *in_hdr, msg, body_p.sl());
+    } else {
+      using MsgHeaderT = abiv2::internal_msg_header;
+      parser body_p(msg_body);
+      auto [in_hdr, =body_p] = parse_continue<MsgHeaderT>(body_p);
+      tvm_assert(!!in_hdr, error_code::bad_arguments);
+      return smart_switcher<Internal, Contract, MsgHeaderT, IContract, DContract, ReplayAttackProtection>
+        ::execute(c, {}, *in_hdr, msg, body_p.sl(), msg_body);
+    }
   } else {
-    func_id = msg_parser.ldu(32);
-  }
-  if (Internal && schema::abiv1::is_answer_id(func_id)) {
-    return smart_process_answer<Contract, IContract, DContract, ReplayAttackProtection>::execute(
-      c, schema::abiv1::from_answer_id(func_id), msg, msg_body);
-  } else {
-    return smart_switcher<Internal, Contract, IContract, DContract, ReplayAttackProtection>
-      ::execute(c, func_id, msg, msg_body);
+    static constexpr bool has_pubkey = get_interface_has_pubkey<IContract>::value;
+    using MsgHeaderT = abiv2::external_inbound_msg_header<has_pubkey>;
+    parser body_p(msg_body);
+    // ABIv2
+    //
+    auto [sign, =body_p] = parse_continue<abiv2::external_signature>(body_p);
+    slice body_from_header = body_p.sl();
+    auto [in_hdr, =body_p] = parse_continue<MsgHeaderT>(body_p);
+    tvm_assert(!!in_hdr, error_code::bad_arguments);
+    return smart_switcher<Internal, Contract, MsgHeaderT, IContract, DContract, ReplayAttackProtection>
+      ::execute(c, sign->signature, *in_hdr, msg, body_p.sl(), body_from_header);
   }
 }
 

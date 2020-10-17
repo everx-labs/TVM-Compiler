@@ -1182,11 +1182,27 @@ ASTContext::getReflectSmartInterfaceDecl() const {
 }
 
 BuiltinTemplateDecl *
+ASTContext::getReflectProxyDecl() const {
+  if (!ReflectProxyDecl)
+    ReflectProxyDecl = buildBuiltinTemplateDecl(
+        BTK__reflect_proxy, getReflectProxyName());
+  return ReflectProxyDecl;
+}
+
+BuiltinTemplateDecl *
 ASTContext::getReflectMethodPtrDecl() const {
   if (!ReflectMethodPtrDecl)
     ReflectMethodPtrDecl = buildBuiltinTemplateDecl(
         BTK__reflect_method_ptr, getReflectMethodPtrName());
   return ReflectMethodPtrDecl;
+}
+
+BuiltinTemplateDecl *
+ASTContext::getReflectInterfaceHasPubkeyDecl() const {
+  if (!ReflectInterfaceHasPubkeyDecl)
+    ReflectInterfaceHasPubkeyDecl = buildBuiltinTemplateDecl(
+        BTK__reflect_interface_has_pubkey, getReflectInterfaceHasPubkeyName());
+  return ReflectInterfaceHasPubkeyDecl;
 }
 
 RecordDecl *ASTContext::buildImplicitRecord(StringRef Name,

@@ -322,19 +322,9 @@ StackFixup StackFixup::DiffForArgs(const Stack &From, const MIArgs &Args,
       PrevArgs =
           std::count(Args.getArgs().begin(), Args.getArgs().begin() + Idx, Arg);
       if (vreg.VirtReg == TVMFunctionInfo::UnusedReg) {
-        // If we need to have unused at some arg
-        //  * Aquire some existing unused in stack for relocation
-        //  * Duplicate stack top element
-        //   ^ Stack is not empty (at least, there will be return addr).
-        if (CurStack.count(vreg) > PrevArgs) {
-          // Existing unused element to relocate
-          Push = false;
-          SrcPos = CurStack.positionNrev(vreg, PrevArgs);
-        } else {
-          // Duplicating any top of the stack
-          Push = true;
-          SrcPos = 0;
-        }
+        // Duplicating any top of the stack
+        Push = true;
+        SrcPos = 0;
         return;
       }
       if (Arg.IsKilled)
@@ -352,13 +342,15 @@ StackFixup StackFixup::DiffForArgs(const Stack &From, const MIArgs &Args,
     unsigned SrcPos;   // Position of source for this operand
   };
 
-  bool HasBigNums = false;
+  bool CantBeOptimized = false;
   SmallVector<argInfo, 4> ArgInfo;
   unsigned PushOffset = 0; // offset by previous pushes
   for (unsigned i = 0; i < Args.size(); ++i) {
     ArgInfo.push_back(argInfo(Args, i, CurStack));
     if (PushOffset + ArgInfo.back().SrcPos > XchgLimit)
-      HasBigNums = true;
+      CantBeOptimized = true;
+    if (Args.getArgs()[i].Vreg.VirtReg == TVMFunctionInfo::UnusedReg)
+      CantBeOptimized = true;
     if (ArgInfo.back().Push)
       ++PushOffset;
   }
@@ -375,25 +367,22 @@ StackFixup StackFixup::DiffForArgs(const Stack &From, const MIArgs &Args,
     return rv;
   }
 
-  if (Ar.size() == 1) {
+  if (Ar.size() == 1 && !CantBeOptimized) {
+    assert(Ar[0].Vreg.VirtReg != TVMFunctionInfo::UnusedReg);
     StackVreg Vreg(Ar[0].Vreg);
-    unsigned Pos =
-        (ArgInfo[0].Push && Vreg.VirtReg == TVMFunctionInfo::UnusedReg)
-            ? 0
-            : CurStack.position(Vreg);
+    unsigned Pos = CurStack.position(Vreg);
     if (ArgInfo[0].Push)
       rv(CurStack += rv(pushI(Pos)));
     else if (Pos != 0)
       rv(CurStack += rv(xchgTop(Pos)));
-  } else if (Ar.size() == 2 && !HasBigNums) {
+  } else if (Ar.size() == 2 && !CantBeOptimized) {
     auto Pos0 = ArgInfo[0].SrcPos;
     auto Pos1 = ArgInfo[1].SrcPos;
     auto Push0 = ArgInfo[0].Push;
     auto Push1 = ArgInfo[1].Push;
 
-    if (Push0 && Ar[0].Vreg.VirtReg == TVMFunctionInfo::UnusedReg && Push1 &&
-        Ar[1].Vreg.VirtReg == TVMFunctionInfo::UnusedReg)
-      rv(CurStack += rv(pushUndef()));
+    assert(Ar[0].Vreg.VirtReg != TVMFunctionInfo::UnusedReg);
+    assert(Ar[1].Vreg.VirtReg != TVMFunctionInfo::UnusedReg);
 
     if (Push0 && Push1) {
       StackPatterns::pattern2_pp(rv, Pos0, Pos1);
@@ -406,7 +395,7 @@ StackFixup StackFixup::DiffForArgs(const Stack &From, const MIArgs &Args,
     } else {
       llvm_unreachable("Two arg Push0/Push1 inconsistence");
     }
-  } else if (Ar.size() == 3 && !HasBigNums) {
+  } else if (Ar.size() == 3 && !CantBeOptimized) {
     auto Pos0 = ArgInfo[0].SrcPos;
     auto Pos1 = ArgInfo[1].SrcPos;
     auto Pos2 = ArgInfo[2].SrcPos;
@@ -414,10 +403,9 @@ StackFixup StackFixup::DiffForArgs(const Stack &From, const MIArgs &Args,
     auto Push1 = ArgInfo[1].Push;
     auto Push2 = ArgInfo[2].Push;
 
-    if (Push0 && Ar[0].Vreg.VirtReg == TVMFunctionInfo::UnusedReg && Push1 &&
-        Ar[1].Vreg.VirtReg == TVMFunctionInfo::UnusedReg && Push2 &&
-        Ar[2].Vreg.VirtReg == TVMFunctionInfo::UnusedReg)
-      rv(CurStack += rv(pushUndef()));
+    assert(Ar[0].Vreg.VirtReg != TVMFunctionInfo::UnusedReg);
+    assert(Ar[1].Vreg.VirtReg != TVMFunctionInfo::UnusedReg);
+    assert(Ar[2].Vreg.VirtReg != TVMFunctionInfo::UnusedReg);
 
     if (!Push0 && !Push1 && !Push2)
       StackPatterns::pattern3_xxx(rv, Pos0, Pos1, Pos2);

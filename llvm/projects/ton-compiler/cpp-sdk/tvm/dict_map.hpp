@@ -1,6 +1,8 @@
 #pragma once
 
 #include <tvm/dict_base.hpp>
+#include <tvm/dictionary_map_const_iterator.hpp>
+#include <tvm/ElementRef.hpp>
 
 namespace tvm {
 

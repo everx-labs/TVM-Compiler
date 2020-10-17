@@ -368,8 +368,12 @@ class ASTContext : public RefCountedBase<ASTContext> {
   mutable IdentifierInfo *ReflectMethodPtrArgStructName = nullptr;
   /// The identifier '__reflect_smart_interface'.
   mutable IdentifierInfo *ReflectSmartInterfaceName = nullptr;
+  /// The identifier '__reflect_proxy'.
+  mutable IdentifierInfo *ReflectProxyName = nullptr;
   /// The identifier '__reflect_method_ptr'.
   mutable IdentifierInfo *ReflectMethodPtrName = nullptr;
+  /// The identifier '__reflect_interface_has_pubkey'.
+  mutable IdentifierInfo *ReflectInterfaceHasPubkeyName = nullptr;
   // TVM local end
 
   QualType ObjCConstantStringType;
@@ -569,7 +573,9 @@ private:
   mutable BuiltinTemplateDecl *ReflectMethodArgStructDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectMethodPtrArgStructDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectSmartInterfaceDecl = nullptr;
+  mutable BuiltinTemplateDecl *ReflectProxyDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectMethodPtrDecl = nullptr;
+  mutable BuiltinTemplateDecl *ReflectInterfaceHasPubkeyDecl = nullptr;
   // TVM local end
 
   /// The associated SourceManager object.
@@ -1091,7 +1097,9 @@ public:
   BuiltinTemplateDecl *getReflectMethodArgStructDecl() const;
   BuiltinTemplateDecl *getReflectMethodPtrArgStructDecl() const;
   BuiltinTemplateDecl *getReflectSmartInterfaceDecl() const;
+  BuiltinTemplateDecl *getReflectProxyDecl() const;
   BuiltinTemplateDecl *getReflectMethodPtrDecl() const;
+  BuiltinTemplateDecl *getReflectInterfaceHasPubkeyDecl() const;
   // TVM local end
 
   // Builtin Types.
@@ -1954,10 +1962,22 @@ public:
     return ReflectSmartInterfaceName;
   }
 
+  IdentifierInfo *getReflectProxyName() const {
+    if (!ReflectProxyName)
+      ReflectProxyName = &Idents.get("__reflect_proxy");
+    return ReflectProxyName;
+  }
+
   IdentifierInfo *getReflectMethodPtrName() const {
     if (!ReflectMethodPtrName)
       ReflectMethodPtrName = &Idents.get("__reflect_method_ptr");
     return ReflectMethodPtrName;
+  }
+
+  IdentifierInfo *getReflectInterfaceHasPubkeyName() const {
+    if (!ReflectInterfaceHasPubkeyName)
+      ReflectInterfaceHasPubkeyName = &Idents.get("__reflect_interface_has_pubkey");
+    return ReflectInterfaceHasPubkeyName;
   }
   // TVM local end
 

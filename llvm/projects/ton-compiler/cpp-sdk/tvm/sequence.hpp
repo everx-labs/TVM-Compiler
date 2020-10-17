@@ -7,6 +7,13 @@
 
 namespace tvm {
 
+__always_inline
+constexpr size_t strlength(const char* str) {
+  size_t __len = 0;
+  for (; str[__len]; ++__len);
+  return __len;
+}
+
 // Array represented in flat sequence of elements
 // Default constructor contains null cell (for optimization of arguments parsing)
 template<class Element>
@@ -25,6 +32,9 @@ public:
   sequence(std::initializer_list<int> il) {
     assign(il.begin(), il.end());
   }
+  constexpr sequence(const char* str) {
+    assign(str, str + strlength(str));
+  }
 
   sequence& operator=(std::initializer_list<Element> il) {
     assign(il.begin(), il.end());
@@ -32,6 +42,10 @@ public:
   }
   sequence& operator=(std::initializer_list<int> il) {
     assign(il.begin(), il.end());
+    return *this;
+  }
+  constexpr sequence& operator=(const char* str) {
+    assign(str, str + strlength(str));
     return *this;
   }
 

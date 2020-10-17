@@ -299,8 +299,14 @@ enum BuiltinTemplateKind : int {
   /// This names the __reflect_smart_interface BuiltinTemplateDecl.
   BTK__reflect_smart_interface,
 
+  /// This names the __reflect_proxy BuiltinTemplateDecl.
+  BTK__reflect_proxy,
+
   /// This names the __reflect_method_ptr BuiltinTemplateDecl.
-  BTK__reflect_method_ptr
+  BTK__reflect_method_ptr,
+
+  /// This names the __reflect_interface_has_pubkey BuiltinTemplateDecl.
+  BTK__reflect_interface_has_pubkey,
   // TVM local end
 };
 

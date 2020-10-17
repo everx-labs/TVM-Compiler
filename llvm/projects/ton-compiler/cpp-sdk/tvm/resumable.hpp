@@ -68,7 +68,7 @@ public:
   __always_inline
   ~resumable() { handle_.destroy(); }
 
-  template<std::enable_if_t<!std::is_void_v<T>, int> = 0>
+  template<class T1 = T, std::enable_if_t<!std::is_void_v<T1>, int> = 0>
   __always_inline
   T return_val() const {
     return handle_.promise().val_;

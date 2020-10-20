@@ -103,13 +103,13 @@ let mayLoad = 1 in {
         (int_tvm_dictumax Cell:$dict, I257:$precision))],
       "DICTUMAX\t$result, $key, $status, $dict, $precision",
       "DICTUMAX NULLSWAPIFNOT NULLSWAPIFNOT", 0xf48e>;
-  defm DICTUMAXREF :
+/*  defm DICTUMAXREF :
     I<(outs Cell:$result, I257:$key, I257:$status),
       (ins Cell:$dict, I257:$precision), (outs), (ins),
       [(set Cell:$result, I257:$key, I257:$status,
         (int_tvm_dictumax Cell:$dict, I257:$precision))],
       "DICTUMAXREF\t$result, $key, $status, $dict, $precision",
-      "DICTUMAXREF NULLSWAPIFNOT NULLSWAPIFNOT", 0xf48f>;
+      "DICTUMAXREF NULLSWAPIFNOT NULLSWAPIFNOT", 0xf490>;*/
   defm DICTUGETPREV :
     I<(outs Slice:$result, I257:$next, I257:$status),
       (ins I257:$key, Cell:$dict, I257:$precision), (outs), (ins),

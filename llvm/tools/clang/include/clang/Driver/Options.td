@@ -633,6 +633,8 @@ def import_json_abi : Flag<["-"], "import-json-abi">, Flags<[CC1Option]>, Group<
   HelpText<"Import json abi for TVM contract">;
 def import_json_name : Joined<["-"], "import-json-name=">, Flags<[CC1Option]>,
   HelpText<"Override name for imported interface structure (file name by default)">;
+def lto_S : Flag<["-"], "lto-S">, Flags<[CC1Option]>, Group<Action_Group>,
+  HelpText<"Emit after lto assembly">;
 // TVM local end
 def exported__symbols__list : Separate<["-"], "exported_symbols_list">;
 def e : JoinedOrSeparate<["-"], "e">, Group<Link_Group>;

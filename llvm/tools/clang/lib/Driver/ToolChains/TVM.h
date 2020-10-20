@@ -55,7 +55,8 @@ private:
                                   const InputInfoList &Inputs,
                                   const llvm::opt::ArgList &Args,
                                   llvm::StringRef SubArchName,
-                                  const char *InputFileName) const;
+                                  const char *InputFileName,
+                                  bool PrefixIsName = false) const;
 };
 
 } // end namespace tvm

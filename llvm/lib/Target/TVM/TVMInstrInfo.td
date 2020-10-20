@@ -430,6 +430,7 @@ defm LOGFLUSH : I<(outs), (ins), (outs), (ins), [(int_tvm_logflush)],
 //===----------------------------------------------------------------------===//
 // Integer comparison
 //===----------------------------------------------------------------------===//
+
 let isCommutable = 1 in {
 defm EQ : ComparisonInt<SETEQ, "EQUAL", 0xba>;
 defm NE : ComparisonInt<SETNE, "NEQ", 0xbe>;
@@ -438,6 +439,13 @@ defm SLT : ComparisonInt<SETLT,  "LESS", 0xb9>;
 defm SGT : ComparisonInt<SETGT,  "GREATER", 0xbc>;
 defm SLE : ComparisonInt<SETLE,  "LEQ", 0xbb>;
 defm SGE : ComparisonInt<SETGE,  "GEQ", 0xbe>;
+
+defm EQIMM : ComparisonImm<SETEQ, "EQINT", simm8, 0xc0>;
+defm STLIMM : ComparisonImm<SETLT, "LESSINT", simm8, 0xc1>;
+defm SGTIMM : ComparisonImm<SETGT, "GTINT", simm8, 0xc2>;
+defm ULTIMM : ComparisonImm<SETULT, "LESSINT", simm8, 0xc1>;
+defm UGTIMM : ComparisonImm<SETUGT, "GTINT", simm8, 0xc2>;
+defm NEIMM : ComparisonImm<SETNE, "NEQINT", simm8, 0xc3>;
 
 // Unsigned comparison a ult b = (a slt b)
 class ComparisonUint<CondCode cond, Instruction instr> :

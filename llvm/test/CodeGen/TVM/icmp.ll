@@ -103,3 +103,51 @@ define i257 @icmpgeq(i257 %par1, i257 %par2) nounwind {
   %2 = select i1 %1, i257 42, i257 77
   ret i257 %2
 }
+
+; CHECK-LABEL: icmpeqimm
+define i257 @icmpeqimm(i257 %par1) nounwind {
+; CHECK: EQINT
+  %1 = icmp eq i257 %par1, 42
+  %2 = select i1 %1, i257 42, i257 77
+  ret i257 %2
+}
+
+; CHECK-LABEL: icmpneqimm
+define i257 @icmpneqimm(i257 %par1) nounwind {
+; CHECK: NEQINT
+  %1 = icmp ne i257 %par1, 42
+  %2 = select i1 %1, i257 42, i257 77
+  ret i257 %2
+}
+
+; CHECK-LABEL: icmpsgtimm
+define i257 @icmpsgtimm(i257 %par1) nounwind {
+; CHECK: GTINT
+  %1 = icmp sgt i257 %par1, 42
+  %2 = select i1 %1, i257 42, i257 77
+  ret i257 %2
+}
+
+; CHECK-LABEL: icmpugtimm
+define i257 @icmpugtimm(i257 %par1) nounwind {
+; CHECK: GTINT
+  %1 = icmp ugt i257 %par1, 42
+  %2 = select i1 %1, i257 42, i257 77
+  ret i257 %2
+}
+
+; CHECK-LABEL: icmpsltimm
+define i257 @icmpsltimm(i257 %par1) nounwind {
+; CHECK: LESSINT
+  %1 = icmp slt i257 %par1, 42
+  %2 = select i1 %1, i257 42, i257 77
+  ret i257 %2
+}
+
+; CHECK-LABEL: icmpultimm
+define i257 @icmpultimm(i257 %par1) nounwind {
+; CHECK: LESSINT
+  %1 = icmp ult i257 %par1, 42
+  %2 = select i1 %1, i257 42, i257 77
+  ret i257 %2
+}

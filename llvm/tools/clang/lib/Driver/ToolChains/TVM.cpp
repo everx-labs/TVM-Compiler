@@ -133,16 +133,15 @@ const char *tvm::Linker::constructOptCommand(
   return OutputFileName;
 }
 
-const char *tvm::Linker::constructLlcCommand(Compilation &C,
-                                             const JobAction &JA,
-                                             const InputInfoList &Inputs,
-                                             const llvm::opt::ArgList &Args,
-                                             llvm::StringRef OutputFilePrefix,
-                                             const char *InputFileName) const {
+const char *tvm::Linker::constructLlcCommand(
+    Compilation &C, const JobAction &JA, const InputInfoList &Inputs,
+    const llvm::opt::ArgList &Args, llvm::StringRef OutputFilePrefix,
+    const char *InputFileName, bool PrefixIsName) const {
   // Construct llc command.
   ArgStringList LlcArgs{InputFileName, "-mtriple=tvm", "-filetype=asm", "-o"};
   std::string LlcOutputFileName =
-      C.getDriver().GetTemporaryPath(OutputFilePrefix, "s");
+      PrefixIsName ? std::string(OutputFilePrefix.data())
+                   : C.getDriver().GetTemporaryPath(OutputFilePrefix, "s");
   const char *LlcOutputFile =
       C.addTempFile(C.getArgs().MakeArgString(LlcOutputFileName));
   LlcArgs.push_back(LlcOutputFile);
@@ -171,17 +170,24 @@ void tvm::Linker::ConstructJob(Compilation &C, const JobAction &JA,
 
   const char *LLVMLinkCommand =
       constructLLVMLinkCommand(C, JA, Inputs, Args, Prefix);
-  // TODO: We now reinvoke the driver to produce the ABI output.
-  // Constant printing pass can't be invoked from opt or llc, it's better to
-  // fix it one day by moving ABI generation to llc.
-  const char *JsExport =
-      constructClangCommand(C, JA, Inputs, Args, OutPrefix, LLVMLinkCommand);
   const char *OptIntCommand =
       constructOptCommand(C, JA, Inputs, Args, Prefix, LLVMLinkCommand, true);
   const char *OptCommand =
       constructOptCommand(C, JA, Inputs, Args, Prefix, OptIntCommand, false);
   const char *LlcCommand =
-      constructLlcCommand(C, JA, Inputs, Args, Prefix, OptCommand);
+      Args.hasArg(options::OPT_lto_S)
+          ? constructLlcCommand(C, JA, Inputs, Args, Output.getFilename(),
+                                OptCommand, true)
+          : constructLlcCommand(C, JA, Inputs, Args, Prefix, OptCommand);
+
+  if (Args.hasArg(options::OPT_lto_S))
+    return;
+
+  // TODO: We now reinvoke the driver to produce the ABI output.
+  // Constant printing pass can't be invoked from opt or llc, it's better to
+  // fix it one day by moving ABI generation to llc.
+  const char *JsExport =
+      constructClangCommand(C, JA, Inputs, Args, OutPrefix, LLVMLinkCommand);
 
   const ToolChain &ToolChain = getToolChain();
   const char *Linker = Args.MakeArgString(ToolChain.GetLinkerPath());

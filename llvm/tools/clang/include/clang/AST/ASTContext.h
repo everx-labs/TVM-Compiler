@@ -342,6 +342,8 @@ class ASTContext : public RefCountedBase<ASTContext> {
   mutable IdentifierInfo *ReflectMethodsCountName = nullptr;
   /// The identifier '__reflect_method_name'.
   mutable IdentifierInfo *ReflectMethodNameName = nullptr;
+  /// The identifier '__reflect_method_ptr_name'.
+  mutable IdentifierInfo *ReflectMethodPtrNameName = nullptr;
   /// The identifier '__reflect_return_name'.
   mutable IdentifierInfo *ReflectReturnNameName = nullptr;
   /// The identifier '__reflect_method_func_id'.
@@ -366,6 +368,8 @@ class ASTContext : public RefCountedBase<ASTContext> {
   mutable IdentifierInfo *ReflectMethodPtrFuncIdName = nullptr;
   /// The identifier '__reflect_method_rv'.
   mutable IdentifierInfo *ReflectMethodRvName = nullptr;
+  /// The identifier '__reflect_method_ptr_rv'.
+  mutable IdentifierInfo *ReflectMethodPtrRvName = nullptr;
   /// The identifier '__reflect_method_arg_struct'.
   mutable IdentifierInfo *ReflectMethodArgStructName = nullptr;
   /// The identifier '__reflect_method_ptr_arg_struct'.
@@ -378,6 +382,8 @@ class ASTContext : public RefCountedBase<ASTContext> {
   mutable IdentifierInfo *ReflectMethodPtrName = nullptr;
   /// The identifier '__reflect_interface_has_pubkey'.
   mutable IdentifierInfo *ReflectInterfaceHasPubkeyName = nullptr;
+  /// The identifier '__reflect_signature_func_id'.
+  mutable IdentifierInfo *ReflectSignatureFuncIdName = nullptr;
   // TVM local end
 
   QualType ObjCConstantStringType;
@@ -564,6 +570,7 @@ private:
   mutable BuiltinTemplateDecl *ReflectFieldsCountDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectMethodsCountDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectMethodNameDecl = nullptr;
+  mutable BuiltinTemplateDecl *ReflectMethodPtrNameDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectReturnNameDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectMethodFuncIdDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectMethodInternalDecl = nullptr;
@@ -576,12 +583,14 @@ private:
   mutable BuiltinTemplateDecl *ReflectMethodNoWritePersistentDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectMethodPtrFuncIdDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectMethodRvDecl = nullptr;
+  mutable BuiltinTemplateDecl *ReflectMethodPtrRvDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectMethodArgStructDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectMethodPtrArgStructDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectSmartInterfaceDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectProxyDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectMethodPtrDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectInterfaceHasPubkeyDecl = nullptr;
+  mutable BuiltinTemplateDecl *ReflectSignatureFuncIdDecl = nullptr;
   // TVM local end
 
   /// The associated SourceManager object.
@@ -1090,6 +1099,7 @@ public:
   BuiltinTemplateDecl *getReflectFieldsCountDecl() const;
   BuiltinTemplateDecl *getReflectMethodsCountDecl() const;
   BuiltinTemplateDecl *getReflectMethodNameDecl() const;
+  BuiltinTemplateDecl *getReflectMethodPtrNameDecl() const;
   BuiltinTemplateDecl *getReflectReturnNameDecl() const;
   BuiltinTemplateDecl *getReflectMethodFuncIdDecl() const;
   BuiltinTemplateDecl *getReflectMethodInternalDecl() const;
@@ -1102,12 +1112,14 @@ public:
   BuiltinTemplateDecl *getReflectMethodNoWritePersistentDecl() const;
   BuiltinTemplateDecl *getReflectMethodPtrFuncIdDecl() const;
   BuiltinTemplateDecl *getReflectMethodRvDecl() const;
+  BuiltinTemplateDecl *getReflectMethodPtrRvDecl() const;
   BuiltinTemplateDecl *getReflectMethodArgStructDecl() const;
   BuiltinTemplateDecl *getReflectMethodPtrArgStructDecl() const;
   BuiltinTemplateDecl *getReflectSmartInterfaceDecl() const;
   BuiltinTemplateDecl *getReflectProxyDecl() const;
   BuiltinTemplateDecl *getReflectMethodPtrDecl() const;
   BuiltinTemplateDecl *getReflectInterfaceHasPubkeyDecl() const;
+  BuiltinTemplateDecl *getReflectSignatureFuncIdDecl() const;
   // TVM local end
 
   // Builtin Types.
@@ -1890,6 +1902,12 @@ public:
     return ReflectMethodNameName;
   }
 
+  IdentifierInfo *getReflectMethodPtrNameName() const {
+    if (!ReflectMethodPtrNameName)
+      ReflectMethodPtrNameName = &Idents.get("__reflect_method_ptr_name");
+    return ReflectMethodPtrNameName;
+  }
+
   IdentifierInfo *getReflectReturnNameName() const {
     if (!ReflectReturnNameName)
       ReflectReturnNameName = &Idents.get("__reflect_return_name");
@@ -1964,6 +1982,12 @@ public:
     return ReflectMethodRvName;
   }
 
+  IdentifierInfo *getReflectMethodPtrRvName() const {
+    if (!ReflectMethodPtrRvName)
+      ReflectMethodPtrRvName = &Idents.get("__reflect_method_ptr_rv");
+    return ReflectMethodPtrRvName;
+  }
+
   IdentifierInfo *getReflectMethodArgStructName() const {
     if (!ReflectMethodArgStructName)
       ReflectMethodArgStructName = &Idents.get("__reflect_method_arg_struct");
@@ -1998,6 +2022,12 @@ public:
     if (!ReflectInterfaceHasPubkeyName)
       ReflectInterfaceHasPubkeyName = &Idents.get("__reflect_interface_has_pubkey");
     return ReflectInterfaceHasPubkeyName;
+  }
+
+  IdentifierInfo *getReflectSignatureFuncIdName() const {
+    if (!ReflectSignatureFuncIdName)
+      ReflectSignatureFuncIdName = &Idents.get("__reflect_signature_func_id");
+    return ReflectSignatureFuncIdName;
   }
   // TVM local end
 

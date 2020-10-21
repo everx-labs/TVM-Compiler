@@ -260,6 +260,9 @@ enum BuiltinTemplateKind : int {
   /// This names the __reflect_method_name BuiltinTemplateDecl.
   BTK__reflect_method_name,
 
+  /// This names the __reflect_method_ptr_name BuiltinTemplateDecl.
+  BTK__reflect_method_ptr_name,
+
   /// This names the __reflect_return_name BuiltinTemplateDecl.
   BTK__reflect_return_name,
 
@@ -296,6 +299,9 @@ enum BuiltinTemplateKind : int {
   /// This names the __reflect_method_rv BuiltinTemplateDecl.
   BTK__reflect_method_rv,
 
+  /// This names the __reflect_method_ptr_rv BuiltinTemplateDecl.
+  BTK__reflect_method_ptr_rv,
+
   /// This names the __reflect_method_arg_struct BuiltinTemplateDecl.
   BTK__reflect_method_arg_struct,
 
@@ -313,6 +319,9 @@ enum BuiltinTemplateKind : int {
 
   /// This names the __reflect_interface_has_pubkey BuiltinTemplateDecl.
   BTK__reflect_interface_has_pubkey,
+
+  /// This names the __reflect_signature_func_id BuiltinTemplateDecl.
+  BTK__reflect_signature_func_id,
   // TVM local end
 };
 

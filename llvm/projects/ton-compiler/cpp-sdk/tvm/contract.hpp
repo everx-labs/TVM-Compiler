@@ -15,6 +15,7 @@
 #include <tvm/schema/abiv1.hpp>
 #include <tvm/schema/json-abi-gen.hpp>
 #include <tvm/message_flags.hpp>
+#include <tvm/func_id.hpp>
 
 namespace tvm {
 

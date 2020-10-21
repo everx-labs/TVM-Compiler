@@ -8,6 +8,8 @@
 #include <tvm/dict_array.hpp>
 #include <tvm/dict_map.hpp>
 #include <boost/hana/is_empty.hpp>
+#include <boost/hana/equal.hpp>
+#include <boost/hana/not_equal.hpp>
 
 /*
 {
@@ -153,6 +155,10 @@ template<class T>
 constexpr auto make_simple_type() {
   return make_simple_type_impl<T>::value;
 }
+template<class T>
+constexpr bool has_simple_type() {
+  return make_simple_type_impl<T>::value != "unknown"_s;
+}
 
 template<class T>
 constexpr auto make_function_header(T func_name) {
@@ -236,7 +242,7 @@ __always_inline constexpr auto make_return_name() {
     return ReturnName{};
 }
 
-// For simple-type return value ("MsgAddress func()") we don't have name for field, so just "value0"
+// For simple-type return value ("MsgAddress func()") we don't have name for field, so using `ReturnName`
 template<unsigned Offset, class ReturnName, unsigned _bitlen>
 struct make_struct_json<int_t<_bitlen>, Offset, ReturnName> {
   static constexpr auto value = make_field_impl<int_t<_bitlen>, 1, Offset>(make_return_name<ReturnName>());
@@ -342,6 +348,84 @@ constexpr auto make_function_id() {
     return ""_s;
 }
 
+// ====== Signature generation =========
+template<class T>
+__always_inline constexpr auto make_type_signature();
+
+// arg type lists for signature
+template<class ArgsTuple>
+struct make_arg_types_list {
+  static constexpr auto value = ""_s;
+};
+template<class Arg0, class... Args>
+struct make_arg_types_list<std::tuple<Arg0, Args...>> {
+  static constexpr auto value =
+    make_type_signature<Arg0>() + ((","_s + make_type_signature<Args>()) + ...);
+};
+
+template<class T>
+struct make_type_signature_impl {
+  static constexpr auto value = []() constexpr {
+    if constexpr (has_simple_type<T>()) {
+      return make_simple_type<T>();
+    } else {
+      return "("_s + make_arg_types_list<to_std_tuple_t<T>>::value + ")"_s;
+    }
+  }();
+};
+
+template<class Element>
+struct make_type_signature_impl<dict_array<Element, 32>> {
+  static constexpr auto value = make_type_signature<Element>() + "[]"_s;
+};
+
+template<class Key, class Value>
+struct make_type_signature_impl<dict_map<Key, Value>> {
+  static constexpr auto value =
+    "map("_s + make_type_signature<Key>() + ","_s + make_type_signature<Value>() + ")"_s;
+};
+
+template<class T>
+constexpr auto make_type_signature() {
+  return make_type_signature_impl<T>::value;
+};
+
+// return value type lists for signature
+template<class Rv>
+constexpr auto make_rv_types_list() {
+  if constexpr (std::is_void_v<Rv>) {
+    return ""_s;
+  } else if constexpr (has_simple_type<Rv>()) {
+    return make_type_signature<Rv>();
+  } else {
+    return make_arg_types_list<to_std_tuple_t<Rv>>::value;
+  }
+}
+
+// generate function signature like: `getVersion()(bytes,uint24)v2`
+template<class Interface, unsigned CurMethod>
+constexpr auto make_func_signature() {
+  using FuncName = get_interface_method_name<Interface, CurMethod>;
+  using Arg = get_interface_method_arg_struct<Interface, CurMethod>;
+  using ArgsTuple = to_std_tuple_t<Arg>;
+  using Rv = get_interface_method_rv<Interface, CurMethod>;
+
+  return FuncName{} +
+    "("_s + make_arg_types_list<ArgsTuple>::value + ")("_s + make_rv_types_list<Rv>() + ")v2"_s;
+}
+
+template<auto MethodPtr>
+constexpr auto make_func_signature() {
+  using FuncName = get_interface_method_ptr_name<MethodPtr>;
+  using Arg = args_struct_t<MethodPtr>;
+  using ArgsTuple = to_std_tuple_t<Arg>;
+  using Rv = get_interface_method_ptr_rv<MethodPtr>;
+
+  return FuncName{} +
+    "("_s + make_arg_types_list<ArgsTuple>::value + ")("_s + make_rv_types_list<Rv>() + ")v2"_s;
+}
+// ====== ^^^Signature generation^^^ =========
+
 template<unsigned FuncID, bool ImplicitFuncId, class RvStruct, class ArgStruct, class ReturnName, class FuncName>
 constexpr auto make_function_json(FuncName func_name) {
   constexpr auto hdr = make_function_header(func_name);
@@ -358,7 +442,9 @@ struct make_json_abi_impl {
   using Arg = get_interface_method_arg_struct<Interface, CurMethod>;
   using FuncName = get_interface_method_name<Interface, CurMethod>;
   using ReturnName = get_interface_return_name<Interface, CurMethod>;
-  static constexpr bool ImplicitFuncId = get_interface_method_implicit_func_id<Interface, CurMethod>::value;
+  // If func id is not specified or was specified attribute [[implicit_func_id]]
+  static constexpr bool ImplicitFuncId =
+    get_interface_method_implicit_func_id<Interface, CurMethod>::value || !FuncId;
 
   static constexpr auto value =
     make_function_json<FuncId, ImplicitFuncId, Rv, Arg, ReturnName>(FuncName{}) + ",\n"_s +
@@ -371,7 +457,8 @@ struct make_json_abi_impl<Interface, CurMethod, 1> {
   using Arg = get_interface_method_arg_struct<Interface, CurMethod>;
   using FuncName = get_interface_method_name<Interface, CurMethod>;
   using ReturnName = get_interface_return_name<Interface, CurMethod>;
-  static constexpr bool ImplicitFuncId = get_interface_method_implicit_func_id<Interface, CurMethod>::value;
+  static constexpr bool ImplicitFuncId =
+    get_interface_method_implicit_func_id<Interface, CurMethod>::value || !FuncId;
 
   static constexpr auto value = make_function_json<FuncId, ImplicitFuncId, Rv, Arg, ReturnName>(FuncName{});
 };

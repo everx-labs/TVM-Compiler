@@ -35,7 +35,7 @@ auto make_chain_tuple(std::tuple<Elems...> tup) {
     // expanding first element
     auto first_elem = std::get<0>(tup);
     using first_elem_t = decltype(first_elem);
-    static_assert(is_expandable<first_elem_t>::value,
+    static_assert(schema::is_expandable<first_elem_t>::value,
                   "Can't place even 1 sequence element into cell");
     auto split_tup = make_chain_tuple(to_std_tuple(first_elem));
     if constexpr (sizeof...(Elems) > 1) {

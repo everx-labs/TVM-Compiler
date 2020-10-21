@@ -1,6 +1,7 @@
 #pragma once
 
 #include <tvm/reflection.hpp>
+#include <tvm/func_id.hpp>
 #include <tvm/contract.hpp>
 #include <tvm/smart_contract_info.hpp>
 #include <tvm/chain_builder.hpp>
@@ -260,7 +261,6 @@ inline std::tuple<persistent_data_header_t<Interface, ReplayAttackProtection>, D
 
     using Est = estimate_element<HeaderT>;
     static_assert(Est::max_bits == Est::min_bits, "Persistent data header can't be dynamic-size");
-    static_assert(Est::max_refs == Est::min_refs, "Persistent data header can't be dynamic-size");
 
     // Only 1 + bitsize(Header) bits to skip
     DContract base = parse_chain<DContract, 1 + Est::max_bits, Est::max_refs>(persist);
@@ -315,14 +315,14 @@ inline void save_persistent_data(persistent_data_header_t<IContract, ReplayAttac
 template<bool Internal, class Contract, class MsgHeader, class IContract, class DContract, class ReplayAttackProtection,
          unsigned Index, unsigned RestMethods>
 struct smart_switcher_impl {
-  static const unsigned my_method_id = get_interface_method_func_id<IContract, Index>::value;
+  static const unsigned my_method_id = get_func_id<IContract, Index>();
 
   __always_inline
   static int execute(Contract c, std::optional<schema::bitfield<512>> signature,
       MsgHeader hdr, cell msg, slice msg_body, slice body_from_header) {
     constexpr bool is_getter = get_interface_method_getter<IContract, Index>::value;
     constexpr bool is_noaccept = get_interface_method_noaccept<IContract, Index>::value;
-    constexpr bool is_implicit_func_id = get_interface_method_implicit_func_id<IContract, Index>::value;
+    constexpr bool is_implicit_id = is_implicit_func_id<IContract, Index>();
     constexpr bool is_internal = get_interface_method_internal<IContract, Index>::value;
     constexpr bool is_external = get_interface_method_external<IContract, Index>::value;
     constexpr bool is_dyn_chain_parse = get_interface_method_dyn_chain_parse<IContract, Index>::value;
@@ -366,7 +366,6 @@ struct smart_switcher_impl {
 
             using Est = estimate_element<HeaderT>;
             static_assert(Est::max_bits == Est::min_bits, "Persistent data header can't be dynamic-size");
-            static_assert(Est::max_refs == Est::min_refs, "Persistent data header can't be dynamic-size");
 
             // Only 1 + bitsize(Header) bits to skip
             base = parse_chain<DContract, 1 + Est::max_bits, Est::max_refs>(persist);
@@ -440,10 +439,10 @@ struct smart_switcher_impl {
                 c.set_persistent_data_header(persistent_data_header);
             } else {
               if constexpr (!std::is_same_v<rv_t, resumable<void>>)
-                send_answer<Internal, is_implicit_func_id>(c, my_method_id, rv.return_val());
+                send_answer<Internal, is_implicit_id>(c, my_method_id, rv.return_val());
             }
           } else {
-            send_answer<Internal, is_implicit_func_id>(c, my_method_id, rv);
+            send_answer<Internal, is_implicit_id>(c, my_method_id, rv);
           }
         } else {
           auto rv = (c.*func)();
@@ -466,10 +465,10 @@ struct smart_switcher_impl {
                 c.set_persistent_data_header(persistent_data_header);
             } else {
               if constexpr (!std::is_same_v<rv_t, resumable<void>>)
-                send_answer<Internal, is_implicit_func_id>(c, my_method_id, rv.return_val());
+                send_answer<Internal, is_implicit_id>(c, my_method_id, rv.return_val());
             }
           } else {
-            send_answer<Internal, is_implicit_func_id>(c, my_method_id, rv);
+            send_answer<Internal, is_implicit_id>(c, my_method_id, rv);
           }
         }
       } else {
@@ -529,7 +528,7 @@ __always_inline bool is_bounced(slice msg_sl) {
 template<class Contract, class MsgHeader, class IContract, class DContract, class ReplayAttackProtection,
          unsigned Index, unsigned RestMethods>
 struct smart_process_answer_impl {
-  static const unsigned my_method_id = get_interface_method_func_id<IContract, Index>::value;
+  static const unsigned my_method_id = get_func_id<IContract, Index>();
   __always_inline static int execute(Contract c, MsgHeader hdr, cell msg, slice msg_body) {
     using ISmart = typename Contract::base;
     static constexpr auto func = get_interface_method_ptr<Contract, ISmart, Index>::value;
@@ -537,7 +536,7 @@ struct smart_process_answer_impl {
       if (my_method_id == schema::abiv2::from_answer_id(hdr.function_id())) {
         constexpr bool is_internal = get_interface_method_internal<IContract, Index>::value;
         constexpr bool is_external = get_interface_method_external<IContract, Index>::value;
-        constexpr bool is_implicit_func_id = get_interface_method_implicit_func_id<IContract, Index>::value;
+        constexpr bool is_implicit_id = is_implicit_func_id<IContract, Index>();
         static_assert(is_internal != is_external,
           "Coroutine method must be only internal or external, not both");
 
@@ -563,7 +562,6 @@ struct smart_process_answer_impl {
 
           using Est = estimate_element<HeaderT>;
           static_assert(Est::max_bits == Est::min_bits, "Persistent data header can't be dynamic-size");
-          static_assert(Est::max_refs == Est::min_refs, "Persistent data header can't be dynamic-size");
 
           // Only 1 + bitsize(Header) bits to skip
           base = parse_chain<DContract, 1 + Est::max_bits, Est::max_refs>(persist);
@@ -604,7 +602,7 @@ struct smart_process_answer_impl {
         } else {
           if constexpr (!std::is_same_v<rv_t, resumable<void>>) {
             // coroutine is done, sending an answer
-            send_answer<is_internal, is_implicit_func_id>(c, my_method_id, res.return_val());
+            send_answer<is_internal, is_implicit_id>(c, my_method_id, res.return_val());
           }
         }
         // Store persistent data

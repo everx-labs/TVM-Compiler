@@ -17,6 +17,8 @@ using get_interface_methods_count =
   __reflect_methods_count<std::integral_constant, unsigned, Interface>;
 template<class Interface, unsigned Index>
 using get_interface_method_name = __reflect_method_name<hana::string, Interface, Index>;
+template<auto MethodPtr>
+using get_interface_method_ptr_name = __reflect_method_ptr_name<hana::string, MethodPtr>;
 template<class Interface, unsigned Index>
 using get_interface_return_name = __reflect_return_name<hana::string, Interface, Index>;
 template<class Interface, unsigned Index>
@@ -48,11 +50,18 @@ using get_interface_method_no_write_persistent =
   __reflect_method_no_write_persistent<std::integral_constant, bool, Interface, Index>;
 template<class Interface, unsigned Index>
 using get_interface_method_rv = __reflect_method_rv<Interface, Index>;
+template<auto MethodPtr>
+using get_interface_method_ptr_rv = __reflect_method_ptr_rv<MethodPtr>;
 template<class Interface, unsigned Index>
 using get_interface_method_arg_struct = __reflect_method_arg_struct<Interface, Index>;
+template<auto MethodPtr>
+using get_interface_method_ptr_arg_struct = __reflect_method_ptr_arg_struct<MethodPtr>;
 template<class Interface>
 using get_interface_has_pubkey =
   __reflect_interface_has_pubkey<std::integral_constant, bool, Interface>;
+template<const char* Signature>
+using get_signature_func_id =
+  __reflect_signature_func_id<std::integral_constant, unsigned, Signature>;
 
 template<auto MethodPtr>
 using args_struct_t = __reflect_method_ptr_arg_struct<MethodPtr>;
@@ -66,12 +75,6 @@ using built_value = Fmt;
 //  virtual built_value<Rv> Meth(parsed_value<ArgN>...)
 template<class Interface>
 using smart_interface = __reflect_smart_interface<parsed_value, built_value, Interface>;
-
-template<auto MethodPtr>
-using id = __reflect_method_ptr_func_id<std::integral_constant, unsigned, MethodPtr>;
-template<auto MethodPtr>
-static constexpr unsigned id_v =
-  __reflect_method_ptr_func_id<std::integral_constant, unsigned, MethodPtr>::value;
 
 template<auto MethodPtr>
 struct proxy_method {

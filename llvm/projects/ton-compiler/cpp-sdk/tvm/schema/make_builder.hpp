@@ -6,6 +6,7 @@
 #include <tvm/schema/builder/variant_builder.hpp>
 #include <tvm/schema/builder/dynamic_field_builder.hpp>
 #include <tvm/schema/message.hpp>
+#include <experimental/type_traits>
 
 namespace tvm { namespace schema {
 
@@ -178,5 +179,15 @@ lazy<_Tp> lazy<_Tp>::make_std(int8 workchain, uint256 addr) {
   lazy<_Tp> rv{ MsgAddressInt{ addr_std{ {}, {}, int8{workchain}, addr } } };
   return rv;
 }
+
+// Helper to understand if this type is an expandable structure
+template<class T>
+struct has_fmt_tuple {
+  using fmt_tuple = typename make_builder_impl<T>::fmt_tuple;
+};
+template<class T>
+struct is_expandable : std::experimental::is_detected<has_fmt_tuple, T> {};
+template<class... Elems>
+struct is_expandable<std::tuple<Elems...>> : std::true_type {};
 
 }} // namespace tvm::schema

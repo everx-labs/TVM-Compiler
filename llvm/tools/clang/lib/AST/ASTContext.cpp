@@ -1076,6 +1076,14 @@ ASTContext::getReflectMethodNameDecl() const {
 }
 
 BuiltinTemplateDecl *
+ASTContext::getReflectMethodPtrNameDecl() const {
+  if (!ReflectMethodPtrNameDecl)
+    ReflectMethodPtrNameDecl = buildBuiltinTemplateDecl(
+        BTK__reflect_method_ptr_name, getReflectMethodPtrNameName());
+  return ReflectMethodPtrNameDecl;
+}
+
+BuiltinTemplateDecl *
 ASTContext::getReflectReturnNameDecl() const {
   if (!ReflectReturnNameDecl)
     ReflectReturnNameDecl = buildBuiltinTemplateDecl(
@@ -1175,6 +1183,14 @@ ASTContext::getReflectMethodRvDecl() const {
 }
 
 BuiltinTemplateDecl *
+ASTContext::getReflectMethodPtrRvDecl() const {
+  if (!ReflectMethodPtrRvDecl)
+    ReflectMethodPtrRvDecl = buildBuiltinTemplateDecl(
+      BTK__reflect_method_ptr_rv, getReflectMethodRvName());
+  return ReflectMethodPtrRvDecl;
+}
+
+BuiltinTemplateDecl *
 ASTContext::getReflectMethodArgStructDecl() const {
   if (!ReflectMethodArgStructDecl)
     ReflectMethodArgStructDecl = buildBuiltinTemplateDecl(
@@ -1220,6 +1236,14 @@ ASTContext::getReflectInterfaceHasPubkeyDecl() const {
     ReflectInterfaceHasPubkeyDecl = buildBuiltinTemplateDecl(
         BTK__reflect_interface_has_pubkey, getReflectInterfaceHasPubkeyName());
   return ReflectInterfaceHasPubkeyDecl;
+}
+
+BuiltinTemplateDecl *
+ASTContext::getReflectSignatureFuncIdDecl() const {
+  if (!ReflectSignatureFuncIdDecl)
+    ReflectSignatureFuncIdDecl = buildBuiltinTemplateDecl(
+        BTK__reflect_signature_func_id, getReflectSignatureFuncIdName());
+  return ReflectSignatureFuncIdDecl;
 }
 
 RecordDecl *ASTContext::buildImplicitRecord(StringRef Name,

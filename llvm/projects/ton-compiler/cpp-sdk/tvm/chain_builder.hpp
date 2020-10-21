@@ -15,8 +15,6 @@
 #include <boost/hana/take_back.hpp>
 #include <boost/hana/ext/std/tuple.hpp>
 
-#include <experimental/type_traits>
-
 namespace tvm {
 
 namespace hana = boost::hana;
@@ -42,15 +40,6 @@ struct extract_fit<Bits, Refs, Idx, Elem> {
 };
 
 template<class T>
-struct has_fmt_tuple {
-  using fmt_tuple = typename schema::make_builder_impl<T>::fmt_tuple;
-};
-template<class T>
-struct is_expandable : std::experimental::is_detected<has_fmt_tuple, T> {};
-template<class... Elems>
-struct is_expandable<std::tuple<Elems...>> : std::true_type {};
-
-template<class T>
 struct is_optional : std::false_type {};
 template<class T>
 struct is_optional<std::optional<T>> : std::true_type {};
@@ -65,7 +54,7 @@ static __always_inline builder build_chain(std::tuple<Elems...> tup) {
       // expanding first element
       auto first_elem = std::get<0>(tup);
       using first_elem_t = decltype(first_elem);
-      static_assert(is_expandable<first_elem_t>::value,
+      static_assert(schema::is_expandable<first_elem_t>::value,
                     "Can't place even 1 sequence element into cell");
       builder b;
       if constexpr (is_optional<first_elem_t>::value) {
@@ -107,7 +96,7 @@ struct chain_parser_impl<std::tuple<Elems...>, Offset, RefsOffset> {
       if constexpr (fit_count == 0) {
         // expanding first element
         using first_elem_t = typename std::tuple_element<0, Tup>::type;
-        static_assert(is_expandable<first_elem_t>::value,
+        static_assert(schema::is_expandable<first_elem_t>::value,
                       "Can't place even 1 sequence element into cell");
         first_elem_t elem;
         if constexpr (is_optional<first_elem_t>::value) {

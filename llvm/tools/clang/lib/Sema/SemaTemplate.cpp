@@ -32,6 +32,9 @@
 #include "llvm/ADT/SmallBitVector.h"
 #include "llvm/ADT/SmallString.h"
 #include "llvm/ADT/StringExtras.h"
+// TVM local begin
+#include "picosha2.h"
+// TVM local end
 
 #include <iterator>
 using namespace clang;
@@ -3190,6 +3193,33 @@ checkBuiltinTemplateIdType(Sema &SemaRef, BuiltinTemplateDecl *BTD,
     return SemaRef.CheckTemplateIdType(Converted[0].getAsTemplate(),
                                        TemplateLoc, SyntheticTemplateArgs);
   }
+  case BTK__reflect_method_ptr_name: {
+    // __reflect_method_ptr_name<T, MethodPtr> ==>
+    //     T<MethodName[0], MethodName[1], ..., MethodName[N-1]>
+    assert(Converted.size() == 2 &&
+      "__reflect_method_ptr_name<T, MethodPtr>");
+    TemplateArgument MethodPtr = Converted[1];
+    const auto *Decl = MethodPtr.getAsDecl();
+    assert(Decl && "MethodPtr is not declaration");
+    assert(Decl->getAsFunction() && "MethodPtr is not a function");
+    auto Name = Decl->getName();
+    auto ChTy = Context.CharTy;
+    unsigned NameLen = static_cast<unsigned>(Name.size());
+
+    TemplateArgumentListInfo SyntheticTemplateArgs;
+    // Expand Name into Name[0] ... Name[N-1].
+    for (unsigned i = 0; i < NameLen; ++i) {
+      llvm::APSInt Ch(static_cast<uint32_t>(Context.getCharWidth()));
+      Ch = static_cast<unsigned char>(Name[i]);
+      TemplateArgument TA(Context, Ch, ChTy);
+      SyntheticTemplateArgs.addArgument(SemaRef.getTrivialTemplateArgumentLoc(
+          TA, ChTy, TemplateArgs[0].getLocation()));
+    }
+    // The first template argument will be reused as the template decl that
+    // our synthetic template arguments will be applied to.
+    return SemaRef.CheckTemplateIdType(Converted[0].getAsTemplate(),
+                                       TemplateLoc, SyntheticTemplateArgs);
+  }
   case BTK__reflect_return_name: {
     // __reflect_return_name<T, Interface, MethodIdx> ==>
     //     T<MethodName[0], MethodName[1], ..., MethodName[N-1]>
@@ -3333,6 +3363,18 @@ checkBuiltinTemplateIdType(Sema &SemaRef, BuiltinTemplateDecl *BTD,
                         static_cast<int64_t>(Index.getZExtValue()));
     assert(it != Rec->method_end() && "method not found by index");
     return it->getReturnType();
+  }
+  case BTK__reflect_method_ptr_rv: {
+    // __reflect_method_ptr_rv<MethodPtr> -
+    //   return value of the MethodPtr
+    assert(Converted.size() == 1 && "__reflect_method_ptr_rv<MethodPtr>");
+    TemplateArgument MethodPtr = Converted[0];
+    const auto *Decl = MethodPtr.getAsDecl();
+    assert(Decl && "MethodPtr is not declaration");
+    assert(Decl->getAsFunction() && "MethodPtr is not a function");
+    const CXXMethodDecl *Method = dyn_cast<CXXMethodDecl>(Decl->getAsFunction());
+    assert(Method && "MethodPtr is not a method");
+    return Method->getReturnType();
   }
   case BTK__reflect_method_arg_struct: {
     // __reflect_method_arg_struct<Interface, Index> -
@@ -3643,6 +3685,56 @@ checkBuiltinTemplateIdType(Sema &SemaRef, BuiltinTemplateDecl *BTD,
     TemplateArgument RvArg(Context, Rv, IntTy);
     SyntheticTemplateArgs.addArgument(SemaRef.getTrivialTemplateArgumentLoc(
         RvArg, IntTy, TemplateArgs[0].getLocation()));
+    return SemaRef.CheckTemplateIdType(Converted[0].getAsTemplate(),
+                                       TemplateLoc, SyntheticTemplateArgs);
+  }
+  case BTK__reflect_signature_func_id: {
+    ASTContext &Context = SemaRef.getASTContext();
+    assert(Converted.size() == 3 &&
+      "__reflect_signature_func_id'<T, IntType, Str>");
+    TemplateArgument IntType = Converted[1], Str = Converted[2];
+    QualType IntTy = IntType.getAsType();
+    llvm::APSInt FuncIdC(static_cast<uint32_t>(Context.getTypeSize(IntTy)));
+    FuncIdC = 0;
+    if (auto *StrDecl = dyn_cast<VarDecl>(Str.getAsDecl())) {
+      if (auto *Init = StrDecl->getInit()) {
+        SmallVector<unsigned char, 32> Signature;
+        if (auto *SL = dyn_cast<StringLiteral>(Init->IgnoreParens())) {
+          unsigned StrLen = SL->getLength();
+          for (unsigned i = 0, e = StrLen; i != e; ++i) {
+            auto Ch = SL->getCodeUnit(i);
+            if (!Ch) break;
+            Signature.push_back(static_cast<unsigned char>(Ch));
+          }
+        } else {
+          Expr::EvalResult Eval;
+          if (Init->EvaluateAsConstantExpr(Eval, Expr::EvaluateForCodeGen,
+                                           Context)) {
+            unsigned NumInitElts = Eval.Val.getArrayInitializedElts();
+            for (unsigned I = 0; I < NumInitElts; ++I) {
+              auto Elem = Eval.Val.getArrayInitializedElt(I);
+              uint64_t Ch = Elem.getInt().getZExtValue();
+              if (!Ch) break;
+              Signature.push_back(static_cast<unsigned char>(Ch));
+            }
+          }
+        }
+        auto hash = picosha2::hash256(Signature);
+        uint32_t funcID = 0;
+        for (size_t i = 0; i < 4; i++) {
+          funcID <<= 8u;
+          funcID += hash[i];
+        }
+        funcID = funcID & ((1u << 31) - 1);
+        FuncIdC = funcID;
+      }
+    }
+
+    TemplateArgumentListInfo SyntheticTemplateArgs;
+    SyntheticTemplateArgs.addArgument(TemplateArgs[1]);
+    TemplateArgument FuncIdArg(Context, FuncIdC, IntTy);
+    SyntheticTemplateArgs.addArgument(SemaRef.getTrivialTemplateArgumentLoc(
+        FuncIdArg, IntTy, TemplateArgs[0].getLocation()));
     return SemaRef.CheckTemplateIdType(Converted[0].getAsTemplate(),
                                        TemplateLoc, SyntheticTemplateArgs);
   }

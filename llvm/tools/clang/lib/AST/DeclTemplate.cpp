@@ -1372,6 +1372,41 @@ createReflectMethodNameParameterList(const ASTContext &C, DeclContext *DC) {
   return createReflectStringParameterList(C, DC);
 }
 
+// __reflect_method_ptr_name<T, auto MethodPtr> -
+//   name of the MethodPtr method, provided into T<char...>
+static TemplateParameterList *
+createReflectMethodPtrNameParameterList(const ASTContext &C, DeclContext *DC) {
+  // char ...Chars
+  TypeSourceInfo *TI = C.getTrivialTypeSourceInfo(C.CharTy);
+  auto *N = NonTypeTemplateParmDecl::Create(
+      C, DC, SourceLocation(), SourceLocation(), /*Depth=*/0, /*Position=*/0,
+      /*Id=*/nullptr, TI->getType(), /*ParameterPack=*/true, TI);
+  N->setImplicit(true);
+
+  // <char ...Chars>
+  NamedDecl *P[1] = {N};
+  auto *TPL = TemplateParameterList::Create(
+      C, SourceLocation(), SourceLocation(), P, SourceLocation(), nullptr);
+
+  // template <char ...Chars> class NameSeq
+  auto *TemplateTemplateParm = TemplateTemplateParmDecl::Create(
+      C, DC, SourceLocation(), /*Depth=*/0, /*Position=*/0,
+      /*ParameterPack=*/false, /*Id=*/nullptr, TPL);
+  TemplateTemplateParm->setImplicit(true);
+
+  // Rv Interface::* MethodPtr
+  QualType AutoType = C.getAutoDeductType();
+  TypeSourceInfo *TInfo = C.getTrivialTypeSourceInfo(AutoType);
+  auto *MethodPtr = NonTypeTemplateParmDecl::Create(
+      C, DC, SourceLocation(), SourceLocation(), /*Depth=*/0, /*Position=*/1,
+      /*Id=*/nullptr, TInfo->getType(), /*ParameterPack=*/false, TInfo);
+  MethodPtr->setImplicit(true);
+  NamedDecl *Params[] = { TemplateTemplateParm, MethodPtr };
+  return TemplateParameterList::Create(C, SourceLocation(), SourceLocation(),
+                                       llvm::makeArrayRef(Params),
+                                       SourceLocation(), nullptr);
+}
+
 // __reflect_return_name<T, Interface, Index> -
 //   return_name[["name"]] of the Interface method number #Index,
 //   provided into T<char...>
@@ -1563,6 +1598,24 @@ createReflectMethodRvParameterList(const ASTContext &C, DeclContext *DC) {
   Index->setImplicit(true);
 
   NamedDecl *Params[] = { Interface, Index };
+  return TemplateParameterList::Create(C, SourceLocation(), SourceLocation(),
+                                       llvm::makeArrayRef(Params),
+                                       SourceLocation(), nullptr);
+}
+
+// __reflect_method_ptr_rv<auto MethodPtr> -
+//   Return value of the MethodPtr
+static TemplateParameterList *
+createReflectMethodPtrRvParameterList(const ASTContext &C, DeclContext *DC) {
+  // Rv Interface::* MethodPtr
+  QualType AutoType = C.getAutoDeductType();
+  TypeSourceInfo *TInfo = C.getTrivialTypeSourceInfo(AutoType);
+  auto *MethodPtr = NonTypeTemplateParmDecl::Create(
+      C, DC, SourceLocation(), SourceLocation(), /*Depth=*/0, /*Position=*/0,
+      /*Id=*/nullptr, TInfo->getType(), /*ParameterPack=*/false, TInfo);
+  MethodPtr->setImplicit(true);
+
+  NamedDecl *Params[] = { MethodPtr };
   return TemplateParameterList::Create(C, SourceLocation(), SourceLocation(),
                                        llvm::makeArrayRef(Params),
                                        SourceLocation(), nullptr);
@@ -1768,6 +1821,56 @@ createReflectInterfaceHasPubkeyParameterList(const ASTContext &C, DeclContext *D
                                        llvm::makeArrayRef(Params),
                                        SourceLocation(), nullptr);
 }
+
+// __reflect_signature_func_id<T, IntType, const char*> -
+//   calculated function id by its signature, provided into T<IntType, FuncID>
+static TemplateParameterList *
+createReflectSignatureFuncIdParameterList(const ASTContext &C, DeclContext *DC) {
+  // typename IntType
+  auto *IntType = TemplateTypeParmDecl::Create(
+      C, DC, SourceLocation(), SourceLocation(), /*Depth=*/1, /*Position=*/0,
+      /*Id=*/nullptr, /*Typename=*/true, /*ParameterPack=*/false);
+  IntType->setImplicit(true);
+
+  // IntType IntVal
+  TypeSourceInfo *TI =
+      C.getTrivialTypeSourceInfo(QualType(IntType->getTypeForDecl(), 0));
+  auto *IntVal = NonTypeTemplateParmDecl::Create(
+      C, DC, SourceLocation(), SourceLocation(), /*Depth=*/0, /*Position=*/1,
+      /*Id=*/nullptr, TI->getType(), /*ParameterPack=*/false, TI);
+  IntVal->setImplicit(true);
+
+  // <typename IntType, IntType IntVal>
+  NamedDecl *P[2] = {IntType, IntVal};
+  auto *TPL = TemplateParameterList::Create(
+      C, SourceLocation(), SourceLocation(), P, SourceLocation(), nullptr);
+
+  // template <typename IntType, IntType IntVal> class integral_constant
+  auto *TemplateTemplateParm = TemplateTemplateParmDecl::Create(
+      C, DC, SourceLocation(), /*Depth=*/0, /*Position=*/0,
+      /*ParameterPack=*/false, /*Id=*/nullptr, TPL);
+  TemplateTemplateParm->setImplicit(true);
+
+  // typename IntTypeTop
+  auto *IntTypeTop = TemplateTypeParmDecl::Create(
+      C, DC, SourceLocation(), SourceLocation(), /*Depth=*/0, /*Position=*/1,
+      /*Id=*/nullptr, /*Typename=*/true, /*ParameterPack=*/false);
+  IntTypeTop->setImplicit(true);
+
+  // const char *signature
+  TypeSourceInfo *CTI =
+      C.getTrivialTypeSourceInfo(C.getPointerType(C.CharTy.withConst()));
+  auto *StrVal = NonTypeTemplateParmDecl::Create(
+      C, DC, SourceLocation(), SourceLocation(), /*Depth=*/0, /*Position=*/2,
+      /*Id=*/nullptr, CTI->getType(), /*ParameterPack=*/false, TI);
+  StrVal->setImplicit(true);
+
+  // <T, IntType, const char *StrVal>
+  NamedDecl *Params[] = {TemplateTemplateParm, IntTypeTop, StrVal};
+  return TemplateParameterList::Create(C, SourceLocation(), SourceLocation(),
+                                       llvm::makeArrayRef(Params),
+                                       SourceLocation(), nullptr);
+}
 // TVM local end
 
 static TemplateParameterList *createBuiltinTemplateParameterList(
@@ -1786,6 +1889,8 @@ static TemplateParameterList *createBuiltinTemplateParameterList(
     return createReflectMethodsCountParameterList(C, DC);
   case BTK__reflect_method_name:
     return createReflectMethodNameParameterList(C, DC);
+  case BTK__reflect_method_ptr_name:
+    return createReflectMethodPtrNameParameterList(C, DC);
   case BTK__reflect_return_name:
     return createReflectReturnNameParameterList(C, DC);
   case BTK__reflect_method_func_id:
@@ -1810,6 +1915,8 @@ static TemplateParameterList *createBuiltinTemplateParameterList(
     return createReflectMethodPtrFuncIdParameterList(C, DC);
   case BTK__reflect_method_rv:
     return createReflectMethodRvParameterList(C, DC);
+  case BTK__reflect_method_ptr_rv:
+    return createReflectMethodPtrRvParameterList(C, DC);
   case BTK__reflect_method_arg_struct:
     return createReflectMethodArgStructParameterList(C, DC);
   case BTK__reflect_method_ptr_arg_struct:
@@ -1822,6 +1929,8 @@ static TemplateParameterList *createBuiltinTemplateParameterList(
     return createReflectMethodPtrParameterList(C, DC);
   case BTK__reflect_interface_has_pubkey:
     return createReflectInterfaceHasPubkeyParameterList(C, DC);
+  case BTK__reflect_signature_func_id:
+    return createReflectSignatureFuncIdParameterList(C, DC);
   // TVM local end
   }
 

@@ -342,6 +342,13 @@ define i257 @chksignu(i257 %hash, slice %signature, i257 %key) {
   %result = call i257 @llvm.tvm.chksignu(i257 %hash, slice %signature, i257 %key)
   ret i257 %result
 }
+
+; CHECK-LABEL: cdatasize
+define {i257, i257, i257} @cdatasize(cell %c, i257 %len) {
+; CHECK: CDATASIZE
+  %result = call {i257, i257, i257} @llvm.tvm.cdatasize(cell %c, i257 %len)
+  ret {i257, i257, i257} %result
+}
 ; =================================== A.13 ====================================
 ; CHECK-LABEL: setcp
 define void @setcp() {
@@ -391,3 +398,4 @@ declare void @llvm.tvm.dumpstktop(i257 %number)
 declare void @llvm.tvm.logflush()
 declare void @llvm.tvm.print(i257 %number)
 declare void @llvm.tvm.print.value(i257 %number)
+declare {i257, i257, i257} @llvm.tvm.cdatasize(cell %c, i257 %len)

@@ -90,6 +90,12 @@ defm SETGLOBVAR : I<(outs), (ins I257:$val, I257:$idx), (outs), (ins),
                     [(int_tvm_setglobal I257:$idx, I257:$val)],
                     "SETGLOBVAR\t$idx, $val", "SETGLOBVAR", 0xf860>;
 
+// A.11.7. Misc primitives.
+defm CDATASIZE : I<(outs I257:$numCells, I257:$numBits, I257:$numRefs),
+                   (ins Cell:$cell, I257:$maxCells), (outs), (ins),
+                   [(set I257:$numCells, I257:$numBits, I257:$numRefs, (int_tvm_cdatasize Cell:$cell, I257:$maxCells))],
+                   "CDATASIZE\t$numCells, $numBits, $numRefs", "CDATASIZE", 0xf941>;
+
 // A.11.10 Outbound message and output action primitives.
 defm RAWRESERVE : I<(outs), (ins I257:$x, I257:$y), (outs), (ins),
                     [(int_tvm_rawreserve I257:$x, I257:$y)],

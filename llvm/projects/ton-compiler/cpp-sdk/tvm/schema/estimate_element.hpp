@@ -13,6 +13,10 @@ namespace detail {
   struct bits {
     static constexpr unsigned min_bits = _min, max_bits = _max;
   };
+  template<unsigned _min, unsigned _max>
+  struct refs {
+    static constexpr unsigned min_refs = _min, max_refs = _max;
+  };
   struct no_refs {
     static constexpr unsigned min_refs = 0, max_refs = 0;
   };
@@ -91,6 +95,10 @@ template<>
 struct estimate_element<cell>
   : detail::bits<0, 0>
   , detail::one_ref {};
+template<>
+struct estimate_element<anydict>
+  : detail::bits<0, 0>
+  , detail::refs<0, 1> {};
 template<>
 struct estimate_element<anyval>
   : detail::bits<0, cell::max_bits>

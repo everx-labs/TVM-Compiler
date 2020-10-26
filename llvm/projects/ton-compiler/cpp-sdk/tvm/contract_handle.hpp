@@ -17,13 +17,13 @@ using good_call_args_t = decltype( (((Interface*)nullptr)->*(Func::value))(Args{
 template<class Interface, auto Func, class... Args>
 constexpr bool good_call_args_v = std::experimental::is_detected_v<good_call_args_t, Interface, proxy_method<Func>, Args...>;
 
+// Prepare message cell for contract call (internal message)
 template<auto Func, class... Args>
 __always_inline
-void contract_call_impl(schema::lazy<schema::MsgAddressInt> addr, schema::Grams amount,
-                        unsigned flags, Args... args) {
+cell contract_call_prepare(address addr, schema::Grams amount, Args... args) {
   using namespace schema;
 
-  abiv1::internal_msg_header hdr{ uint32(id_v<Func>) };
+  abiv2::internal_msg_header hdr{ uint32(id_v<Func>) };
   auto hdr_plus_args = std::make_tuple(hdr, args...);
   int_msg_info_relaxed out_info;
   out_info.ihr_disabled = true;
@@ -41,24 +41,105 @@ void contract_call_impl(schema::lazy<schema::MsgAddressInt> addr, schema::Grams 
     message_relaxed<decltype(chain_tup)> out_msg;
     out_msg.info = out_info;
     out_msg.body = ref<decltype(chain_tup)>{chain_tup};
-    tvm_sendmsg(build(out_msg).endc(), flags);
+    return build(out_msg).endc();
   } else {
     message_relaxed<decltype(hdr_plus_args)> out_msg;
     out_msg.info = out_info;
     out_msg.body = hdr_plus_args;
-    tvm_sendmsg(build(out_msg).endc(), flags);
+    return build(out_msg).endc();
   }
+}
+
+// Prepare message cell for external call (should later be signed by debot engine)
+template<auto Func, class... Args>
+__always_inline
+cell external_call_prepare(address addr, Args... args) {
+  using namespace schema;
+
+  // placeholder for signature
+  abiv2::external_signature signature_place {
+    .signature = bitfield<512>{builder().stu(0, 256).stu(0, 256).make_slice()}
+  };
+  abiv2::external_inbound_msg_header_no_pubkey hdr{
+    .timestamp = uint64{0},
+    .expire = uint32{0},
+    .function_id = uint32(id_v<Func>)
+  };
+  auto hdr_plus_args = std::make_tuple(signature_place, hdr, args...);
+  ext_in_msg_info msg_info {
+    .src = MsgAddressExt{addr_none{}},
+    .dest = addr,
+    .import_fee = Grams{0}
+  };
+
+  using est_t = estimate_element<message<decltype(hdr_plus_args)>>;
+  if constexpr (est_t::max_bits > cell::max_bits || est_t::max_refs > cell::max_refs) {
+    auto chain_tup = make_chain_tuple(hdr_plus_args);
+    message_relaxed<decltype(chain_tup)> out_msg;
+    out_msg.info = msg_info;
+    out_msg.body = ref<decltype(chain_tup)>{chain_tup};
+    return build(out_msg).endc();
+  } else {
+    message_relaxed<decltype(hdr_plus_args)> out_msg;
+    out_msg.info = msg_info;
+    out_msg.body = hdr_plus_args;
+    return build(out_msg).endc();
+  }
+}
+
+template<auto Func, class... Args>
+__always_inline
+cell external_call_prepare_with_pubkey(address addr, schema::uint256 pubkey, Args... args) {
+  using namespace schema;
+
+  // placeholder for signature
+  abiv2::external_signature signature_place {
+    .signature = bitfield<512>{builder().stu(0, 256).stu(0, 256).make_slice()}
+  };
+  abiv2::external_inbound_msg_header_with_pubkey hdr{
+    .pubkey = pubkey,
+    .timestamp = uint64{0},
+    .expire = uint32{0},
+    .function_id = uint32(id_v<Func>)
+  };
+  auto hdr_plus_args = std::make_tuple(signature_place, hdr, args...);
+  ext_in_msg_info msg_info {
+    .src = MsgAddressExt{addr_none{}},
+    .dest = addr,
+    .import_fee = Grams{0}
+  };
+
+  using est_t = estimate_element<message<decltype(hdr_plus_args)>>;
+  if constexpr (est_t::max_bits > cell::max_bits || est_t::max_refs > cell::max_refs) {
+    auto chain_tup = make_chain_tuple(hdr_plus_args);
+    message_relaxed<decltype(chain_tup)> out_msg;
+    out_msg.info = msg_info;
+    out_msg.body = ref<decltype(chain_tup)>{chain_tup};
+    return build(out_msg).endc();
+  } else {
+    message_relaxed<decltype(hdr_plus_args)> out_msg;
+    out_msg.info = msg_info;
+    out_msg.body = hdr_plus_args;
+    return build(out_msg).endc();
+  }
+}
+
+template<auto Func, class... Args>
+__always_inline
+void contract_call_impl(address addr, schema::Grams amount,
+                        unsigned flags, Args... args) {
+  tvm_sendmsg(contract_call_prepare<Func>(addr, amount, args...), flags);
 }
 
 template<class Interface, auto Func, class... Args>
 __always_inline
-void contract_deploy_impl(schema::lazy<schema::MsgAddressInt> addr, schema::StateInit init,
+void contract_deploy_impl(address addr, schema::StateInit init,
                           schema::Grams amount, unsigned flags, Args... args) {
   static_assert(good_call_args_v<Interface, Func, Args...>, "Wrong contract handle call arguments");
 
   using namespace schema;
 
-  abiv1::internal_msg_header hdr{ uint32(id_v<Func>) };
+  abiv2::internal_msg_header hdr{ uint32(id_v<Func>) };
   auto hdr_plus_args = std::make_tuple(hdr, args...);
   int_msg_info_relaxed out_info;
   out_info.ihr_disabled = true;
@@ -105,7 +186,7 @@ using awaitable_ret_t = std::conditional_t<std::is_void_v<RetT>, void, wait_call
 
 class contract_call_configured {
 public:
-  contract_call_configured(schema::lazy<schema::MsgAddressInt> addr, schema::Grams amount, unsigned flags)
+  contract_call_configured(address addr, schema::Grams amount, unsigned flags)
     : addr_(addr), amount_(amount), flags_(flags) {}
   template<auto Func, class... Args>
   __always_inline void call(Args... args) const {
@@ -121,7 +202,7 @@ public:
     }
   }
 private:
-  schema::lazy<schema::MsgAddressInt> addr_;
+  address addr_;
   schema::Grams amount_;
   unsigned flags_;
 };
@@ -129,7 +210,7 @@ private:
 template<class Interface>
 class contract_deploy_configured {
 public:
-  contract_deploy_configured(schema::lazy<schema::MsgAddressInt> addr, schema::StateInit init,
+  contract_deploy_configured(address addr, schema::StateInit init,
                              schema::Grams amount, unsigned flags)
     : addr_(addr), init_(init), amount_(amount), flags_(flags) {}
   template<auto Func, class... Args>
@@ -137,18 +218,64 @@ public:
     contract_deploy_impl<Interface, Func>(addr_, init_, amount_, flags_, args...);
   }
 private:
-  schema::lazy<schema::MsgAddressInt> addr_;
+  address addr_;
   schema::StateInit init_;
   schema::Grams amount_;
   unsigned flags_;
 };
 
+// class for preparing call message cell without sending it
+class contract_call_prepare_only {
+public:
+  contract_call_prepare_only(address addr, schema::Grams amount)
+    : addr_(addr), amount_(amount) {}
+  template<auto Func, class... Args>
+  __always_inline
+  cell _call_impl(Args... args) const {
+    return contract_call_prepare<Func>(addr_, amount_, args...);
+  }
+private:
+  address addr_;
+  schema::Grams amount_;
+};
+
+// class for preparing external call message cell
+class external_call_prepare_only {
+public:
+  explicit external_call_prepare_only(address addr)
+    : addr_(addr) {}
+  template<auto Func, class... Args>
+  __always_inline
+  cell _call_impl(Args... args) const {
+    return external_call_prepare<Func>(addr_, args...);
+  }
+private:
+  address addr_;
+};
+// the same with pubkey in header
+class external_call_prepare_only_with_pubkey {
+public:
+  external_call_prepare_only_with_pubkey(address addr, schema::uint256 pubkey)
+    : addr_(addr), pubkey_(pubkey) {}
+  template<auto Func, class... Args>
+  __always_inline
+  cell _call_impl(Args... args) const {
+    return external_call_prepare_with_pubkey<Func>(addr_, pubkey_, args...);
+  }
+private:
+  address addr_;
+  schema::uint256 pubkey_;
+};
+
 template<class Interface>
 class contract_handle {
 public:
-  using proxy = __reflect_proxy<Interface, contract_call_configured>;
+  using proxy = __reflect_proxy<Interface, contract_call_configured, true>;
+  using proxy_prepare = __reflect_proxy<Interface, contract_call_prepare_only, true>;
+  using proxy_prepare_ext = __reflect_proxy<Interface, external_call_prepare_only, false>;
+  using proxy_prepare_ext_with_pubkey = __reflect_proxy<Interface, external_call_prepare_only_with_pubkey, false>;
 
-  explicit contract_handle(schema::lazy<schema::MsgAddressInt> addr) : addr_(addr) {}
+  explicit contract_handle(address addr) : addr_(addr) {}
 
   template<auto Func, class... Args>
   __always_inline
@@ -172,12 +299,24 @@ public:
       schema::StateInit init, schema::Grams amount, unsigned flags = DEFAULT_MSG_FLAGS) const {
     return contract_deploy_configured<Interface>(addr_, init, amount, flags);
   }
-
+  __always_inline
   proxy operator()(schema::Grams amount = 10000000, unsigned flags = DEFAULT_MSG_FLAGS) const {
     return proxy(addr_, amount, flags);
   }
+  __always_inline
+  proxy_prepare prepare_internal(schema::Grams amount = 10000000) const {
+    return proxy_prepare(addr_, amount);
+  }
+  __always_inline
+  proxy_prepare_ext prepare_external() const {
+    return proxy_prepare_ext(addr_);
+  }
+  __always_inline
+  proxy_prepare_ext_with_pubkey prepare_external_with_pubkey(schema::uint256 pubkey) const {
+    return proxy_prepare_ext(addr_, pubkey);
+  }
 private:
-  schema::lazy<schema::MsgAddressInt> addr_;
+  address addr_;
 };
 
 template<class Interface>

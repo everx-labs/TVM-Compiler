@@ -768,6 +768,8 @@ static bool materializable(Instruction &V, Value *ThisPtr) {
     case Intrinsic::tvm_ctos:
     case Intrinsic::tvm_stu:
     case Intrinsic::tvm_sti:
+    case Intrinsic::tvm_stref:
+    case Intrinsic::tvm_stslice:
       return true;
     }
   }
@@ -975,9 +977,6 @@ void coro::buildCoroutineFrame(Function &F, Shape &Shape) {
               "token definition is separated from the use by a suspend point");
         // TVM local begin
         if (I.getType()->isTVMTupleTy())
-          report_fatal_error(
-              "TVM tuple definition is separated from the use by a suspend point");
-        if (I.getType()->isTVMBuilderTy())
           report_fatal_error(
               "TVM tuple definition is separated from the use by a suspend point");
         // TVM local end

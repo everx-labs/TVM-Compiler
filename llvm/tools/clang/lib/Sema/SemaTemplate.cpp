@@ -3492,9 +3492,11 @@ checkBuiltinTemplateIdType(Sema &SemaRef, BuiltinTemplateDecl *BTD,
     return Context.getRecordType(NewRec);
   }
   case BTK__reflect_proxy: {
-    // __reflect_proxy<Interface, Impl> - proxy for Interface
-    assert(Converted.size() == 2 && "__reflect_proxy<Interface, Impl>");
-    TemplateArgument InterfaceArg = Converted[0], ImplArg = Converted[1];
+    // __reflect_proxy<Interface, Impl, Internal> - proxy for Interface
+    assert(Converted.size() == 3 &&
+           "__reflect_proxy<Interface, Impl, Internal>");
+    TemplateArgument InterfaceArg = Converted[0], ImplArg = Converted[1],
+      Internal = Converted[2];
 
     QualType InterfaceTy = InterfaceArg.getAsType();
     QualType ImplTy = ImplArg.getAsType();
@@ -3546,8 +3548,14 @@ checkBuiltinTemplateIdType(Sema &SemaRef, BuiltinTemplateDecl *BTD,
     for (auto *Meth : InterfaceRec->methods()) {
       if (Meth->isImplicit())
         continue;
-      if (!Meth->hasAttr<TVMInternalFuncAttr>())
-        continue;
+      if (Internal.getAsIntegral() != 0) {
+        if (!Meth->hasAttr<TVMInternalFuncAttr>())
+          continue;
+      } else {
+        if (!Meth->hasAttr<TVMExternalFuncAttr>())
+          continue;
+      }
+
       if (Meth->getName() == "constructor")
         continue;
 
@@ -3562,6 +3570,7 @@ checkBuiltinTemplateIdType(Sema &SemaRef, BuiltinTemplateDecl *BTD,
         Meth->getNameInfo(), MethodType, /*TInfo=*/nullptr,
         SC_None, true, false, SourceLocation());
       NewMeth->addAttr(new (Context) FinalAttr(TemplateLoc, Context, false));
+      NewMeth->addAttr(new (Context) AlwaysInlineAttr(TemplateLoc, Context, false));
 
       SmallVector<ParmVarDecl*, 8> Params;
       for (unsigned i = 0, e = NewMeth->getNumParams(); i != e; ++i) {

@@ -13,6 +13,7 @@
 #include <tvm/schema/make_builder.hpp>
 #include <tvm/schema/message.hpp>
 #include <tvm/schema/abiv1.hpp>
+#include <tvm/schema/abiv2.hpp>
 #include <tvm/schema/json-abi-gen.hpp>
 #include <tvm/message_flags.hpp>
 #include <tvm/func_id.hpp>

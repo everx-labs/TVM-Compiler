@@ -152,6 +152,10 @@ struct make_simple_type_impl<lazy<T>> {
   static constexpr auto value = make_simple_type_impl<T>::value;
 };
 template<class T>
+struct make_simple_type_impl<resumable<T>> {
+  static constexpr auto value = make_simple_type_impl<T>::value;
+};
+template<class T>
 constexpr auto make_simple_type() {
   return make_simple_type_impl<T>::value;
 }
@@ -350,6 +354,19 @@ constexpr auto make_function_id() {
 
 // ====== Signature generation =========
 template<class T>
+struct is_resumable : std::false_type {};
+template<class T>
+struct is_resumable<resumable<T>> : std::true_type {};
+template<class T>
+constexpr bool is_resumable_v = is_resumable<T>::value;
+template<class T>
+struct resumable_subtype {};
+template<class T>
+struct resumable_subtype<resumable<T>> {
+  using type = T;
+};
+
+template<class T>
 __always_inline constexpr auto make_type_signature();
 
 // arg type lists for signature
@@ -360,7 +377,7 @@ struct make_arg_types_list {
 template<class Arg0, class... Args>
 struct make_arg_types_list<std::tuple<Arg0, Args...>> {
   static constexpr auto value =
-    make_type_signature<Arg0>() + ((","_s + make_type_signature<Args>()) + ...);
+    make_type_signature<Arg0>() + (""_s + ... + (","_s + make_type_signature<Args>()));
 };
 
 template<class T>
@@ -395,6 +412,8 @@ template<class Rv>
 constexpr auto make_rv_types_list() {
   if constexpr (std::is_void_v<Rv>) {
     return ""_s;
+  } else if constexpr (is_resumable_v<Rv>) {
+    return make_rv_types_list<typename resumable_subtype<Rv>::type>();
   } else if constexpr (has_simple_type<Rv>()) {
     return make_type_signature<Rv>();
   } else {

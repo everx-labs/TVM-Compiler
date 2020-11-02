@@ -44,9 +44,6 @@ StackFixup StackFixup::Diff(const Stack &to, const Stack &from) {
                       toRegs.end(), std::back_inserter(delVregs));
   Stack unmaskedTo(to);
   unmaskedTo.fillUnusedRegs(delVregs);
-  auto removeElem = [&](const StackVreg &vreg) {
-    rv.removeElem(curStack, vreg);
-  };
   if (!delVregs.empty()) {
     // Sorting regs-to-delete by position from top of the stack
     llvm::sort(delVregs.begin(), delVregs.end(),
@@ -55,7 +52,7 @@ StackFixup StackFixup::Diff(const Stack &to, const Stack &from) {
                });
 
     // Generate changes to delete unused vregs
-    llvm::for_each(delVregs, removeElem);
+    rv.removeElems(curStack, delVregs);
   }
 
   fromRegs = SmallVector<StackVreg, 16>(curStack.begin(), curStack.end());
@@ -67,7 +64,7 @@ StackFixup StackFixup::Diff(const Stack &to, const Stack &from) {
   delVregs.clear();
   std::set_difference(fromRegs.begin(), fromRegs.end(), toRegs.begin(),
                       toRegs.end(), std::back_inserter(delVregs));
-  llvm::for_each(delVregs, removeElem);
+  rv.removeElems(curStack, delVregs);
 
   fromRegs = SmallVector<StackVreg, 16>(curStack.begin(), curStack.end());
   toRegs = SmallVector<StackVreg, 16>(unmaskedTo.begin(), unmaskedTo.end());
@@ -485,6 +482,57 @@ void StackFixup::removeNElem(Stack &stack, const StackVreg &vreg, size_t N) {
 
 void StackFixup::removeAllElem(Stack &stack, const StackVreg &vreg) {
   removeNElem(stack, vreg, stack.count(vreg));
+}
+
+void StackFixup::removeElems(Stack &stack, SmallVectorImpl<StackVreg> &vregs) {
+  if (vregs.empty())
+    return;
+  auto It = std::begin(vregs), E = std::end(vregs);
+  auto Begin = It++;
+  unsigned CurPos = stack.position(*Begin);
+  unsigned PrevPos = CurPos;
+  while (It != E) {
+    unsigned StartPos = stack.position(*Begin);
+    CurPos = stack.position(CurPos + 1, *It);
+    unsigned Num = std::distance(Begin, It);
+    if (CurPos - StartPos == Num) {
+      ++It;
+      PrevPos = CurPos;
+      continue;
+    }
+    Num = PrevPos - StartPos + 1;
+    if (Num > 1u && StartPos == 0) {
+        auto &rv = (*this);
+        rv(stack += rv(makeBlkdrop(Num)));
+    } else if (Num > 1u && StartPos == 1) {
+        auto &rv = (*this);
+        while (Num) {
+            auto EndPos = StartPos + Num - 1;
+            EndPos = (EndPos > 15) ? 15 : EndPos;
+            rv(stack += rv(xchgTop(EndPos)));
+            rv(stack += rv(makeBlkdrop(EndPos)));
+            Num -= EndPos;
+        }
+    } else if (Num > 1u && StartPos < 15) {
+        auto &rv = (*this);
+        while (Num) {
+            auto EndPos = StartPos + Num;
+            EndPos = (EndPos > 15) ? 15 : EndPos;
+            rv(stack += rv(makeBlkSwap(EndPos - StartPos, StartPos)));
+            rv(stack += rv(makeBlkdrop(EndPos - StartPos)));
+            Num -= EndPos - StartPos;
+        }
+    } else {
+      for (; Begin != It; ++Begin) {
+        removeElem(stack, *Begin);
+      }
+    }
+    Begin = It;
+    CurPos = PrevPos = stack.position(*Begin);
+    ++It;
+  }
+  for (; Begin != E; ++Begin)
+    removeElem(stack, *Begin);
 }
 
 StackFixup::Change StackFixup::makeRoll(unsigned deepElem) {

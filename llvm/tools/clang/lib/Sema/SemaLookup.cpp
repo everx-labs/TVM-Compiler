@@ -713,6 +713,15 @@ static bool LookupBuiltin(Sema &S, LookupResult &R) {
         } else if (II == S.getASTContext().getReflectMethodInternalName()) {
           R.addDecl(S.getASTContext().getReflectMethodInternalDecl());
           return true;
+        } else if (II == S.getASTContext().getReflectMethodPtrInternalName()) {
+          R.addDecl(S.getASTContext().getReflectMethodPtrInternalDecl());
+          return true;
+        } else if (II == S.getASTContext().getReflectMethodAnswerIdName()) {
+          R.addDecl(S.getASTContext().getReflectMethodAnswerIdDecl());
+          return true;
+        } else if (II == S.getASTContext().getReflectMethodPtrAnswerIdName()) {
+          R.addDecl(S.getASTContext().getReflectMethodPtrAnswerIdDecl());
+          return true;
         } else if (II == S.getASTContext().getReflectMethodExternalName()) {
           R.addDecl(S.getASTContext().getReflectMethodExternalDecl());
           return true;

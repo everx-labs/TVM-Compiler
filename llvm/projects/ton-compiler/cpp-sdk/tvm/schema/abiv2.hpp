@@ -36,6 +36,12 @@ struct internal_msg_header {
   uint32 function_id;
 };
 
+// internal contract calls for non-void methods require answer_id
+struct internal_msg_header_with_answer_id {
+  uint32 function_id;
+  uint32 answer_id;
+};
+
 static __always_inline unsigned answer_id(unsigned func_id) {
   return func_id | (1ul << 31);
 }

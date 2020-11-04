@@ -2952,6 +2952,32 @@ processFlagAttribute(Sema &SemaRef,
                                      TemplateLoc, SyntheticTemplateArgs);
 }
 
+template<class AttrT>
+static QualType
+processByPtrFlagAttribute(Sema &SemaRef,
+                          const SmallVectorImpl<TemplateArgument> &Converted,
+                          SourceLocation TemplateLoc,
+                          TemplateArgumentListInfo &TemplateArgs) {
+  ASTContext &Context = SemaRef.getASTContext();
+  assert(Converted.size() == 3 &&
+    "__reflect_method_ptr_'attr_name'<T, IntType, Rv Interface::* MethodPtr>");
+  TemplateArgument IntType = Converted[1], MethodPtr = Converted[2];
+  const auto *Decl = MethodPtr.getAsDecl();
+  assert(Decl && "MethodPtr is not declaration");
+  assert(Decl->getAsFunction() && "MethodPtr is not a function");
+  QualType IntTy = IntType.getAsType();
+  llvm::APSInt Rv(static_cast<uint32_t>(Context.getTypeSize(IntTy)));
+  Rv = Decl->getAsFunction()->hasAttr<AttrT>();
+
+  TemplateArgumentListInfo SyntheticTemplateArgs;
+  SyntheticTemplateArgs.addArgument(TemplateArgs[1]);
+  TemplateArgument RvArg(Context, Rv, IntTy);
+  SyntheticTemplateArgs.addArgument(SemaRef.getTrivialTemplateArgumentLoc(
+      RvArg, IntTy, TemplateArgs[0].getLocation()));
+  return SemaRef.CheckTemplateIdType(Converted[0].getAsTemplate(),
+                                     TemplateLoc, SyntheticTemplateArgs);
+}
+
 static ExprResult buildMemberCall(Sema &S, Expr *Base, SourceLocation Loc,
                                   StringRef Name, MultiExprArg Args,
                                   const TemplateArgumentListInfo *TemplateArgs) {
@@ -3299,6 +3325,9 @@ checkBuiltinTemplateIdType(Sema &SemaRef, BuiltinTemplateDecl *BTD,
   case BTK__reflect_method_internal:
     return processFlagAttribute<TVMInternalFuncAttr>(SemaRef, Converted,
                                                      TemplateLoc, TemplateArgs);
+  case BTK__reflect_method_answer_id:
+    return processFlagAttribute<TVMAnswerIdFuncAttr>(SemaRef, Converted,
+                                                     TemplateLoc, TemplateArgs);
   case BTK__reflect_method_external:
     return processFlagAttribute<TVMExternalFuncAttr>(SemaRef, Converted,
                                                      TemplateLoc, TemplateArgs);
@@ -3344,6 +3373,12 @@ checkBuiltinTemplateIdType(Sema &SemaRef, BuiltinTemplateDecl *BTD,
     return SemaRef.CheckTemplateIdType(Converted[0].getAsTemplate(),
                                        TemplateLoc, SyntheticTemplateArgs);
   }
+  case BTK__reflect_method_ptr_internal:
+    return processByPtrFlagAttribute<TVMInternalFuncAttr>(
+      SemaRef, Converted, TemplateLoc, TemplateArgs);
+  case BTK__reflect_method_ptr_answer_id:
+    return processByPtrFlagAttribute<TVMAnswerIdFuncAttr>(
+      SemaRef, Converted, TemplateLoc, TemplateArgs);
   case BTK__reflect_method_rv: {
     // __reflect_method_rv<Interface, Index> -
     //   return value of the Interface method number #Index

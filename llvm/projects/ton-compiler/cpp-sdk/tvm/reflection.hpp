@@ -28,6 +28,9 @@ template<class Interface, unsigned Index>
 using get_interface_method_internal =
   __reflect_method_internal<std::integral_constant, bool, Interface, Index>;
 template<class Interface, unsigned Index>
+using get_interface_method_answer_id =
+  __reflect_method_answer_id<std::integral_constant, bool, Interface, Index>;
+template<class Interface, unsigned Index>
 using get_interface_method_external =
   __reflect_method_external<std::integral_constant, bool, Interface, Index>;
 template<class Interface, unsigned Index>
@@ -56,6 +59,12 @@ template<class Interface, unsigned Index>
 using get_interface_method_arg_struct = __reflect_method_arg_struct<Interface, Index>;
 template<auto MethodPtr>
 using get_interface_method_ptr_arg_struct = __reflect_method_ptr_arg_struct<MethodPtr>;
+template<auto MethodPtr>
+using get_interface_method_ptr_internal =
+  __reflect_method_ptr_internal<std::integral_constant, bool, MethodPtr>;
+template<auto MethodPtr>
+using get_interface_method_ptr_answer_id =
+  __reflect_method_ptr_answer_id<std::integral_constant, bool, MethodPtr>;
 template<class Interface>
 using get_interface_has_pubkey =
   __reflect_interface_has_pubkey<std::integral_constant, bool, Interface>;

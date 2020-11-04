@@ -6402,6 +6402,9 @@ static void ProcessDeclAttribute(Sema &S, Scope *scope, Decl *D,
   case ParsedAttr::AT_TVMInternalFunc:
     handleSimpleAttribute<TVMInternalFuncAttr>(S, D, AL);
     break;
+  case ParsedAttr::AT_TVMAnswerIdFunc:
+    handleSimpleAttribute<TVMAnswerIdFuncAttr>(S, D, AL);
+    break;
   case ParsedAttr::AT_TVMExternalFunc:
     handleSimpleAttribute<TVMExternalFuncAttr>(S, D, AL);
     break;

@@ -272,6 +272,15 @@ enum BuiltinTemplateKind : int {
   /// This names the __reflect_method_internal BuiltinTemplateDecl.
   BTK__reflect_method_internal,
 
+  /// This names the __reflect_method_ptr_internal BuiltinTemplateDecl.
+  BTK__reflect_method_ptr_internal,
+
+  /// This names the __reflect_method_answer_id BuiltinTemplateDecl.
+  BTK__reflect_method_answer_id,
+
+  /// This names the __reflect_method_ptr_answer_id BuiltinTemplateDecl.
+  BTK__reflect_method_ptr_answer_id,
+
   /// This names the __reflect_method_external BuiltinTemplateDecl.
   BTK__reflect_method_external,
 

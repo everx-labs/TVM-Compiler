@@ -334,9 +334,25 @@ constexpr auto make_events_end() {
   return "\n  ]"_s;
 }
 
-template<class ArgStruct, class ReturnName>
+template<bool HasAnswerId, unsigned ArgsSize>
+constexpr auto make_inputs_prefix() {
+  if constexpr (HasAnswerId) {
+    constexpr auto prefix = "\"inputs\": [\n    { \"name\":\"_answer_id\", \"type\":\"uint32\" }"_s;
+    if constexpr (ArgsSize == 0)
+      return prefix + "\n"_s;
+    else
+      return prefix + ",\n"_s;
+  } else {
+    return "\"inputs\": [\n"_s;
+  }
+}
+
+template<class ArgStruct, class ReturnName, bool HasAnswerId>
 constexpr auto make_function_inputs() {
-  return "\"inputs\": [\n"_s + make_struct_json<ArgStruct, 2, ReturnName>::value + "    ]"_s;
+  // TODO: remove answer_id field generation in abi when abiv3 will provide answer_id in header
+  constexpr auto prefix =
+    make_inputs_prefix< HasAnswerId, std::tuple_size_v< to_std_tuple_t<ArgStruct> > >();
+  return prefix + make_struct_json<ArgStruct, 2, ReturnName>::value + "    ]"_s;
 }
 
 template<class RvStruct, class ReturnName>
@@ -433,22 +449,39 @@ constexpr auto make_func_signature() {
     "("_s + make_arg_types_list<ArgsTuple>::value + ")("_s + make_rv_types_list<Rv>() + ")v2"_s;
 }
 
+template<bool HasAnswerId, unsigned ArgsSize>
+constexpr auto make_signature_prefix() {
+  if constexpr (HasAnswerId) {
+    if constexpr (ArgsSize == 0)
+      return "(uint32"_s;
+    else
+      return "(uint32,"_s;
+  } else {
+    return "("_s;
+  }
+}
+
 template<auto MethodPtr>
 constexpr auto make_func_signature() {
   using FuncName = get_interface_method_ptr_name<MethodPtr>;
   using Arg = args_struct_t<MethodPtr>;
   using ArgsTuple = to_std_tuple_t<Arg>;
   using Rv = get_interface_method_ptr_rv<MethodPtr>;
-
+  constexpr bool HasAnswerId =
+    get_interface_method_ptr_internal<MethodPtr>::value && !std::is_void_v<Rv> &&
+    get_interface_method_ptr_answer_id<MethodPtr>::value;
+  // TODO: remove answer_id field generation in abi when abiv3 will provide answer_id in header
+  auto prefix = make_signature_prefix<HasAnswerId, std::tuple_size_v<ArgsTuple>>();
   return FuncName{} +
-    "("_s + make_arg_types_list<ArgsTuple>::value + ")("_s + make_rv_types_list<Rv>() + ")v2"_s;
+    prefix + make_arg_types_list<ArgsTuple>::value + ")("_s + make_rv_types_list<Rv>() + ")v2"_s;
 }
 // ====== ^^^Signature generation^^^ =========
 
-template<unsigned FuncID, bool ImplicitFuncId, class RvStruct, class ArgStruct, class ReturnName, class FuncName>
+template<unsigned FuncID, bool ImplicitFuncId, bool HasAnswerId, class RvStruct,
+         class ArgStruct, class ReturnName, class FuncName>
 constexpr auto make_function_json(FuncName func_name) {
   constexpr auto hdr = make_function_header(func_name);
-  constexpr auto inputs = make_function_inputs<ArgStruct, ReturnName>();
+  constexpr auto inputs = make_function_inputs<ArgStruct, ReturnName, HasAnswerId>();
   constexpr auto outputs = make_function_outputs<RvStruct, ReturnName>();
   constexpr auto id = make_function_id<FuncID, ImplicitFuncId>();
   return "  {\n    "_s + hdr + ",\n    "_s + inputs + ",\n    "_s + outputs + id + "\n  }"_s;
@@ -464,9 +497,12 @@ struct make_json_abi_impl {
   // If func id is not specified or was specified attribute [[implicit_func_id]]
   static constexpr bool ImplicitFuncId =
     get_interface_method_implicit_func_id<Interface, CurMethod>::value || !FuncId;
+  static constexpr bool HasAnswerId =
+    get_interface_method_internal<Interface, CurMethod>::value && !std::is_void_v<Rv> &&
+    get_interface_method_answer_id<Interface, CurMethod>::value;
 
   static constexpr auto value =
-    make_function_json<FuncId, ImplicitFuncId, Rv, Arg, ReturnName>(FuncName{}) + ",\n"_s +
+    make_function_json<FuncId, ImplicitFuncId, HasAnswerId, Rv, Arg, ReturnName>(FuncName{}) + ",\n"_s +
       make_json_abi_impl<Interface, CurMethod + 1, RestMethods - 1>::value;
 };
 template<class Interface, unsigned CurMethod>
@@ -478,8 +514,12 @@ struct make_json_abi_impl<Interface, CurMethod, 1> {
   using ReturnName = get_interface_return_name<Interface, CurMethod>;
   static constexpr bool ImplicitFuncId =
     get_interface_method_implicit_func_id<Interface, CurMethod>::value || !FuncId;
+  static constexpr bool HasAnswerId =
+    get_interface_method_internal<Interface, CurMethod>::value && !std::is_void_v<Rv> &&
+    get_interface_method_answer_id<Interface, CurMethod>::value;
 
-  static constexpr auto value = make_function_json<FuncId, ImplicitFuncId, Rv, Arg, ReturnName>(FuncName{});
+  static constexpr auto value =
+    make_function_json<FuncId, ImplicitFuncId, HasAnswerId, Rv, Arg, ReturnName>(FuncName{});
 };
 template<class Interface, unsigned CurMethod>
 struct make_json_abi_impl<Interface, CurMethod, 0> {

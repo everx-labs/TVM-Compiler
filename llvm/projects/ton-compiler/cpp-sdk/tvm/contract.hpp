@@ -88,6 +88,31 @@ __attribute__((tvm_raw_func)) int main_merge(__tvm_cell msg, __tvm_slice msg_bod
   return 0;                                                                                \
 }
 
+// Contract class may be simple class, or template with parameter: `bool Internal`.
+// Template contract will instantiated with Internal=true for internal message pipeline,
+//  and with Internal=false for external message pipeline.
+#define DEFAULT_MAIN_ENTRY_FUNCTIONS_TMPL(Contract, IContract, DContract, TimestampDelay)  \
+__attribute__((tvm_raw_func)) int main_external(__tvm_cell msg, __tvm_slice msg_body) {    \
+  return smart_switch</*Internal=*/false, Contract<false>, IContract, DContract,           \
+                      replay_attack_protection::timestamp<TimestampDelay>>(msg, msg_body); \
+}                                                                                          \
+__attribute__((tvm_raw_func)) int main_internal(__tvm_cell msg, __tvm_slice msg_body) {    \
+  return smart_switch</*Internal=*/true, Contract<true>, IContract, DContract,             \
+                      replay_attack_protection::timestamp<TimestampDelay>>(msg, msg_body); \
+}                                                                                          \
+__attribute__((tvm_raw_func)) int main_ticktock(__tvm_cell msg, __tvm_slice msg_body) {    \
+  tvm_throw(error_code::unsupported_call_method);                                          \
+  return 0;                                                                                \
+}                                                                                          \
+__attribute__((tvm_raw_func)) int main_split(__tvm_cell msg, __tvm_slice msg_body) {       \
+  tvm_throw(error_code::unsupported_call_method);                                          \
+  return 0;                                                                                \
+}                                                                                          \
+__attribute__((tvm_raw_func)) int main_merge(__tvm_cell msg, __tvm_slice msg_body) {       \
+  tvm_throw(error_code::unsupported_call_method);                                          \
+  return 0;                                                                                \
+}
+
 // Prepare and send empty message with nanograms as transfer value.
 // Only internal destination address allowed.
 static void tvm_transfer(schema::MsgAddressInt dest, unsigned nanograms, bool bounce) {

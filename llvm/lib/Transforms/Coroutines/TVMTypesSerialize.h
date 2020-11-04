@@ -205,11 +205,11 @@ public:
   }
   Value *ptr_;
 };
-class header_addr_ {
+class header_ {
 public:
   template<class OStream>
-  friend OStream &operator << (OStream &os, const header_addr_ &) {
-    os << "header_addr";
+  friend OStream &operator << (OStream &os, const header_ &) {
+    os << "header_";
     return os;
   }
   // header is loaded/stored outside (in smart_switcher), nothing to do here
@@ -219,7 +219,7 @@ public:
 
 using type_serializer =
   std::variant<int_, uint_, address_, slice_, dyn_slice_,
-               cell_, builder_, header_addr_>;
+               cell_, builder_, header_>;
 
 } // End namespace coro.
 
@@ -276,14 +276,14 @@ public:
 };
 
 class types_pattern {
-  // schema::estimate_element<address>::max_bits
-  static constexpr unsigned address_max_bits = 808;
+  // Must be equal to schema::estimate_element<awaiting_record>::max_bits
+  static constexpr unsigned header_max_bits = 296;
 public:
   types_pattern(Module &TheModule, IRBuilder<> &Builder, StructType *FrameTy,
                 Value *Frame) {
     // skipping already represented header
     cells_.push_back(cell_pattern{});
-    cells_.back().add(coro::header_addr_{}, address_max_bits, 0);
+    cells_.back().add(coro::header_{}, header_max_bits, 1);
     // skipping resume_ptr, cleanup_ptr and promise
     auto Elems = drop_begin(FrameTy->elements(), 3);
     unsigned Idx = 3;
@@ -325,13 +325,9 @@ public:
     unsigned Sz = static_cast<unsigned>(DL.getTypeSizeInBits(Ty));
     assert(Sz <= 257);
     if (Ty->isTVMSliceTy()) {
-      // May be address, slice with fixed size or dynamic slice
-      if (false/*is_address*/) {
-      } else if (false/*is_fixed_size*/) {
-      } else {
-        check_overflow(0, 1, last);
-        cells_.back().add(coro::dyn_slice_{Ptr}, 0, 1);
-      }
+      // TODO: support address and known-fixed-size slices here
+      check_overflow(0, 1, last);
+      cells_.back().add(coro::dyn_slice_{Ptr}, 0, 1);
     } else if (Ty->isTVMCellTy()) {
       check_overflow(0, 1, last);
       cells_.back().add(coro::cell_{Ptr}, 0, 1);

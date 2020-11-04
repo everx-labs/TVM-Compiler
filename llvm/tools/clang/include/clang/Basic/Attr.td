@@ -1669,6 +1669,12 @@ def TVMInternalFunc : Attr {
   let Documentation = [Undocumented];
   let Subjects = SubjectList<[Function]>;
 }
+def TVMAnswerIdFunc : Attr {
+  let Spellings = [GCC<"answer_id">, CXX11<"", "answer_id", 201309>,
+                   C2x<"", "answer_id">];
+  let Documentation = [Undocumented];
+  let Subjects = SubjectList<[Function]>;
+}
 def TVMExternalFunc : InheritableAttr {
   let Spellings = [GCC<"external">, CXX11<"", "external", 201309>,
                    C2x<"", "external">];

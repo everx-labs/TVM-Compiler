@@ -9,13 +9,35 @@
 #include <experimental/coroutine>
 
 #include <tvm/message_flags.hpp>
+#include <tvm/globals.hpp>
 
 namespace tvm {
+
+template<auto Func>
+struct get_func_rv {};
+template<typename Cl, typename RetT, typename... Args, RetT (Cl::*Func)(Args...)>
+struct get_func_rv<Func> {
+  using type = RetT;
+};
+template<auto Func>
+using get_func_rv_t = typename get_func_rv<Func>::type;
 
 template<class Interface, class Func, class... Args>
 using good_call_args_t = decltype( (((Interface*)nullptr)->*(Func::value))(Args{}...) );
 template<class Interface, auto Func, class... Args>
 constexpr bool good_call_args_v = std::experimental::is_detected_v<good_call_args_t, Interface, proxy_method<Func>, Args...>;
+
+template<auto Func>
+constexpr auto prepare_internal_header() {
+  using namespace schema;
+  if constexpr (!std::is_void_v<get_func_rv_t<Func>> && get_interface_method_ptr_internal<Func>::value &&
+                get_interface_method_ptr_answer_id<Func>::value) {
+    unsigned answer_id = temporary_data::getglob(global_id::answer_id);
+    return abiv2::internal_msg_header_with_answer_id{ uint32(id_v<Func>), uint32(abiv2::answer_id(answer_id)) };
+  } else {
+    return abiv2::internal_msg_header{ uint32(id_v<Func>) };
+  }
+}
 
 // Prepare message cell for contract call (internal message)
 template<auto Func, class... Args>
@@ -23,7 +45,7 @@ __always_inline
 cell contract_call_prepare(address addr, schema::Grams amount, Args... args) {
   using namespace schema;
 
-  abiv2::internal_msg_header hdr{ uint32(id_v<Func>) };
+  auto hdr = prepare_internal_header<Func>();
   auto hdr_plus_args = std::make_tuple(hdr, args...);
   int_msg_info_relaxed out_info;
   out_info.ihr_disabled = true;
@@ -131,15 +153,13 @@ void contract_call_impl(address addr, schema::Grams amount,
   tvm_sendmsg(contract_call_prepare<Func>(addr, amount, args...), flags);
 }
 
-template<class Interface, auto Func, class... Args>
+template<auto Func, class... Args>
 __always_inline
 void contract_deploy_impl(address addr, schema::StateInit init,
                           schema::Grams amount, unsigned flags, Args... args) {
-  static_assert(good_call_args_v<Interface, Func, Args...>, "Wrong contract handle call arguments");
-
   using namespace schema;
 
-  abiv2::internal_msg_header hdr{ uint32(id_v<Func>) };
+  auto hdr = prepare_internal_header<Func>();
   auto hdr_plus_args = std::make_tuple(hdr, args...);
   int_msg_info_relaxed out_info;
   out_info.ihr_disabled = true;
@@ -168,18 +188,10 @@ struct wait_call_result {
   void await_suspend(std::experimental::coroutine_handle<>) const {}
   __always_inline
   RetT await_resume() const {
-    return schema::parse<RetT>(__builtin_tvm_cast_to_slice(temporary_data::getglob(3)));
+    return schema::parse<RetT>(__builtin_tvm_cast_to_slice(
+      temporary_data::getglob(global_id::coroutine_answer_slice)));
   }
 };
-
-template<auto Func>
-struct get_func_rv {};
-template<typename Cl, typename RetT, typename... Args, RetT (Cl::*Func)(Args...)>
-struct get_func_rv<Func> {
-  using type = RetT;
-};
-template<auto Func>
-using get_func_rv_t = typename get_func_rv<Func>::type;
 
 template<typename RetT>
 using awaitable_ret_t = std::conditional_t<std::is_void_v<RetT>, void, wait_call_result<RetT>>;
@@ -207,7 +219,6 @@ private:
   unsigned flags_;
 };
 
-template<class Interface>
 class contract_deploy_configured {
 public:
   contract_deploy_configured(address addr, schema::StateInit init,
@@ -215,7 +226,12 @@ public:
     : addr_(addr), init_(init), amount_(amount), flags_(flags) {}
   template<auto Func, class... Args>
   __always_inline void call(Args... args) const {
-    contract_deploy_impl<Interface, Func>(addr_, init_, amount_, flags_, args...);
+    contract_deploy_impl<Func>(addr_, init_, amount_, flags_, args...);
+  }
+  template<auto Func, class... Args>
+  __always_inline
+  void _call_impl(Args... args) const {
+    contract_deploy_impl<Func>(addr_, init_, amount_, flags_, args...);
   }
 private:
   address addr_;
@@ -271,11 +287,13 @@ template<class Interface>
 class contract_handle {
 public:
   using proxy = __reflect_proxy<Interface, contract_call_configured, true>;
+  using proxy_deploy = __reflect_proxy<Interface, contract_deploy_configured, true>;
   using proxy_prepare = __reflect_proxy<Interface, contract_call_prepare_only, true>;
   using proxy_prepare_ext = __reflect_proxy<Interface, external_call_prepare_only, false>;
   using proxy_prepare_ext_with_pubkey = __reflect_proxy<Interface, external_call_prepare_only_with_pubkey, false>;
 
-  explicit contract_handle(address addr) : addr_(addr) {}
+  contract_handle() {}
+  contract_handle(address addr) : addr_(addr) {}
 
   template<auto Func, class... Args>
   __always_inline
@@ -286,7 +304,7 @@ public:
   template<auto Func, class... Args>
   __always_inline
   void deploy_call(schema::StateInit init, schema::Grams amount, Args... args) {
-    contract_deploy_impl<Interface, Func>(addr_, init, amount, DEFAULT_MSG_FLAGS, args...);
+    contract_deploy_impl<Func>(addr_, init, amount, DEFAULT_MSG_FLAGS, args...);
   }
 
   __always_inline
@@ -295,9 +313,9 @@ public:
     return contract_call_configured(addr_, amount, flags);
   }
   __always_inline
-  contract_deploy_configured<Interface> deploy(
+  proxy_deploy deploy(
       schema::StateInit init, schema::Grams amount, unsigned flags = DEFAULT_MSG_FLAGS) const {
-    return contract_deploy_configured<Interface>(addr_, init, amount, flags);
+    return proxy_deploy(addr_, init, amount, flags);
   }
   __always_inline
   proxy operator()(schema::Grams amount = 10000000, unsigned flags = DEFAULT_MSG_FLAGS) const {
@@ -315,7 +333,8 @@ public:
   proxy_prepare_ext_with_pubkey prepare_external_with_pubkey(schema::uint256 pubkey) const {
     return proxy_prepare_ext(addr_, pubkey);
   }
-private:
+  address get() const { return addr_; }
+
   address addr_;
 };
 

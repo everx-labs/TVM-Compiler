@@ -1108,6 +1108,30 @@ ASTContext::getReflectMethodInternalDecl() const {
 }
 
 BuiltinTemplateDecl *
+ASTContext::getReflectMethodPtrInternalDecl() const {
+  if (!ReflectMethodPtrInternalDecl)
+    ReflectMethodPtrInternalDecl = buildBuiltinTemplateDecl(
+        BTK__reflect_method_ptr_internal, getReflectMethodPtrInternalName());
+  return ReflectMethodPtrInternalDecl;
+}
+
+BuiltinTemplateDecl *
+ASTContext::getReflectMethodAnswerIdDecl() const {
+  if (!ReflectMethodAnswerIdDecl)
+    ReflectMethodAnswerIdDecl = buildBuiltinTemplateDecl(
+        BTK__reflect_method_answer_id, getReflectMethodAnswerIdName());
+  return ReflectMethodAnswerIdDecl;
+}
+
+BuiltinTemplateDecl *
+ASTContext::getReflectMethodPtrAnswerIdDecl() const {
+  if (!ReflectMethodPtrAnswerIdDecl)
+    ReflectMethodPtrAnswerIdDecl = buildBuiltinTemplateDecl(
+        BTK__reflect_method_ptr_answer_id, getReflectMethodPtrAnswerIdName());
+  return ReflectMethodPtrAnswerIdDecl;
+}
+
+BuiltinTemplateDecl *
 ASTContext::getReflectMethodExternalDecl() const {
   if (!ReflectMethodExternalDecl)
     ReflectMethodExternalDecl = buildBuiltinTemplateDecl(

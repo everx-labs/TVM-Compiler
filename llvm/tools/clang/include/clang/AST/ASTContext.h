@@ -350,6 +350,12 @@ class ASTContext : public RefCountedBase<ASTContext> {
   mutable IdentifierInfo *ReflectMethodFuncIdName = nullptr;
   /// The identifier '__reflect_method_internal'.
   mutable IdentifierInfo *ReflectMethodInternalName = nullptr;
+  /// The identifier '__reflect_method_ptr_internal'.
+  mutable IdentifierInfo *ReflectMethodPtrInternalName = nullptr;
+  /// The identifier '__reflect_method_answer_id'.
+  mutable IdentifierInfo *ReflectMethodAnswerIdName = nullptr;
+  /// The identifier '__reflect_method_ptr_answer_id'.
+  mutable IdentifierInfo *ReflectMethodPtrAnswerIdName = nullptr;
   /// The identifier '__reflect_method_external'.
   mutable IdentifierInfo *ReflectMethodExternalName = nullptr;
   /// The identifier '__reflect_method_getter'.
@@ -574,6 +580,9 @@ private:
   mutable BuiltinTemplateDecl *ReflectReturnNameDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectMethodFuncIdDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectMethodInternalDecl = nullptr;
+  mutable BuiltinTemplateDecl *ReflectMethodPtrInternalDecl = nullptr;
+  mutable BuiltinTemplateDecl *ReflectMethodAnswerIdDecl = nullptr;
+  mutable BuiltinTemplateDecl *ReflectMethodPtrAnswerIdDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectMethodExternalDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectMethodGetterDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectMethodNoAcceptDecl = nullptr;
@@ -1103,6 +1112,9 @@ public:
   BuiltinTemplateDecl *getReflectReturnNameDecl() const;
   BuiltinTemplateDecl *getReflectMethodFuncIdDecl() const;
   BuiltinTemplateDecl *getReflectMethodInternalDecl() const;
+  BuiltinTemplateDecl *getReflectMethodPtrInternalDecl() const;
+  BuiltinTemplateDecl *getReflectMethodAnswerIdDecl() const;
+  BuiltinTemplateDecl *getReflectMethodPtrAnswerIdDecl() const;
   BuiltinTemplateDecl *getReflectMethodExternalDecl() const;
   BuiltinTemplateDecl *getReflectMethodGetterDecl() const;
   BuiltinTemplateDecl *getReflectMethodNoAcceptDecl() const;
@@ -1924,6 +1936,24 @@ public:
     if (!ReflectMethodInternalName)
       ReflectMethodInternalName = &Idents.get("__reflect_method_internal");
     return ReflectMethodInternalName;
+  }
+
+  IdentifierInfo *getReflectMethodPtrInternalName() const {
+    if (!ReflectMethodPtrInternalName)
+      ReflectMethodPtrInternalName = &Idents.get("__reflect_method_ptr_internal");
+    return ReflectMethodPtrInternalName;
+  }
+
+  IdentifierInfo *getReflectMethodAnswerIdName() const {
+    if (!ReflectMethodAnswerIdName)
+      ReflectMethodAnswerIdName = &Idents.get("__reflect_method_answer_id");
+    return ReflectMethodAnswerIdName;
+  }
+
+  IdentifierInfo *getReflectMethodPtrAnswerIdName() const {
+    if (!ReflectMethodPtrAnswerIdName)
+      ReflectMethodPtrAnswerIdName = &Idents.get("__reflect_method_ptr_answer_id");
+    return ReflectMethodPtrAnswerIdName;
   }
 
   IdentifierInfo *getReflectMethodExternalName() const {

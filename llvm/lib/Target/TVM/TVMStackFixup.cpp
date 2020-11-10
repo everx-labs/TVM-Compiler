@@ -614,11 +614,22 @@ void StackFixup::optimize(bool IsCommutative) {
     return;
   optimizeEqualXchgs();
   // TODO: we can do more for commutative instructions.
-  if (IsCommutative && Changes.size() == 1u) {
-    auto &Change = Changes[0].first;
-    if (auto *Xchg = std::get_if<xchgTop>(&Change))
-      if (Xchg->i == 1u)
-        Changes.clear();
+  if (IsCommutative) {
+    if (Changes.size() == 1u) {
+      auto &Change = Changes[0].first;
+      if (auto *Xchg = std::get_if<xchgTop>(&Change)) {
+        if (Xchg->i == 1u)
+          Changes.clear();
+      }
+    } else if (Changes.size() == 2u &&
+               (std::holds_alternative<pushI>(Changes[0].first) ||
+                std::holds_alternative<pushUndef>(Changes[0].first))) {
+      auto &Change = Changes[1].first;
+      if (auto *Xchg = std::get_if<xchgTop>(&Change)) {
+        if (Xchg->i == 1u)
+          Changes.pop_back();
+      }
+    }
   }
 }
 

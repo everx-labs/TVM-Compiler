@@ -136,6 +136,7 @@ void TVMPassConfig::addIRPasses() {
   addPass(createLowerSwitchPass());
   addPass(createTVMLoopPrepare());
   addPass(createTVMControlFlowPrepare());
+  addPass(createTVMDefineUndef());
   addPass(createTVMStoreCombine());
 }
 

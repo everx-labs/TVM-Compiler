@@ -40,12 +40,14 @@ FunctionPass *createTVMLoopInstructions();
 FunctionPass *createTVMLoopPrepare();
 FunctionPass *createTVMContinuationsHoist();
 FunctionPass *createTVMIfConversionTerm();
+BasicBlockPass *createTVMDefineUndef();
 BasicBlockPass *createTVMLoadStoreReplace();
 BasicBlockPass *createTVMStoreCombine();
 ModulePass *createTVMLowerIntrinsicsPass();
 
 void initializeTVMArgumentMovePass(PassRegistry &);
 void initializeTVMControlFlowPreparePass(PassRegistry &);
+void initializeTVMDefineUndefPass(PassRegistry &);
 void initializeTVMReplacePhysRegsPass(PassRegistry &);
 void initializeTVMPrepareForLiveIntervalsPass(PassRegistry &);
 void initializeTVMRematerializePass(PassRegistry &);

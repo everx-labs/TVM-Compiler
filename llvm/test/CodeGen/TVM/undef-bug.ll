@@ -76,3 +76,37 @@ define void @four3() {
   ret void
 }
 declare void @four(i257, i257, i257, i257)
+
+; CHECK-LABEL: sti
+define builder @sti(builder %builder) {
+; CHECK: ZERO
+; CHECK: STIR 5
+  %builder.1 = call builder @llvm.tvm.sti(i257 undef, builder %builder, i257 5)
+  ret builder %builder.1
+}
+
+; CHECK-LABEL: stref
+define builder @stref(builder %builder) {
+; CHECK: NEWC
+; CHECK: ENDC
+; CHECK: SWAP
+; CHECK: STREF
+  %builder.1 = call builder @llvm.tvm.stref(cell undef, builder %builder)
+  ret builder %builder.1
+}
+
+; CHECK-LABEL: stslice
+define builder @stslice(builder %builder) {
+; CHECK: NEWC
+; CHECK: ENDC
+; CHECK: CTOS
+; CHECK: SWAP
+; CHECK: STSLICE
+  %builder.1 = call builder @llvm.tvm.stslice(slice undef, builder %builder)
+  ret builder %builder.1
+}
+
+declare builder @llvm.tvm.sti(i257 %value, builder %builder, i257 %size)
+declare builder @llvm.tvm.stu(i257 %value, builder %builder, i257 %size)
+declare builder @llvm.tvm.stref(cell %value, builder %builder)
+declare builder @llvm.tvm.stslice(slice %value, builder %builder)

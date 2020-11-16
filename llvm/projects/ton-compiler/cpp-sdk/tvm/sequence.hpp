@@ -54,10 +54,10 @@ cell string_into_cells(Iterator it) {
     b.stu(value, MAX_UINT_SZ);
     std::advance(it, MAX_BYTES_IN_UINT);
   }
-  if constexpr (Size % MAX_BYTES_IN_UINT) {
-    static constexpr unsigned Rest = Size % MAX_BYTES_IN_UINT;
-    unsigned value = combine_bytes<Rest>(it);
-    b.stu(value, Rest * BYTE_SZ);
+  constexpr auto RestSz = std::min(Size, MAX_BYTES_IN_CELL) % MAX_BYTES_IN_UINT;
+  if constexpr (RestSz) {
+    unsigned value = combine_bytes<RestSz>(it);
+    b.stu(value, RestSz * BYTE_SZ);
   }
   return b.make_cell();
 }

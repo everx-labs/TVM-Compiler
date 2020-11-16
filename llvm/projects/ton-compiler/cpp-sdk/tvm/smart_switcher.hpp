@@ -107,7 +107,7 @@ constexpr bool interface_has_coroutines_v =
     get_interface_methods_count<Interface>::value>::value;
 
 template<class Contract>
-__always_inline schema::lazy<schema::MsgAddressExt> ext_return_address(Contract c) {
+__always_inline schema::lazy<schema::MsgAddressExt> ext_return_address(Contract& c) {
   if constexpr (supports_ext_sender_v<Contract>)
     return c.ext_sender();
   else
@@ -115,7 +115,7 @@ __always_inline schema::lazy<schema::MsgAddressExt> ext_return_address(Contract 
 }
 
 template<bool ImplicitFuncId, class Contract, class ReturnValue>
-__always_inline void send_external_answer(Contract c, unsigned func_id, ReturnValue rv) {
+__always_inline void send_external_answer(Contract& c, unsigned func_id, ReturnValue rv) {
   // TODO: re-think in design, answer_id should have (1 << 31) bit set for implicit func_id,
   // and should not be changed for explicit func_id
   unsigned answer_id = ImplicitFuncId ? schema::abiv2::answer_id(func_id) : func_id;
@@ -144,7 +144,7 @@ __always_inline void send_external_answer(Contract c, unsigned func_id, ReturnVa
 }
 
 template<class Contract>
-__always_inline schema::lazy<schema::MsgAddressInt> int_return_address(Contract c) {
+__always_inline schema::lazy<schema::MsgAddressInt> int_return_address(Contract& c) {
   if constexpr (supports_int_sender_v<Contract>)
     return c.int_sender();
   else
@@ -164,7 +164,7 @@ __always_inline void set_ext_return_address(Contract& c, schema::lazy<schema::Ms
 }
 
 template<class Contract>
-__always_inline unsigned int_return_flag(Contract c) {
+__always_inline unsigned int_return_flag(Contract& c) {
   if constexpr (supports_int_return_flag_v<Contract>)
     return c.int_return_flag();
   else
@@ -172,7 +172,7 @@ __always_inline unsigned int_return_flag(Contract c) {
 }
 
 template<class Contract>
-__always_inline unsigned int_return_value(Contract c) {
+__always_inline unsigned int_return_value(Contract& c) {
   if constexpr (supports_int_return_value_v<Contract>)
     return c.int_return_value();
   else
@@ -180,7 +180,7 @@ __always_inline unsigned int_return_value(Contract c) {
 }
 
 template<class Contract>
-__always_inline schema::uint32 return_func_id(Contract c, unsigned func_id) {
+__always_inline schema::uint32 return_func_id(Contract& c, unsigned func_id) {
   using namespace schema;
   if constexpr (supports_return_func_id_v<Contract>)
     if (auto v = c.return_func_id())
@@ -189,7 +189,7 @@ __always_inline schema::uint32 return_func_id(Contract c, unsigned func_id) {
 }
 
 template<class Contract, class ReturnValue>
-__always_inline void send_internal_answer(Contract c, unsigned func_id, ReturnValue rv) {
+__always_inline void send_internal_answer(Contract& c, unsigned func_id, ReturnValue rv) {
   using namespace schema;
   abiv2::internal_msg_header hdr{ return_func_id(c, func_id) };
   auto hdr_plus_rv = std::make_tuple(hdr, rv);
@@ -218,7 +218,7 @@ __always_inline void send_internal_answer(Contract c, unsigned func_id, ReturnVa
 }
 
 template<bool Internal, bool ImplicitFuncId, class Contract, class ReturnValue>
-__always_inline void send_answer(Contract c, unsigned func_id, ReturnValue rv) {
+__always_inline void send_answer(Contract& c, unsigned func_id, ReturnValue rv) {
   if constexpr (Internal)
     send_internal_answer(c, func_id, rv);
   else
@@ -318,7 +318,7 @@ struct smart_switcher_impl {
   static const unsigned my_method_id = get_func_id<IContract, Index>();
 
   __always_inline
-  static int execute(Contract c, std::optional<schema::bitfield<512>> signature,
+  static int execute(Contract& c, std::optional<schema::bitfield<512>> signature,
       MsgHeader hdr, cell msg, slice msg_body, slice body_from_header) {
     constexpr bool is_getter = get_interface_method_getter<IContract, Index>::value;
     constexpr bool is_noaccept = get_interface_method_noaccept<IContract, Index>::value;
@@ -514,7 +514,7 @@ template<bool Internal, class Contract, class MsgHeader, class IContract, class 
          unsigned Index>
 struct smart_switcher_impl<Internal, Contract, MsgHeader, IContract, DContract, ReplayAttackProtection, Index, 0> {
   __always_inline
-  static int execute(Contract c, std::optional<schema::bitfield<512>> signature,
+  static int execute(Contract& c, std::optional<schema::bitfield<512>> signature,
       MsgHeader hdr, cell msg, slice msg_body, slice body_from_header) {
     if constexpr (Internal && supports_fallback_v<Contract>)
       return Contract::_fallback(msg, msg_body);
@@ -528,7 +528,7 @@ template<bool Internal, class Contract, class MsgHeader, class IContract, class 
 struct smart_switcher {
   static const unsigned methods_count = get_interface_methods_count<IContract>::value;
   __always_inline
-  static int execute(Contract c, std::optional<schema::bitfield<512>> signature,
+  static int execute(Contract& c, std::optional<schema::bitfield<512>> signature,
       MsgHeader hdr, cell msg, slice msg_body, slice body_from_header) {
     return smart_switcher_impl<Internal, Contract, MsgHeader, IContract, DContract, ReplayAttackProtection,
                                0, methods_count>::execute(c, signature, hdr, msg, msg_body, body_from_header);
@@ -549,7 +549,7 @@ struct smart_process_answer_impl {
 
   template<class PersistentHeader>
   __always_inline
-  static int execute(Contract c, PersistentHeader persistent_data_header, awaiting_record await_rec,
+  static int execute(Contract& c, PersistentHeader persistent_data_header, awaiting_record await_rec,
                      cell msg, slice msg_body, slice await_sl) {
     using ISmart = typename Contract::base;
     static constexpr auto func = get_interface_method_ptr<Contract, ISmart, Index>::value;
@@ -579,6 +579,9 @@ struct smart_process_answer_impl {
 
         using rv_t = get_interface_method_rv<ISmart, Index>;
 
+        unsigned next_answer_id = std::get<1>(persistent_data_header).find_next_answer_id().get();
+        temporary_data::setglob(global_id::answer_id, next_answer_id);
+
         auto ret_addr = await_rec.return_addr();
         if constexpr (is_internal)
           set_int_return_address(c, address{ret_addr.sl()});
@@ -595,7 +598,7 @@ struct smart_process_answer_impl {
             uint32{my_method_id}, std_addr.workchain_id, std_addr.address, ret_addr.sl() };
           builder b = build(await_rec);
           __tvm_cell cl = serialize_resumable<func>(b.get(), res);
-          std::get<1>(persistent_data_header).add_awaiting(my_method_id, cl);
+          std::get<1>(persistent_data_header).add_awaiting(next_answer_id, cl);
           if constexpr (supports_set_persistent_data_header_v<Contract>)
             c.set_persistent_data_header(persistent_data_header);
         } else {
@@ -620,7 +623,7 @@ template<class Contract, class IContract, class DContract, class ReplayAttackPro
 struct smart_process_answer_impl<Contract, IContract, DContract, ReplayAttackProtection, Index, 0> {
   template<class PersistentHeader>
   __always_inline
-  static int execute(Contract c, PersistentHeader persistent_data_header, awaiting_record await_rec,
+  static int execute(Contract& c, PersistentHeader persistent_data_header, awaiting_record await_rec,
                      cell msg, slice msg_body, slice await_sl) {
     tvm_throw(error_code::wrong_answer_id);
     return 0;
@@ -631,7 +634,7 @@ struct smart_process_answer_impl<Contract, IContract, DContract, ReplayAttackPro
 template<class Contract, class MsgHeader, class IContract, class DContract, class ReplayAttackProtection>
 struct smart_process_answer {
   static const unsigned methods_count = get_interface_methods_count<IContract>::value;
-  __always_inline static int execute(Contract c, MsgHeader hdr, cell msg, slice msg_body) {
+  __always_inline static int execute(Contract& c, MsgHeader hdr, cell msg, slice msg_body) {
     using namespace schema;
     unsigned answer_id = schema::abiv2::from_answer_id(hdr.function_id());
     persistent_data_header_t<IContract, ReplayAttackProtection> persistent_data_header;
@@ -667,6 +670,7 @@ struct smart_process_answer {
 };
 
 template<bool Internal, class Contract, class IContract, class DContract, class ReplayAttackProtection = void>
+__always_inline
 int smart_switch(cell msg, slice msg_body) {
   Contract c;
   if constexpr (Internal) {
@@ -733,15 +737,6 @@ int smart_switch(cell msg, slice msg_body) {
     return smart_switcher<Internal, Contract, MsgHeaderT, IContract, DContract, ReplayAttackProtection>
       ::execute(c, sign->signature, *in_hdr, msg, body_p.sl(), body_from_header);
   }
-}
-
-// Contract class may be simple class, or template with parameter: `bool Internal`.
-// Template contract will instantiated with Internal=true for internal message pipeline,
-//  and with Internal=false for external message pipeline.
-template<bool Internal, template<bool Internal> class ContractTmpl, class IContract, class DContract,
-         class ReplayAttackProtection = void>
-int smart_switch_tmpl(cell msg, slice msg_body) {
-  using Contract = ContractTmpl<Internal>;
 }
 
 } // namespace tvm

@@ -358,7 +358,7 @@ public:
     for (auto *ptr : contract_ptrs_) {
       Builder.CreateStore(NewThis->stripPointerCasts(), ptr);
     }
-    if (!cells_.empty())
+    if (cells_.empty())
       return;
     cells_.front().load(TheModule, Builder, ReadSlice);
     for (const auto &cl : make_range(std::next(cells_.begin()), cells_.end())) {

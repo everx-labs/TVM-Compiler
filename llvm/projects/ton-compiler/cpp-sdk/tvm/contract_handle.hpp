@@ -72,6 +72,66 @@ cell contract_call_prepare(address addr, schema::Grams amount, Args... args) {
   }
 }
 
+// Prepare message body for external call
+template<auto Func, class... Args>
+__always_inline
+cell external_body_prepare(address addr, Args... args) {
+  using namespace schema;
+
+  // placeholder for signature
+  abiv2::external_signature signature_place {
+    .signature = bitfield<512>{builder().stu(0, 256).stu(0, 256).make_slice()}
+  };
+  abiv2::external_inbound_msg_header_no_pubkey hdr{
+    .timestamp = uint64{0},
+    .expire = uint32{0},
+    .function_id = uint32(id_v<Func>)
+  };
+  auto hdr_plus_args = std::make_tuple(signature_place, hdr, args...);
+  ext_in_msg_info msg_info {
+    .src = MsgAddressExt{addr_none{}},
+    .dest = addr,
+    .import_fee = Grams{0}
+  };
+  using est_t = estimate_element<message<decltype(hdr_plus_args)>>;
+  if constexpr (est_t::max_bits > cell::max_bits || est_t::max_refs > cell::max_refs) {
+    auto chain_tup = make_chain_tuple(hdr_plus_args);
+    return build(chain_tup).endc();
+  } else {
+    return build(hdr_plus_args).endc();
+  }
+}
+
+template<auto Func, class... Args>
+__always_inline
+cell external_body_prepare_with_pubkey(address addr, schema::uint256 pubkey, Args... args) {
+  using namespace schema;
+
+  // placeholder for signature
+  abiv2::external_signature signature_place {
+    .signature = bitfield<512>{builder().stu(0, 256).stu(0, 256).make_slice()}
+  };
+  abiv2::external_inbound_msg_header_with_pubkey hdr{
+    .pubkey = pubkey,
+    .timestamp = uint64{0},
+    .expire = uint32{0},
+    .function_id = uint32(id_v<Func>)
+  };
+  auto hdr_plus_args = std::make_tuple(signature_place, hdr, args...);
+  ext_in_msg_info msg_info {
+    .src = MsgAddressExt{addr_none{}},
+    .dest = addr,
+    .import_fee = Grams{0}
+  };
+  using est_t = estimate_element<message<decltype(hdr_plus_args)>>;
+  if constexpr (est_t::max_bits > cell::max_bits || est_t::max_refs > cell::max_refs) {
+    auto chain_tup = make_chain_tuple(hdr_plus_args);
+    return build(chain_tup).endc();
+  } else {
+    return build(hdr_plus_args).endc();
+  }
+}
+
 // Prepare message cell for external call (should later be signed by debot engine)
 template<auto Func, class... Args>
 __always_inline
@@ -255,6 +315,34 @@ private:
   schema::Grams amount_;
 };
 
+// prepare only body for external call
+class external_body_prepare_only {
+public:
+  explicit external_body_prepare_only(address addr)
+    : addr_(addr) {}
+  template<auto Func, class... Args>
+  __always_inline
+  cell _call_impl(Args... args) const {
+    return external_body_prepare<Func>(addr_, args...);
+  }
+private:
+  address addr_;
+};
+// the same with pubkey in header
+class external_body_prepare_only_with_pubkey {
+public:
+  external_body_prepare_only_with_pubkey(address addr, schema::uint256 pubkey)
+    : addr_(addr), pubkey_(pubkey) {}
+  template<auto Func, class... Args>
+  __always_inline
+  cell _call_impl(Args... args) const {
+    return external_body_prepare_with_pubkey<Func>(addr_, pubkey_, args...);
+  }
+private:
+  address addr_;
+  schema::uint256 pubkey_;
+};
+
 // class for preparing external call message cell
 class external_call_prepare_only {
 public:
@@ -291,6 +379,8 @@ public:
   using proxy_prepare = __reflect_proxy<Interface, contract_call_prepare_only, true>;
   using proxy_prepare_ext = __reflect_proxy<Interface, external_call_prepare_only, false>;
   using proxy_prepare_ext_with_pubkey = __reflect_proxy<Interface, external_call_prepare_only_with_pubkey, false>;
+  using proxy_body_ext = __reflect_proxy<Interface, external_body_prepare_only, false>;
+  using proxy_body_ext_with_pubkey = __reflect_proxy<Interface, external_body_prepare_only_with_pubkey, false>;
 
   contract_handle() {}
   contract_handle(address addr) : addr_(addr) {}
@@ -331,7 +421,15 @@ public:
   }
   __always_inline
   proxy_prepare_ext_with_pubkey prepare_external_with_pubkey(schema::uint256 pubkey) const {
-    return proxy_prepare_ext(addr_, pubkey);
+    return proxy_prepare_ext_with_pubkey(addr_, pubkey);
+  }
+  __always_inline
+  proxy_body_ext body_external() const {
+    return proxy_body_ext(addr_);
+  }
+  __always_inline
+  proxy_body_ext_with_pubkey body_external_with_pubkey(schema::uint256 pubkey) const {
+    return proxy_body_ext_with_pubkey(addr_, pubkey);
   }
   address get() const { return addr_; }
 

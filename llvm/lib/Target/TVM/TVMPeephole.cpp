@@ -45,6 +45,11 @@ static cl::opt<bool> DisableTVMShorterFormOpt(
     "disable-tvm-shorter-form-opt", cl::Hidden,
     cl::desc("TVM: Disable shorter form replacement peephole optimizations."),
     cl::init(false));
+static cl::opt<bool> DisableTVMPushintOpt(
+    "disable-tvm-pushint-opt", cl::Hidden,
+    cl::desc("TVM: Disable power of 2 optimizations for constants."),
+    cl::init(false));
+
 static unsigned BlkPushLimit = 15;
 namespace {
 class TVMPeephole final : public MachineFunctionPass {
@@ -64,6 +69,7 @@ class TVMPeephole final : public MachineFunctionPass {
   bool runBlkPushCombine(MachineBasicBlock &MBB, const TargetInstrInfo &TII);
   bool runReplaceWithShorterForm(MachineBasicBlock &MBB,
                                  const TargetInstrInfo &TII);
+  bool runPushintOpt(MachineBasicBlock &MBB, const TargetInstrInfo &TII);
   bool runMbbInlineOptimization(MachineBasicBlock &MBB,
                                 const TargetInstrInfo &TII);
   bool runIfElseOptimization(MachineBasicBlock &MBB,
@@ -218,6 +224,39 @@ bool TVMPeephole::runReplaceWithShorterForm(MachineBasicBlock &MBB,
     I.first->eraseFromParent();
   }
   return !MIReplace.empty();
+}
+
+bool TVMPeephole::runPushintOpt(MachineBasicBlock &MBB,
+                                const TargetInstrInfo &TII) {
+  std::vector<MachineInstr *> MIRemove;
+  for (auto &I : MBB) {
+    if (I.getOpcode() != TVM::CONST_I257_S && I.getOpcode() != TVM::CONST_U257_S)
+      continue;
+    APInt Val = I.getOperand(0).getCImm()->getValue();
+    if (Val.isPowerOf2() && Val.ugt(64)) {
+      MIRemove.push_back(&I);
+      BuildMI(&I, TII.get(TVM::CONST_POW2_S))
+        .addImm(Val.getBitWidth() - Val.countLeadingZeros() - 1);
+      continue;
+    }
+    APInt AbsVal = Val.abs();
+    if (AbsVal.isPowerOf2() && AbsVal.ugt(64)) {
+      MIRemove.push_back(&I);
+      BuildMI(&I, TII.get(TVM::CONST_NEGPOW2_S))
+        .addImm(AbsVal.getBitWidth() - AbsVal.countLeadingZeros() - 1);
+      continue;
+    }
+    Val += 1;
+    if (Val.isPowerOf2() && Val.ugt(64)) {
+      MIRemove.push_back(&I);
+      BuildMI(&I, TII.get(TVM::CONST_POW2DEC_S))
+        .addImm(Val.getBitWidth() - Val.countLeadingZeros() - 1);
+      continue;
+    }
+  }
+  for (auto *I : MIRemove)
+    I->eraseFromParent();
+  return !MIRemove.empty();
 }
 
 bool TVMPeephole::runImplicitReturnOptimization(MachineBasicBlock &MBB,
@@ -602,6 +641,8 @@ bool TVMPeephole::runOnMachineBasicBlock(MachineBasicBlock &MBB,
     Changed |= runBlkPushCombine(MBB, TII);
   if (!DisableTVMShorterFormOpt)
     Changed |= runReplaceWithShorterForm(MBB, TII);
+  if (!DisableTVMPushintOpt)
+    Changed |= runPushintOpt(MBB, TII);
 
   return Changed;
 }

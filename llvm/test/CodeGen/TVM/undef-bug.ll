@@ -97,10 +97,7 @@ define builder @stref(builder %builder) {
 
 ; CHECK-LABEL: stslice
 define builder @stslice(builder %builder) {
-; CHECK: NEWC
-; CHECK: ENDC
-; CHECK: CTOS
-; CHECK: SWAP
+; CHECK: PUSHSLICE x8_
 ; CHECK: STSLICE
   %builder.1 = call builder @llvm.tvm.stslice(slice undef, builder %builder)
   ret builder %builder.1

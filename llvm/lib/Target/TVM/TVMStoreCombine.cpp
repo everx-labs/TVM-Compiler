@@ -16,6 +16,8 @@
 #include <vector>
 
 #include "TVM.h"
+#include "TVMExtras.h"
+#include "TVMUtilities.h"
 #include "llvm/Analysis/LoopInfo.h"
 #include "llvm/Analysis/LoopPass.h"
 #include "llvm/IR/Constants.h"
@@ -110,8 +112,8 @@ static void combine(BasicBlock::iterator Start, BasicBlock::iterator End) {
     unsigned Sz = cast<ConstantInt>(CS.getArgument(2))->getZExtValue();
     if (Val.slt(0)) {
       APInt Pow2(257, 0, false);
-      Pow2.setBit(Sz);
-      Val = Pow2 - Val;
+      Pow2.setBit(Sz + 1);
+      Val = Pow2 - Val.abs();
     }
     Data <<= Sz;
     Size += Sz;
@@ -163,6 +165,44 @@ static BasicBlock::iterator tryCombine(BasicBlock::iterator Start,
 
 bool TVMStoreCombine::runOnBasicBlock(BasicBlock &BB) {
   bool Changed = false;
+  std::vector<Instruction *> removeInst;
+  for (auto &I : BB) {
+    auto CS = CallSite(&I);
+    if (CS && TVM::isVarIntStore(CS.getIntrinsicID())) {
+      unsigned ID = CS.getIntrinsicID();
+      bool isSigned =
+          ID == Intrinsic::tvm_stvarint16 || ID == Intrinsic::tvm_stvarint32;
+      bool is16bit =
+          ID == Intrinsic::tvm_stvarint16 || ID == Intrinsic::tvm_stvaruint16;
+      auto *Arg = CS.getArgument(1);
+      auto *CInt = dyn_cast<ConstantInt>(Arg);
+      if (!CInt)
+        continue;
+      APInt Val = CInt->getValue();
+      APInt AbsValue = Val.abs();
+      unsigned numBits =
+          AbsValue.isNullValue() ? 1 : (AbsValue.ceilLogBase2() + 1 + isSigned);
+      unsigned numBytes = (numBits + 7) / 8;
+      unsigned numByteEncBits = is16bit ? 4 : 8;
+
+      IRBuilder<> Builder(&I);
+      auto *Fn = Intrinsic::getDeclaration(I.getModule(), Intrinsic::tvm_stu);
+      std::vector<Value *> Args = {Builder.getIntN(257, numBytes),
+                                   CS.getArgument(0),
+                                   Builder.getIntN(257, numByteEncBits)};
+      auto *NewStore = Builder.CreateCall(Fn, Args);
+      Fn = isSigned
+               ? Intrinsic::getDeclaration(I.getModule(), Intrinsic::tvm_sti)
+               : Fn;
+      Args = {CInt, NewStore, Builder.getIntN(257, numBytes * 8)};
+      NewStore = Builder.CreateCall(Fn, Args);
+      I.replaceAllUsesWith(NewStore);
+      removeInst.push_back(&I);
+    }
+  }
+  Changed |= !removeInst.empty();
+  for (auto *I : removeInst)
+    I->eraseFromParent();
   auto It = BB.begin(), End = BB.end();
   do {
     It = std::find_if(It, End, [](Instruction &I) {

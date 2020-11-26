@@ -32,6 +32,10 @@ namespace TVM {
 bool isArgument(const MachineInstr &MI);
 bool isArgumentNum(const MachineInstr &MI);
 bool isConstInt(const MachineInstr &MI);
+
+bool isIntStore(unsigned ID);
+bool isVarIntStore(unsigned ID);
+
 } // end namespace TVM
 
 } // end namespace llvm

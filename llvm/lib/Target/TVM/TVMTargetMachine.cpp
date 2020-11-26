@@ -45,6 +45,7 @@ extern "C" void LLVMInitializeTVMTarget() {
   initializeTVMLoadStoreReplacePass(PR);
   initializeTVMMoveMaterializablePass(PR);
   initializeTVMStoreCombinePass(PR);
+  initializeTVMInlineSliceStorePass(PR);
   initializeTVMLowerIntrinsicsPass(PR);
 }
 
@@ -138,6 +139,7 @@ void TVMPassConfig::addIRPasses() {
   addPass(createTVMLoopPrepare());
   addPass(createTVMControlFlowPrepare());
   addPass(createTVMDefineUndef());
+  addPass(createTVMInlineSliceStore());
   addPass(createTVMStoreCombine());
 }
 
@@ -171,6 +173,7 @@ void TVMPassConfig::addPreEmitPass() {
   addPass(createTVMRegStackify());
   addPass(createTVMLoopInstructions());
   addPass(createTVMMoveMaterializable());
+  addPass(createGlobalDCEPass());
   addPass(createTVMStackModel());
 
   // Perform the very last peephole optimizations on the code.

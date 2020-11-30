@@ -74,10 +74,6 @@ public:
   void removeNElem(Stack &stack, const StackVreg &vreg, size_t N);
   // Remove all copies of this elem
   void removeAllElem(Stack &stack, const StackVreg &vreg);
-  // Remove a group of elements from stack.
-  // If the elements follow each other in stack attempts to remove blocks
-  // via blkdrop.
-  void removeElems(Stack &stack, SmallVectorImpl<StackVreg> &vregs);
 
   struct pop {
     pop(unsigned i) : i(i) {}

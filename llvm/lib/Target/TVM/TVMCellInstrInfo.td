@@ -13,8 +13,12 @@
 //===----------------------------------------------------------------------===//
 
 /// TODO: If to remove the following line Pat doesn't work. Investigate why.
-// newc is declared as mayLoad from inaccessible memory to avoid empty builder
-//  serialization at coroutine suspension point
+// newc is declared as mayLoad from inaccessible memory to avoid being moved
+//  through `ACCEPT` instruction (with other cell build instructions)
+// We need to find right way to represent gas-related primitives
+//  (ACCEPT/SETGASLIMIT/BUYGAS) as a super-barriers
+//  (no instructions reorder across them).
+
 let hasSideEffects = 1, mayLoad=1 in
 defm NEWC : I<(outs Builder:$bldr), (ins), (outs), (ins),
               [(set Builder:$bldr, (int_tvm_newc))],

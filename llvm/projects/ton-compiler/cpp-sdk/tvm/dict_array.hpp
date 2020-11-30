@@ -30,6 +30,10 @@ public:
     for (auto v : il)
       push_back(Element(v));
   }
+  template <class _Iterator>
+  dict_array(_Iterator __first, _Iterator __last) {
+    assign(__first, __last);
+  }
 
   dict_array& operator=(std::initializer_list<Element> il) {
     base::clear();

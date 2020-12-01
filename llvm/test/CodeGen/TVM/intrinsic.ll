@@ -346,7 +346,7 @@ define i257 @chksignu(i257 %hash, slice %signature, i257 %key) {
 ; CHECK-LABEL: vergrth16
 define i257 @vergrth16(slice %sl) {
 ; CHECK: VERGRTH16
-  %result = call i257 @llvm.tvm.VERGRTH16(slice %sl)
+  %result = call i257 @llvm.tvm.vergrth16(slice %sl)
   ret i257 %result
 }
 

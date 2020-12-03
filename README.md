@@ -19,6 +19,7 @@ To build the toolchain, you need a recent C++ toolchain supporting C++17:
 - GCC 7.3.0 or newer
 - Rust 1.47.0 or newer
 - Cargo
+
 Stable operation of older toolchains is not guaranteed.
 You also need zlib 1.2.3.4 or newer. Python 2.7 is required to run tests. Optionally, you can use ninja-build.
 For more info about LLVM software requirements visit: [https://llvm.org/docs/GettingStarted.html](https://llvm.org/docs/GettingStarted.html).

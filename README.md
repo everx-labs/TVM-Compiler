@@ -17,6 +17,8 @@ To build the toolchain, you need a recent C++ toolchain supporting C++17:
 - MSVC 2017 or newer
 - Clang 6.0.0 or newer
 - GCC 7.3.0 or newer
+- Rust 1.47.0 or newer
+- Cargo
 Stable operation of older toolchains is not guaranteed.
 You also need zlib 1.2.3.4 or newer. Python 2.7 is required to run tests. Optionally, you can use ninja-build.
 For more info about LLVM software requirements visit: [https://llvm.org/docs/GettingStarted.html](https://llvm.org/docs/GettingStarted.html).
@@ -33,7 +35,7 @@ To build and to install the compiler use the following script:
 $ git clone git@github.com:tonlabs/TON-Compiler.git
 $ mkdir build
 $ cd build
-$ cmake -DCMAKE_INSTALL_PREFIX=/path/to/install -C /path/to/TON-Compiler/cmake/Cache/ton-compiler.cmake
+$ cmake -DCMAKE_INSTALL_PREFIX=/path/to/install -C /path/to/TON-Compiler/cmake/Cache/ton-compiler.cmake ..
 $ cmake --build . --target install-distribution
 ```
 Notes:

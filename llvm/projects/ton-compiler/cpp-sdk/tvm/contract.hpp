@@ -26,6 +26,28 @@ inline void tvm_accept() {
 inline void tvm_commit() {
   __builtin_tvm_commit();
 }
+
+/* From tvm RAWRESERVE(x, y) :
+Creates an output action which would reserve
+  exactly x nanograms (if y = 0),
+  at most x nanograms (if y = 2), or
+  all but x nanograms (if y = 1 or y = 3),
+from the remaining balance of the account.
+It is roughly equivalent to creating an outbound message
+carrying x nanograms (or b − x nanograms, where b is the remaining
+balance) to oneself, so that the subsequent output actions would not
+be able to spend more money than the remainder.
+Bit +2 in y means that the external action does not fail if the specified amount cannot be
+reserved; instead, all remaining balance is reserved. Bit +8 in y means
+x ← −x before performing any further actions.
+Bit +4 in y means that x is increased by the original balance of the current account (before the
+compute phase), including all extra currencies, before performing any
+other checks and actions. Currently x must be a non-negative integer,
+and y must be in the range 0 ... 15. */
+
+inline void tvm_rawreserve(unsigned x, rawreserve_flag y) {
+  __builtin_tvm_rawreserve(x, static_cast<unsigned>(y));
+}
 inline void tvm_setcode(cell new_root_cell) {
   __builtin_tvm_setcode(new_root_cell);
 }

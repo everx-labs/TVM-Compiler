@@ -213,6 +213,7 @@ void contract_call_impl(address addr, schema::Grams amount,
   tvm_sendmsg(contract_call_prepare<Func>(addr, amount, args...), flags);
 }
 
+// Deploy message with function call (immediately after deploy)
 template<auto Func, class... Args>
 __always_inline
 void contract_deploy_impl(address addr, schema::StateInit init,
@@ -237,6 +238,32 @@ void contract_deploy_impl(address addr, schema::StateInit init,
   Either<StateInit, ref<StateInit>> init_ref = ref<StateInit>{init};
   out_msg.init = init_ref;
   out_msg.body = ref<decltype(chain_tup)>{chain_tup};
+  tvm_sendmsg(build(out_msg).endc(), flags);
+}
+
+// Deploy without any function called (with func_id = 0)
+// Deployed contract should support `fallback`
+__always_inline
+void contract_deploy_noop_impl(address addr, schema::StateInit init,
+                               schema::Grams amount, unsigned flags) {
+  using namespace schema;
+
+  auto hdr = abiv2::internal_msg_header{ uint32(0) };
+  int_msg_info_relaxed out_info;
+  out_info.ihr_disabled = true;
+  out_info.bounce = false;
+  out_info.bounced = false;
+  out_info.src = addr_none{};
+  out_info.dest = addr;
+  out_info.created_lt = 0;
+  out_info.created_at = 0;
+  out_info.value.grams = amount;
+
+  message_relaxed<decltype(hdr)> out_msg;
+  out_msg.info = out_info;
+  Either<StateInit, ref<StateInit>> init_ref = ref<StateInit>{init};
+  out_msg.init = init_ref;
+  out_msg.body = hdr;
   tvm_sendmsg(build(out_msg).endc(), flags);
 }
 
@@ -402,10 +429,16 @@ public:
       schema::Grams amount = 10000000, unsigned flags = DEFAULT_MSG_FLAGS) const {
     return contract_call_configured(addr_, amount, flags);
   }
+  // Deploy message with function call (immediately after deploy)
   __always_inline
   proxy_deploy deploy(
       schema::StateInit init, schema::Grams amount, unsigned flags = DEFAULT_MSG_FLAGS) const {
     return proxy_deploy(addr_, init, amount, flags);
+  }
+  // Deploy message with func_id = 0 (deploying contract must support fallback)
+  __always_inline
+  void deploy_noop(schema::StateInit init, schema::Grams amount, unsigned flags = DEFAULT_MSG_FLAGS) {
+    contract_deploy_noop_impl(addr_, init, amount, flags);
   }
   __always_inline
   proxy operator()(schema::Grams amount = 10000000, unsigned flags = DEFAULT_MSG_FLAGS) const {
@@ -442,7 +475,7 @@ using handle = contract_handle<Interface>;
 /*
 void example_usage(contract_handle<Interface> handle) {
   handle(Grams(10), SENDER_WANTS_TO_PAY_FEES_SEPARATELY).method(arg0, arg1, ...);
-  handle.deploy(init, 10, SENDER_WANTS_TO_PAY_FEES_SEPARATELY).call<&Interface::method>(arg0, arg1, ...);
+  handle.deploy(init, 10, SENDER_WANTS_TO_PAY_FEES_SEPARATELY).method(arg0, arg1, ...);
 }
 */
 

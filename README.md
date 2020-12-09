@@ -38,7 +38,7 @@ To build and to install the compiler use the following script:
 $ git clone git@github.com:tonlabs/TON-Compiler.git
 $ mkdir build
 $ cd build
-$ cmake -DCMAKE_INSTALL_PREFIX=/path/to/install -C /path/to/TON-Compiler/cmake/Cache/ton-compiler.cmake ..
+$ cmake -DCMAKE_INSTALL_PREFIX=/path/to/install -C /path/to/TON-Compiler/cmake/Cache/ton-compiler.cmake ../llvm
 $ cmake --build . --target install-distribution
 ```
 Notes:

@@ -72,7 +72,6 @@ private:
   bool processInstruction(MachineInstr &MI);
   bool runOnBasicBlocks(MachineFunction &MF);
 
-  TVMFunctionInfo *MFI;
   MachineRegisterInfo *MRI;
   const TargetInstrInfo *TII;
   LiveIntervals *LIS;

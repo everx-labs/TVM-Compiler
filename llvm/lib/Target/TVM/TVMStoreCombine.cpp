@@ -110,8 +110,8 @@ static void combine(BasicBlock::iterator Start, BasicBlock::iterator End) {
     unsigned Sz = cast<ConstantInt>(CS.getArgument(2))->getZExtValue();
     if (Val.slt(0)) {
       APInt Pow2(257, 0, false);
-      Pow2.setBit(Sz);
-      Val = Pow2 - Val;
+      Pow2.setBit(Sz + 1);
+      Val = Pow2 - Val.abs();
     }
     Data <<= Sz;
     Size += Sz;

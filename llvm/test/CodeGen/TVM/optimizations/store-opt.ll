@@ -14,7 +14,7 @@ define builder @test1() {
   %6 = call builder @llvm.tvm.sti(i257 -1, builder %5, i257 1)
   %7 = call builder @llvm.tvm.stu(i257 3, builder %6, i257 2)
   %8 = call builder @llvm.tvm.sti(i257 -7, builder %7, i257 3)
-  ; CHECK: %[[VR3:[0-9]+]] = call builder @llvm.tvm.stu(i257 127, builder %[[VR2]], i257 6)
+  ; CHECK: %[[VR3:[0-9]+]] = call builder @llvm.tvm.stu(i257 121, builder %[[VR2]], i257 6)
   %9 = call builder @llvm.tvm.sti(i257 -7, builder %8, i257 251)
   ; CHECK: %{{[0-9]+}} = call builder @llvm.tvm.sti(i257 -7, builder %[[VR3]], i257 251)
   ret builder %9

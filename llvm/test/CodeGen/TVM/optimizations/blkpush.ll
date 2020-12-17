@@ -38,3 +38,14 @@ define i257 @blkpush3(i257 %x, i257 %y) {
   %res.1 = add i257 %res, %y
   ret i257 %res.1
 }
+
+; CHECK-LABEL: blkpush-neg
+define i257 @blkpush-neg(i257 %x, i257 %x1, i257 %x2, i257 %x3, i257 %x4, i257 %x5, i257 %x6, i257 %x7, i257 %x8, i257 %x9, i257 %x10, i257 %x11, i257 %x12, i257 %x13, i257 %x14, i257 %x15, i257 %x16) {
+  ; CHECK: ROLL	16
+  ; CHECK: BLKPUSH 15, 0
+  ; CHECK: DUP
+  %res = call i257 @blkdrop(i257 %x, i257 %x, i257 %x, i257 %x, i257 %x, i257 %x, i257 %x, i257 %x, i257 %x, i257 %x, i257 %x, i257 %x, i257 %x, i257 %x, i257 %x, i257 %x, i257 %x)
+  %res.1 = call i257 @blkdrop(i257 %x1, i257 %x2, i257 %x3, i257 %x4, i257 %x5, i257 %x6, i257 %x7, i257 %x8, i257 %x9, i257 %x10, i257 %x11, i257 %x12, i257 %x13, i257 %x14, i257 %x15, i257 %x16, i257 %x16)
+  %res.2 = add i257 %res, %res.1
+  ret i257 %res.2
+}

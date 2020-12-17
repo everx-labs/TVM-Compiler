@@ -144,6 +144,8 @@ bool TVMPeephole::runBlkPushCombine(MachineBasicBlock &MBB,
     bool IsConstant = false;
     if (It->getOpcode() == TVM::PUSH) {
       Reg = It->getOperand(0).getImm();
+      if (Reg > BlkPushLimit)
+        continue;
       MaybeRemove.push_back(&*It);
     } else if (It->getOpcode() == TVM::CONST_I257_S ||
                It->getOpcode() == TVM::CONST_I257_S) {

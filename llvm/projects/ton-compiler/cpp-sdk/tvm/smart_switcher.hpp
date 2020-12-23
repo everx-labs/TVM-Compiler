@@ -325,7 +325,7 @@ struct smart_switcher_impl {
     constexpr bool is_implicit_id = is_implicit_func_id<IContract, Index>();
     constexpr bool is_internal = get_interface_method_internal<IContract, Index>::value;
     constexpr bool is_external = get_interface_method_external<IContract, Index>::value;
-    constexpr bool is_dyn_chain_parse = !Internal && get_interface_method_dyn_chain_parse<IContract, Index>::value;
+    constexpr bool is_dyn_chain_parse = get_interface_method_dyn_chain_parse<IContract, Index>::value;
     // getters should be inserted at main_external switch
     constexpr bool valid = (Internal && is_internal) ||
                            (!Internal && (is_external || is_getter));
@@ -430,6 +430,8 @@ struct smart_switcher_impl {
         if constexpr (is_coroutine_v<func>) {
           next_answer_id = std::get<1>(persistent_data_header).find_next_answer_id().get();
           temporary_data::setglob(global_id::answer_id, next_answer_id);
+        } else {
+          temporary_data::setglob(global_id::answer_id, 0);
         }
         if constexpr (args_sz != 0) {
           auto parsed_args = parse_smart<FixedHeader, Args, is_dyn_chain_parse>(body_p);
@@ -490,6 +492,8 @@ struct smart_switcher_impl {
         }
       } else {
         // void return (no need to send an answer message)
+
+        temporary_data::setglob(global_id::answer_id, 0);
         if constexpr (args_sz != 0) {
           auto parsed_args = parse_smart<FixedHeader, Args, is_dyn_chain_parse>(body_p);
           std::apply_f<func>(std::tuple_cat(std::make_tuple(std::ref(c)),

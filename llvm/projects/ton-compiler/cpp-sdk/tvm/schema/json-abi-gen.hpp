@@ -197,6 +197,10 @@ constexpr auto make_field_impl(FieldName field_name) {
     return make_offset<Offset>::value + "{ \"components\":"_s + make_array_components<T, Offset>::value
       + ", \"name\":\""_s + field_name + "\", \"type\":\"tuple[]\" "_s
       + make_field_impl_tail<IsLast>();
+  } else if constexpr (is_tuple_type<T>::value) {
+    return make_offset<Offset>::value + "{ \"components\":"_s + make_struct_components<T, Offset, decltype(""_s)>()
+      + ", \"name\":\""_s + field_name + "\", \"type\":\"tuple\" "_s
+      + make_field_impl_tail<IsLast>();
   } else {
     return make_offset<Offset>::value + "{ \"name\":\""_s + field_name + "\", \"type\":\""_s +
         make_simple_type<T>() + "\" "_s + make_field_impl_tail<IsLast>();
@@ -437,18 +441,6 @@ constexpr auto make_rv_types_list() {
   }
 }
 
-// generate function signature like: `getVersion()(bytes,uint24)v2`
-template<class Interface, unsigned CurMethod>
-constexpr auto make_func_signature() {
-  using FuncName = get_interface_method_name<Interface, CurMethod>;
-  using Arg = get_interface_method_arg_struct<Interface, CurMethod>;
-  using ArgsTuple = to_std_tuple_t<Arg>;
-  using Rv = get_interface_method_rv<Interface, CurMethod>;
-
-  return FuncName{} +
-    "("_s + make_arg_types_list<ArgsTuple>::value + ")("_s + make_rv_types_list<Rv>() + ")v2"_s;
-}
-
 template<bool HasAnswerId, unsigned ArgsSize>
 constexpr auto make_signature_prefix() {
   if constexpr (HasAnswerId) {
@@ -459,6 +451,23 @@ constexpr auto make_signature_prefix() {
   } else {
     return "("_s;
   }
+}
+
+// generate function signature like: `getVersion()(bytes,uint24)v2`
+template<class Interface, unsigned CurMethod>
+constexpr auto make_func_signature() {
+  using FuncName = get_interface_method_name<Interface, CurMethod>;
+  using Arg = get_interface_method_arg_struct<Interface, CurMethod>;
+  using ArgsTuple = to_std_tuple_t<Arg>;
+  using Rv = get_interface_method_rv<Interface, CurMethod>;
+  constexpr bool HasAnswerId =
+    get_interface_method_internal<Interface, CurMethod>::value && !std::is_void_v<Rv> &&
+    get_interface_method_answer_id<Interface, CurMethod>::value;
+  // TODO: remove answer_id field generation in abi when abiv3 will provide answer_id in header
+  auto prefix = make_signature_prefix<HasAnswerId, std::tuple_size_v<ArgsTuple>>();
+
+  return FuncName{} +
+    prefix + make_arg_types_list<ArgsTuple>::value + ")("_s + make_rv_types_list<Rv>() + ")v2"_s;
 }
 
 template<auto MethodPtr>

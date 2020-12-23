@@ -16,6 +16,7 @@ class dict_map<schema::uint_t<KeyLen>, Element> : public dict_base<Element, KeyL
 public:
   using key_type = schema::uint_t<KeyLen>;
   using value_type = std::pair<key_type, Element>;
+  static constexpr bool small_elem = small_element<Element, KeyLen>;
 
   dict_map() {}
   dict_map(schema::uint32 size, dictionary dict) : base{size, dict} {}
@@ -56,14 +57,26 @@ public:
 
   void set_at(unsigned idx, Element val) {
     // increase size if adding new key
-    auto [sl, existing] = base::dict_.dictusetget(schema::build(val).make_slice(), idx, KeyLen);
-    if (!existing)
-      ++base::size_;
+    if constexpr (small_elem) {
+      auto [sl, existing] = base::dict_.dictusetget(schema::build(val).make_slice(), idx, KeyLen);
+      if (!existing)
+        ++base::size_;
+    } else {
+      auto [sl, existing] = base::dict_.dictusetgetref(schema::build(val).make_cell(), idx, KeyLen);
+      if (!existing)
+        ++base::size_;
+    }
   }
   Element get_at(unsigned idx) const {
-    auto [slice, succ] = base::dict_.dictuget(idx, KeyLen);
-    tvm_assert(succ, error_code::iterator_overflow);
-    return schema::parse<Element>(slice);
+    if constexpr (small_elem) {
+      auto [slice, succ] = base::dict_.dictuget(idx, KeyLen);
+      tvm_assert(succ, error_code::iterator_overflow);
+      return schema::parse<Element>(slice);
+    } else {
+      auto [cl, succ] = base::dict_.dictugetref(idx, KeyLen);
+      tvm_assert(succ, error_code::iterator_overflow);
+      return schema::parse<Element>(cl.ctos());
+    }
   }
 
   Element operator[](unsigned idx) const {

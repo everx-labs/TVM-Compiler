@@ -4691,6 +4691,64 @@ ASTFileSignature ASTWriter::WriteASTCore(Sema &SemaRef, StringRef isysroot,
                      PREDEF_DECL_CF_CONSTANT_STRING_TAG_ID);
   RegisterPredefDecl(Context.TypePackElementDecl,
                      PREDEF_DECL_TYPE_PACK_ELEMENT_ID);
+  // TVM local begin
+  RegisterPredefDecl(Context.ReflectFieldDecl,
+                     PREDEF_DECL_REFLECT_FIELD_ID);
+  RegisterPredefDecl(Context.ReflectFieldsCountDecl,
+                     PREDEF_DECL_REFLECT_FIELDS_COUNT_ID);
+  RegisterPredefDecl(Context.ReflectMethodsCountDecl,
+                     PREDEF_DECL_REFLECT_METHODS_COUNT_ID);
+  RegisterPredefDecl(Context.ReflectMethodNameDecl,
+                     PREDEF_DECL_REFLECT_METHOD_NAME_ID);
+  RegisterPredefDecl(Context.ReflectMethodPtrNameDecl,
+                     PREDEF_DECL_REFLECT_METHOD_PTR_NAME_ID);
+  RegisterPredefDecl(Context.ReflectReturnNameDecl,
+                     PREDEF_DECL_REFLECT_RETURN_NAME_ID);
+  RegisterPredefDecl(Context.ReflectMethodFuncIdDecl,
+                     PREDEF_DECL_REFLECT_METHOD_FUNC_ID_ID);
+  RegisterPredefDecl(Context.ReflectMethodInternalDecl,
+                     PREDEF_DECL_REFLECT_METHOD_INTERNAL_ID);
+  RegisterPredefDecl(Context.ReflectMethodPtrInternalDecl,
+                     PREDEF_DECL_REFLECT_METHOD_PTR_INTERNAL_ID);
+  RegisterPredefDecl(Context.ReflectMethodAnswerIdDecl,
+                     PREDEF_DECL_REFLECT_METHOD_ANSWER_ID_ID);
+  RegisterPredefDecl(Context.ReflectMethodPtrAnswerIdDecl,
+                     PREDEF_DECL_REFLECT_METHOD_PTR_ANSWER_ID_ID);
+  RegisterPredefDecl(Context.ReflectMethodExternalDecl,
+                     PREDEF_DECL_REFLECT_METHOD_EXTERNAL_ID);
+  RegisterPredefDecl(Context.ReflectMethodGetterDecl,
+                     PREDEF_DECL_REFLECT_METHOD_GETTER_ID);
+  RegisterPredefDecl(Context.ReflectMethodNoAcceptDecl,
+                     PREDEF_DECL_REFLECT_METHOD_NOACCEPT_ID);
+  RegisterPredefDecl(Context.ReflectMethodImplicitFuncIdDecl,
+                     PREDEF_DECL_REFLECT_METHOD_IMPLICIT_FUNC_ID_ID);
+  RegisterPredefDecl(Context.ReflectMethodDynChainParseDecl,
+                     PREDEF_DECL_REFLECT_METHOD_DYN_CHAIN_PARSE_ID);
+  RegisterPredefDecl(Context.ReflectMethodNoReadPersistentDecl,
+                     PREDEF_DECL_REFLECT_METHOD_NO_READ_PERSISTENT_ID);
+  RegisterPredefDecl(Context.ReflectMethodNoWritePersistentDecl,
+                     PREDEF_DECL_REFLECT_METHOD_NO_WRITE_PERSISTENT_ID);
+  RegisterPredefDecl(Context.ReflectMethodPtrFuncIdDecl,
+                     PREDEF_DECL_REFLECT_METHOD_PTR_FUNC_ID_ID);
+  RegisterPredefDecl(Context.ReflectMethodRvDecl,
+                     PREDEF_DECL_REFLECT_METHOD_RV_ID);
+  RegisterPredefDecl(Context.ReflectMethodPtrRvDecl,
+                     PREDEF_DECL_REFLECT_METHOD_PTR_RV_ID);
+  RegisterPredefDecl(Context.ReflectMethodArgStructDecl,
+                     PREDEF_DECL_REFLECT_METHOD_ARG_STRUCT_ID);
+  RegisterPredefDecl(Context.ReflectMethodPtrArgStructDecl,
+                     PREDEF_DECL_REFLECT_METHOD_PTR_ARG_STRUCT_ID);
+  RegisterPredefDecl(Context.ReflectSmartInterfaceDecl,
+                     PREDEF_DECL_REFLECT_SMART_INTERFACE_ID);
+  RegisterPredefDecl(Context.ReflectProxyDecl,
+                     PREDEF_DECL_REFLECT_PROXY_ID);
+  RegisterPredefDecl(Context.ReflectMethodPtrDecl,
+                     PREDEF_DECL_REFLECT_METHOD_PTR_ID);
+  RegisterPredefDecl(Context.ReflectInterfaceHasPubkeyDecl,
+                     PREDEF_DECL_REFLECT_INTERFACE_HAS_PUBKEY_ID);
+  RegisterPredefDecl(Context.ReflectSignatureFuncIdDecl,
+                     PREDEF_DECL_REFLECT_SIGNATURE_FUNC_ID_ID);
+  // TVM local end
 
   // Build a record containing all of the tentative definitions in this file, in
   // TentativeDefinitions order.  Generally, this record will be empty for

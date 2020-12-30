@@ -1275,13 +1275,101 @@ namespace serialization {
 
       /// The internal '__type_pack_element' template.
       PREDEF_DECL_TYPE_PACK_ELEMENT_ID = 16,
+      // TVM local begin
+
+      /// The internal '__reflect_field' template.
+      PREDEF_DECL_REFLECT_FIELD_ID = 17,
+
+      /// The internal '__reflect_fields_count' template.
+      PREDEF_DECL_REFLECT_FIELDS_COUNT_ID = 18,
+
+      /// The internal '__reflect_methods_count' template.
+      PREDEF_DECL_REFLECT_METHODS_COUNT_ID = 19,
+
+      /// The internal '__reflect_method_name' template.
+      PREDEF_DECL_REFLECT_METHOD_NAME_ID = 20,
+
+      /// The internal '__reflect_method_ptr_name' template.
+      PREDEF_DECL_REFLECT_METHOD_PTR_NAME_ID = 21,
+
+      /// The internal '__reflect_return_name' template.
+      PREDEF_DECL_REFLECT_RETURN_NAME_ID = 22,
+
+      /// The internal '__reflect_method_func_id' template.
+      PREDEF_DECL_REFLECT_METHOD_FUNC_ID_ID = 23,
+
+      /// The internal '__reflect_method_internal' template.
+      PREDEF_DECL_REFLECT_METHOD_INTERNAL_ID = 24,
+
+      /// The internal '__reflect_method_ptr_internal' template.
+      PREDEF_DECL_REFLECT_METHOD_PTR_INTERNAL_ID = 25,
+
+      /// The internal '__reflect_method_answer_id' template.
+      PREDEF_DECL_REFLECT_METHOD_ANSWER_ID_ID = 26,
+
+      /// The internal '__reflect_method_ptr_answer_id' template.
+      PREDEF_DECL_REFLECT_METHOD_PTR_ANSWER_ID_ID = 27,
+
+      /// The internal '__reflect_method_external' template.
+      PREDEF_DECL_REFLECT_METHOD_EXTERNAL_ID = 28,
+
+      /// The internal '__reflect_method_getter' template.
+      PREDEF_DECL_REFLECT_METHOD_GETTER_ID = 29,
+
+      /// The internal '__reflect_method_noaccept' template.
+      PREDEF_DECL_REFLECT_METHOD_NOACCEPT_ID = 30,
+
+      /// The internal '__reflect_method_implicit_func_id' template.
+      PREDEF_DECL_REFLECT_METHOD_IMPLICIT_FUNC_ID_ID = 31,
+
+      /// The internal '__reflect_method_dyn_chain_parse' template.
+      PREDEF_DECL_REFLECT_METHOD_DYN_CHAIN_PARSE_ID = 32,
+
+      /// The internal '__reflect_method_no_read_persistent' template.
+      PREDEF_DECL_REFLECT_METHOD_NO_READ_PERSISTENT_ID = 33,
+
+      /// The internal '__reflect_method_no_write_persistent' template.
+      PREDEF_DECL_REFLECT_METHOD_NO_WRITE_PERSISTENT_ID = 34,
+
+      /// The internal '__reflect_method_ptr_func_id' template.
+      PREDEF_DECL_REFLECT_METHOD_PTR_FUNC_ID_ID = 35,
+
+      /// The internal '__reflect_method_rv' template.
+      PREDEF_DECL_REFLECT_METHOD_RV_ID = 36,
+
+      /// The internal '__reflect_method_ptr_rv' template.
+      PREDEF_DECL_REFLECT_METHOD_PTR_RV_ID = 37,
+
+      /// The internal '__reflect_method_arg_struct' template.
+      PREDEF_DECL_REFLECT_METHOD_ARG_STRUCT_ID = 38,
+
+      /// The internal '__reflect_method_ptr_arg_struct' template.
+      PREDEF_DECL_REFLECT_METHOD_PTR_ARG_STRUCT_ID = 39,
+
+      /// The internal '__reflect_smart_interface' template.
+      PREDEF_DECL_REFLECT_SMART_INTERFACE_ID = 40,
+
+      /// The internal '__reflect_proxy' template.
+      PREDEF_DECL_REFLECT_PROXY_ID = 41,
+
+      /// The internal '__reflect_method_ptr' template.
+      PREDEF_DECL_REFLECT_METHOD_PTR_ID = 42,
+
+      /// The internal '__reflect_interface_has_pubkey' template.
+      PREDEF_DECL_REFLECT_INTERFACE_HAS_PUBKEY_ID = 43,
+
+      /// The internal '__reflect_signature_func_id' template.
+      PREDEF_DECL_REFLECT_SIGNATURE_FUNC_ID_ID = 44
+      // TVM local end
     };
 
     /// The number of declaration IDs that are predefined.
     ///
     /// For more information about predefined declarations, see the
     /// \c PredefinedDeclIDs type and the PREDEF_DECL_*_ID constants.
-    const unsigned int NUM_PREDEF_DECL_IDS = 17;
+    // TVM local begin
+    const unsigned int NUM_PREDEF_DECL_IDS = 45;
+    // TVM local end
 
     /// Record of updates for a declaration that was modified after
     /// being deserialized. This can occur within DECLTYPES_BLOCK_ID.

@@ -131,6 +131,11 @@ struct message_relaxed {
   Either<X, ref<X>> body;
 };
 
+struct addr_std_fixed {
+  int8 workchain_id;
+  uint256 address;
+};
+
 }} // namespace tvm::schema
 
 namespace tvm {

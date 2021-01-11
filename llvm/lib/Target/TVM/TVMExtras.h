@@ -24,6 +24,7 @@
 #include <variant>
 
 #include "llvm/ADT/STLExtras.h"
+#include "llvm/IR/Constants.h"
 
 namespace llvm {
 /// Finds an element and enforces that the search was successful.

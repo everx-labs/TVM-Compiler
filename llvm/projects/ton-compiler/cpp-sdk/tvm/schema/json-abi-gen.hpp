@@ -7,6 +7,9 @@
 #include <tvm/sequence.hpp>
 #include <tvm/dict_array.hpp>
 #include <tvm/dict_map.hpp>
+#include <boost/hana/is_empty.hpp>
+#include <boost/hana/equal.hpp>
+#include <boost/hana/not_equal.hpp>
 
 /*
 {
@@ -79,12 +82,12 @@ template<class T> struct is_tuple_type<lazy<T>> : std::false_type {};
 template<class T> struct is_tuple_array : std::false_type {};
 template<class Element> struct is_tuple_array<dict_array<Element, 32>> : is_tuple_type<Element> {};
 
-template<class T, unsigned Offset>
+template<class T, unsigned Offset, class ReturnName>
 constexpr auto make_struct_components();
 
 template<class T, unsigned Offset> struct make_array_components {};
 template<class Element, unsigned Offset> struct make_array_components<dict_array<Element, 32>, Offset> {
-  static constexpr auto value = make_struct_components<Element, Offset>();
+  static constexpr auto value = make_struct_components<Element, Offset, decltype(""_s)>();
 };
 
 template<class T>
@@ -149,8 +152,16 @@ struct make_simple_type_impl<lazy<T>> {
   static constexpr auto value = make_simple_type_impl<T>::value;
 };
 template<class T>
+struct make_simple_type_impl<resumable<T>> {
+  static constexpr auto value = make_simple_type_impl<T>::value;
+};
+template<class T>
 constexpr auto make_simple_type() {
   return make_simple_type_impl<T>::value;
+}
+template<class T>
+constexpr bool has_simple_type() {
+  return make_simple_type_impl<T>::value != "unknown"_s;
 }
 
 template<class T>
@@ -186,6 +197,10 @@ constexpr auto make_field_impl(FieldName field_name) {
     return make_offset<Offset>::value + "{ \"components\":"_s + make_array_components<T, Offset>::value
       + ", \"name\":\""_s + field_name + "\", \"type\":\"tuple[]\" "_s
       + make_field_impl_tail<IsLast>();
+  } else if constexpr (is_tuple_type<T>::value) {
+    return make_offset<Offset>::value + "{ \"components\":"_s + make_struct_components<T, Offset, decltype(""_s)>()
+      + ", \"name\":\""_s + field_name + "\", \"type\":\"tuple\" "_s
+      + make_field_impl_tail<IsLast>();
   } else {
     return make_offset<Offset>::value + "{ \"name\":\""_s + field_name + "\", \"type\":\""_s +
         make_simple_type<T>() + "\" "_s + make_field_impl_tail<IsLast>();
@@ -218,69 +233,77 @@ struct make_tuple_json<Offset, ParentT, std::tuple<>> {
   static constexpr auto value = ""_s;
 };
 
-template<class T, unsigned Offset>
+template<class T, unsigned Offset, class ReturnName>
 struct make_struct_json {
   static constexpr auto value = make_tuple_json<Offset, T, tvm::to_std_tuple_t<T>>::value;
 };
-template<unsigned Offset>
-struct make_struct_json<void, Offset> {
+template<unsigned Offset, class ReturnName>
+struct make_struct_json<void, Offset, ReturnName> {
   static constexpr auto value = ""_s;
 };
 
-// For simple-type return value ("MsgAddress func()") we don't have name for field, so just "value0"
-template<unsigned Offset, unsigned _bitlen>
-struct make_struct_json<int_t<_bitlen>, Offset> {
-  static constexpr auto value = make_field_impl<int_t<_bitlen>, 1, Offset>("value0"_s);
+template<class ReturnName>
+__always_inline constexpr auto make_return_name() {
+  if constexpr (hana::is_empty(ReturnName{}))
+    return "value0"_s;
+  else
+    return ReturnName{};
+}
+
+// For simple-type return value ("MsgAddress func()") we don't have name for field, so using `ReturnName`
+template<unsigned Offset, class ReturnName, unsigned _bitlen>
+struct make_struct_json<int_t<_bitlen>, Offset, ReturnName> {
+  static constexpr auto value = make_field_impl<int_t<_bitlen>, 1, Offset>(make_return_name<ReturnName>());
 };
-template<unsigned Offset, unsigned _bitlen>
-struct make_struct_json<uint_t<_bitlen>, Offset> {
-  static constexpr auto value = make_field_impl<uint_t<_bitlen>, 1, Offset>("value0"_s);
+template<unsigned Offset, class ReturnName, unsigned _bitlen>
+struct make_struct_json<uint_t<_bitlen>, Offset, ReturnName> {
+  static constexpr auto value = make_field_impl<uint_t<_bitlen>, 1, Offset>(make_return_name<ReturnName>());
 };
-template<unsigned Offset>
-struct make_struct_json<uint_t<1>, Offset> {
-  static constexpr auto value = make_field_impl<uint_t<1>, 1, Offset>("value0"_s);
+template<unsigned Offset, class ReturnName>
+struct make_struct_json<uint_t<1>, Offset, ReturnName> {
+  static constexpr auto value = make_field_impl<uint_t<1>, 1, Offset>(make_return_name<ReturnName>());
 };
 
-template<unsigned Offset>
-struct make_struct_json<MsgAddress, Offset> {
-  static constexpr auto value = make_field_impl<MsgAddress, 1, Offset>("value0"_s);
+template<unsigned Offset, class ReturnName>
+struct make_struct_json<MsgAddress, Offset, ReturnName> {
+  static constexpr auto value = make_field_impl<MsgAddress, 1, Offset>(make_return_name<ReturnName>());
 };
-template<unsigned Offset>
-struct make_struct_json<MsgAddressInt, Offset> {
-  static constexpr auto value = make_field_impl<MsgAddressInt, 1, Offset>("value0"_s);
+template<unsigned Offset, class ReturnName>
+struct make_struct_json<MsgAddressInt, Offset, ReturnName> {
+  static constexpr auto value = make_field_impl<MsgAddressInt, 1, Offset>(make_return_name<ReturnName>());
 };
-template<unsigned Offset>
-struct make_struct_json<MsgAddressExt, Offset> {
-  static constexpr auto value = make_field_impl<MsgAddressExt, 1, Offset>("value0"_s);
+template<unsigned Offset, class ReturnName>
+struct make_struct_json<MsgAddressExt, Offset, ReturnName> {
+  static constexpr auto value = make_field_impl<MsgAddressExt, 1, Offset>(make_return_name<ReturnName>());
 };
-template<unsigned Offset, class Element>
-struct make_struct_json<dict_array<Element, 32>, Offset> {
-  static constexpr auto value = make_field_impl<dict_array<Element, 32>, 1, Offset>("value0"_s);
+template<unsigned Offset, class ReturnName, class Element>
+struct make_struct_json<dict_array<Element, 32>, Offset, ReturnName> {
+  static constexpr auto value = make_field_impl<dict_array<Element, 32>, 1, Offset>(make_return_name<ReturnName>());
 };
-template<unsigned Offset, class Key, class Value>
-struct make_struct_json<dict_map<Key, Value>, Offset> {
-  static constexpr auto value = make_field_impl<dict_map<Key, Value>, 1, Offset>("value0"_s);
+template<unsigned Offset, class ReturnName, class Key, class Value>
+struct make_struct_json<dict_map<Key, Value>, Offset, ReturnName> {
+  static constexpr auto value = make_field_impl<dict_map<Key, Value>, 1, Offset>(make_return_name<ReturnName>());
 };
-template<unsigned Offset>
-struct make_struct_json< sequence<uint_t<8>>, Offset > {
-  static constexpr auto value = make_field_impl<sequence<uint_t<8>>, 1, Offset>("value0"_s);
+template<unsigned Offset, class ReturnName>
+struct make_struct_json< sequence<uint_t<8>>, Offset, ReturnName > {
+  static constexpr auto value = make_field_impl<sequence<uint_t<8>>, 1, Offset>(make_return_name<ReturnName>());
 };
-template<unsigned Offset>
-struct make_struct_json<cell, Offset> {
-  static constexpr auto value = make_field_impl<cell, 1, Offset>("value0"_s);
+template<unsigned Offset, class ReturnName>
+struct make_struct_json<cell, Offset, ReturnName> {
+  static constexpr auto value = make_field_impl<cell, 1, Offset>(make_return_name<ReturnName>());
 };
-template<unsigned Offset, class T>
-struct make_struct_json<lazy<T>, Offset> {
-  static constexpr auto value = make_field_impl<lazy<T>, 1, Offset>("value0"_s);
+template<unsigned Offset, class ReturnName, class T>
+struct make_struct_json<lazy<T>, Offset, ReturnName> {
+  static constexpr auto value = make_field_impl<lazy<T>, 1, Offset>(make_return_name<ReturnName>());
 };
-template<unsigned Offset, class T>
-struct make_struct_json<resumable<T>, Offset> {
-  static constexpr auto value = make_struct_json<T, Offset>::value;
+template<unsigned Offset, class ReturnName, class T>
+struct make_struct_json<resumable<T>, Offset, ReturnName> {
+  static constexpr auto value = make_struct_json<T, Offset, ReturnName>::value;
 };
 
-template<class T, unsigned Offset>
+template<class T, unsigned Offset, class ReturnName>
 constexpr auto make_struct_components() {
-  return "[\n"_s + make_struct_json<T, Offset + 1>::value + make_offset<Offset>::value + "]"_s;
+  return "[\n"_s + make_struct_json<T, Offset + 1, ReturnName>::value + make_offset<Offset>::value + "]"_s;
 };
 
 constexpr auto make_abi_version() {
@@ -315,30 +338,161 @@ constexpr auto make_events_end() {
   return "\n  ]"_s;
 }
 
-template<class ArgStruct>
+template<bool HasAnswerId, unsigned ArgsSize>
+constexpr auto make_inputs_prefix() {
+  if constexpr (HasAnswerId) {
+    constexpr auto prefix = "\"inputs\": [\n    { \"name\":\"_answer_id\", \"type\":\"uint32\" }"_s;
+    if constexpr (ArgsSize == 0)
+      return prefix + "\n"_s;
+    else
+      return prefix + ",\n"_s;
+  } else {
+    return "\"inputs\": [\n"_s;
+  }
+}
+
+template<class ArgStruct, class ReturnName, bool HasAnswerId>
 constexpr auto make_function_inputs() {
-  return "\"inputs\": [\n"_s + make_struct_json<ArgStruct, 2>::value + "    ]"_s;
+  // TODO: remove answer_id field generation in abi when abiv3 will provide answer_id in header
+  constexpr auto prefix =
+    make_inputs_prefix< HasAnswerId, std::tuple_size_v< to_std_tuple_t<ArgStruct> > >();
+  return prefix + make_struct_json<ArgStruct, 2, ReturnName>::value + "    ]"_s;
 }
 
-template<class RvStruct>
+template<class RvStruct, class ReturnName>
 constexpr auto make_function_outputs() {
-  return "\"outputs\": [\n"_s + make_struct_json<RvStruct, 2>::value + "    ]"_s;
+  return "\"outputs\": [\n"_s + make_struct_json<RvStruct, 2, ReturnName>::value + "    ]"_s;
 }
 
-template<unsigned FuncID>
+template<unsigned FuncID, bool ImplicitFuncId>
 constexpr auto make_function_id() {
-  if constexpr (FuncID != 0)
+  if constexpr (FuncID != 0 && !ImplicitFuncId)
     return ",\n    \"id\": \"0x"_s + to_string<16>(hana::integral_c<unsigned, FuncID>) + "\""_s;
   else
     return ""_s;
 }
 
-template<unsigned FuncID, class RvStruct, class ArgStruct, class FuncName>
+// ====== Signature generation =========
+template<class T>
+struct is_resumable : std::false_type {};
+template<class T>
+struct is_resumable<resumable<T>> : std::true_type {};
+template<class T>
+constexpr bool is_resumable_v = is_resumable<T>::value;
+template<class T>
+struct resumable_subtype {};
+template<class T>
+struct resumable_subtype<resumable<T>> {
+  using type = T;
+};
+
+template<class T>
+__always_inline constexpr auto make_type_signature();
+
+// arg type lists for signature
+template<class ArgsTuple>
+struct make_arg_types_list {
+  static constexpr auto value = ""_s;
+};
+template<class Arg0, class... Args>
+struct make_arg_types_list<std::tuple<Arg0, Args...>> {
+  static constexpr auto value =
+    make_type_signature<Arg0>() + (""_s + ... + (","_s + make_type_signature<Args>()));
+};
+
+template<class T>
+struct make_type_signature_impl {
+  static constexpr auto value = []() constexpr {
+    if constexpr (has_simple_type<T>()) {
+      return make_simple_type<T>();
+    } else {
+      return "("_s + make_arg_types_list<to_std_tuple_t<T>>::value + ")"_s;
+    }
+  }();
+};
+
+template<class Element>
+struct make_type_signature_impl<dict_array<Element, 32>> {
+  static constexpr auto value = make_type_signature<Element>() + "[]"_s;
+};
+
+template<class Key, class Value>
+struct make_type_signature_impl<dict_map<Key, Value>> {
+  static constexpr auto value =
+    "map("_s + make_type_signature<Key>() + ","_s + make_type_signature<Value>() + ")"_s;
+};
+
+template<class T>
+constexpr auto make_type_signature() {
+  return make_type_signature_impl<T>::value;
+};
+
+// return value type lists for signature
+template<class Rv>
+constexpr auto make_rv_types_list() {
+  if constexpr (std::is_void_v<Rv>) {
+    return ""_s;
+  } else if constexpr (is_resumable_v<Rv>) {
+    return make_rv_types_list<typename resumable_subtype<Rv>::type>();
+  } else if constexpr (has_simple_type<Rv>()) {
+    return make_type_signature<Rv>();
+  } else {
+    return make_arg_types_list<to_std_tuple_t<Rv>>::value;
+  }
+}
+
+template<bool HasAnswerId, unsigned ArgsSize>
+constexpr auto make_signature_prefix() {
+  if constexpr (HasAnswerId) {
+    if constexpr (ArgsSize == 0)
+      return "(uint32"_s;
+    else
+      return "(uint32,"_s;
+  } else {
+    return "("_s;
+  }
+}
+
+// generate function signature like: `getVersion()(bytes,uint24)v2`
+template<class Interface, unsigned CurMethod>
+constexpr auto make_func_signature() {
+  using FuncName = get_interface_method_name<Interface, CurMethod>;
+  using Arg = get_interface_method_arg_struct<Interface, CurMethod>;
+  using ArgsTuple = to_std_tuple_t<Arg>;
+  using Rv = get_interface_method_rv<Interface, CurMethod>;
+  constexpr bool HasAnswerId =
+    get_interface_method_internal<Interface, CurMethod>::value && !std::is_void_v<Rv> &&
+    get_interface_method_answer_id<Interface, CurMethod>::value;
+  // TODO: remove answer_id field generation in abi when abiv3 will provide answer_id in header
+  auto prefix = make_signature_prefix<HasAnswerId, std::tuple_size_v<ArgsTuple>>();
+
+  return FuncName{} +
+    prefix + make_arg_types_list<ArgsTuple>::value + ")("_s + make_rv_types_list<Rv>() + ")v2"_s;
+}
+
+template<auto MethodPtr>
+constexpr auto make_func_signature() {
+  using FuncName = get_interface_method_ptr_name<MethodPtr>;
+  using Arg = args_struct_t<MethodPtr>;
+  using ArgsTuple = to_std_tuple_t<Arg>;
+  using Rv = get_interface_method_ptr_rv<MethodPtr>;
+  constexpr bool HasAnswerId =
+    get_interface_method_ptr_internal<MethodPtr>::value && !std::is_void_v<Rv> &&
+    get_interface_method_ptr_answer_id<MethodPtr>::value;
+  // TODO: remove answer_id field generation in abi when abiv3 will provide answer_id in header
+  auto prefix = make_signature_prefix<HasAnswerId, std::tuple_size_v<ArgsTuple>>();
+  return FuncName{} +
+    prefix + make_arg_types_list<ArgsTuple>::value + ")("_s + make_rv_types_list<Rv>() + ")v2"_s;
+}
+// ====== ^^^Signature generation^^^ =========
+
+template<unsigned FuncID, bool ImplicitFuncId, bool HasAnswerId, class RvStruct,
+         class ArgStruct, class ReturnName, class FuncName>
 constexpr auto make_function_json(FuncName func_name) {
   constexpr auto hdr = make_function_header(func_name);
-  constexpr auto inputs = make_function_inputs<ArgStruct>();
-  constexpr auto outputs = make_function_outputs<RvStruct>();
-  constexpr auto id = make_function_id<FuncID>();
+  constexpr auto inputs = make_function_inputs<ArgStruct, ReturnName, HasAnswerId>();
+  constexpr auto outputs = make_function_outputs<RvStruct, ReturnName>();
+  constexpr auto id = make_function_id<FuncID, ImplicitFuncId>();
   return "  {\n    "_s + hdr + ",\n    "_s + inputs + ",\n    "_s + outputs + id + "\n  }"_s;
 }
 
@@ -348,9 +502,17 @@ struct make_json_abi_impl {
   using Rv = get_interface_method_rv<Interface, CurMethod>;
   using Arg = get_interface_method_arg_struct<Interface, CurMethod>;
   using FuncName = get_interface_method_name<Interface, CurMethod>;
+  using ReturnName = get_interface_return_name<Interface, CurMethod>;
+  // If func id is not specified or was specified attribute [[implicit_func_id]]
+  static constexpr bool ImplicitFuncId =
+    get_interface_method_implicit_func_id<Interface, CurMethod>::value || !FuncId;
+  static constexpr bool HasAnswerId =
+    get_interface_method_internal<Interface, CurMethod>::value && !std::is_void_v<Rv> &&
+    get_interface_method_answer_id<Interface, CurMethod>::value;
 
-  static constexpr auto value = make_function_json<FuncId, Rv, Arg>(FuncName{}) + ",\n"_s +
-    make_json_abi_impl<Interface, CurMethod + 1, RestMethods - 1>::value;
+  static constexpr auto value =
+    make_function_json<FuncId, ImplicitFuncId, HasAnswerId, Rv, Arg, ReturnName>(FuncName{}) + ",\n"_s +
+      make_json_abi_impl<Interface, CurMethod + 1, RestMethods - 1>::value;
 };
 template<class Interface, unsigned CurMethod>
 struct make_json_abi_impl<Interface, CurMethod, 1> {
@@ -358,8 +520,15 @@ struct make_json_abi_impl<Interface, CurMethod, 1> {
   using Rv = get_interface_method_rv<Interface, CurMethod>;
   using Arg = get_interface_method_arg_struct<Interface, CurMethod>;
   using FuncName = get_interface_method_name<Interface, CurMethod>;
+  using ReturnName = get_interface_return_name<Interface, CurMethod>;
+  static constexpr bool ImplicitFuncId =
+    get_interface_method_implicit_func_id<Interface, CurMethod>::value || !FuncId;
+  static constexpr bool HasAnswerId =
+    get_interface_method_internal<Interface, CurMethod>::value && !std::is_void_v<Rv> &&
+    get_interface_method_answer_id<Interface, CurMethod>::value;
 
-  static constexpr auto value = make_function_json<FuncId, Rv, Arg>(FuncName{});
+  static constexpr auto value =
+    make_function_json<FuncId, ImplicitFuncId, HasAnswerId, Rv, Arg, ReturnName>(FuncName{});
 };
 template<class Interface, unsigned CurMethod>
 struct make_json_abi_impl<Interface, CurMethod, 0> {

@@ -174,3 +174,9 @@ multiclass ComparisonInt<CondCode cond, string name, bits<32> inst> {
               [(set I257:$dst, (setcc I257:$lhs, I257:$rhs, cond))],
               !strconcat(name, "\t$dst, $lhs, $rhs"), name, inst>;
 }
+
+multiclass ComparisonImm<CondCode cond, string name, ImmAsmOperand immtype, bits<32> inst> {
+  defm "" : I<(outs I257:$dst), (ins I257:$lhs, immtype:$rhs), (outs), (ins immtype:$rhs),
+              [(set I257:$dst, (setcc I257:$lhs, immtype:$rhs, cond))],
+              !strconcat(name, "\t$dst, $lhs, $rhs"), !strconcat(name, "\t$rhs"), inst>;
+}

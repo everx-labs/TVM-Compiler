@@ -19,7 +19,7 @@ define tuple @call_iti() {
 ; CHECK-LABEL: call_iti
 ; CHECK: CALL $ret_iti$
 ; CHECK-NEXT: XCHG	s1, s2
-; CHECK-NEXT: BLKDROP 2
+; CHECK-NEXT: DROP2
   %call = call %st_iti @ret_iti()
   %tup = extractvalue %st_iti %call, 1
   ret tuple %tup
@@ -31,7 +31,7 @@ define slice @call_isi() {
 ; CHECK-LABEL: call_isi
 ; CHECK: CALL $ret_isi$
 ; CHECK-NEXT: XCHG	s1, s2
-; CHECK-NEXT: BLKDROP 2
+; CHECK-NEXT: DROP2
   %call = call %st_isi @ret_isi()
   %sl = extractvalue %st_isi %call, 1
   ret slice %sl
@@ -43,7 +43,7 @@ define builder @call_ibi() {
 ; CHECK-LABEL: call_ibi
 ; CHECK: CALL $ret_ibi$
 ; CHECK-NEXT: XCHG	s1, s2
-; CHECK-NEXT: BLKDROP 2
+; CHECK-NEXT: DROP2
   %call = call %st_ibi @ret_ibi()
   %bld = extractvalue %st_ibi %call, 1
   ret builder %bld
@@ -55,7 +55,7 @@ define cell @call_ici() {
 ; CHECK-LABEL: call_ici
 ; CHECK: CALL $ret_ici$
 ; CHECK-NEXT: XCHG	s1, s2
-; CHECK-NEXT: BLKDROP 2
+; CHECK-NEXT: DROP2
   %call = call %st_ici @ret_ici()
   %cl = extractvalue %st_ici %call, 1
   ret cell %cl

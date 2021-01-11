@@ -17,7 +17,6 @@ struct error_code {
   static constexpr int unsupported_bounced_msg     = 55;
   static constexpr int no_persistent_data          = 56;
 
-  static constexpr int wrong_awaiting_addr_size    = 57;
   static constexpr int wrong_answer_id             = 58;
   static constexpr int unexpected_answer           = 59;
 

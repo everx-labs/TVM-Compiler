@@ -447,6 +447,12 @@ let TargetPrefix = "tvm" in {
     GCCBuiltin<"__builtin_tvm_setglobal">,
     Intrinsic<[], [llvm_i257_ty, llvm_i257_ty], []>;
 
+  // A.11.7. Application specific misc primitives.
+  def int_tvm_cdatasize :
+    GCCBuiltin<"__builtin_tvm_cdatasize">,
+    Intrinsic<[llvm_i257_ty, llvm_i257_ty, llvm_i257_ty], [llvm_TVMCell_ty, llvm_i257_ty],
+              [IntrNoMem]>;
+
   // A.11.8 Message and address manipulation primitives.
   def int_tvm_ldmsgaddr :
     GCCBuiltin<"__builtin_tvm_ldmsgaddr">,

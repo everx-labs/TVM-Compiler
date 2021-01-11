@@ -208,6 +208,8 @@ defm XCPU : SI<(ins stack_op:$i, stack_op:$j), "XCPU\t$i, $j", 0x51>;
 defm PUXC : SI<(ins stack_op:$i, stack_op:$j), "PUXC\t$i, $j", 0x52>;
 // PUSH, PUSH
 defm PUSH2 : SI<(ins stack_op:$i, stack_op:$j), "PUSH2\t$i, $j", 0x53>;
+defm DUP2 : SI<(ins), "DUP2", 0x5c>;
+defm OVER2 : SI<(ins), "OVER2", 0x5d>;
 
 // XCHG, XCHG, XCHG
 defm XCHG3 : SI<(ins stack_op:$i, stack_op:$j, stack_op:$k),
@@ -215,6 +217,7 @@ defm XCHG3 : SI<(ins stack_op:$i, stack_op:$j, stack_op:$k),
 // XCHG, XCHG, PUSH
 defm XC2PU : SI<(ins stack_op:$i, stack_op:$j, stack_op:$k),
                 "XC2PU\t$i, $j, $k", 0x541>;
+defm TUCK : SI<(ins), "TUCK", 0x66>;
 // XCHG, PUSH, XCHG
 defm XCPUXC : SI<(ins stack_op:$i, stack_op:$j, stack_op:$k),
                  "XCPUXC\t$i, $j, $k", 0x542>;
@@ -240,8 +243,11 @@ def HIDDENSTACK : NI<(outs I257:$dst), (ins uimm8:$src), [(set I257:$dst, (int_t
 defm BLKPUSH : SI<(ins uimm8: $sz, uimm8:$slot), "BLKPUSH\t$sz, $slot", 0x5F>;
 defm POP  : SI<(ins stack_op:$dst), "POP\t$dst", 0x30>;
 defm BLKDROP : SI<(ins uimm8:$sz), "BLKDROP\t$sz", 0x5F0>;
+defm DROP2 : SI<(ins), "DROP2", 0x5B>;
 defm DROPX: SI<(ins), "DROPX", 0x65>;
 defm BLKSWAP : SI<(ins uimm8:$deep, uimm8:$top), "BLKSWAP\t$deep, $top", 0x55>;
+defm ROT : SI<(ins), "ROT", 0x58>;
+defm ROTREV : SI<(ins), "ROTREV", 0x59>;
 defm BLKSWX : SI<(ins), "BLKSWX", 0x63>;
 defm ROLL : SI<(ins uimm8:$sz), "ROLL\t$sz", 0x55>;
 defm ROLLREV : SI<(ins uimm8:$sz), "ROLLREV\t$sz", 0x55>;
@@ -424,6 +430,7 @@ defm LOGFLUSH : I<(outs), (ins), (outs), (ins), [(int_tvm_logflush)],
 //===----------------------------------------------------------------------===//
 // Integer comparison
 //===----------------------------------------------------------------------===//
+
 let isCommutable = 1 in {
 defm EQ : ComparisonInt<SETEQ, "EQUAL", 0xba>;
 defm NE : ComparisonInt<SETNE, "NEQ", 0xbe>;
@@ -432,6 +439,13 @@ defm SLT : ComparisonInt<SETLT,  "LESS", 0xb9>;
 defm SGT : ComparisonInt<SETGT,  "GREATER", 0xbc>;
 defm SLE : ComparisonInt<SETLE,  "LEQ", 0xbb>;
 defm SGE : ComparisonInt<SETGE,  "GEQ", 0xbe>;
+
+defm EQIMM : ComparisonImm<SETEQ, "EQINT", simm8, 0xc0>;
+defm STLIMM : ComparisonImm<SETLT, "LESSINT", simm8, 0xc1>;
+defm SGTIMM : ComparisonImm<SETGT, "GTINT", simm8, 0xc2>;
+defm ULTIMM : ComparisonImm<SETULT, "LESSINT", simm8, 0xc1>;
+defm UGTIMM : ComparisonImm<SETUGT, "GTINT", simm8, 0xc2>;
+defm NEIMM : ComparisonImm<SETNE, "NEQINT", simm8, 0xc3>;
 
 // Unsigned comparison a ult b = (a slt b)
 class ComparisonUint<CondCode cond, Instruction instr> :

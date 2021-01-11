@@ -21,6 +21,7 @@
 #include "llvm/IR/Verifier.h"
 #include "llvm/Pass.h"
 #include "llvm/Support/ErrorHandling.h"
+#include "TVMTypesSerialize.h"
 
 using namespace llvm;
 
@@ -33,6 +34,13 @@ class Lowerer : public coro::LowererBase {
 
   void lowerSerialize(IntrinsicInst *II);
   void lowerDeserialize(IntrinsicInst *II);
+  void prepareStructStore(StructType *STy, Value *Ptr,
+                          unsigned StartIdx, Value *&CellBuilder,
+                          IntrinsicInst *Intrin, Value *&CellStack);
+  void prepareElementStore(Type *Ty, Value *Ptr, Value *&CellBuilder,
+                           IntrinsicInst *Intrin, Value *&CellStack);
+  void prepareElementLoad(Type *Ty, Value *Ptr, Value *&ReadSlice,
+                          IntrinsicInst *Intrin);
 
 public:
   Lowerer(Module &M)
@@ -95,22 +103,26 @@ static constexpr unsigned SliceSizeBits = 10;
 #define TVMINTR(FUNC) \
   Intrinsic::getDeclaration(&TheModule, FUNC)
 
-void Lowerer::lowerSerialize(IntrinsicInst *Intrin) {
-  Value *CellBuilder = Intrin->getArgOperand(0);
-  Value *Frame = Intrin->getArgOperand(1);
-  auto *Func = Intrin->getArgOperand(2)->stripPointerCasts();
-  assert(Func);
-  auto *FrameTy = getFrameTypeFromCoroutine(*cast<Function>(Func));
-  StructType *STy = dyn_cast<StructType>(FrameTy);
-  assert(STy);
-
-  Builder.SetInsertPoint(Intrin);
-  Frame = Builder.CreateBitCast(Frame, FrameTy->getPointerTo());
-  Value *CellStack = Builder.CreateCall(TVMINTR(Intrinsic::tvm_tuple));
-  CellStack = Builder.CreateBitCast(CellStack, Type::getTVMTupleTy(Context), "CellStack");
-
+void Lowerer::prepareElementStore(Type *Ty, Value *Ptr, Value *&CellBuilder,
+                                  IntrinsicInst *Intrin, Value *&CellStack) {
+  // TODO: generate error if pointer is not contract class type
+  if (Ty->isPointerTy())
+    return;
   const auto &DL = TheModule.getDataLayout();
 
+  if (StructType *ElemSTy = dyn_cast<StructType>(Ty)) {
+    prepareStructStore(ElemSTy, Ptr, 0, CellBuilder, Intrin, CellStack);
+    return;
+  } else if (ArrayType *ElemArray = dyn_cast<ArrayType>(Ty)) {
+    Type *SubTy = ElemArray->getElementType();
+    for (unsigned Idx = 0; Idx < ElemArray->getNumElements(); ++Idx) {
+      auto *ElemPtr = Builder.CreateConstInBoundsGEP2_32(ElemArray, Ptr, 0, Idx);
+      prepareElementStore(SubTy, ElemPtr, CellBuilder, Intrin, CellStack);
+    }
+    return;
+  }
+  auto Sz = DL.getTypeSizeInBits(Ty);
+  assert(Sz <= 257);
   auto CheckOverflow = [this, Intrin, &CellBuilder, &CellStack](Value *CmpOK) {
     BasicBlock *CurrentBlock = Intrin->getParent();
     BasicBlock *OverflowBB = CurrentBlock->splitBasicBlock(Intrin, "OverflowBB");
@@ -139,109 +151,158 @@ void Lowerer::lowerSerialize(IntrinsicInst *Intrin) {
     CellBuilder = CellBuilderPhi;
     CellStack = CellStackPhi;
   };
+  auto *Load = Builder.CreateLoad(Ptr);
+  if (Ty->isTVMSliceTy()) {
+    auto *SlizeSz = Builder.CreateCall(TVMINTR(Intrinsic::tvm_sbits), {Load});
+    auto *FullSz =
+        Builder.CreateAdd(SlizeSz, Builder.getInt257(SliceSizeBits));
+    auto *RemBits =
+        Builder.CreateCall(TVMINTR(Intrinsic::tvm_brembits), {CellBuilder});
+    auto *CmpOK = Builder.CreateICmpULE(FullSz, RemBits);
+    CheckOverflow(CmpOK);
 
-  // skipping resume_ptr, cleanup_ptr and promise
-  auto Elems = drop_begin(STy->elements(), 3);
-  unsigned Idx = 3;
+    CellBuilder = Builder.CreateCall(TVMINTR(Intrinsic::tvm_stu),
+      {SlizeSz, CellBuilder, Builder.getInt257(SliceSizeBits)});
+    CellBuilder = Builder.CreateCall(TVMINTR(Intrinsic::tvm_stslice),
+      {Load, CellBuilder});
+  } else if (Ty->isTVMCellTy()) {
+    auto *RemRefs =
+        Builder.CreateCall(TVMINTR(Intrinsic::tvm_bremrefs), {CellBuilder});
+    auto *CmpOK = Builder.CreateICmpULE(Builder.getInt257(2), RemRefs);
+    CheckOverflow(CmpOK);
+    CellBuilder = Builder.CreateCall(TVMINTR(Intrinsic::tvm_stref),
+                                     {Load, CellBuilder});
+  } else if (Sz <= 256) {
+    auto *RemBits = Builder.CreateCall(TVMINTR(Intrinsic::tvm_brembits),
+                                       {CellBuilder});
+    auto *CmpOK = Builder.CreateICmpULE(Builder.getInt257(Sz), RemBits);
+    CheckOverflow(CmpOK);
+    auto *Val = Builder.CreateZExt(Load, Builder.getInt257Ty());
+    CellBuilder = Builder.CreateCall(TVMINTR(Intrinsic::tvm_stu),
+      {Val, CellBuilder, Builder.getInt257(Sz)});
+  } else {
+    auto *RemBits = Builder.CreateCall(TVMINTR(Intrinsic::tvm_brembits),
+                                       {CellBuilder});
+    auto *CmpOK = Builder.CreateICmpULE(Builder.getInt257(257), RemBits);
+    CheckOverflow(CmpOK);
+    CellBuilder = Builder.CreateCall(TVMINTR(Intrinsic::tvm_sti),
+      {Load, CellBuilder, Builder.getInt257(Sz)});
+  }
+}
+
+void Lowerer::prepareStructStore(StructType *STy, Value *Ptr,
+                                 unsigned StartIdx, Value *&CellBuilder,
+                                 IntrinsicInst *Intrin, Value *&CellStack) {
+  auto Elems = drop_begin(STy->elements(), StartIdx);
+  unsigned Idx = StartIdx;
   for (Type *Ty : Elems) {
-    auto *ElemPtr = Builder.CreateConstInBoundsGEP2_32(FrameTy, Frame, 0, Idx);
-    auto *Load = Builder.CreateLoad(ElemPtr);
-
-    if (Ty->isPointerTy()) {
-      ++Idx;
-      continue;
-    }
-    auto Sz = DL.getTypeSizeInBits(Ty);
-    assert(Sz <= 257);
-
-    if (Ty->isTVMSliceTy()) {
-      auto *SlizeSz = Builder.CreateCall(TVMINTR(Intrinsic::tvm_sbits), {Load});
-      auto *FullSz =
-          Builder.CreateAdd(SlizeSz, Builder.getInt257(SliceSizeBits));
-      auto *RemBits =
-          Builder.CreateCall(TVMINTR(Intrinsic::tvm_brembits), {CellBuilder});
-      auto *CmpOK = Builder.CreateICmpULE(FullSz, RemBits);
-      CheckOverflow(CmpOK);
-
-      CellBuilder = Builder.CreateCall(TVMINTR(Intrinsic::tvm_stu),
-        {SlizeSz, CellBuilder, Builder.getInt257(SliceSizeBits)});
-      CellBuilder = Builder.CreateCall(TVMINTR(Intrinsic::tvm_stslice),
-        {Load, CellBuilder});
-    } else if (Ty->isTVMCellTy()) {
-      auto *RemRefs =
-          Builder.CreateCall(TVMINTR(Intrinsic::tvm_bremrefs), {CellBuilder});
-      auto *CmpOK = Builder.CreateICmpULE(Builder.getInt257(2), RemRefs);
-      CheckOverflow(CmpOK);
-      CellBuilder = Builder.CreateCall(TVMINTR(Intrinsic::tvm_stref),
-                                       {Load, CellBuilder});
-    } else if (Sz <= 256) {
-      auto *RemBits = Builder.CreateCall(TVMINTR(Intrinsic::tvm_brembits),
-                                         {CellBuilder});
-      auto *CmpOK = Builder.CreateICmpULE(Builder.getInt257(Sz), RemBits);
-      CheckOverflow(CmpOK);
-      auto *Val = Builder.CreateZExt(Load, Builder.getInt257Ty());
-      CellBuilder = Builder.CreateCall(TVMINTR(Intrinsic::tvm_stu),
-        {Val, CellBuilder, Builder.getInt257(Sz)});
-    } else {
-      auto *RemBits = Builder.CreateCall(TVMINTR(Intrinsic::tvm_brembits),
-                                         {CellBuilder});
-      auto *CmpOK = Builder.CreateICmpULE(Builder.getInt257(257), RemBits);
-      CheckOverflow(CmpOK);
-      CellBuilder = Builder.CreateCall(TVMINTR(Intrinsic::tvm_sti),
-        {Load, CellBuilder, Builder.getInt257(Sz)});
-    }
+    auto *ElemPtr = Builder.CreateConstInBoundsGEP2_32(STy, Ptr, 0, Idx);
+    prepareElementStore(Ty, ElemPtr, CellBuilder, Intrin, CellStack);
     ++Idx;
   }
-  Value *RetCell = Builder.CreateCall(TVMINTR(Intrinsic::tvm_endc),
-                                     {CellBuilder});
-  // while (tlen(tup)) {
-  // prev_builder = tpop(tup)
-  // prev_builder.stref(RetCell)
-  // RetCell = prev_builder.endc()
-  // }
+}
 
-  BasicBlock *PreloopBB = Intrin->getParent();
-  BasicBlock *LoopBB = PreloopBB->splitBasicBlock(Intrin, "LoopBB");
-  PreloopBB->getTerminator()->eraseFromParent();
-  BasicBlock *ExitBB = LoopBB->splitBasicBlock(LoopBB->begin(), "ExitBB");
-  LoopBB->getTerminator()->eraseFromParent();
+void Lowerer::prepareElementLoad(Type *Ty, Value *Ptr, Value *&ReadSlice,
+                                 IntrinsicInst *Intrin) {
+  if (StructType *STy = dyn_cast<StructType>(Ty)) {
+    unsigned Idx = 0;
+    for (Type *Ty : STy->elements()) {
+      auto *ElemPtr = Builder.CreateConstInBoundsGEP2_32(STy, Ptr, 0, Idx);
+      prepareElementLoad(Ty, ElemPtr, ReadSlice, Intrin);
+      ++Idx;
+    }
+    return;
+  } else if (ArrayType *ElemArray = dyn_cast<ArrayType>(Ty)) {
+    Type *SubTy = ElemArray->getElementType();
+    for (unsigned Idx = 0; Idx < ElemArray->getNumElements(); ++Idx) {
+      auto *ElemPtr = Builder.CreateConstInBoundsGEP2_32(ElemArray, Ptr, 0, Idx);
+      prepareElementLoad(SubTy, ElemPtr, ReadSlice, Intrin);
+    }
+    return;
+  }
+  auto CheckOverflow = [this, Intrin](Value *Sl, bool Refs)->Value* {
+    Value *CmpOK;
+    if (Refs) {
+      auto *RefsCnt = Builder.CreateCall(TVMINTR(Intrinsic::tvm_srefs), {Sl});
+      CmpOK = Builder.CreateICmpUGE(RefsCnt, Builder.getInt257(2));
+    } else {
+      auto *IsEmpty = Builder.CreateCall(TVMINTR(Intrinsic::tvm_sdempty), {Sl});
+      CmpOK = Builder.CreateICmpEQ(IsEmpty, Builder.getInt257(0));
+    }
 
-  // Preloop:
-  Builder.SetInsertPoint(PreloopBB);
-  auto *Tlen = Builder.CreateCall(TVMINTR(Intrinsic::tvm_tlen), {CellStack});
-  auto *HasPrev = Builder.CreateICmpNE(Tlen, Builder.getInt257(0));
-  Builder.CreateCondBr(HasPrev, LoopBB, ExitBB);
+    BasicBlock *CurrentBlock = Intrin->getParent();
+    BasicBlock *OverflowBB = CurrentBlock->splitBasicBlock(Intrin, "OverflowBB");
+    CurrentBlock->getTerminator()->eraseFromParent();
+    BasicBlock *OkBB = OverflowBB->splitBasicBlock(OverflowBB->begin(), "OkBB");
+    Builder.SetInsertPoint(CurrentBlock);
+    Builder.CreateCondBr(CmpOK, OkBB, OverflowBB);
+    // OverflowBB:
+    Builder.SetInsertPoint(OverflowBB->getTerminator());
+    auto *Ldref = Builder.CreateCall(TVMINTR(Intrinsic::tvm_ldrefrtos), {Sl});
+    auto *NextSl = Builder.CreateExtractValue(Ldref, 1);
+    // OkBB:
+    Builder.SetInsertPoint(Intrin);
+    auto *ReadSlicePhi = Builder.CreatePHI(Type::getTVMSliceTy(Context), 2);
+    ReadSlicePhi->addIncoming(Sl, CurrentBlock);
+    ReadSlicePhi->addIncoming(NextSl, OverflowBB);
+    return ReadSlicePhi;
+  };
+  const auto &DL = TheModule.getDataLayout();
+  auto Sz = DL.getTypeSizeInBits(Ty);
+  assert(Sz <= 257);
+  auto *ElemSz = Builder.getInt257(Sz);
+  if (Ty->isTVMSliceTy()) {
+    ReadSlice = CheckOverflow(ReadSlice, false);
+    auto *SzValAndSlice = Builder.CreateCall(TVMINTR(Intrinsic::tvm_ldu),
+      {ReadSlice, Builder.getInt257(SliceSizeBits)});
+    auto *SliceSz = Builder.CreateExtractValue(SzValAndSlice, 0);
+    ReadSlice = Builder.CreateExtractValue(SzValAndSlice, 1);
+    auto *ValAndSlice = Builder.CreateCall(TVMINTR(Intrinsic::tvm_ldslice),
+                                           {ReadSlice, SliceSz});
+    auto *Val = Builder.CreateExtractValue(ValAndSlice, 0);
+    ReadSlice = Builder.CreateExtractValue(ValAndSlice, 1);
 
-  // Loop:
-  Builder.SetInsertPoint(LoopBB);
-  auto *StackPhi = Builder.CreatePHI(Type::getTVMTupleTy(Context), 2);
-  auto *NextCellPhi = Builder.CreatePHI(Type::getTVMCellTy(Context), 2);
-  StackPhi->addIncoming(CellStack, PreloopBB);
-  NextCellPhi->addIncoming(RetCell, PreloopBB);
+    Builder.CreateStore(Val, Ptr);
+  } else if (Ty->isTVMCellTy()) {
+    ReadSlice = CheckOverflow(ReadSlice, true);
+    auto *ValAndSlice = Builder.CreateCall(TVMINTR(Intrinsic::tvm_ldref),
+                                           {ReadSlice});
+    auto *Val = Builder.CreateExtractValue(ValAndSlice, 0);
+    ReadSlice = Builder.CreateExtractValue(ValAndSlice, 1);
+    Builder.CreateStore(Val, Ptr);
+  } else if (Sz <= 256) {
+    ReadSlice = CheckOverflow(ReadSlice, false);
+    auto *ValAndSlice = Builder.CreateCall(TVMINTR(Intrinsic::tvm_ldu),
+                                           {ReadSlice, ElemSz});
+    auto *Val = Builder.CreateExtractValue(ValAndSlice, 0);
+    ReadSlice = Builder.CreateExtractValue(ValAndSlice, 1);
+    Val = Builder.CreateTruncOrBitCast(Val, Ty);
+    Builder.CreateStore(Val, Ptr);
+  } else {
+    ReadSlice = CheckOverflow(ReadSlice, false);
+    auto *ValAndSlice = Builder.CreateCall(TVMINTR(Intrinsic::tvm_ldi),
+                                           {ReadSlice, ElemSz});
+    auto *Val = Builder.CreateExtractValue(ValAndSlice, 0);
+    ReadSlice = Builder.CreateExtractValue(ValAndSlice, 1);
+    Builder.CreateStore(Val, Ptr);
+  }
+}
 
-  auto *TpopCall = Builder.CreateCall(TVMINTR(Intrinsic::tvm_tpop), {StackPhi});
-  auto *NewStack = Builder.CreateExtractValue(TpopCall, 0);
-  auto *Tpop = Builder.CreateExtractValue(TpopCall, 1);
-  auto *PrevBuilder = Builder.CreateBitCast(Tpop, Type::getTVMBuilderTy(Context));
+void Lowerer::lowerSerialize(IntrinsicInst *Intrin) {
+  Value *CellBuilder = Intrin->getArgOperand(0);
+  Value *Frame = Intrin->getArgOperand(1);
+  auto *Func = Intrin->getArgOperand(2)->stripPointerCasts();
+  assert(Func);
+  auto *FrameTy = getFrameTypeFromCoroutine(*cast<Function>(Func));
+  StructType *STy = dyn_cast<StructType>(FrameTy);
+  assert(STy);
 
-  PrevBuilder = Builder.CreateCall(TVMINTR(Intrinsic::tvm_stref),
-                                   {NextCellPhi, PrevBuilder});
-
-  auto *NewNextCell = Builder.CreateCall(TVMINTR(Intrinsic::tvm_endc),
-                                         {PrevBuilder});
-  StackPhi->addIncoming(NewStack, LoopBB);
-  NextCellPhi->addIncoming(NewNextCell, LoopBB);
-
-  auto *TlenInner = Builder.CreateCall(TVMINTR(Intrinsic::tvm_tlen), {NewStack});
-  auto *HasPrevInner = Builder.CreateICmpNE(TlenInner, Builder.getInt257(0));
-  Builder.CreateCondBr(HasPrevInner, LoopBB, ExitBB);
-
-  // Exit:
   Builder.SetInsertPoint(Intrin);
-  auto *RetCellPhi = Builder.CreatePHI(Type::getTVMCellTy(Context), 2);
-  RetCellPhi->addIncoming(RetCell, PreloopBB);
-  RetCellPhi->addIncoming(NewNextCell, LoopBB);
-  RetCell = RetCellPhi;
+  Frame = Builder.CreateBitCast(Frame, FrameTy->getPointerTo());
+  types_pattern pattern(TheModule, Builder, STy, Frame);
+  // To see the serialization pattern, uncomment the next line
+  // dbgs() << "serialize: " << pattern << "\n";
+  Value *RetCell = pattern.store(TheModule, Builder, CellBuilder);
 
   Intrin->replaceAllUsesWith(RetCell);
   Intrin->eraseFromParent();
@@ -309,89 +370,10 @@ void Lowerer::lowerDeserialize(IntrinsicInst *Intrin) {
   auto *DestroyPtr = Builder.CreateConstInBoundsGEP2_32(FrameTy, Frame, 0, 1);
   Builder.CreateStore(DestroyAddrConstant, DestroyPtr);
 
-  auto CheckOverflow = [this, Intrin](Value *Sl, bool Refs)->Value* {
-    Value *CmpOK;
-    if (Refs) {
-      auto *RefsCnt = Builder.CreateCall(TVMINTR(Intrinsic::tvm_srefs), {Sl});
-      CmpOK = Builder.CreateICmpUGE(RefsCnt, Builder.getInt257(2));
-    } else {
-      auto *IsEmpty = Builder.CreateCall(TVMINTR(Intrinsic::tvm_sdempty), {Sl});
-      CmpOK = Builder.CreateICmpEQ(IsEmpty, Builder.getInt257(0));
-    }
-
-    BasicBlock *CurrentBlock = Intrin->getParent();
-    BasicBlock *OverflowBB = CurrentBlock->splitBasicBlock(Intrin, "OverflowBB");
-    CurrentBlock->getTerminator()->eraseFromParent();
-    BasicBlock *OkBB = OverflowBB->splitBasicBlock(OverflowBB->begin(), "OkBB");
-    Builder.SetInsertPoint(CurrentBlock);
-    Builder.CreateCondBr(CmpOK, OkBB, OverflowBB);
-    // OverflowBB:
-    Builder.SetInsertPoint(OverflowBB->getTerminator());
-    auto *Ldref = Builder.CreateCall(TVMINTR(Intrinsic::tvm_ldrefrtos), {Sl});
-    auto *NextSl = Builder.CreateExtractValue(Ldref, 1);
-    // OkBB:
-    Builder.SetInsertPoint(Intrin);
-    auto *ReadSlicePhi = Builder.CreatePHI(Type::getTVMSliceTy(Context), 2);
-    ReadSlicePhi->addIncoming(Sl, CurrentBlock);
-    ReadSlicePhi->addIncoming(NextSl, OverflowBB);
-    return ReadSlicePhi;
-  };
-
-  // skipping resume_ptr, cleanup_ptr and promise
-  auto Elems = drop_begin(STy->elements(), 3);
-  unsigned Idx = 3;
-  for (Type *Ty : Elems) {
-    if (Ty->isPointerTy()) {
-      auto *ElemPtr = Builder.CreateConstInBoundsGEP2_32(FrameTy, Frame, 0, Idx);
-      Builder.CreateStore(NewThis->stripPointerCasts(), ElemPtr);
-      ++Idx;
-      continue;
-    }
-    auto Sz = DL.getTypeSizeInBits(Ty);
-    assert(Sz <= 257);
-    auto *ElemSz = Builder.getInt257(Sz);
-    if (Ty->isTVMSliceTy()) {
-      ReadSlice = CheckOverflow(ReadSlice, false);
-      auto *SzValAndSlice = Builder.CreateCall(TVMINTR(Intrinsic::tvm_ldu),
-        {ReadSlice, Builder.getInt257(SliceSizeBits)});
-      auto *SliceSz = Builder.CreateExtractValue(SzValAndSlice, 0);
-      ReadSlice = Builder.CreateExtractValue(SzValAndSlice, 1);
-      auto *ValAndSlice = Builder.CreateCall(TVMINTR(Intrinsic::tvm_ldslice),
-                                             {ReadSlice, SliceSz});
-      auto *Val = Builder.CreateExtractValue(ValAndSlice, 0);
-      ReadSlice = Builder.CreateExtractValue(ValAndSlice, 1);
-
-      auto *ElemPtr = Builder.CreateConstInBoundsGEP2_32(FrameTy, Frame, 0, Idx);
-      Builder.CreateStore(Val, ElemPtr);
-    } else if (Ty->isTVMCellTy()) {
-      ReadSlice = CheckOverflow(ReadSlice, true);
-      auto *ValAndSlice = Builder.CreateCall(TVMINTR(Intrinsic::tvm_ldref),
-                                             {ReadSlice});
-      auto *Val = Builder.CreateExtractValue(ValAndSlice, 0);
-      ReadSlice = Builder.CreateExtractValue(ValAndSlice, 1);
-      auto *ElemPtr = Builder.CreateConstInBoundsGEP2_32(FrameTy, Frame, 0, Idx);
-      Builder.CreateStore(Val, ElemPtr);
-    } else if (Sz <= 256) {
-      ReadSlice = CheckOverflow(ReadSlice, false);
-      auto *ValAndSlice = Builder.CreateCall(TVMINTR(Intrinsic::tvm_ldu),
-                                             {ReadSlice, ElemSz});
-      auto *Val = Builder.CreateExtractValue(ValAndSlice, 0);
-      ReadSlice = Builder.CreateExtractValue(ValAndSlice, 1);
-      Val = Builder.CreateTruncOrBitCast(Val, Ty);
-      auto *ElemPtr = Builder.CreateConstInBoundsGEP2_32(FrameTy, Frame, 0, Idx);
-      Builder.CreateStore(Val, ElemPtr);
-    } else {
-      ReadSlice = CheckOverflow(ReadSlice, false);
-      auto *ValAndSlice = Builder.CreateCall(TVMINTR(Intrinsic::tvm_ldi),
-                                             {ReadSlice, ElemSz});
-      auto *Val = Builder.CreateExtractValue(ValAndSlice, 0);
-      ReadSlice = Builder.CreateExtractValue(ValAndSlice, 1);
-      auto *ElemPtr = Builder.CreateConstInBoundsGEP2_32(FrameTy, Frame, 0, Idx);
-      Builder.CreateStore(Val, ElemPtr);
-    }
-
-    ++Idx;
-  }
+  types_pattern pattern(TheModule, Builder, STy, Frame);
+  // To see the deserialization pattern, uncomment the next line
+  // dbgs() << "deserialize: " << pattern << "\n";
+  pattern.load(TheModule, Builder, ReadSlice, NewThis);
 
   auto *Rv = Builder.CreateBitCast(Frame, Intrin->getType());
 

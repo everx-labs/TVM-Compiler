@@ -1811,9 +1811,11 @@ static bool isVectorPromotionViableForSlice(Partition &P, const Slice &S,
   Type *SliceTy = (NumElements == 1)
                       ? Ty->getElementType()
                       : VectorType::get(Ty->getElementType(), NumElements);
-
+  // TVM local begin
   Type *SplitIntTy =
-      Type::getIntNTy(Ty->getContext(), NumElements * ElementSize * 8);
+      Type::getIntNTy(Ty->getContext(), NumElements * ElementSize *
+                      ByteSizeInBits);
+  // TVM local end
 
   Use *U = S.getUse();
 
@@ -1946,11 +1948,13 @@ static VectorType *isVectorPromotionViable(Partition &P, const DataLayout &DL) {
 
     // While the definition of LLVM vectors is bitpacked, we don't support sizes
     // that aren't byte sized.
-    if (ElementSize % 8)
+    // TVM local begin
+    if (ElementSize % ByteSizeInBits)
       return false;
-    assert((DL.getTypeSizeInBits(VTy) % 8) == 0 &&
+    assert((DL.getTypeSizeInBits(VTy) % ByteSizeInBits) == 0 &&
            "vector size not a multiple of element size?");
-    ElementSize /= 8;
+    ElementSize /= ByteSizeInBits;
+    // TVM local end
 
     for (const Slice &S : P)
       if (!isVectorPromotionViableForSlice(P, S, VTy, ElementSize, DL))
@@ -2110,9 +2114,12 @@ static Value *extractInteger(const DataLayout &DL, IRBuilderTy &IRB, Value *V,
   IntegerType *IntTy = cast<IntegerType>(V->getType());
   assert(DL.getTypeStoreSize(Ty) + Offset <= DL.getTypeStoreSize(IntTy) &&
          "Element extends past full value");
-  uint64_t ShAmt = 8 * Offset;
+  // TVM local begin
+  uint64_t ShAmt = ByteSizeInBits * Offset;
   if (DL.isBigEndian())
-    ShAmt = 8 * (DL.getTypeStoreSize(IntTy) - DL.getTypeStoreSize(Ty) - Offset);
+    ShAmt = ByteSizeInBits *
+      (DL.getTypeStoreSize(IntTy) - DL.getTypeStoreSize(Ty) - Offset);
+  // TVM local end
   if (ShAmt) {
     V = IRB.CreateLShr(V, ShAmt, Name + ".shift");
     LLVM_DEBUG(dbgs() << "     shifted: " << *V << "\n");
@@ -2139,9 +2146,12 @@ static Value *insertInteger(const DataLayout &DL, IRBuilderTy &IRB, Value *Old,
   }
   assert(DL.getTypeStoreSize(Ty) + Offset <= DL.getTypeStoreSize(IntTy) &&
          "Element store outside of alloca store");
-  uint64_t ShAmt = 8 * Offset;
+  // TVM local begin
+  uint64_t ShAmt = ByteSizeInBits * Offset;
   if (DL.isBigEndian())
-    ShAmt = 8 * (DL.getTypeStoreSize(IntTy) - DL.getTypeStoreSize(Ty) - Offset);
+    ShAmt = ByteSizeInBits *
+      (DL.getTypeStoreSize(IntTy) - DL.getTypeStoreSize(Ty) - Offset);
+  // TVM local end
   if (ShAmt) {
     V = IRB.CreateShl(V, ShAmt, Name + ".shift");
     LLVM_DEBUG(dbgs() << "     shifted: " << *V << "\n");
@@ -2311,12 +2321,17 @@ public:
                   : nullptr),
         VecTy(PromotableVecTy),
         ElementTy(VecTy ? VecTy->getElementType() : nullptr),
-        ElementSize(VecTy ? DL.getTypeSizeInBits(ElementTy) / 8 : 0),
+        // TVM local begin
+        ElementSize(VecTy ?
+          DL.getTypeSizeInBits(ElementTy) / ByteSizeInBits : 0),
+        // TVM local end
         PHIUsers(PHIUsers), SelectUsers(SelectUsers),
         IRB(NewAI.getContext(), ConstantFolder()) {
     if (VecTy) {
-      assert((DL.getTypeSizeInBits(ElementTy) % 8) == 0 &&
+      // TVM local begin
+      assert((DL.getTypeSizeInBits(ElementTy) % ByteSizeInBits) == 0 &&
              "Only multiple-of-8 sized vector elements are viable");
+      // TVM local end
       ++NumVectorized;
     }
     assert((!IntTy && !VecTy) || (IntTy && !VecTy) || (!IntTy && VecTy));

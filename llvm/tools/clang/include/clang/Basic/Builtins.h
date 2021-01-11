@@ -260,11 +260,26 @@ enum BuiltinTemplateKind : int {
   /// This names the __reflect_method_name BuiltinTemplateDecl.
   BTK__reflect_method_name,
 
+  /// This names the __reflect_method_ptr_name BuiltinTemplateDecl.
+  BTK__reflect_method_ptr_name,
+
+  /// This names the __reflect_return_name BuiltinTemplateDecl.
+  BTK__reflect_return_name,
+
   /// This names the __reflect_method_func_id BuiltinTemplateDecl.
   BTK__reflect_method_func_id,
 
   /// This names the __reflect_method_internal BuiltinTemplateDecl.
   BTK__reflect_method_internal,
+
+  /// This names the __reflect_method_ptr_internal BuiltinTemplateDecl.
+  BTK__reflect_method_ptr_internal,
+
+  /// This names the __reflect_method_answer_id BuiltinTemplateDecl.
+  BTK__reflect_method_answer_id,
+
+  /// This names the __reflect_method_ptr_answer_id BuiltinTemplateDecl.
+  BTK__reflect_method_ptr_answer_id,
 
   /// This names the __reflect_method_external BuiltinTemplateDecl.
   BTK__reflect_method_external,
@@ -274,6 +289,9 @@ enum BuiltinTemplateKind : int {
 
   /// This names the __reflect_method_noaccept BuiltinTemplateDecl.
   BTK__reflect_method_noaccept,
+
+  /// This names the __reflect_method_implicit_func_id BuiltinTemplateDecl.
+  BTK__reflect_method_implicit_func_id,
 
   /// This names the __reflect_method_dyn_chain_parse BuiltinTemplateDecl.
   BTK__reflect_method_dyn_chain_parse,
@@ -289,6 +307,9 @@ enum BuiltinTemplateKind : int {
 
   /// This names the __reflect_method_rv BuiltinTemplateDecl.
   BTK__reflect_method_rv,
+
+  /// This names the __reflect_method_ptr_rv BuiltinTemplateDecl.
+  BTK__reflect_method_ptr_rv,
 
   /// This names the __reflect_method_arg_struct BuiltinTemplateDecl.
   BTK__reflect_method_arg_struct,
@@ -307,6 +328,9 @@ enum BuiltinTemplateKind : int {
 
   /// This names the __reflect_interface_has_pubkey BuiltinTemplateDecl.
   BTK__reflect_interface_has_pubkey,
+
+  /// This names the __reflect_signature_func_id BuiltinTemplateDecl.
+  BTK__reflect_signature_func_id,
   // TVM local end
 };
 

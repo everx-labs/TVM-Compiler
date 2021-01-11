@@ -205,6 +205,9 @@ BUILTIN(__builtin_tvm_configoptparam, "TcWi", "nc")
 BUILTIN(__builtin_tvm_getglobal, "WiWi", "nc")
 BUILTIN(__builtin_tvm_setglobal, "vWiWi", "n")
 
+// A.11.7 Application-specific misc primitives.
+BUILTIN(__builtin_tvm_cdatasize, "{WiWiWi}TcWi", "c")
+
 // A.11.8 Message and address manipulation primitives.
 BUILTIN(__builtin_tvm_ldmsgaddr, "{TsTs}Ts", "c")
 BUILTIN(__builtin_tvm_ldmsgaddrq, "{TsTsWi}Ts", "nc")

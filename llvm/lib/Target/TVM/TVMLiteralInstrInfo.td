@@ -22,6 +22,21 @@ defm PUSHREFSLICE : I0<(outs Slice : $slice), (ins),
                        "PUSHREFSLICE", 0x89>;
 }
 
+let mayLoad = 1 in
 defm PUSHSLICE_EMPTY : I0<(outs Slice : $slice), (ins),
                           [(set Slice : $slice, (int_tvm_pushslice_empty))],
                           "PUSHSLICE x8_", 0x8b08>;
+
+def : Pat<(int_tvm_ctos(int_tvm_endc (int_tvm_newc))), (PUSHSLICE_EMPTY)>;
+
+defm PUSHSLICE_0 : I0<(outs Slice : $slice), (ins),
+                      [(set Slice : $slice, (int_tvm_ctos (int_tvm_endc (int_tvm_stu (i257 0), (int_tvm_newc), (i257 1)))))],
+                      "PUSHSLICE x4_", 0x8b04>;
+
+def : Pat<(int_tvm_ctos(int_tvm_endc (int_tvm_sti (i257 0), (int_tvm_newc), (i257 1)))), (PUSHSLICE_0)>;
+
+defm PUSHSLICE_1 : I0<(outs Slice : $slice), (ins),
+                      [(set Slice : $slice, (int_tvm_ctos (int_tvm_endc (int_tvm_stu (i257 1), (int_tvm_newc), (i257 1)))))],
+                      "PUSHSLICE xc_", 0x8b04>;
+
+def : Pat<(int_tvm_ctos(int_tvm_endc (int_tvm_sti (i257 1), (int_tvm_newc), (i257 1)))), (PUSHSLICE_1)>;

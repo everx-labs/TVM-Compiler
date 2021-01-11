@@ -13,8 +13,10 @@
 #include <tvm/schema/make_builder.hpp>
 #include <tvm/schema/message.hpp>
 #include <tvm/schema/abiv1.hpp>
+#include <tvm/schema/abiv2.hpp>
 #include <tvm/schema/json-abi-gen.hpp>
 #include <tvm/message_flags.hpp>
+#include <tvm/func_id.hpp>
 
 namespace tvm {
 
@@ -23,6 +25,28 @@ inline void tvm_accept() {
 }
 inline void tvm_commit() {
   __builtin_tvm_commit();
+}
+
+/* From tvm RAWRESERVE(x, y) :
+Creates an output action which would reserve
+  exactly x nanograms (if y = 0),
+  at most x nanograms (if y = 2), or
+  all but x nanograms (if y = 1 or y = 3),
+from the remaining balance of the account.
+It is roughly equivalent to creating an outbound message
+carrying x nanograms (or b − x nanograms, where b is the remaining
+balance) to oneself, so that the subsequent output actions would not
+be able to spend more money than the remainder.
+Bit +2 in y means that the external action does not fail if the specified amount cannot be
+reserved; instead, all remaining balance is reserved. Bit +8 in y means
+x ← −x before performing any further actions.
+Bit +4 in y means that x is increased by the original balance of the current account (before the
+compute phase), including all extra currencies, before performing any
+other checks and actions. Currently x must be a non-negative integer,
+and y must be in the range 0 ... 15. */
+
+inline void tvm_rawreserve(unsigned x, rawreserve_flag y) {
+  __builtin_tvm_rawreserve(x, static_cast<unsigned>(y));
 }
 inline void tvm_setcode(cell new_root_cell) {
   __builtin_tvm_setcode(new_root_cell);
@@ -71,6 +95,31 @@ __attribute__((tvm_raw_func)) int main_external(__tvm_cell msg, __tvm_slice msg_
 }                                                                                          \
 __attribute__((tvm_raw_func)) int main_internal(__tvm_cell msg, __tvm_slice msg_body) {    \
   return smart_switch</*Internal=*/true, Contract, IContract, DContract,                   \
+                      replay_attack_protection::timestamp<TimestampDelay>>(msg, msg_body); \
+}                                                                                          \
+__attribute__((tvm_raw_func)) int main_ticktock(__tvm_cell msg, __tvm_slice msg_body) {    \
+  tvm_throw(error_code::unsupported_call_method);                                          \
+  return 0;                                                                                \
+}                                                                                          \
+__attribute__((tvm_raw_func)) int main_split(__tvm_cell msg, __tvm_slice msg_body) {       \
+  tvm_throw(error_code::unsupported_call_method);                                          \
+  return 0;                                                                                \
+}                                                                                          \
+__attribute__((tvm_raw_func)) int main_merge(__tvm_cell msg, __tvm_slice msg_body) {       \
+  tvm_throw(error_code::unsupported_call_method);                                          \
+  return 0;                                                                                \
+}
+
+// Contract class may be simple class, or template with parameter: `bool Internal`.
+// Template contract will instantiated with Internal=true for internal message pipeline,
+//  and with Internal=false for external message pipeline.
+#define DEFAULT_MAIN_ENTRY_FUNCTIONS_TMPL(Contract, IContract, DContract, TimestampDelay)  \
+__attribute__((tvm_raw_func)) int main_external(__tvm_cell msg, __tvm_slice msg_body) {    \
+  return smart_switch</*Internal=*/false, Contract<false>, IContract, DContract,           \
+                      replay_attack_protection::timestamp<TimestampDelay>>(msg, msg_body); \
+}                                                                                          \
+__attribute__((tvm_raw_func)) int main_internal(__tvm_cell msg, __tvm_slice msg_body) {    \
+  return smart_switch</*Internal=*/true, Contract<true>, IContract, DContract,             \
                       replay_attack_protection::timestamp<TimestampDelay>>(msg, msg_body); \
 }                                                                                          \
 __attribute__((tvm_raw_func)) int main_ticktock(__tvm_cell msg, __tvm_slice msg_body) {    \

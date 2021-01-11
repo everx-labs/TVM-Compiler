@@ -550,6 +550,7 @@ struct varuint : boost::operators<varuint<_bitlen>> {
   varuint() : val_(0) {}
   varuint(unsigned val) : val_(val) {}
   unsigned operator()() const { return val_; }
+  unsigned get() const { return val_; }
   void operator()(unsigned val) { val_ = val; }
   auto& operator=(unsigned val) { val_ = val; return *this; }
   DEFAULT_PROXY_OPERATORS(varuint, unsigned)
@@ -561,6 +562,7 @@ struct varint : boost::operators<varint<_bitlen>> {
   varint() : val_(0) {}
   varint(int val) : val_(val) {}
   int operator()() const { return val_; }
+  int get() const { return val_; }
   void operator()(int val) { val_ = val; }
   auto& operator=(int val) { val_ = val; return *this; }
   DEFAULT_PROXY_OPERATORS(varint, int)

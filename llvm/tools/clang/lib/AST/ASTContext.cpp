@@ -1076,6 +1076,22 @@ ASTContext::getReflectMethodNameDecl() const {
 }
 
 BuiltinTemplateDecl *
+ASTContext::getReflectMethodPtrNameDecl() const {
+  if (!ReflectMethodPtrNameDecl)
+    ReflectMethodPtrNameDecl = buildBuiltinTemplateDecl(
+        BTK__reflect_method_ptr_name, getReflectMethodPtrNameName());
+  return ReflectMethodPtrNameDecl;
+}
+
+BuiltinTemplateDecl *
+ASTContext::getReflectReturnNameDecl() const {
+  if (!ReflectReturnNameDecl)
+    ReflectReturnNameDecl = buildBuiltinTemplateDecl(
+        BTK__reflect_return_name, getReflectReturnNameName());
+  return ReflectReturnNameDecl;
+}
+
+BuiltinTemplateDecl *
 ASTContext::getReflectMethodFuncIdDecl() const {
   if (!ReflectMethodFuncIdDecl)
     ReflectMethodFuncIdDecl = buildBuiltinTemplateDecl(
@@ -1089,6 +1105,30 @@ ASTContext::getReflectMethodInternalDecl() const {
     ReflectMethodInternalDecl = buildBuiltinTemplateDecl(
         BTK__reflect_method_internal, getReflectMethodInternalName());
   return ReflectMethodInternalDecl;
+}
+
+BuiltinTemplateDecl *
+ASTContext::getReflectMethodPtrInternalDecl() const {
+  if (!ReflectMethodPtrInternalDecl)
+    ReflectMethodPtrInternalDecl = buildBuiltinTemplateDecl(
+        BTK__reflect_method_ptr_internal, getReflectMethodPtrInternalName());
+  return ReflectMethodPtrInternalDecl;
+}
+
+BuiltinTemplateDecl *
+ASTContext::getReflectMethodAnswerIdDecl() const {
+  if (!ReflectMethodAnswerIdDecl)
+    ReflectMethodAnswerIdDecl = buildBuiltinTemplateDecl(
+        BTK__reflect_method_answer_id, getReflectMethodAnswerIdName());
+  return ReflectMethodAnswerIdDecl;
+}
+
+BuiltinTemplateDecl *
+ASTContext::getReflectMethodPtrAnswerIdDecl() const {
+  if (!ReflectMethodPtrAnswerIdDecl)
+    ReflectMethodPtrAnswerIdDecl = buildBuiltinTemplateDecl(
+        BTK__reflect_method_ptr_answer_id, getReflectMethodPtrAnswerIdName());
+  return ReflectMethodPtrAnswerIdDecl;
 }
 
 BuiltinTemplateDecl *
@@ -1113,6 +1153,15 @@ ASTContext::getReflectMethodNoAcceptDecl() const {
     ReflectMethodNoAcceptDecl = buildBuiltinTemplateDecl(
         BTK__reflect_method_noaccept, getReflectMethodNoAcceptName());
   return ReflectMethodNoAcceptDecl;
+}
+
+BuiltinTemplateDecl *
+ASTContext::getReflectMethodImplicitFuncIdDecl() const {
+  if (!ReflectMethodImplicitFuncIdDecl)
+    ReflectMethodImplicitFuncIdDecl = buildBuiltinTemplateDecl(
+        BTK__reflect_method_implicit_func_id,
+        getReflectMethodImplicitFuncIdName());
+  return ReflectMethodImplicitFuncIdDecl;
 }
 
 BuiltinTemplateDecl *
@@ -1155,6 +1204,14 @@ ASTContext::getReflectMethodRvDecl() const {
     ReflectMethodRvDecl = buildBuiltinTemplateDecl(BTK__reflect_method_rv,
                                                    getReflectMethodRvName());
   return ReflectMethodRvDecl;
+}
+
+BuiltinTemplateDecl *
+ASTContext::getReflectMethodPtrRvDecl() const {
+  if (!ReflectMethodPtrRvDecl)
+    ReflectMethodPtrRvDecl = buildBuiltinTemplateDecl(
+      BTK__reflect_method_ptr_rv, getReflectMethodRvName());
+  return ReflectMethodPtrRvDecl;
 }
 
 BuiltinTemplateDecl *
@@ -1203,6 +1260,14 @@ ASTContext::getReflectInterfaceHasPubkeyDecl() const {
     ReflectInterfaceHasPubkeyDecl = buildBuiltinTemplateDecl(
         BTK__reflect_interface_has_pubkey, getReflectInterfaceHasPubkeyName());
   return ReflectInterfaceHasPubkeyDecl;
+}
+
+BuiltinTemplateDecl *
+ASTContext::getReflectSignatureFuncIdDecl() const {
+  if (!ReflectSignatureFuncIdDecl)
+    ReflectSignatureFuncIdDecl = buildBuiltinTemplateDecl(
+        BTK__reflect_signature_func_id, getReflectSignatureFuncIdName());
+  return ReflectSignatureFuncIdDecl;
 }
 
 RecordDecl *ASTContext::buildImplicitRecord(StringRef Name,

@@ -41,6 +41,10 @@ static cl::opt<bool>
 static cl::opt<bool> DisableTVMBlkPushOpt(
     "disable-tvm-push-opt", cl::Hidden,
     cl::desc("TVM: Disable BLKPUSH peephole optimizations."), cl::init(false));
+static cl::opt<bool> DisableTVMShorterFormOpt(
+    "disable-tvm-shorter-form-opt", cl::Hidden,
+    cl::desc("TVM: Disable shorter form replacement peephole optimizations."),
+    cl::init(false));
 static unsigned BlkPushLimit = 15;
 namespace {
 class TVMPeephole final : public MachineFunctionPass {
@@ -58,6 +62,8 @@ class TVMPeephole final : public MachineFunctionPass {
                                      const TargetInstrInfo &TII);
   bool runBlkDropCombine(MachineBasicBlock &MBB, const TargetInstrInfo &TII);
   bool runBlkPushCombine(MachineBasicBlock &MBB, const TargetInstrInfo &TII);
+  bool runReplaceWithShorterForm(MachineBasicBlock &MBB,
+                                 const TargetInstrInfo &TII);
   bool runMbbInlineOptimization(MachineBasicBlock &MBB,
                                 const TargetInstrInfo &TII);
   bool runIfElseOptimization(MachineBasicBlock &MBB,
@@ -138,6 +144,8 @@ bool TVMPeephole::runBlkPushCombine(MachineBasicBlock &MBB,
     bool IsConstant = false;
     if (It->getOpcode() == TVM::PUSH) {
       Reg = It->getOperand(0).getImm();
+      if (Reg > BlkPushLimit)
+        continue;
       MaybeRemove.push_back(&*It);
     } else if (It->getOpcode() == TVM::CONST_I257_S ||
                It->getOpcode() == TVM::CONST_I257_S) {
@@ -181,6 +189,37 @@ bool TVMPeephole::runBlkPushCombine(MachineBasicBlock &MBB,
   for (auto *I : MIRemove)
     I->eraseFromParent();
   return Changed;
+}
+
+bool TVMPeephole::runReplaceWithShorterForm(MachineBasicBlock &MBB,
+                                            const TargetInstrInfo &TII) {
+  DenseMap<MachineInstr *, unsigned> MIReplace;
+  for (auto It = std::begin(MBB), E = std::end(MBB); It != E; ++It) {
+    if (It->getOpcode() == TVM::BLKDROP && It->getOperand(0).getImm() == 2)
+      MIReplace.insert({&*It, TVM::DROP2});
+    if (It->getOpcode() == TVM::PUSH2 && It->getOperand(0).getImm() == 1 &&
+        It->getOperand(1).getImm() == 0)
+      MIReplace.insert({&*It, TVM::DUP2});
+    if (It->getOpcode() == TVM::PUSH2 && It->getOperand(0).getImm() == 3 &&
+        It->getOperand(1).getImm() == 2)
+      MIReplace.insert({&*It, TVM::OVER2});
+    if (It->getOpcode() == TVM::BLKSWAP && It->getOperand(0).getImm() == 1 &&
+        It->getOperand(1).getImm() == 2)
+      MIReplace.insert({&*It, TVM::ROT});
+    if (It->getOpcode() == TVM::BLKSWAP && It->getOperand(0).getImm() == 2 &&
+        It->getOperand(1).getImm() == 1)
+      MIReplace.insert({&*It, TVM::ROTREV});
+    if (It->getOpcode() == TVM::ROLLREV && It->getOperand(0).getImm() == 2)
+      MIReplace.insert({&*It, TVM::ROTREV});
+    if (It->getOpcode() == TVM::XC2PU && It->getOperand(0).getImm() == 0 &&
+        It->getOperand(1).getImm() == 0 && It->getOperand(2).getImm() == 1)
+      MIReplace.insert({&*It, TVM::TUCK});
+  }
+  for (auto I : MIReplace) {
+    BuildMI(I.first, TII.get(I.second));
+    I.first->eraseFromParent();
+  }
+  return !MIReplace.empty();
 }
 
 bool TVMPeephole::runImplicitReturnOptimization(MachineBasicBlock &MBB,
@@ -563,6 +602,8 @@ bool TVMPeephole::runOnMachineBasicBlock(MachineBasicBlock &MBB,
     Changed |= runBlkDropCombine(MBB, TII);
   if (!DisableTVMBlkPushOpt)
     Changed |= runBlkPushCombine(MBB, TII);
+  if (!DisableTVMShorterFormOpt)
+    Changed |= runReplaceWithShorterForm(MBB, TII);
 
   return Changed;
 }

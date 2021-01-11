@@ -701,11 +701,26 @@ static bool LookupBuiltin(Sema &S, LookupResult &R) {
         } else if (II == S.getASTContext().getReflectMethodNameName()) {
           R.addDecl(S.getASTContext().getReflectMethodNameDecl());
           return true;
+        } else if (II == S.getASTContext().getReflectMethodPtrNameName()) {
+          R.addDecl(S.getASTContext().getReflectMethodPtrNameDecl());
+          return true;
+        } else if (II == S.getASTContext().getReflectReturnNameName()) {
+          R.addDecl(S.getASTContext().getReflectReturnNameDecl());
+          return true;
         } else if (II == S.getASTContext().getReflectMethodFuncIdName()) {
           R.addDecl(S.getASTContext().getReflectMethodFuncIdDecl());
           return true;
         } else if (II == S.getASTContext().getReflectMethodInternalName()) {
           R.addDecl(S.getASTContext().getReflectMethodInternalDecl());
+          return true;
+        } else if (II == S.getASTContext().getReflectMethodPtrInternalName()) {
+          R.addDecl(S.getASTContext().getReflectMethodPtrInternalDecl());
+          return true;
+        } else if (II == S.getASTContext().getReflectMethodAnswerIdName()) {
+          R.addDecl(S.getASTContext().getReflectMethodAnswerIdDecl());
+          return true;
+        } else if (II == S.getASTContext().getReflectMethodPtrAnswerIdName()) {
+          R.addDecl(S.getASTContext().getReflectMethodPtrAnswerIdDecl());
           return true;
         } else if (II == S.getASTContext().getReflectMethodExternalName()) {
           R.addDecl(S.getASTContext().getReflectMethodExternalDecl());
@@ -715,6 +730,9 @@ static bool LookupBuiltin(Sema &S, LookupResult &R) {
           return true;
         } else if (II == S.getASTContext().getReflectMethodNoAcceptName()) {
           R.addDecl(S.getASTContext().getReflectMethodNoAcceptDecl());
+          return true;
+        } else if (II == S.getASTContext().getReflectMethodImplicitFuncIdName()) {
+          R.addDecl(S.getASTContext().getReflectMethodImplicitFuncIdDecl());
           return true;
         } else if (II == S.getASTContext().getReflectMethodDynChainParseName()) {
           R.addDecl(S.getASTContext().getReflectMethodDynChainParseDecl());
@@ -730,6 +748,9 @@ static bool LookupBuiltin(Sema &S, LookupResult &R) {
           return true;
         } else if (II == S.getASTContext().getReflectMethodRvName()) {
           R.addDecl(S.getASTContext().getReflectMethodRvDecl());
+          return true;
+        } else if (II == S.getASTContext().getReflectMethodPtrRvName()) {
+          R.addDecl(S.getASTContext().getReflectMethodPtrRvDecl());
           return true;
         } else if (II == S.getASTContext().getReflectMethodArgStructName()) {
           R.addDecl(S.getASTContext().getReflectMethodArgStructDecl());
@@ -748,6 +769,9 @@ static bool LookupBuiltin(Sema &S, LookupResult &R) {
           return true;
         } else if (II == S.getASTContext().getReflectInterfaceHasPubkeyName()) {
           R.addDecl(S.getASTContext().getReflectInterfaceHasPubkeyDecl());
+          return true;
+        } else if (II == S.getASTContext().getReflectSignatureFuncIdName()) {
+          R.addDecl(S.getASTContext().getReflectSignatureFuncIdDecl());
           return true;
         }
         // TVM local end

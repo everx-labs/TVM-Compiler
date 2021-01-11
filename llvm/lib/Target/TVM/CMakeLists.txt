@@ -13,6 +13,7 @@ add_public_tablegen_target(TVMTableGen)
 add_llvm_target(TVMCodeGen
   TVMArgumentMove.cpp
   TVMControlFlowPrepare.cpp
+  TVMDefineUndef.cpp
   TVMSubtarget.cpp
   TVMTargetMachine.cpp
   TVMISelLowering.cpp
@@ -41,6 +42,7 @@ add_llvm_target(TVMCodeGen
   TVMUtilities.cpp
   TVMContinuationsHoist.cpp
   TVMLoadStoreReplace.cpp
+  TVMMoveMaterializable.cpp
   TVMIfConversionTerm.cpp
   TVMLowerIntrinsics.cpp
 )

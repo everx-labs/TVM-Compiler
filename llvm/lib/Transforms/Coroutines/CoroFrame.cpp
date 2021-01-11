@@ -385,7 +385,11 @@ static StructType *buildFrameType(Function &F, coro::Shape &Shape,
   auto *FnPtrTy = FnTy->getPointerTo();
 
   // Figure out how wide should be an integer type storing the suspend index.
-  unsigned IndexBits = std::max(1U, Log2_64_Ceil(Shape.CoroSuspends.size()));
+  // TVM local begin
+  // TODO: Without +1 bit here we have problem with interpretation of constants
+  //  as negatives
+  unsigned IndexBits = std::max(1U, Log2_64_Ceil(Shape.CoroSuspends.size())) + 1;
+  // TVM local end
   Type *PromiseType = Shape.PromiseAlloca
                           ? Shape.PromiseAlloca->getType()->getElementType()
                           : Type::getInt1Ty(C);
@@ -768,6 +772,8 @@ static bool materializable(Instruction &V, Value *ThisPtr) {
     case Intrinsic::tvm_ctos:
     case Intrinsic::tvm_stu:
     case Intrinsic::tvm_sti:
+    case Intrinsic::tvm_stref:
+    case Intrinsic::tvm_stslice:
       return true;
     }
   }
@@ -975,9 +981,6 @@ void coro::buildCoroutineFrame(Function &F, Shape &Shape) {
               "token definition is separated from the use by a suspend point");
         // TVM local begin
         if (I.getType()->isTVMTupleTy())
-          report_fatal_error(
-              "TVM tuple definition is separated from the use by a suspend point");
-        if (I.getType()->isTVMBuilderTy())
           report_fatal_error(
               "TVM tuple definition is separated from the use by a suspend point");
         // TVM local end

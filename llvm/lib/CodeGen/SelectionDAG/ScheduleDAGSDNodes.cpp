@@ -297,9 +297,13 @@ void ScheduleDAGSDNodes::ClusterNodes() {
 
     unsigned Opc = Node->getMachineOpcode();
     const MCInstrDesc &MCID = TII->get(Opc);
-    if (MCID.mayLoad())
+    // TVM local begin
+    // We have fake-mayLoad nodes in TVM like newc,
+    // to prevent moving of this instructions through ACCEPT
+    if (MCID.mayLoad() && !TM.getTargetTriple().isTVM())
       // Cluster loads from "near" addresses into combined SUnits.
       ClusterNeighboringLoads(Node);
+    // TVM local end
   }
 }
 

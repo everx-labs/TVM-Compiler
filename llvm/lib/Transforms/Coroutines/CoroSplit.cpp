@@ -716,7 +716,38 @@ static void relocateInstructionBefore(CoroBeginInst *CoroBegin, Function &F) {
   }
 }
 
+// TVM local begin
+static bool isTVMCastToType(Instruction *I) {
+  if (auto *II = dyn_cast<IntrinsicInst>(I)) {
+    switch (II->getIntrinsicID()) {
+    default:
+      return false;
+    case Intrinsic::tvm_cast_to_slice:
+    case Intrinsic::tvm_cast_to_builder:
+    case Intrinsic::tvm_cast_to_cell:
+    case Intrinsic::tvm_cast_to_tuple:
+      return true;
+    }
+  }
+  return false;
+}
+
+static void relocateCasts(Function &F) {
+  SmallVector<Instruction *, 1> Insts;
+  for (auto II = inst_begin(F), E = inst_end(F); II != E;) {
+    Instruction *I = &*II++;
+    if (isTVMCastToType(I))
+      Insts.push_back(I);
+  }
+  for (Instruction *I : Insts) {
+    auto *def = dyn_cast<Instruction>(I->getOperand(0));
+    I->moveAfter(def);
+  }
+}
+// TVM local end
+
 static void splitCoroutine(Function &F, CallGraph &CG, CallGraphSCC &SCC) {
+  relocateCasts(F);
   coro::Shape Shape(F);
   if (!Shape.CoroBegin)
     return;

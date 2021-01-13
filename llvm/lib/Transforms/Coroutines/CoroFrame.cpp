@@ -761,10 +761,6 @@ static bool materializable(Instruction &V, Value *ThisPtr) {
     case Intrinsic::tvm_pushslice_empty:
     case Intrinsic::tvm_newc:
     case Intrinsic::tvm_newdict:
-    case Intrinsic::tvm_cast_to_slice:
-    case Intrinsic::tvm_cast_to_builder:
-    case Intrinsic::tvm_cast_to_cell:
-    case Intrinsic::tvm_cast_to_tuple:
     case Intrinsic::tvm_cast_from_slice:
     case Intrinsic::tvm_cast_from_builder:
     case Intrinsic::tvm_cast_from_cell:
@@ -775,6 +771,14 @@ static bool materializable(Instruction &V, Value *ThisPtr) {
     case Intrinsic::tvm_stref:
     case Intrinsic::tvm_stslice:
       return true;
+    case Intrinsic::tvm_cast_to_slice:
+    case Intrinsic::tvm_cast_to_builder:
+    case Intrinsic::tvm_cast_to_cell:
+    case Intrinsic::tvm_cast_to_tuple: {
+      if (auto *SrcI = dyn_cast<Instruction>(V.getOperand(0)))
+        return materializable(*SrcI, ThisPtr);
+      return true;
+    }
     }
   }
   // Rematerializing load from contract class data for TVM

@@ -3527,11 +3527,11 @@ checkBuiltinTemplateIdType(Sema &SemaRef, BuiltinTemplateDecl *BTD,
     return Context.getRecordType(NewRec);
   }
   case BTK__reflect_proxy: {
-    // __reflect_proxy<Interface, Impl, Internal> - proxy for Interface
+    // __reflect_proxy<Interface, Impl, Type> - proxy for Interface
     assert(Converted.size() == 3 &&
-           "__reflect_proxy<Interface, Impl, Internal>");
+           "__reflect_proxy<Interface, Impl, Type>");
     TemplateArgument InterfaceArg = Converted[0], ImplArg = Converted[1],
-      Internal = Converted[2];
+      TypeIdx = Converted[2];
 
     QualType InterfaceTy = InterfaceArg.getAsType();
     QualType ImplTy = ImplArg.getAsType();
@@ -3583,11 +3583,14 @@ checkBuiltinTemplateIdType(Sema &SemaRef, BuiltinTemplateDecl *BTD,
     for (auto *Meth : InterfaceRec->methods()) {
       if (Meth->isImplicit())
         continue;
-      if (Internal.getAsIntegral() != 0) {
+      if (TypeIdx.getAsIntegral() == 1) {
         if (!Meth->hasAttr<TVMInternalFuncAttr>())
           continue;
-      } else {
+      } else if (TypeIdx.getAsIntegral() == 0) {
         if (!Meth->hasAttr<TVMExternalFuncAttr>())
+          continue;
+      } else if (TypeIdx.getAsIntegral() == 2) {
+        if (!Meth->hasAttr<TVMGetterFuncAttr>())
           continue;
       }
 

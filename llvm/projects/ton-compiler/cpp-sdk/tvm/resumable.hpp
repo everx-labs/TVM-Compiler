@@ -78,6 +78,15 @@ public:
   coro_handle handle_;
 };
 
+template<class T>
+struct resumable_subtype {
+  using type = T;
+};
+template<class T>
+struct resumable_subtype<resumable<T>> {
+  using type = T;
+};
+
 template<auto func, class Resumable>
 __always_inline
 __tvm_cell serialize_resumable(__tvm_builder b, Resumable val) {

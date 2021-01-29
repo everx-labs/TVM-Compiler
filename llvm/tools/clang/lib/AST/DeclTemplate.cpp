@@ -1735,7 +1735,7 @@ createReflectSmartInterfaceParameterList(const ASTContext &C, DeclContext *DC) {
                                        SourceLocation(), nullptr);
 }
 
-// __reflect_proxy<Interface, Impl, bool Internal> - Proxy class for Interface
+// __reflect_proxy<Interface, Impl, unsigned Type> - Proxy class for Interface
 static TemplateParameterList *
 createReflectProxyParameterList(const ASTContext &C, DeclContext *DC) {
 
@@ -1751,14 +1751,14 @@ createReflectProxyParameterList(const ASTContext &C, DeclContext *DC) {
       /*Id=*/nullptr, /*Typename=*/true, /*ParameterPack=*/false);
   Impl->setImplicit(true);
 
-  // bool Internal
-  TypeSourceInfo *TInfo = C.getTrivialTypeSourceInfo(C.BoolTy);
-  auto *Internal = NonTypeTemplateParmDecl::Create(
+  // unsigned Type
+  TypeSourceInfo *TInfo = C.getTrivialTypeSourceInfo(C.getSizeType());
+  auto *Type = NonTypeTemplateParmDecl::Create(
       C, DC, SourceLocation(), SourceLocation(), /*Depth=*/0, /*Position=*/2,
       /*Id=*/nullptr, TInfo->getType(), /*ParameterPack=*/false, TInfo);
-  Internal->setImplicit(true);
+  Type->setImplicit(true);
 
-  NamedDecl *Params[] = { Interface, Impl, Internal };
+  NamedDecl *Params[] = { Interface, Impl, Type };
   return TemplateParameterList::Create(C, SourceLocation(), SourceLocation(),
                                        llvm::makeArrayRef(Params),
                                        SourceLocation(), nullptr);

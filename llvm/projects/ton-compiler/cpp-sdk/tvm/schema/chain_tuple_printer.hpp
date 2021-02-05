@@ -1,29 +1,38 @@
 #pragma once
 
-#include <tvm/chain_tuple.hpp>
+#include <tvm/schema/json-abi-gen.hpp>
 
-namespace tvm {
+namespace tvm { namespace schema {
 
+using namespace hana::literals;
 // Printing of format elements, splitted into cell-fit sub-tuples
 
 template<unsigned val>
-auto make_uint() {
-  return to_string<10>(hana::integral_c<unsigned, val>);
+constexpr auto make_uint() {
+  return json_abi_gen::to_string<10>(hana::integral_c<unsigned, val>);
 }
 template<unsigned val>
-auto make_hex() {
-  return to_string<16>(hana::integral_c<unsigned, val>);
+constexpr auto make_hex() {
+  return json_abi_gen::to_string<16>(hana::integral_c<unsigned, val>);
 }
 
-template<class T>
-class chain_tuple_printer {};
+template<class T> struct element_printer;
 
+template<class T>
+struct chain_tuple_printer {
+  static constexpr auto value = element_printer<T>::value;
+};
+
+template<class Elem>
+struct chain_tuple_printer<std::tuple<Elem>> {
+  static constexpr auto value = element_printer<Elem>::value;
+};
 template<class Elem, class... Elems>
-class chain_tuple_printer<std::tuple<Elem, Elems...>> {
-  static constexpr auto value = element_printer<Elem>::value + ","_s + chain_tuple_printer<Elems...>::value;
+struct chain_tuple_printer<std::tuple<Elem, Elems...>> {
+  static constexpr auto value = element_printer<Elem>::value + ","_s + chain_tuple_printer<std::tuple<Elems...>>::value;
 };
 template<>
-class chain_tuple_printer<std::tuple<>> {
+struct chain_tuple_printer<std::tuple<>> {
   static constexpr auto value = ""_s;
 };
 
@@ -66,25 +75,25 @@ struct element_printer<dynamic_int<_Field>> {
 // uint256
 template<unsigned _bitlen>
 struct element_printer<uint_t<_bitlen>> {
-  static constexpr auto value = "uint"_s + make_uint<_bitlen>();
+  static constexpr auto value = "u"_s + make_uint<_bitlen>();
 };
 
 // int256
 template<unsigned _bitlen>
 struct element_printer<int_t<_bitlen>> {
-  static constexpr auto value = "int"_s + make_uint<_bitlen>();
+  static constexpr auto value = "i"_s + make_uint<_bitlen>();
 };
 
 // varuint16
 template<unsigned _bitlen>
 struct element_printer<varuint<_bitlen>> {
-  static constexpr auto value = "varuint"_s + make_uint<_bitlen>();
+  static constexpr auto value = "varu"_s + make_uint<_bitlen>();
 };
 
 // varint16
 template<unsigned _bitlen>
 struct element_printer<varint<_bitlen>> {
-  static constexpr auto value = "varint"_s + make_uint<_bitlen>();
+  static constexpr auto value = "vari"_s + make_uint<_bitlen>();
 };
 
 // hashmap<32,elem>
@@ -123,6 +132,14 @@ template<>
 struct element_printer<MsgAddressSlice> {
   static constexpr auto value = "address"_s;
 };
+template<>
+struct element_printer<MsgAddress> {
+  static constexpr auto value = "address"_s;
+};
+template<>
+struct element_printer<MsgAddressInt> {
+  static constexpr auto value = "address"_s;
+};
 
 // lazy<Elem> ==> Elem
 template<class _Tp>
@@ -148,5 +165,16 @@ struct element_printer<std::variant<Types...>> {
   static constexpr auto value = "variant<"_s + chain_tuple_printer<std::tuple<Types...>>::value + ">"_s;
 };
 
-} // namespace tvm
+// std::tuple<Types...>
+template<class... Types>
+struct element_printer<std::tuple<Types...>> {
+  static constexpr auto value = chain_tuple_printer<std::tuple<Types...>>::value;
+};
+
+template<class T>
+constexpr auto print_chain_tuple() {
+  return chain_tuple_printer<T>::value;
+}
+
+}} // namespace tvm::schema
 

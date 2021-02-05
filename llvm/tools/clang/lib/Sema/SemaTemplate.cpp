@@ -3785,6 +3785,41 @@ checkBuiltinTemplateIdType(Sema &SemaRef, BuiltinTemplateDecl *BTD,
     return SemaRef.CheckTemplateIdType(Converted[0].getAsTemplate(),
                                        TemplateLoc, SyntheticTemplateArgs);
   }
+  case BTK__reflect_echo: {
+    ASTContext &Context = SemaRef.getASTContext();
+    assert(Converted.size() == 1 && "__reflect_echo'<Str>");
+    TemplateArgument Str = Converted[0];
+    if (auto *StrDecl = dyn_cast<VarDecl>(Str.getAsDecl())) {
+      if (auto *Init = StrDecl->getInit()) {
+        SmallVector<unsigned char, 32> Signature;
+        if (auto *SL = dyn_cast<StringLiteral>(Init->IgnoreParens())) {
+          unsigned StrLen = SL->getLength();
+          for (unsigned i = 0, e = StrLen; i != e; ++i) {
+            auto Ch = SL->getCodeUnit(i);
+            if (!Ch) break;
+            Signature.push_back(static_cast<unsigned char>(Ch));
+          }
+        } else {
+          Expr::EvalResult Eval;
+          if (Init->EvaluateAsConstantExpr(Eval, Expr::EvaluateForCodeGen,
+                                           Context)) {
+            unsigned NumInitElts = Eval.Val.getArrayInitializedElts();
+            for (unsigned I = 0; I < NumInitElts; ++I) {
+              auto Elem = Eval.Val.getArrayInitializedElt(I);
+              uint64_t Ch = Elem.getInt().getZExtValue();
+              if (!Ch) break;
+              Signature.push_back(static_cast<unsigned char>(Ch));
+            }
+          }
+        }
+        unsigned CustomRemarkID = SemaRef.getDiagnostics().
+            getCustomDiagID(DiagnosticsEngine::Remark, "%0");
+        SemaRef.Diag(SourceLocation(), CustomRemarkID)
+            << std::string(Signature.begin(), Signature.end());
+      }
+    }
+    return Context.CharTy;
+  }
   // TVM local end
   }
   llvm_unreachable("unexpected BuiltinTemplateDecl!");

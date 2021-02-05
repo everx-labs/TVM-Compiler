@@ -1321,6 +1321,11 @@ void Sema::EmitCurrentDiagnostic(unsigned DiagID) {
   // that is different from the last template instantiation where
   // we emitted an error, print a template instantiation
   // backtrace.
+  // TVM local begin
+  // Don't print stack for remarks in tvm (for __reflect_echo)
+  if (Diags.getDiagnosticLevel(DiagID, SourceLocation()) == DiagnosticsEngine::Remark)
+    return;
+  // TVM local end
   if (!DiagnosticIDs::isBuiltinNote(DiagID))
     PrintContextStack();
 }

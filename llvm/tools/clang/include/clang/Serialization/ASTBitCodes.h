@@ -1359,7 +1359,10 @@ namespace serialization {
       PREDEF_DECL_REFLECT_INTERFACE_HAS_PUBKEY_ID = 43,
 
       /// The internal '__reflect_signature_func_id' template.
-      PREDEF_DECL_REFLECT_SIGNATURE_FUNC_ID_ID = 44
+      PREDEF_DECL_REFLECT_SIGNATURE_FUNC_ID_ID = 44,
+
+      /// The internal '__reflect_echo' template.
+      PREDEF_DECL_REFLECT_ECHO_ID = 45
       // TVM local end
     };
 

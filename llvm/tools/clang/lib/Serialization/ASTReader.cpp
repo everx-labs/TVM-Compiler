@@ -7421,6 +7421,9 @@ static Decl *getPredefinedDecl(ASTContext &Context, PredefinedDeclIDs ID) {
   case PREDEF_DECL_REFLECT_SIGNATURE_FUNC_ID_ID:
     return Context.getReflectSignatureFuncIdDecl();
 
+  case PREDEF_DECL_REFLECT_ECHO_ID:
+    return Context.getReflectEchoDecl();
+
   // TVM local end
   }
   llvm_unreachable("PredefinedDeclIDs unknown enum value");

@@ -3,7 +3,8 @@
 #include <tvm/reflection.hpp>
 #include <tvm/contract.hpp>
 #include <tvm/schema/estimate_element.hpp>
-#include <tvm/chain_tuple.hpp>
+#include <tvm/schema/chain_tuple.hpp>
+#include <tvm/schema/chain_fold.hpp>
 
 #include <experimental/type_traits>
 #include <experimental/coroutine>
@@ -339,13 +340,18 @@ struct wait_call_result {
   void await_suspend(std::experimental::coroutine_handle<>) const {}
   __always_inline
   RetT await_resume() const {
-    using est_t = schema::estimate_element<RetT>;
+    using namespace schema;
+    using est_t = estimate_element<RetT>;
     if constexpr (est_t::max_bits > cell::max_bits || est_t::max_refs > cell::max_refs) {
       parser p(__builtin_tvm_cast_to_slice(
         temporary_data::getglob(global_id::coroutine_answer_slice)));
-      return parse_chain<RetT, 0, 0>(p);
+      using LinearTup = decltype(make_chain_tuple<32, 0>(to_std_tuple(RetT{})));
+      // uncomment to print in remark:
+      //__reflect_echo<print_chain_tuple<LinearTup>().c_str()>{};
+      auto linear_tup = parse<LinearTup>(p);
+      return chain_fold<RetT>(linear_tup);
     } else {
-      return schema::parse<RetT>(__builtin_tvm_cast_to_slice(
+      return parse<RetT>(__builtin_tvm_cast_to_slice(
         temporary_data::getglob(global_id::coroutine_answer_slice)));
     }
   }

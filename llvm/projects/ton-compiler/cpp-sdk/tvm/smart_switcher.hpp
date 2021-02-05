@@ -4,8 +4,9 @@
 #include <tvm/func_id.hpp>
 #include <tvm/contract.hpp>
 #include <tvm/smart_contract_info.hpp>
-#include <tvm/chain_builder.hpp>
-#include <tvm/chain_tuple.hpp>
+#include <tvm/schema/chain_builder.hpp>
+#include <tvm/schema/chain_tuple.hpp>
+#include <tvm/schema/chain_tuple_printer.hpp>
 #include <tvm/message_flags.hpp>
 #include <tvm/awaiting_responses_map.hpp>
 #include <tvm/resumable.hpp>

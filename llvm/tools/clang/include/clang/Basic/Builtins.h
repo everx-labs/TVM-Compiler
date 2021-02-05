@@ -331,6 +331,9 @@ enum BuiltinTemplateKind : int {
 
   /// This names the __reflect_signature_func_id BuiltinTemplateDecl.
   BTK__reflect_signature_func_id,
+
+  /// This names the __reflect_echo BuiltinTemplateDecl.
+  BTK__reflect_echo,
   // TVM local end
 };
 

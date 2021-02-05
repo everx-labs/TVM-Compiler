@@ -166,11 +166,11 @@ public:
   }
   void store(Module &TheModule, IRBuilder<> &Builder, Value *&CellBuilder) {
     auto *Load = Builder.CreateLoad(ptr_);
-    CellBuilder = Builder.CreateCall(TVMINTR(Intrinsic::tvm_stref),
+    CellBuilder = Builder.CreateCall(TVMINTR(Intrinsic::tvm_stdict),
       {Load, CellBuilder});
   }
   void load(Module &TheModule, IRBuilder<> &Builder, Value *&ReadSlice) {
-    auto *ValAndSlice = Builder.CreateCall(TVMINTR(Intrinsic::tvm_ldref),
+    auto *ValAndSlice = Builder.CreateCall(TVMINTR(Intrinsic::tvm_lddict),
                                            {ReadSlice});
     auto *Val = Builder.CreateExtractValue(ValAndSlice, 0);
     ReadSlice = Builder.CreateExtractValue(ValAndSlice, 1);
@@ -330,7 +330,7 @@ public:
       cells_.back().add(coro::dyn_slice_{Ptr}, 0, 1);
     } else if (Ty->isTVMCellTy()) {
       check_overflow(0, 1, last);
-      cells_.back().add(coro::cell_{Ptr}, 0, 1);
+      cells_.back().add(coro::cell_{Ptr}, 1, 1);
     } else if (Ty->isTVMBuilderTy()) {
       check_overflow(0, 1, last);
       cells_.back().add(coro::builder_{Ptr}, 0, 1);

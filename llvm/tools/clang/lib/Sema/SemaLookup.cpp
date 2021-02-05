@@ -773,6 +773,9 @@ static bool LookupBuiltin(Sema &S, LookupResult &R) {
         } else if (II == S.getASTContext().getReflectSignatureFuncIdName()) {
           R.addDecl(S.getASTContext().getReflectSignatureFuncIdDecl());
           return true;
+        } else if (II == S.getASTContext().getReflectEchoName()) {
+          R.addDecl(S.getASTContext().getReflectEchoDecl());
+          return true;
         }
         // TVM local end
       }

@@ -4748,6 +4748,8 @@ ASTFileSignature ASTWriter::WriteASTCore(Sema &SemaRef, StringRef isysroot,
                      PREDEF_DECL_REFLECT_INTERFACE_HAS_PUBKEY_ID);
   RegisterPredefDecl(Context.ReflectSignatureFuncIdDecl,
                      PREDEF_DECL_REFLECT_SIGNATURE_FUNC_ID_ID);
+  RegisterPredefDecl(Context.ReflectEchoDecl,
+                     PREDEF_DECL_REFLECT_ECHO_ID);
   // TVM local end
 
   // Build a record containing all of the tentative definitions in this file, in

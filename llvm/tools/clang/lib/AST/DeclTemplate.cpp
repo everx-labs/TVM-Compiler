@@ -1902,11 +1902,30 @@ createReflectSignatureFuncIdParameterList(const ASTContext &C, DeclContext *DC) 
       C.getTrivialTypeSourceInfo(C.getPointerType(C.CharTy.withConst()));
   auto *StrVal = NonTypeTemplateParmDecl::Create(
       C, DC, SourceLocation(), SourceLocation(), /*Depth=*/0, /*Position=*/2,
-      /*Id=*/nullptr, CTI->getType(), /*ParameterPack=*/false, TI);
+      /*Id=*/nullptr, CTI->getType(), /*ParameterPack=*/false, CTI);
   StrVal->setImplicit(true);
 
   // <T, IntType, const char *StrVal>
   NamedDecl *Params[] = {TemplateTemplateParm, IntTypeTop, StrVal};
+  return TemplateParameterList::Create(C, SourceLocation(), SourceLocation(),
+                                       llvm::makeArrayRef(Params),
+                                       SourceLocation(), nullptr);
+}
+
+// __reflect_echo<const char* Str> -
+//   prints Str during compilation
+static TemplateParameterList *
+createReflectEchoParameterList(const ASTContext &C, DeclContext *DC) {
+  // const char *Str
+  TypeSourceInfo *CTI =
+      C.getTrivialTypeSourceInfo(C.getPointerType(C.CharTy.withConst()));
+  auto *StrVal = NonTypeTemplateParmDecl::Create(
+      C, DC, SourceLocation(), SourceLocation(), /*Depth=*/0, /*Position=*/0,
+      /*Id=*/nullptr, CTI->getType(), /*ParameterPack=*/false, CTI);
+  StrVal->setImplicit(true);
+
+  // <const char *StrVal>
+  NamedDecl *Params[] = {StrVal};
   return TemplateParameterList::Create(C, SourceLocation(), SourceLocation(),
                                        llvm::makeArrayRef(Params),
                                        SourceLocation(), nullptr);
@@ -1977,6 +1996,8 @@ static TemplateParameterList *createBuiltinTemplateParameterList(
     return createReflectInterfaceHasPubkeyParameterList(C, DC);
   case BTK__reflect_signature_func_id:
     return createReflectSignatureFuncIdParameterList(C, DC);
+  case BTK__reflect_echo:
+    return createReflectEchoParameterList(C, DC);
   // TVM local end
   }
 

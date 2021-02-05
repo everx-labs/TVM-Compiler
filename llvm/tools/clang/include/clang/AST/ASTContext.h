@@ -390,6 +390,8 @@ class ASTContext : public RefCountedBase<ASTContext> {
   mutable IdentifierInfo *ReflectInterfaceHasPubkeyName = nullptr;
   /// The identifier '__reflect_signature_func_id'.
   mutable IdentifierInfo *ReflectSignatureFuncIdName = nullptr;
+  /// The identifier '__reflect_echo'.
+  mutable IdentifierInfo *ReflectEchoName = nullptr;
   // TVM local end
 
   QualType ObjCConstantStringType;
@@ -600,6 +602,7 @@ private:
   mutable BuiltinTemplateDecl *ReflectMethodPtrDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectInterfaceHasPubkeyDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectSignatureFuncIdDecl = nullptr;
+  mutable BuiltinTemplateDecl *ReflectEchoDecl = nullptr;
   // TVM local end
 
   /// The associated SourceManager object.
@@ -1132,6 +1135,7 @@ public:
   BuiltinTemplateDecl *getReflectMethodPtrDecl() const;
   BuiltinTemplateDecl *getReflectInterfaceHasPubkeyDecl() const;
   BuiltinTemplateDecl *getReflectSignatureFuncIdDecl() const;
+  BuiltinTemplateDecl *getReflectEchoDecl() const;
   // TVM local end
 
   // Builtin Types.
@@ -2058,6 +2062,12 @@ public:
     if (!ReflectSignatureFuncIdName)
       ReflectSignatureFuncIdName = &Idents.get("__reflect_signature_func_id");
     return ReflectSignatureFuncIdName;
+  }
+
+  IdentifierInfo *getReflectEchoName() const {
+    if (!ReflectEchoName)
+      ReflectEchoName = &Idents.get("__reflect_echo");
+    return ReflectEchoName;
   }
   // TVM local end
 

@@ -74,6 +74,19 @@ static bool defineStref(Instruction &I) {
   return true;
 }
 
+static bool defineStdict(Instruction &I) {
+  auto *CellTy = Type::getTVMCellTy(I.getModule()->getContext());
+  auto *CellUndef = UndefValue::get(CellTy);
+  if (I.getOperand(0) != CellUndef)
+    return false;
+  IRBuilder<> Builder(&I);
+  CallInst *Pushnull = Builder.CreateIntrinsic(Intrinsic::tvm_pushnull);
+  auto *Fn = Intrinsic::getDeclaration(I.getModule(), Intrinsic::tvm_cast_to_cell);
+  CallInst *Cast = Builder.CreateCall(Fn, ArrayRef<Value *>{Pushnull});
+  I.replaceUsesOfWith(CellUndef, Cast);
+  return true;
+}
+
 static bool defineStslice(Instruction &I) {
   auto *SliceTy = Type::getTVMSliceTy(I.getModule()->getContext());
   auto *SliceUndef = UndefValue::get(SliceTy);
@@ -102,6 +115,8 @@ bool TVMDefineUndef::runOnBasicBlock(BasicBlock &BB) {
       Changed |= definePlainStore(I);
     if (CS.getIntrinsicID() == Intrinsic::tvm_stref)
       Changed |= defineStref(I);
+    if (CS.getIntrinsicID() == Intrinsic::tvm_stdict)
+      Changed |= defineStdict(I);
     if (CS.getIntrinsicID() == Intrinsic::tvm_stslice)
       Changed |= defineStslice(I);
   }

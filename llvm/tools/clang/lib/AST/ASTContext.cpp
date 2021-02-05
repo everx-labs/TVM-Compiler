@@ -1270,6 +1270,14 @@ ASTContext::getReflectSignatureFuncIdDecl() const {
   return ReflectSignatureFuncIdDecl;
 }
 
+BuiltinTemplateDecl *
+ASTContext::getReflectEchoDecl() const {
+  if (!ReflectEchoDecl)
+    ReflectEchoDecl = buildBuiltinTemplateDecl(
+        BTK__reflect_echo, getReflectEchoName());
+  return ReflectEchoDecl;
+}
+
 RecordDecl *ASTContext::buildImplicitRecord(StringRef Name,
                                             RecordDecl::TagKind TK,
                                             SourceLocation Loc) const {

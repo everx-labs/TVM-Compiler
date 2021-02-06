@@ -2,6 +2,7 @@
 
 #include <tvm/to_std_tuple.hpp>
 #include <tvm/reflection.hpp>
+#include <tvm/resumable.hpp>
 #include <tvm/schema/basics.hpp>
 #include <tvm/schema/message.hpp>
 #include <tvm/sequence.hpp>
@@ -379,12 +380,6 @@ template<class T>
 struct is_resumable<resumable<T>> : std::true_type {};
 template<class T>
 constexpr bool is_resumable_v = is_resumable<T>::value;
-template<class T>
-struct resumable_subtype {};
-template<class T>
-struct resumable_subtype<resumable<T>> {
-  using type = T;
-};
 
 template<class T>
 __always_inline constexpr auto make_type_signature();

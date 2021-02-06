@@ -9,26 +9,28 @@ __interface IConsole {
   schema::bool_t print(string message);
 
   [[internal, answer_id]]
-  string requestInput(string message);
-  [[internal, answer_id]]
-  address requestAddress(string message);
-  [[internal, answer_id]]
-  schema::uint32 requestUint32(string message);
-  [[internal, answer_id]]
-  schema::uint256 requestUint256(string message);
-  [[internal, answer_id]]
-  schema::uint256 requestPubkey(string message);
-  [[internal, answer_id]]
-  schema::uint256 requestTONs(string message);
-  [[internal, answer_id]]
-  schema::bool_t requestYesOrNo(string message);
-  [[internal, answer_id]]
-  schema::uint32 requestDateTime(string message);
-  [[internal, answer_id]]
-  cell requestCell(string message);
+  schema::bool_t printf(string message, cell params);
 
   [[internal, answer_id]]
-  schema::bool_t signAndSendExternal(cell msg);
+  string inputStr(string message);
+  [[internal, answer_id]]
+  address inputAddress(string message, string key_hint);
+  [[internal, answer_id]]
+  schema::uint256 inputUint256(string message);
+  [[internal, answer_id]]
+  schema::uint256 inputPubkey(string message);
+  [[internal, answer_id]]
+  schema::uint256 inputTONs(string message);
+  [[internal, answer_id]]
+  schema::bool_t inputYesOrNo(string message);
+  [[internal, answer_id]]
+  schema::uint32 inputDateTime(string message);
+  [[internal, answer_id]]
+  cell inputDeployMessage(string message);
+  [[internal, answer_id]]
+  cell inputCell(string message);
+  [[internal, answer_id]]
+  schema::bool_t iAmHome();
 };
 
 using IConsolePtr = handle<IConsole>;

@@ -7334,6 +7334,94 @@ static Decl *getPredefinedDecl(ASTContext &Context, PredefinedDeclIDs ID) {
 
   case PREDEF_DECL_TYPE_PACK_ELEMENT_ID:
     return Context.getTypePackElementDecl();
+
+  // TVM local begin
+
+  case PREDEF_DECL_REFLECT_FIELD_ID:
+    return Context.getReflectFieldDecl();
+
+  case PREDEF_DECL_REFLECT_FIELDS_COUNT_ID:
+    return Context.getReflectFieldsCountDecl();
+
+  case PREDEF_DECL_REFLECT_METHODS_COUNT_ID:
+    return Context.getReflectMethodsCountDecl();
+
+  case PREDEF_DECL_REFLECT_METHOD_NAME_ID:
+    return Context.getReflectMethodNameDecl();
+
+  case PREDEF_DECL_REFLECT_METHOD_PTR_NAME_ID:
+    return Context.getReflectMethodPtrNameDecl();
+
+  case PREDEF_DECL_REFLECT_RETURN_NAME_ID:
+    return Context.getReflectReturnNameDecl();
+
+  case PREDEF_DECL_REFLECT_METHOD_FUNC_ID_ID:
+    return Context.getReflectMethodFuncIdDecl();
+
+  case PREDEF_DECL_REFLECT_METHOD_INTERNAL_ID:
+    return Context.getReflectMethodInternalDecl();
+
+  case PREDEF_DECL_REFLECT_METHOD_PTR_INTERNAL_ID:
+    return Context.getReflectMethodPtrInternalDecl();
+
+  case PREDEF_DECL_REFLECT_METHOD_ANSWER_ID_ID:
+    return Context.getReflectMethodAnswerIdDecl();
+
+  case PREDEF_DECL_REFLECT_METHOD_PTR_ANSWER_ID_ID:
+    return Context.getReflectMethodPtrAnswerIdDecl();
+
+  case PREDEF_DECL_REFLECT_METHOD_EXTERNAL_ID:
+    return Context.getReflectMethodExternalDecl();
+
+  case PREDEF_DECL_REFLECT_METHOD_GETTER_ID:
+    return Context.getReflectMethodGetterDecl();
+
+  case PREDEF_DECL_REFLECT_METHOD_NOACCEPT_ID:
+    return Context.getReflectMethodNoAcceptDecl();
+
+  case PREDEF_DECL_REFLECT_METHOD_IMPLICIT_FUNC_ID_ID:
+    return Context.getReflectMethodImplicitFuncIdDecl();
+
+  case PREDEF_DECL_REFLECT_METHOD_DYN_CHAIN_PARSE_ID:
+    return Context.getReflectMethodDynChainParseDecl();
+
+  case PREDEF_DECL_REFLECT_METHOD_NO_READ_PERSISTENT_ID:
+    return Context.getReflectMethodNoReadPersistentDecl();
+
+  case PREDEF_DECL_REFLECT_METHOD_NO_WRITE_PERSISTENT_ID:
+    return Context.getReflectMethodNoWritePersistentDecl();
+
+  case PREDEF_DECL_REFLECT_METHOD_PTR_FUNC_ID_ID:
+    return Context.getReflectMethodPtrFuncIdDecl();
+
+  case PREDEF_DECL_REFLECT_METHOD_RV_ID:
+    return Context.getReflectMethodRvDecl();
+
+  case PREDEF_DECL_REFLECT_METHOD_PTR_RV_ID:
+    return Context.getReflectMethodPtrRvDecl();
+
+  case PREDEF_DECL_REFLECT_METHOD_ARG_STRUCT_ID:
+    return Context.getReflectMethodArgStructDecl();
+
+  case PREDEF_DECL_REFLECT_METHOD_PTR_ARG_STRUCT_ID:
+    return Context.getReflectMethodPtrArgStructDecl();
+
+  case PREDEF_DECL_REFLECT_SMART_INTERFACE_ID:
+    return Context.getReflectSmartInterfaceDecl();
+
+  case PREDEF_DECL_REFLECT_PROXY_ID:
+    return Context.getReflectProxyDecl();
+
+  case PREDEF_DECL_REFLECT_METHOD_PTR_ID:
+    return Context.getReflectMethodPtrDecl();
+
+  case PREDEF_DECL_REFLECT_INTERFACE_HAS_PUBKEY_ID:
+    return Context.getReflectInterfaceHasPubkeyDecl();
+
+  case PREDEF_DECL_REFLECT_SIGNATURE_FUNC_ID_ID:
+    return Context.getReflectSignatureFuncIdDecl();
+
+  // TVM local end
   }
   llvm_unreachable("PredefinedDeclIDs unknown enum value");
 }

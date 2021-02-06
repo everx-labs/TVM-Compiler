@@ -410,7 +410,7 @@ struct smart_switcher_impl {
       if constexpr (supports_set_persistent_data_header_v<Contract>)
         c.set_persistent_data_header(persistent_data_header);
 
-      using Args = get_interface_method_arg_struct<IContract, Index>;
+      using Args = get_interface_method_arg_struct<ISmart, Index>;
       constexpr unsigned args_sz = calc_fields_count<Args>::value;
       using rv_t = get_interface_method_rv<ISmart, Index>;
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <experimental/coroutine>
+#include <tvm/schema/message.hpp>
 
 namespace tvm { namespace schema {
 
@@ -76,6 +77,15 @@ public:
   __always_inline
   address wait_addr() const { return handle_.promise().wait_addr_; }
   coro_handle handle_;
+};
+
+template<class T>
+struct resumable_subtype {
+  using type = T;
+};
+template<class T>
+struct resumable_subtype<resumable<T>> {
+  using type = T;
 };
 
 template<auto func, class Resumable>

@@ -9,7 +9,6 @@
 
 namespace tvm { namespace schema {
 
-using address = lazy<MsgAddressInt>;
 using VotesType = uint128;
 using DepositType = uint256;
 
@@ -40,49 +39,49 @@ struct requestDepositResult {
 
 __interface IMultiBallot {
 
-  __attribute__((internal, noaccept))
-  void constructor() = 1;
-
   // Initializes ballot variables
-  __attribute__((internal, noaccept))
-  void deployBallot() = 2;
+  [[internal, noaccept]]
+  void deployBallot();
 
   // Receive native funds transfer and keep it in deposit
-  __attribute__((internal, noaccept))
-  void receiveNativeTransfer(DepositType amount) = 3;
+  [[internal, noaccept]]
+  void receiveNativeTransfer(DepositType amount);
 
   // Receive stake transfer notify (from solidity IParticipant::onTransfer(address source, uint128 amount))
-  __attribute__((internal, noaccept))
+  [[internal, noaccept]]
   void receiveStakeTransfer(address source, uint128 amount) = 0x23c4771d; // = hash_v<"onTransfer(address,uint128)()v2">
 
   // ======= externals =======
 
   // Sends all votes (for deposit) to Proposal Root contract
-  __attribute__((external, noaccept))
-  sendVotesResult sendVote(address proposal, bool_t yesOrNo) = 5;
+  [[external, noaccept, dyn_chain_parse]]
+  sendVotesResult sendVote(address proposal, bool_t yesOrNo);
 
   // The function must request affected proposals the voting is finished,
   // set to zero deposit variables and return stake and native deposits to user_wallet
-  __attribute__((external, noaccept))
-  resumable<void> requestDeposit(address user_wallet) = 6;
+  [[external, noaccept, dyn_chain_parse]]
+  resumable<void> requestDeposit(address user_wallet);
 
   // send all remaining tons to user_wallet
-  __attribute__((external, noaccept))
-  void finalize(address user_wallet) = 7;
+  [[external, noaccept, dyn_chain_parse]]
+  void finalize(address user_wallet);
 
   // ======= getters =======
 
-  __attribute__((getter))
-  DepositType getNativeDeposit() = 8;
+  [[getter]]
+  address getDepool();
 
-  __attribute__((getter))
-  DepositType getStakeDeposit() = 9;
+  [[getter]]
+  DepositType getNativeDeposit();
 
-  __attribute__((getter, no_persistent))
-  DepositType getMultiBallot_receiveNativeTransfer_GasPrice() = 10;
+  [[getter]]
+  DepositType getStakeDeposit();
 
-  __attribute__((getter, no_persistent))
-  DepositType getMultiBallot_receiveStakeTransfer_GasPrice() = 11;
+  [[getter, no_persistent]]
+  DepositType getMultiBallot_receiveNativeTransfer_GasPrice();
+
+  [[getter, no_persistent]]
+  DepositType getMultiBallot_receiveStakeTransfer_GasPrice();
 };
 
 struct DMultiBallot {

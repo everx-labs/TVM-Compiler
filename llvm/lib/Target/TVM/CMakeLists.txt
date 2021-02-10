@@ -44,6 +44,7 @@ add_llvm_target(TVMCodeGen
   TVMLoadStoreReplace.cpp
   TVMMoveMaterializable.cpp
   TVMIfConversionTerm.cpp
+  TVMInlineSliceStore.cpp
   TVMLowerIntrinsics.cpp
 )
 

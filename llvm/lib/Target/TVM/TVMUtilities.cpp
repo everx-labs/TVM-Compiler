@@ -36,6 +36,15 @@ bool TVM::isConstInt(const MachineInstr &MI) {
          || MI.getOpcode() == TVM::CONST_U257;
 }
 
+bool TVM::isIntStore(unsigned ID) {
+  return ID == Intrinsic::tvm_sti || ID == Intrinsic::tvm_stu;
+}
+
+bool TVM::isVarIntStore(unsigned ID) {
+  return ID == Intrinsic::tvm_stvarint16 || ID == Intrinsic::tvm_stvaruint16
+    ||   ID == Intrinsic::tvm_stvarint32 || ID == Intrinsic::tvm_stvaruint32;
+}
+
 // A shortcut overload for BuildMI() function
 MachineInstrBuilder llvm::BuildMI(MachineInstr *InsertPoint,
                                   const MCInstrDesc &InstrDesc) {

@@ -1275,6 +1275,10 @@ static bool addNoRecurseAttrs(const SCCNodeSet &SCCNodes) {
   for (Instruction &I : instructions(*F))
     if (auto CS = CallSite(&I)) {
       Function *Callee = CS.getCalledFunction();
+      // TVM local begin
+      if (Callee && Callee->isIntrinsic())
+        continue;
+      // TVM local end
       if (!Callee || Callee == F || !Callee->doesNotRecurse())
         // Function calls a potentially recursive function.
         return false;

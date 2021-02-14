@@ -45,6 +45,7 @@ BasicBlockPass *createTVMDefineUndef();
 BasicBlockPass *createTVMLoadStoreReplace();
 BasicBlockPass *createTVMStoreCombine();
 ModulePass *createTVMLowerIntrinsicsPass();
+ModulePass *createTVMReFuncPass();
 
 void initializeTVMArgumentMovePass(PassRegistry &);
 void initializeTVMControlFlowPreparePass(PassRegistry &);
@@ -64,6 +65,7 @@ void initializeTVMMoveMaterializablePass(PassRegistry &);
 void initializeTVMIfConversionTermPass(PassRegistry &);
 void initializeTVMStoreCombinePass(PassRegistry &);
 void initializeTVMLowerIntrinsicsPass(PassRegistry &);
+void initializeTVMReFuncPass(PassRegistry &);
 
 } // namespace llvm
 

@@ -9,6 +9,9 @@ struct is_expandable : std::true_type {};
 template<class... Elems>
 struct is_expandable<std::tuple<Elems...>> : std::true_type {};
 
+template<class... Elems>
+struct is_expandable<std::variant<Elems...>> : std::false_type {};
+
 template<unsigned _bitlen, unsigned _code>
 struct is_expandable<bitconst<_bitlen, _code>> : std::false_type {};
 

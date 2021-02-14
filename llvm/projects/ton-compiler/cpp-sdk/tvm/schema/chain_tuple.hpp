@@ -118,7 +118,10 @@ template<unsigned Offset = 0, unsigned RefsOffset = 0, class... Elems>
 __always_inline
 auto make_chain_tuple(std::tuple<Elems...> tup_in) {
   auto tup = make_expanded_tuple(tup_in);
-  return make_chain_tuple_impl(tup);
+  if constexpr (std::tuple_size_v<decltype(tup)> == 0)
+    return tup;
+  else
+    return make_chain_tuple_impl<Offset, RefsOffset>(tup);
 }
 
 }} // namespace tvm::schema

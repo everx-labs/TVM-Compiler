@@ -142,10 +142,13 @@ const char *tvm::Linker::constructLlcCommand(
   std::string LlcOutputFileName =
       PrefixIsName ? std::string(OutputFilePrefix.data())
                    : C.getDriver().GetTemporaryPath(OutputFilePrefix, "s");
-  const char *LlcOutputFile =
-      C.addTempFile(C.getArgs().MakeArgString(LlcOutputFileName));
+  const char *LlcOutputFile = C.getArgs().MakeArgString(LlcOutputFileName);
+  if (!PrefixIsName)
+    LlcOutputFile = C.addTempFile(LlcOutputFile);
   LlcArgs.push_back(LlcOutputFile);
   LlcArgs.push_back(getOptimizationLevel(Args));
+  if (Args.hasArg(options::OPT_tvm_refunc))
+    LlcArgs.push_back("-tvm-re-func");
   SmallString<128> LlcPath(C.getDriver().Dir);
   llvm::sys::path::append(LlcPath, "llc");
   const char *Llc = Args.MakeArgString(LlcPath);

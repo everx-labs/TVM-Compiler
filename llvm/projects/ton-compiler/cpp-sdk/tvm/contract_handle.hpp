@@ -43,14 +43,14 @@ constexpr auto prepare_internal_header() {
 // Prepare message cell for contract call (internal message)
 template<auto Func, class... Args>
 __always_inline
-cell contract_call_prepare(address addr, schema::Grams amount,
+cell contract_call_prepare(address addr, schema::Grams amount, bool ihr_disabled,
     schema::lazy<schema::MsgAddress> src, Args... args) {
   using namespace schema;
 
   auto hdr = prepare_internal_header<Func>();
   auto hdr_plus_args = std::make_tuple(hdr, args...);
   int_msg_info_relaxed out_info;
-  out_info.ihr_disabled = true;
+  out_info.ihr_disabled = ihr_disabled;
   out_info.bounce = true;
   out_info.bounced = false;
   out_info.src = src;
@@ -275,22 +275,22 @@ void debot_call_ext_in_impl(address addr, unsigned flags, Args... args) {
 template<auto Func, class... Args>
 __always_inline
 void contract_call_impl(address addr, schema::Grams amount,
-                        unsigned flags, Args... args) {
+                        unsigned flags, bool ihr_disabled, Args... args) {
   using namespace schema;
-  tvm_sendmsg(contract_call_prepare<Func>(addr, amount, MsgAddress{MsgAddressExt{addr_none{}}}, args...), flags);
+  tvm_sendmsg(contract_call_prepare<Func>(addr, amount, ihr_disabled, MsgAddress{MsgAddressExt{addr_none{}}}, args...), flags);
 }
 
 // Deploy message with function call (immediately after deploy)
 template<auto Func, class... Args>
 __always_inline
 void contract_deploy_impl(address addr, schema::StateInit init,
-                          schema::Grams amount, unsigned flags, Args... args) {
+                          schema::Grams amount, unsigned flags, bool ihr_disabled, Args... args) {
   using namespace schema;
 
   auto hdr = prepare_internal_header<Func>();
   auto hdr_plus_args = std::make_tuple(hdr, args...);
   int_msg_info_relaxed out_info;
-  out_info.ihr_disabled = true;
+  out_info.ihr_disabled = ihr_disabled;
   out_info.bounce = true;
   out_info.bounced = false;
   out_info.src = addr_none{};
@@ -312,12 +312,12 @@ void contract_deploy_impl(address addr, schema::StateInit init,
 // Deployed contract should support `fallback`
 __always_inline
 void contract_deploy_noop_impl(address addr, schema::StateInit init,
-                               schema::Grams amount, unsigned flags) {
+                               schema::Grams amount, unsigned flags, bool ihr_disabled) {
   using namespace schema;
 
   auto hdr = abiv2::internal_msg_header{ uint32(0) };
   int_msg_info_relaxed out_info;
-  out_info.ihr_disabled = true;
+  out_info.ihr_disabled = ihr_disabled;
   out_info.bounce = true;
   out_info.bounced = false;
   out_info.src = addr_none{};
@@ -364,16 +364,16 @@ using awaitable_ret_t = std::conditional_t<std::is_void_v<RetT>, void, wait_call
 
 class contract_call_configured {
 public:
-  contract_call_configured(address addr, schema::Grams amount, unsigned flags)
-    : addr_(addr), amount_(amount), flags_(flags) {}
+  contract_call_configured(address addr, schema::Grams amount, unsigned flags, bool ihr_disabled)
+    : addr_(addr), amount_(amount), flags_(flags), ihr_disabled_(ihr_disabled) {}
   template<auto Func, class... Args>
   __always_inline void call(Args... args) const {
-    contract_call_impl<Func>(addr_, amount_, flags_, args...);
+    contract_call_impl<Func>(addr_, amount_, flags_, ihr_disabled_, args...);
   }
   template<auto Func, class... Args>
   __always_inline
   awaitable_ret_t<get_func_rv_t<Func>> _call_impl(Args... args) const {
-    contract_call_impl<Func>(addr_, amount_, flags_, args...);
+    contract_call_impl<Func>(addr_, amount_, flags_, ihr_disabled_, args...);
     if constexpr (!std::is_void_v<get_func_rv_t<Func>>) {
       temporary_data::setglob(global_id::coroutine_wait_addr, __builtin_tvm_cast_from_slice(addr_.sl()));
       return {};
@@ -383,20 +383,21 @@ private:
   address addr_;
   schema::Grams amount_;
   unsigned flags_;
+  bool ihr_disabled_;
 };
 
 // message is sent to one contract, but answer is expected from other contract
 template<class ReturnVal>
 class tail_call_configured {
 public:
-  tail_call_configured(address addr, address wait_addr, schema::Grams amount, unsigned flags)
-    : addr_(addr), wait_addr_(wait_addr), amount_(amount), flags_(flags) {}
+  tail_call_configured(address addr, address wait_addr, schema::Grams amount, unsigned flags, bool ihr_disabled)
+    : addr_(addr), wait_addr_(wait_addr), amount_(amount), flags_(flags), ihr_disabled_(ihr_disabled) {}
   template<auto Func, class... Args>
   __always_inline
   awaitable_ret_t<ReturnVal> _call_impl(Args... args) const {
     static_assert(!std::is_void_v<ReturnVal>);
 
-    tvm_sendmsg(contract_call_prepare<Func>(addr_, amount_, {wait_addr_.sl()}, args...), flags_);
+    tvm_sendmsg(contract_call_prepare<Func>(addr_, amount_, ihr_disabled_, {wait_addr_.sl()}, args...), flags_);
     temporary_data::setglob(global_id::coroutine_wait_addr, __builtin_tvm_cast_from_slice(wait_addr_.sl()));
     return {};
   }
@@ -405,6 +406,7 @@ private:
   address wait_addr_;
   schema::Grams amount_;
   unsigned flags_;
+  bool ihr_disabled_;
 };
 
 class run_getter {
@@ -429,16 +431,16 @@ private:
 class contract_deploy_configured {
 public:
   contract_deploy_configured(address addr, schema::StateInit init,
-                             schema::Grams amount, unsigned flags)
-    : addr_(addr), init_(init), amount_(amount), flags_(flags) {}
+                             schema::Grams amount, unsigned flags, bool ihr_disabled)
+    : addr_(addr), init_(init), amount_(amount), flags_(flags), ihr_disabled_(ihr_disabled) {}
   template<auto Func, class... Args>
   __always_inline void call(Args... args) const {
-    contract_deploy_impl<Func>(addr_, init_, amount_, flags_, args...);
+    contract_deploy_impl<Func>(addr_, init_, amount_, flags_, ihr_disabled_, args...);
   }
   template<auto Func, class... Args>
   __always_inline
   awaitable_ret_t<get_func_rv_t<Func>> _call_impl(Args... args) const {
-    contract_deploy_impl<Func>(addr_, init_, amount_, flags_, args...);
+    contract_deploy_impl<Func>(addr_, init_, amount_, flags_, ihr_disabled_, args...);
     if constexpr (!std::is_void_v<get_func_rv_t<Func>>) {
       temporary_data::setglob(global_id::coroutine_wait_addr, __builtin_tvm_cast_from_slice(addr_.sl()));
       return {};
@@ -449,22 +451,24 @@ private:
   schema::StateInit init_;
   schema::Grams amount_;
   unsigned flags_;
+  bool ihr_disabled_;
 };
 
 // class for preparing (internal) call message cell without sending it
 class contract_call_prepare_only {
 public:
-  contract_call_prepare_only(address addr, schema::Grams amount)
-    : addr_(addr), amount_(amount) {}
+  contract_call_prepare_only(address addr, schema::Grams amount, bool ihr_disabled)
+    : addr_(addr), amount_(amount), ihr_disabled_(ihr_disabled) {}
   template<auto Func, class... Args>
   __always_inline
   cell _call_impl(Args... args) const {
     using namespace schema;
-    return contract_call_prepare<Func>(addr_, amount_, MsgAddress{MsgAddressExt{addr_none{}}}, args...);
+    return contract_call_prepare<Func>(addr_, amount_, ihr_disabled_, MsgAddress{MsgAddressExt{addr_none{}}}, args...);
   }
 private:
   address addr_;
   schema::Grams amount_;
+  bool ihr_disabled_;
 };
 
 // class for preparing (internal) call message body cell without sending it
@@ -596,38 +600,40 @@ public:
   template<auto Func, class... Args>
   __always_inline
   void call(schema::Grams amount, Args... args) {
-    contract_call_impl<Func>(addr_, amount, DEFAULT_MSG_FLAGS, args...);
+    contract_call_impl<Func>(addr_, amount, DEFAULT_MSG_FLAGS, true, args...);
   }
 
   template<auto Func, class... Args>
   __always_inline
   void deploy_call(schema::StateInit init, schema::Grams amount, Args... args) {
-    contract_deploy_impl<Func>(addr_, init, amount, DEFAULT_MSG_FLAGS, args...);
+    contract_deploy_impl<Func>(addr_, init, amount, DEFAULT_MSG_FLAGS, true, args...);
   }
 
   __always_inline
   contract_call_configured cfg(
-      schema::Grams amount = 10000000, unsigned flags = DEFAULT_MSG_FLAGS) const {
-    return contract_call_configured(addr_, amount, flags);
+      schema::Grams amount = 10000000, unsigned flags = DEFAULT_MSG_FLAGS, bool ihr_disabled = true) const {
+    return contract_call_configured(addr_, amount, flags, ihr_disabled);
   }
   // Deploy message with function call (immediately after deploy)
   __always_inline
   proxy_deploy deploy(
-      schema::StateInit init, schema::Grams amount, unsigned flags = DEFAULT_MSG_FLAGS) const {
-    return proxy_deploy(addr_, init, amount, flags);
+      schema::StateInit init, schema::Grams amount, unsigned flags = DEFAULT_MSG_FLAGS,
+      bool ihr_disabled = true) const {
+    return proxy_deploy(addr_, init, amount, flags, ihr_disabled);
   }
   // Deploy message with func_id = 0 (deploying contract must support fallback)
   __always_inline
-  void deploy_noop(schema::StateInit init, schema::Grams amount, unsigned flags = DEFAULT_MSG_FLAGS) {
-    contract_deploy_noop_impl(addr_, init, amount, flags);
+  void deploy_noop(schema::StateInit init, schema::Grams amount,
+                   unsigned flags = DEFAULT_MSG_FLAGS, bool ihr_disabled = true) {
+    contract_deploy_noop_impl(addr_, init, amount, flags, ihr_disabled);
   }
   __always_inline
-  proxy operator()(schema::Grams amount = 10000000, unsigned flags = DEFAULT_MSG_FLAGS) const {
-    return proxy(addr_, amount, flags);
+  proxy operator()(schema::Grams amount = 10000000, unsigned flags = DEFAULT_MSG_FLAGS, bool ihr_disabled = true) const {
+    return proxy(addr_, amount, flags, ihr_disabled);
   }
   __always_inline
-  proxy_prepare prepare_internal(schema::Grams amount = 10000000) const {
-    return proxy_prepare(addr_, amount);
+  proxy_prepare prepare_internal(schema::Grams amount = 10000000, bool ihr_disabled = true) const {
+    return proxy_prepare(addr_, amount, ihr_disabled);
   }
   __always_inline
   proxy_body body_internal() const {
@@ -660,8 +666,8 @@ public:
   template<class ReturnVal>
   __always_inline
   auto tail_call(address wait_addr, schema::Grams amount = 10000000,
-                                       unsigned flags = DEFAULT_MSG_FLAGS) const {
-    return proxy_tail_call<ReturnVal>(addr_, wait_addr, amount, flags);
+                 unsigned flags = DEFAULT_MSG_FLAGS, bool ihr_disabled = true) const {
+    return proxy_tail_call<ReturnVal>(addr_, wait_addr, amount, flags, ihr_disabled);
   }
   address get() const { return addr_; }
 

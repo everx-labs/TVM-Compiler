@@ -97,15 +97,15 @@ __attribute__((tvm_raw_func)) int main_internal(__tvm_cell msg, __tvm_slice msg_
   return smart_switch</*Internal=*/true, Contract, IContract, DContract,                   \
                       replay_attack_protection::timestamp<TimestampDelay>>(msg, msg_body); \
 }                                                                                          \
-__attribute__((tvm_raw_func)) int main_ticktock(__tvm_cell msg, __tvm_slice msg_body) {    \
+__attribute__((tvm_raw_func)) int main_ticktock(__tvm_cell, __tvm_slice) {                 \
   tvm_throw(error_code::unsupported_call_method);                                          \
   return 0;                                                                                \
 }                                                                                          \
-__attribute__((tvm_raw_func)) int main_split(__tvm_cell msg, __tvm_slice msg_body) {       \
+__attribute__((tvm_raw_func)) int main_split(__tvm_cell, __tvm_slice) {                    \
   tvm_throw(error_code::unsupported_call_method);                                          \
   return 0;                                                                                \
 }                                                                                          \
-__attribute__((tvm_raw_func)) int main_merge(__tvm_cell msg, __tvm_slice msg_body) {       \
+__attribute__((tvm_raw_func)) int main_merge(__tvm_cell, __tvm_slice) {                    \
   tvm_throw(error_code::unsupported_call_method);                                          \
   return 0;                                                                                \
 }
@@ -119,15 +119,15 @@ __attribute__((tvm_raw_func)) int main_internal(__tvm_cell msg, __tvm_slice msg_
   return smart_switch</*Internal=*/true, Contract, IContract, DContract, void>(            \
     msg, msg_body);                                                                        \
 }                                                                                          \
-__attribute__((tvm_raw_func)) int main_ticktock(__tvm_cell msg, __tvm_slice msg_body) {    \
+__attribute__((tvm_raw_func)) int main_ticktock(__tvm_cell, __tvm_slice) {                 \
   tvm_throw(error_code::unsupported_call_method);                                          \
   return 0;                                                                                \
 }                                                                                          \
-__attribute__((tvm_raw_func)) int main_split(__tvm_cell msg, __tvm_slice msg_body) {       \
+__attribute__((tvm_raw_func)) int main_split(__tvm_cell, __tvm_slice) {                    \
   tvm_throw(error_code::unsupported_call_method);                                          \
   return 0;                                                                                \
 }                                                                                          \
-__attribute__((tvm_raw_func)) int main_merge(__tvm_cell msg, __tvm_slice msg_body) {       \
+__attribute__((tvm_raw_func)) int main_merge(__tvm_cell, __tvm_slice) {                    \
   tvm_throw(error_code::unsupported_call_method);                                          \
   return 0;                                                                                \
 }
@@ -144,15 +144,15 @@ __attribute__((tvm_raw_func)) int main_internal(__tvm_cell msg, __tvm_slice msg_
   return smart_switch</*Internal=*/true, Contract<true>, IContract, DContract,             \
                       replay_attack_protection::timestamp<TimestampDelay>>(msg, msg_body); \
 }                                                                                          \
-__attribute__((tvm_raw_func)) int main_ticktock(__tvm_cell msg, __tvm_slice msg_body) {    \
+__attribute__((tvm_raw_func)) int main_ticktock(__tvm_cell, __tvm_slice) {                 \
   tvm_throw(error_code::unsupported_call_method);                                          \
   return 0;                                                                                \
 }                                                                                          \
-__attribute__((tvm_raw_func)) int main_split(__tvm_cell msg, __tvm_slice msg_body) {       \
+__attribute__((tvm_raw_func)) int main_split(__tvm_cell, __tvm_slice) {                    \
   tvm_throw(error_code::unsupported_call_method);                                          \
   return 0;                                                                                \
 }                                                                                          \
-__attribute__((tvm_raw_func)) int main_merge(__tvm_cell msg, __tvm_slice msg_body) {       \
+__attribute__((tvm_raw_func)) int main_merge(__tvm_cell, __tvm_slice) {                    \
   tvm_throw(error_code::unsupported_call_method);                                          \
   return 0;                                                                                \
 }

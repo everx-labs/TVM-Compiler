@@ -302,6 +302,7 @@ public:
     Changes.push_back(make_pair(change, std::string()));
     return change;
   }
+  void operator()(const Stack &stack);
 
   void annotate(const Stack &stack);
 
@@ -318,8 +319,6 @@ private:
   static void generateXchgs(StackFixup &rv, const Stack &from, const Stack &to);
   static void generateVagonXchgs(StackFixup &rv, const Stack &from,
                                  const Stack &to);
-
-  void operator()(const Stack &stack);
 
   void setLastComment(const std::string &comment) {
     Changes.back().second = comment;

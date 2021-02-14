@@ -22,6 +22,50 @@
 
 namespace llvm {
 
+namespace {
+struct Deleter {
+  Deleter(Stack &curStack, SmallVector<StackVreg, 16> delVregs) {
+    std::optional<StackVreg> lastVreg;
+    size_t lastPos = 0;
+    while (!delVregs.empty()) {
+      auto VReg = delVregs.pop_back_val();
+      if (lastVreg && VReg == *lastVreg)
+        lastPos = curStack.position(lastPos + 1, VReg);
+      else
+        lastPos = curStack.position(VReg);
+      lastVreg = VReg;
+      DelIndices.push_back(static_cast<unsigned>(lastPos));
+    }
+    llvm::sort(DelIndices.begin(), DelIndices.end());
+  }
+
+  std::optional<std::pair<unsigned, unsigned>> extractBlock() {
+    if (i >= DelIndices.size())
+      return {};
+    auto cur_begin_idx = DelIndices[i++];
+    auto cur_last_idx = cur_begin_idx;
+    while (i < DelIndices.size() && cur_last_idx + 1 == DelIndices[i]) {
+      ++cur_last_idx;
+      ++i;
+    }
+    return std::make_pair(cur_begin_idx, cur_last_idx);
+  }
+
+  void deleteBlocks(StackFixup &fixup, Stack &curStack) {
+    while (auto Bl = extractBlock()) {
+      auto sz = 1 + Bl->second - Bl->first;
+      if (Bl->first != 0)
+        fixup(curStack += fixup(fixup.makeBlkSwap(sz, Bl->first)));
+    }
+    if (auto delSz = static_cast<unsigned>(DelIndices.size()))
+      fixup(curStack += fixup(fixup.makeBlkdrop(delSz)));
+  }
+
+  unsigned i = 0;
+  SmallVector<unsigned, 16> DelIndices;
+};
+}
+
 StackFixup StackFixup::Diff(const Stack &to, const Stack &from) {
   StackFixup rv;
 
@@ -40,34 +84,31 @@ StackFixup StackFixup::Diff(const Stack &to, const Stack &from) {
   });
 
   SmallVector<StackVreg, 16> delVregs;
-  std::set_difference(fromRegs.begin(), fromRegs.end(), toRegs.begin(),
-                      toRegs.end(), std::back_inserter(delVregs));
+  std::set_difference(fromRegs.begin(), fromRegs.end(),
+                      toRegs.begin(), toRegs.end(),
+                      std::back_inserter(delVregs));
   Stack unmaskedTo(to);
   unmaskedTo.fillUnusedRegs(delVregs);
-  auto removeElem = [&](const StackVreg &vreg) {
-    rv.removeElem(curStack, vreg);
-  };
-  if (!delVregs.empty()) {
-    // Sorting regs-to-delete by position from top of the stack
-    llvm::sort(delVregs.begin(), delVregs.end(),
-               [&from](const StackVreg &L, const StackVreg &R) {
-                 return from.position(L) < from.position(R);
-               });
-
-    // Generate changes to delete unused vregs
-    llvm::for_each(delVregs, removeElem);
-  }
 
   fromRegs = SmallVector<StackVreg, 16>(curStack.begin(), curStack.end());
   toRegs = SmallVector<StackVreg, 16>(unmaskedTo.begin(), unmaskedTo.end());
 
   llvm::sort(fromRegs.begin(), fromRegs.end());
   llvm::sort(toRegs.begin(), toRegs.end());
+  SmallVector<StackVreg, 16> fromRegs2;
+  std::set_difference(fromRegs.begin(), fromRegs.end(),
+                      delVregs.begin(), delVregs.end(),
+                      std::back_inserter(fromRegs2));
+  fromRegs.swap(fromRegs2);
 
-  delVregs.clear();
-  std::set_difference(fromRegs.begin(), fromRegs.end(), toRegs.begin(),
-                      toRegs.end(), std::back_inserter(delVregs));
-  llvm::for_each(delVregs, removeElem);
+  std::set_difference(fromRegs.begin(), fromRegs.end(),
+                      toRegs.begin(), toRegs.end(),
+                      std::back_inserter(delVregs));
+  if (!delVregs.empty()) {
+    Deleter del(curStack, delVregs);
+    del.deleteBlocks(rv, curStack);
+  }
+
 
   fromRegs = SmallVector<StackVreg, 16>(curStack.begin(), curStack.end());
   toRegs = SmallVector<StackVreg, 16>(unmaskedTo.begin(), unmaskedTo.end());
@@ -76,8 +117,9 @@ StackFixup StackFixup::Diff(const Stack &to, const Stack &from) {
   llvm::sort(toRegs.begin(), toRegs.end());
 
   SmallVector<StackVreg, 16> addVregs;
-  std::set_difference(toRegs.begin(), toRegs.end(), fromRegs.begin(),
-                      fromRegs.end(), std::back_inserter(addVregs));
+  std::set_difference(toRegs.begin(), toRegs.end(),
+                      fromRegs.begin(), fromRegs.end(),
+                      std::back_inserter(addVregs));
 
   // Generate changes to insert copies (pushes)
   // TODO: It's not always the optimal sequence of stack manipulations.

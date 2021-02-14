@@ -90,6 +90,7 @@ void TVMTargetMachine::adjustPassManager(PassManagerBuilder &Builder) {
   Builder.addExtension(
     PassManagerBuilder::EP_CGSCCOptimizerLate,
     [](const PassManagerBuilder &, legacy::PassManagerBase &PM) {
+      //PM.add(createTVMReFuncPass());
       PM.add(createArgumentPromotionPass(0));
   });
   Builder.addExtension(
@@ -138,6 +139,7 @@ void TVMPassConfig::addIRPasses() {
   addPass(createTVMLoopPrepare());
   addPass(createTVMControlFlowPrepare());
   addPass(createTVMDefineUndef());
+  addPass(createTVMReFuncPass());
   addPass(createTVMStoreCombine());
 }
 

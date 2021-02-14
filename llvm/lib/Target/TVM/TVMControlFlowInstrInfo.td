@@ -72,13 +72,15 @@ let isCall = 1, hasCtrlDep = 1 in {
   defm CALL_VOID : I<(outs), (ins function_op:$callee, variable_ops),
                      (outs), (ins function_op:$callee),
                      [(TVMcall0 (TVMGlobalAddressWrapper(tglobaladdr:$callee)))],
-                     "CALL\t$callee", "CALL\t$callee", 0xF0>;
+                     "CALLREF {{\n\t      CALL $callee\n\t    }}",
+                     "CALLREF {{\n\t      CALL $callee\n\t    }}", 0xDB3C>;
 
   multiclass CALL_1<TVMRegClass OutReg> :
     I<(outs OutReg:$dst), (ins function_op:$callee, variable_ops),
       (outs), (ins function_op:$callee),
       [(set OutReg:$dst, (TVMcall1 (TVMGlobalAddressWrapper(tglobaladdr:$callee))))],
-      "CALL\t$callee", "CALL\t$callee", 0xF0>;
+      "CALLREF {{\n\t      CALL $callee\n\t    }}",
+      "CALLREF {{\n\t      CALL $callee\n\t    }}", 0xDB3C>;
 
   defm CALL_1_INT : CALL_1<I257>;
   defm CALL_1_SLICE : CALL_1<Slice>;
@@ -90,22 +92,47 @@ let isCall = 1, hasCtrlDep = 1 in {
                   (ins function_op:$callee, variable_ops),
                   (outs), (ins function_op:$callee),
                   [],
-                  "CALL\t$callee", "CALL\t$callee", 0xF0>;
+                  "CALLREF {{\n\t      CALL $callee\n\t    }}",
+                  "CALLREF {{\n\t      CALL $callee\n\t    }}", 0xDB3C>;
+
+  defm CALLDICT_VOID
+    : I<(outs), (ins function_op:$callee, variable_ops),
+        (outs), (ins function_op:$callee),
+        [(TVMcalldict0 (TVMGlobalAddressWrapper(tglobaladdr:$callee)))],
+        "CALL\t$callee", "CALL\t$callee", 0xF0>;
+
+  multiclass CALLDICT_1<TVMRegClass OutReg> :
+    I<(outs OutReg:$dst), (ins function_op:$callee, variable_ops),
+      (outs), (ins function_op:$callee),
+      [(set OutReg:$dst, (TVMcalldict1 (TVMGlobalAddressWrapper(tglobaladdr:$callee))))],
+      "CALL\t$callee", "CALL\t$callee", 0xF0>;
+
+  defm CALLDICT_1_INT : CALLDICT_1<I257>;
+  defm CALLDICT_1_SLICE : CALLDICT_1<Slice>;
+  defm CALLDICT_1_BUILDER : CALLDICT_1<Builder>;
+  defm CALLDICT_1_CELL : CALLDICT_1<Cell>;
+  defm CALLDICT_1_TUPLE : CALLDICT_1<Tuple>;
+
+  defm CALLDICT_N : I<(outs reglist:$regs, variable_ops),
+                      (ins function_op:$callee, variable_ops),
+                      (outs), (ins function_op:$callee),
+                      [],
+                      "CALL\t$callee", "CALL\t$callee", 0xF0>;
 }
 
 // Patterns for matching a direct call to an external symbol.
-def : Pat<(i257 (TVMcall1 (TVMGlobalAddressWrapper texternalsym:$callee))),
-          (CALL_1_INT texternalsym:$callee)>;
-def : Pat<(TVMSlice (TVMcall1 (TVMGlobalAddressWrapper texternalsym:$callee))),
-          (CALL_1_SLICE texternalsym:$callee)>;
-def : Pat<(TVMBuilder (TVMcall1 (TVMGlobalAddressWrapper texternalsym:$callee))),
-          (CALL_1_BUILDER texternalsym:$callee)>;
-def : Pat<(TVMCell (TVMcall1 (TVMGlobalAddressWrapper texternalsym:$callee))),
-          (CALL_1_CELL texternalsym:$callee)>;
-def : Pat<(TVMTuple (TVMcall1 (TVMGlobalAddressWrapper texternalsym:$callee))),
-          (CALL_1_TUPLE texternalsym:$callee)>;
-def : Pat<(TVMcall0 (TVMGlobalAddressWrapper texternalsym:$callee)),
-          (CALL_VOID texternalsym:$callee)>;
+def : Pat<(i257 (TVMcalldict1 (TVMGlobalAddressWrapper texternalsym:$callee))),
+          (CALLDICT_1_INT texternalsym:$callee)>;
+def : Pat<(TVMSlice (TVMcalldict1 (TVMGlobalAddressWrapper texternalsym:$callee))),
+          (CALLDICT_1_SLICE texternalsym:$callee)>;
+def : Pat<(TVMBuilder (TVMcalldict1 (TVMGlobalAddressWrapper texternalsym:$callee))),
+          (CALLDICT_1_BUILDER texternalsym:$callee)>;
+def : Pat<(TVMCell (TVMcalldict1 (TVMGlobalAddressWrapper texternalsym:$callee))),
+          (CALLDICT_1_CELL texternalsym:$callee)>;
+def : Pat<(TVMTuple (TVMcalldict1 (TVMGlobalAddressWrapper texternalsym:$callee))),
+          (CALLDICT_1_TUPLE texternalsym:$callee)>;
+def : Pat<(TVMcalldict0 (TVMGlobalAddressWrapper texternalsym:$callee)),
+          (CALLDICT_VOID texternalsym:$callee)>;
 
 let isMoveImm = 1, AddedComplexity = 99 in
 defm PUSHCONT_MBB : I<(outs I257:$res), (ins bb_op:$bb, i257imm:$fake_op),

@@ -28,6 +28,7 @@ add_llvm_target(TVMCodeGen
   TVMMCExpr.cpp
   TVMMCInstLower.cpp
   TVMPrepareForLiveIntervals.cpp
+  TVMReFunc.cpp
   TVMRematerialize.cpp
   TVMReplacePhysRegs.cpp
   TVMRegStackify.cpp

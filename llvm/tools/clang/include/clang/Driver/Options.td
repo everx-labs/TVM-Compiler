@@ -635,6 +635,8 @@ def import_json_name : Joined<["-"], "import-json-name=">, Flags<[CC1Option]>,
   HelpText<"Override name for imported interface structure (file name by default)">;
 def lto_S : Flag<["-"], "lto-S">, Flags<[CC1Option]>, Group<Action_Group>,
   HelpText<"Emit after lto assembly">;
+def tvm_refunc : Flag<["-"], "mtvm-refunc">, Group<m_Group>, Flags<[DriverOption,CC1Option]>,
+  HelpText<"Enable TVM ReFunc pass">;
 // TVM local end
 def exported__symbols__list : Separate<["-"], "exported_symbols_list">;
 def e : JoinedOrSeparate<["-"], "e">, Group<Link_Group>;

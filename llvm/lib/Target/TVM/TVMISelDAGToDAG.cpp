@@ -122,7 +122,9 @@ void TVMDAGToDAGISel::Select(SDNode *Node) {
     ReplaceNode(Node, Res);
     return;
   }
+  case TVMISD::CALLDICTN:
   case TVMISD::CALLN: {
+    bool DictCall = (Node->getOpcode() == TVMISD::CALLDICTN);
     SmallVector<SDValue, 16> Ops(std::next(Node->op_begin()), Node->op_end());
     assert(Ops[0].getOpcode() == TVMISD::GLOBAL_ADDRESS_WRAPPER);
     Ops[0] = Ops[0].getOperand(0); // unwrap the address
@@ -131,7 +133,8 @@ void TVMDAGToDAGISel::Select(SDNode *Node) {
     Ops.push_back(Chain); // Chain to the end
     SmallVector<EVT, 16> VTs(Node->value_begin(), Node->value_end());
     SDNode *Res =
-        CurDAG->getMachineNode(TVM::CALL_N, dl, CurDAG->getVTList(VTs), Ops);
+        CurDAG->getMachineNode(DictCall ? TVM::CALLDICT_N : TVM::CALL_N, dl,
+                               CurDAG->getVTList(VTs), Ops);
     ReplaceNode(Node, Res);
     return;
   }

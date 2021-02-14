@@ -68,12 +68,16 @@ struct make_parser_impl<std::tuple<Types...>> {
   // For parsing std::tuple fields
   template<class _Ctx>
   inline static std::tuple<optional<value_type>, parser, _Ctx> parse(parser p, _Ctx parent_ctx) {
-    using CtxT = ParseContext<empty, value_type>;
-    CtxT ctx;
-    auto [succ, new_p, new_ctx] = sequence_parser<CtxT, 0, Types...>::parse(p, ctx);
-    if (succ)
-      return std::tuple(new_ctx.get_tuple(), new_p, parent_ctx);
-    return std::tuple(optional<value_type>{}, p, parent_ctx);
+    if constexpr (std::tuple_size_v<value_type> == 0) {
+      return { value_type{}, p, parent_ctx };
+    } else {
+      using CtxT = ParseContext<empty, value_type>;
+      CtxT ctx;
+      auto [succ, new_p, new_ctx] = sequence_parser<CtxT, 0, Types...>::parse(p, ctx);
+      if (succ)
+        return std::tuple(new_ctx.get_tuple(), new_p, parent_ctx);
+      return std::tuple(optional<value_type>{}, p, parent_ctx);
+    }
   }
 };
 

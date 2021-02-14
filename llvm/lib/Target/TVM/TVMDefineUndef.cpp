@@ -145,6 +145,8 @@ static bool isUndefinedPhi(PHINode &PN) {
 }
 
 static bool definePhi(PHINode &PN) {
+  if (PN.getType()->isPointerTy())
+    return false;
   if (!isUndefinedPhi(PN))
     return false;
   auto *NewPN = PHINode::Create(PN.getType(), PN.getNumOperands(),
@@ -154,7 +156,8 @@ static bool definePhi(PHINode &PN) {
     BasicBlock *IncBB = PN.getIncomingBlock(i);
 
     if (Incoming == UndefValue::get(Incoming->getType()))
-      Incoming = definedValue(PN, Incoming->getType());
+      Incoming = definedValue(*IncBB->getFirstInsertionPt(),
+                              Incoming->getType());
     NewPN->addIncoming(Incoming, IncBB);
   }
   PN.replaceAllUsesWith(NewPN);

@@ -13,7 +13,7 @@ namespace tvm { namespace schema {
 template<unsigned _bitlen, unsigned _code>
 struct make_builder_impl<bitconst<_bitlen, _code>> {
   using value_type = bitconst<_bitlen, _code>;
-  inline static builder build(builder b, value_type) {
+  __always_inline static builder build(builder b, value_type) {
     return b.stu(_code, _bitlen);
   }
 };
@@ -21,7 +21,7 @@ struct make_builder_impl<bitconst<_bitlen, _code>> {
 template<unsigned _bitlen>
 struct make_builder_impl<bitfield<_bitlen>> {
   using value_type = bitfield<_bitlen>;
-  inline static builder build(builder b, value_type v) {
+  __always_inline static builder build(builder b, value_type v) {
     return b.stslice(v.sl_);
   }
 };
@@ -29,7 +29,7 @@ struct make_builder_impl<bitfield<_bitlen>> {
 template<unsigned _bitlen>
 struct make_builder_impl<uint_t<_bitlen>> {
   using value_type = uint_t<_bitlen>;
-  inline static builder build(builder b, value_type v) {
+  __always_inline static builder build(builder b, value_type v) {
     return b.stu(v.val_, _bitlen);
   }
 };
@@ -37,7 +37,7 @@ struct make_builder_impl<uint_t<_bitlen>> {
 template<unsigned _bitlen>
 struct make_builder_impl<int_t<_bitlen>> {
   using value_type = int_t<_bitlen>;
-  inline static builder build(builder b, value_type v) {
+  __always_inline static builder build(builder b, value_type v) {
     return b.sti(v.val_, _bitlen);
   }
 };
@@ -45,7 +45,7 @@ struct make_builder_impl<int_t<_bitlen>> {
 template<>
 struct make_builder_impl<varuint<16>> {
   using value_type = varuint<16>;
-  inline static builder build(builder b, value_type v) {
+  __always_inline static builder build(builder b, value_type v) {
     return b.stvaruint16(v.val_);
   }
 };
@@ -53,7 +53,7 @@ struct make_builder_impl<varuint<16>> {
 template<>
 struct make_builder_impl<varuint<32>> {
   using value_type = varuint<32>;
-  inline static builder build(builder b, value_type v) {
+  __always_inline static builder build(builder b, value_type v) {
     return b.stvaruint32(v.val_);
   }
 };
@@ -61,7 +61,7 @@ struct make_builder_impl<varuint<32>> {
 template<>
 struct make_builder_impl<varint<16>> {
   using value_type = varint<16>;
-  inline static builder build(builder b, value_type v) {
+  __always_inline static builder build(builder b, value_type v) {
     return b.stvarint16(v.val_);
   }
 };
@@ -69,7 +69,7 @@ struct make_builder_impl<varint<16>> {
 template<>
 struct make_builder_impl<varint<32>> {
   using value_type = varint<32>;
-  inline static builder build(builder b, value_type v) {
+  __always_inline static builder build(builder b, value_type v) {
     return b.stvarint32(v.val_);
   }
 };
@@ -77,14 +77,14 @@ struct make_builder_impl<varint<32>> {
 template<unsigned _keylen, class _element_type>
 struct make_builder_impl<HashmapE<_keylen, _element_type>> {
   using value_type = HashmapE<_keylen, _element_type>;
-  inline static builder build(builder b, value_type v) {
+  __always_inline static builder build(builder b, value_type v) {
     return b.stdict(v.dict_);
   }
 };
 template<>
 struct make_builder_impl<anydict> {
   using value_type = anydict;
-  inline static builder build(builder b, value_type v) {
+  __always_inline static builder build(builder b, value_type v) {
     return b.stdict(v.dict_);
   }
 };
@@ -92,7 +92,7 @@ struct make_builder_impl<anydict> {
 template<class _Tp>
 struct make_builder_impl<ref<_Tp>> {
   using value_type = ref<_Tp>;
-  inline static builder build(builder b, value_type v) {
+  __always_inline static builder build(builder b, value_type v) {
     tvm::builder inner_builder;
     inner_builder = make_builder_impl<_Tp>::build(inner_builder, v.val_);
     return b.stref(inner_builder.endc());
@@ -101,7 +101,7 @@ struct make_builder_impl<ref<_Tp>> {
 template<>
 struct make_builder_impl<cell> {
   using value_type = cell;
-  inline static builder build(builder b, value_type v) {
+  __always_inline static builder build(builder b, value_type v) {
     return b.stref(v);
   }
 };
@@ -116,7 +116,7 @@ struct make_builder_impl<anyval> {
 template<>
 struct make_builder_impl<MsgAddressSlice> {
   using value_type = MsgAddressSlice;
-  inline static builder build(builder b, value_type v) {
+  __always_inline static builder build(builder b, value_type v) {
     return b.stslice(v.sl_);
   }
 };
@@ -124,7 +124,7 @@ struct make_builder_impl<MsgAddressSlice> {
 template<class _Tp>
 struct make_builder_impl<lazy<_Tp>> {
   using value_type = lazy<_Tp>;
-  inline static builder build(builder b, value_type v) {
+  __always_inline static builder build(builder b, value_type v) {
     return b.stslice(v.sl());
   }
 };
@@ -132,7 +132,7 @@ struct make_builder_impl<lazy<_Tp>> {
 template<>
 struct make_builder_impl<empty> {
   using value_type = empty;
-  inline static builder build(builder b, value_type) {
+  __always_inline static builder build(builder b, value_type) {
     return b;
   }
 };
@@ -140,7 +140,7 @@ struct make_builder_impl<empty> {
 template<class _Tp>
 struct make_builder_impl<optional<_Tp>> {
   using value_type = optional<_Tp>;
-  inline static builder build(builder b, value_type v) {
+  __always_inline static builder build(builder b, value_type v) {
     if (v) {
       b.stu(1, 1);
       return make_builder_impl<_Tp>::build(b, *v);
@@ -154,12 +154,12 @@ template<class _Tp>
 using make_builder = make_builder_impl<_Tp>;
 
 template<class _Tp>
-inline builder build(builder b, _Tp val) {
+__always_inline builder build(builder b, _Tp val) {
   return make_builder<_Tp>::build(b, val);
 }
 
 template<class _Tp>
-inline builder build(_Tp val) {
+__always_inline builder build(_Tp val) {
   return make_builder<_Tp>::build(builder(), val);
 }
 

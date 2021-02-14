@@ -161,6 +161,13 @@ SDValue TVMTargetLowering::LowerCall(CallLoweringInfo &CLI,
   SDValue Chain = CLI.Chain;
   SDValue Callee = CLI.Callee;
   MachineFunction &MF = DAG.getMachineFunction();
+  bool DictCall = true;
+
+  if (GlobalAddressSDNode *GA = dyn_cast<GlobalAddressSDNode>(Callee)) {
+    auto *F = dyn_cast<Function>(GA->getGlobal());
+    if (F && F->hasInternalLinkage() && F->doesNotRecurse())
+      DictCall = false;
+  }
 
   CallingConv::ID CallConv = CLI.CallConv;
   if (!CallingConvSupported(CallConv))
@@ -217,11 +224,11 @@ SDValue TVMTargetLowering::LowerCall(CallLoweringInfo &CLI,
   SDVTList InTyList = DAG.getVTList(InTys);
   unsigned CallCmd;
   switch (Ins.size()) {
-  case 0:  CallCmd = TVMISD::CALL0; break;
-  case 1:  CallCmd = TVMISD::CALL1; break;
-  default: CallCmd = TVMISD::CALLN; break;
+  case 0:  CallCmd = DictCall ? TVMISD::CALLDICT0 : TVMISD::CALL0; break;
+  case 1:  CallCmd = DictCall ? TVMISD::CALLDICT1 : TVMISD::CALL1; break;
+  default: CallCmd = DictCall ? TVMISD::CALLDICTN : TVMISD::CALLN; break;
   }
-  if (CallCmd == TVMISD::CALLN)
+  if (CallCmd == TVMISD::CALLN || CallCmd == TVMISD::CALLDICTN)
     Ops.push_back(DAG.getTargetConstant(Ins.size(), DL, MVT::i257));
   SDValue Res = DAG.getNode(CallCmd, DL, InTyList, Ops);
   if (Ins.empty()) {

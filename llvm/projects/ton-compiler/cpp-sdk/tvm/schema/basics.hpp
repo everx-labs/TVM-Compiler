@@ -588,6 +588,7 @@ struct anydict {
   cell operator()() const { return dict_; }
   void operator()(cell dict) { dict_ = dict; }
   auto& operator=(cell dict) { dict_ = dict; return *this; }
+  __always_inline operator bool() const { return !dict_.isnull(); }
   cell get() const { return dict_; }
   cell dict_;
 };

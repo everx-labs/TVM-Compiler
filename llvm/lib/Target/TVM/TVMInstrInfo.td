@@ -76,6 +76,10 @@ def TVMcall0 : SDNode<"TVMISD::CALL0", SDT_TVMCall0,
                       [SDNPHasChain, SDNPVariadic]>;
 def TVMcall1 : SDNode<"TVMISD::CALL1", SDT_TVMCall1,
                       [SDNPHasChain, SDNPVariadic]>;
+def TVMcalldict0 : SDNode<"TVMISD::CALLDICT0", SDT_TVMCall0,
+                      [SDNPHasChain, SDNPVariadic]>;
+def TVMcalldict1 : SDNode<"TVMISD::CALLDICT1", SDT_TVMCall1,
+                      [SDNPHasChain, SDNPVariadic]>;
 
 def TVMctos     : SDNode<"TVMISD::CTOS", SDT_TVMCtos>;
 def TVMstslice  : SDNode<"TVMISD::STSLICE", SDT_TVMStSlice>;

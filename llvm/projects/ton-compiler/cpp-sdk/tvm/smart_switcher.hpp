@@ -260,6 +260,8 @@ inline std::tuple<persistent_data_header_t<Interface, ReplayAttackProtection>, D
   bool uninitialized = persist.ldu(1);
   tvm_assert(!uninitialized, error_code::method_called_without_init);
 
+  using data_tup_t = to_std_tuple_t<DContract>;
+
   if constexpr (persistent_header_info<Interface, ReplayAttackProtection>::non_empty) {
     using HeaderT = persistent_data_header_t<Interface, ReplayAttackProtection>;
     auto [data_hdr, =persist] = parse_continue<HeaderT>(persist);
@@ -269,12 +271,21 @@ inline std::tuple<persistent_data_header_t<Interface, ReplayAttackProtection>, D
     static_assert(Est::max_bits == Est::min_bits, "Persistent data header can't be dynamic-size");
 
     // Only 1 + bitsize(Header) bits to skip
-    DContract base = parse_chain<DContract, 1 + Est::max_bits, Est::max_refs>(persist);
+    using LinearTup = decltype(make_chain_tuple<1 + Est::max_bits, Est::max_refs>(data_tup_t{}));
+    // uncomment to print in remark:
+    //__reflect_echo<print_chain_tuple<LinearTup>().c_str()>{};
+    auto linear_tup = parse<LinearTup>(persist);
+    DContract base = to_struct<DContract>(chain_fold_tup<data_tup_t>(linear_tup));
+    // DContract base = parse_chain<DContract, 1 + Est::max_bits, Est::max_refs>(persist);
     return { *data_hdr, base };
   } else {
     // Only 1 bit to skip
-    DContract base = parse_chain<DContract, 1, 0>(persist);
-    return { 0, base };
+    using LinearTup = decltype(make_chain_tuple<1, 0>(data_tup_t{}));
+    // uncomment to print in remark:
+    //__reflect_echo<print_chain_tuple<LinearTup>().c_str()>{};
+    auto linear_tup = parse<LinearTup>(persist);
+    DContract base = to_struct<DContract>(chain_fold_tup<data_tup_t>(linear_tup));
+    return { {}, base };
   }
 }
 
@@ -291,7 +302,7 @@ __always_inline Data parse_smart(parser p, parser from_header) {
     if constexpr (est_t::max_bits > cell::max_bits || est_t::max_refs > cell::max_refs) {
       using LinearTup = decltype(make_chain_tuple<0, 0>(header_with_args{}));
       // uncomment to print in remark:
-      __reflect_echo<print_chain_tuple<LinearTup>().c_str()>{};
+      // __reflect_echo<print_chain_tuple<LinearTup>().c_str()>{};
       auto linear_tup = parse<LinearTup>(from_header);
       return std::get<1>(chain_fold_tup<header_with_args>(linear_tup));
     } else {
@@ -310,10 +321,16 @@ inline cell prepare_persistent_data(persistent_data_header_t<IContract, ReplayAt
   // Then store data_tup_combined into chain of cells
   if constexpr (persistent_header_info<IContract, ReplayAttackProtection>::non_empty) {
     auto data_tup_combined = std::tuple_cat(std::make_tuple(bool_t(false), persistent_data_header), data_tup);
-    return build_chain(data_tup_combined).make_cell();
+    auto chain_tup = make_chain_tuple(data_tup_combined);
+    // uncomment to print in remark:
+    //__reflect_echo<print_chain_tuple<decltype(chain_tup)>().c_str()>{};
+    return build(chain_tup).make_cell();
   } else {
     auto data_tup_combined = std::tuple_cat(std::make_tuple(bool_t(false)), data_tup);
-    return build_chain(data_tup_combined).make_cell();
+    auto chain_tup = make_chain_tuple(data_tup_combined);
+    // uncomment to print in remark:
+    //__reflect_echo<print_chain_tuple<decltype(chain_tup)>().c_str()>{};
+    return build(chain_tup).make_cell();
   }
 }
 
@@ -362,29 +379,15 @@ struct smart_switcher_impl {
       persistent_data_header_t<IContract, ReplayAttackProtection> persistent_data_header;
 
       if constexpr (!get_interface_method_no_read_persistent<IContract, Index>::value) {
-        parser persist(persistent_data::get());
-        bool uninitialized = persist.ldu(1);
         // Load persistent data (not for constructor)
         if constexpr (!is_method_constructor<IContract, my_method_id>()) {
-          tvm_assert(!uninitialized, error_code::method_called_without_init);
+          auto [parsed_hdr, parsed_data] = load_persistent_data<IContract, ReplayAttackProtection, DContract>();
           auto &base = static_cast<DContract&>(c);
-          // Load replay attack protection header
-          if constexpr (persistent_header_info<IContract, ReplayAttackProtection>::non_empty) {
-            using HeaderT = decltype(persistent_data_header);
-            auto [data_hdr, =persist] = parse_continue<HeaderT>(persist);
-            tvm_assert(!!data_hdr, error_code::persistent_data_parse_error);
-            persistent_data_header = *data_hdr;
-
-            using Est = estimate_element<HeaderT>;
-            static_assert(Est::max_bits == Est::min_bits, "Persistent data header can't be dynamic-size");
-
-            // Only 1 + bitsize(Header) bits to skip
-            base = parse_chain<DContract, 1 + Est::max_bits, Est::max_refs>(persist);
-          } else {
-            // Only 1 bit to skip
-            base = parse_chain<DContract, 1, 0>(persist);
-          }
+          persistent_data_header = parsed_hdr;
+          base = parsed_data;
         } else {
+          parser persist(persistent_data::get());
+          bool uninitialized = persist.ldu(1);
           tvm_assert(uninitialized, error_code::constructor_double_call);
         }
       }

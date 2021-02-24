@@ -2,9 +2,10 @@
 
 // ==================== Support methods =========================== //
 #define DEFAULT_SUPPORT_FUNCTIONS(TVM_INTERFACE, TVM_REPLAY_PROTECTION)                                    \
-  unsigned pubkey_ = 0;                                                                                    \
-  __always_inline void set_tvm_pubkey(unsigned pubkey) { pubkey_ = pubkey; }                               \
-  __always_inline unsigned tvm_pubkey() const { return pubkey_; }                                          \
+  unsigned msg_pubkey_ = 0;                                                                                \
+  __always_inline void set_msg_pubkey(unsigned pubkey) { msg_pubkey_ = pubkey; }                           \
+  __always_inline unsigned tvm_pubkey() const { return msg_pubkey_; }                                      \
+  __always_inline unsigned msg_pubkey() const { return msg_pubkey_; }                                      \
   std::variant<cell, slice> msg_slice_;                                                                    \
   __always_inline void set_msg_slice(slice sl) { msg_slice_ = sl; }                                        \
   __always_inline void set_msg_slice(cell cl) { msg_slice_ = cl; }                                         \
@@ -46,6 +47,13 @@
     ext_sender_ = val;                                                                                     \
   }                                                                                                        \
   unsigned int_return_flag_ = DEFAULT_MSG_FLAGS;                                                           \
+  std::optional<address> suicide_addr_;                                                                    \
+  __always_inline std::optional<address> suicide_addr() {                                                  \
+    return suicide_addr_;                                                                                  \
+  }                                                                                                        \
+   __always_inline void suicide(address addr) {                                                            \
+    suicide_addr_ = addr;                                                                                  \
+  }                                                                                                        \
   __always_inline unsigned int_return_flag() const { return int_return_flag_; }                            \
   __always_inline void set_int_return_flag(unsigned flag) { int_return_flag_ = flag; }                     \
   unsigned int_return_value_ = 0;                                                                          \

@@ -588,8 +588,10 @@ struct anydict {
   cell operator()() const { return dict_; }
   void operator()(cell dict) { dict_ = dict; }
   auto& operator=(cell dict) { dict_ = dict; return *this; }
+  cell get() const { return dict_; }
   cell dict_;
 };
+using optcell = anydict;
 
 template<class X>
 struct EitherLeft {

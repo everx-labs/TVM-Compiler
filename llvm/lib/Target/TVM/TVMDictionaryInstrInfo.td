@@ -204,6 +204,20 @@ let mayStore = 1 in {
         (int_tvm_dictusetgetref Cell:$val, I257:$key, Cell:$dict, I257:$precision))],
       "DICTUSETGETREF\t$newdict, $oldval, $succ, $val, $key, $dict, $precision",
       "DICTUSETGETREF NULLSWAPIFNOT", 0xf41f>;
+  defm DICTSETGET :
+    I<(outs Cell:$newdict, Slice:$oldval, I257:$succ),
+      (ins Slice:$val, Slice:$key, Cell:$dict, I257:$precision), (outs), (ins),
+      [(set Cell:$newdict, Slice:$oldval, I257:$succ,
+        (int_tvm_dictsetget Slice:$val, Slice:$key, Cell:$dict, I257:$precision))],
+      "DICTSETGET\t$newdict, $oldval, $succ, $val, $key, $dict, $precision",
+      "DICTSETGET NULLSWAPIFNOT", 0xf41e>;
+  defm DICTSETGETREF :
+    I<(outs Cell:$newdict, Cell:$oldval, I257:$succ),
+      (ins Cell:$val, Slice:$key, Cell:$dict, I257:$precision), (outs), (ins),
+      [(set Cell:$newdict, Cell:$oldval, I257:$succ,
+        (int_tvm_dictsetgetref Cell:$val, Slice:$key, Cell:$dict, I257:$precision))],
+      "DICTSETGETREF\t$newdict, $oldval, $succ, $val, $key, $dict, $precision",
+      "DICTSETGETREF NULLSWAPIFNOT", 0xf41f>;
 
   defm DICTREPLACE :
     I<(outs Cell:$newdict, I257:$succ),
@@ -315,6 +329,12 @@ let mayStore = 1 in {
       [(set Cell:$newdict, I257:$modified,
         (int_tvm_dictudel I257:$key, Cell:$dict, I257:$w))],
       "DICTUDEL\t$newdict, $modified, $key, $dict, $w", "DICTUDEL", 0xf45b>;
+  defm DICTDEL :
+    I<(outs Cell:$newdict, I257:$modified),
+      (ins Slice:$key, Cell:$dict, I257:$w), (outs), (ins),
+      [(set Cell:$newdict, I257:$modified,
+        (int_tvm_dictdel Slice:$key, Cell:$dict, I257:$w))],
+      "DICTDEL\t$newdict, $modified, $key, $dict, $w", "DICTDEL", 0xf459>;
 
   // TODO: think how to implement DICTADDGET-like operations
   //  with 2 or 3 return values (D old_val true) | (D false)

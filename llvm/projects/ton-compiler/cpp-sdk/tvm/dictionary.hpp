@@ -81,6 +81,16 @@ public:
     dict_ = dict;
     return std::tuple(cl, succ);
   }
+  std::tuple<slice, bool> dictsetget(slice val, slice key, unsigned key_len) {
+    auto [dict, sl, succ] = __builtin_tvm_dictsetget(val.get(), key, get(), key_len);
+    dict_ = dict;
+    return std::tuple(sl, succ);
+  }
+  std::tuple<cell, bool> dictsetgetref(cell val, slice key, unsigned key_len) {
+    auto [dict, cl, succ] = __builtin_tvm_dictsetgetref(val.get(), key, get(), key_len);
+    dict_ = dict;
+    return std::tuple(cl, succ);
+  }
 
   std::tuple<slice, slice, bool> dictmin(unsigned key_len) const {
     auto [sl, key_sl, succ] = __builtin_tvm_dictmin(get(), key_len);
@@ -150,6 +160,12 @@ public:
 
   bool dictudel(unsigned key, unsigned key_len) {
     auto [dict, succ] = __builtin_tvm_dictudel(key, get(), key_len);
+    dict_ = dict;
+    return succ;
+  }
+
+  bool dictdel(slice key, unsigned key_len) {
+    auto [dict, succ] = __builtin_tvm_dictdel(key, get(), key_len);
     dict_ = dict;
     return succ;
   }

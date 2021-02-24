@@ -30,6 +30,12 @@ struct expander {
     return to_std_tuple(elem);
   }
 };
+template<class... Types>
+struct expander<std::tuple<Types...>> {
+  static auto execute(std::tuple<Types...> elem) {
+    return elem;
+  }
+};
 template<class T>
 struct entupler {
   static auto execute(T elem) {
@@ -43,6 +49,17 @@ constexpr auto expand_elem(T elem) {
   return expander_t::execute(elem);
 }
 
+template<class... Types>
+constexpr bool has_expandable() {
+  return (false || ... || schema::is_expandable<Types>::value);
+}
+template<class T>
+struct tuple_has_expandable_elem {};
+template<class... Types>
+struct tuple_has_expandable_elem<std::tuple<Types...>> {
+  static constexpr bool value = has_expandable<Types...>();
+};
+
 template<class... Elems>
 auto make_expanded_tuple(std::tuple<Elems...> tup) {
   if constexpr (sizeof...(Elems) != 0) {
@@ -50,12 +67,10 @@ auto make_expanded_tuple(std::tuple<Elems...> tup) {
     auto elem_tup = expand_elem(first_elem);
     if constexpr (sizeof...(Elems) > 1) {
       auto next_subtup = hana::take_back_c<sizeof...(Elems) - 1>(tup);
-      if constexpr (std::tuple_size_v<decltype(elem_tup)> == 1 &&
-                    !schema::is_expandable<decltype(std::get<0>(elem_tup))>::value) {
+      if constexpr (!tuple_has_expandable_elem<decltype(elem_tup)>::value) {
         return std::tuple_cat(elem_tup, make_expanded_tuple(next_subtup));
       } else {
-        //return std::tuple_cat(make_expanded_tuple(elem_tup), make_expanded_tuple(next_subtup));
-        return std::tuple_cat(elem_tup, make_expanded_tuple(next_subtup));
+        return std::tuple_cat(make_expanded_tuple(elem_tup), make_expanded_tuple(next_subtup));
       }
     } else {
       return elem_tup;

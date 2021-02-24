@@ -15,6 +15,7 @@
 #include <vector>
 
 #include "TVM.h"
+#include "llvm/ADT/Sequence.h"
 #include "llvm/Analysis/LoopInfo.h"
 #include "llvm/Analysis/LoopPass.h"
 #include "llvm/IR/Constants.h"
@@ -51,6 +52,38 @@ INITIALIZE_PASS(TVMDefineUndef, DEBUG_TYPE,
                 "Define undefs in store Instructions", false, false)
 
 BasicBlockPass *llvm::createTVMDefineUndef() { return new TVMDefineUndef(); }
+
+static Value *definedValue(Instruction &I, Type *Ty) {
+  auto &Ctx = I.getModule()->getContext();
+  auto *Int257Ty = Type::getIntNTy(Ctx, 257);
+  if (Ty == Int257Ty)
+    return ConstantInt::get(Int257Ty, 0);
+  if (Ty == Type::getTVMCellTy(Ctx)) {
+    IRBuilder<> Builder(&I);
+    CallInst *Pushnull = Builder.CreateIntrinsic(Intrinsic::tvm_pushnull);
+    auto *Fn = Intrinsic::getDeclaration(I.getModule(), Intrinsic::tvm_cast_to_cell);
+    return Builder.CreateCall(Fn, ArrayRef<Value *>{Pushnull});
+  }
+  if (Ty == Type::getTVMSliceTy(Ctx)) {
+    IRBuilder<> Builder(&I);
+    CallInst *Pushnull = Builder.CreateIntrinsic(Intrinsic::tvm_pushnull);
+    auto *Fn = Intrinsic::getDeclaration(I.getModule(), Intrinsic::tvm_cast_to_slice);
+    return Builder.CreateCall(Fn, ArrayRef<Value *>{Pushnull});
+  }
+  if (Ty == Type::getTVMBuilderTy(Ctx)) {
+    IRBuilder<> Builder(&I);
+    CallInst *Pushnull = Builder.CreateIntrinsic(Intrinsic::tvm_pushnull);
+    auto *Fn = Intrinsic::getDeclaration(I.getModule(), Intrinsic::tvm_cast_to_builder);
+    return Builder.CreateCall(Fn, ArrayRef<Value *>{Pushnull});
+  }
+  if (Ty == Type::getTVMTupleTy(Ctx)) {
+    IRBuilder<> Builder(&I);
+    CallInst *Pushnull = Builder.CreateIntrinsic(Intrinsic::tvm_pushnull);
+    auto *Fn = Intrinsic::getDeclaration(I.getModule(), Intrinsic::tvm_cast_to_tuple);
+    return Builder.CreateCall(Fn, ArrayRef<Value *>{Pushnull});
+  }
+  llvm_unreachable("Unsupported type in definedValue");
+}
 
 static bool definePlainStore(Instruction &I) {
   auto *Int257Ty = Type::getIntNTy(I.getModule()->getContext(), 257);
@@ -102,8 +135,38 @@ static bool defineStslice(Instruction &I) {
   return true;
 }
 
+static bool isUndefinedPhi(PHINode &PN) {
+  for (auto i : seq<int>(0, PN.getNumOperands())) {
+    Value *Incoming = PN.getIncomingValue(i);
+    if (Incoming == UndefValue::get(Incoming->getType()))
+      return true;
+  }
+  return false;
+}
+
+static bool definePhi(PHINode &PN) {
+  if (!isUndefinedPhi(PN))
+    return false;
+  auto *NewPN = PHINode::Create(PN.getType(), PN.getNumOperands(),
+                                PN.getName() + ".defined", &PN);
+  for (auto i : seq<int>(0, PN.getNumOperands())) {
+    Value *Incoming = PN.getIncomingValue(i);
+    BasicBlock *IncBB = PN.getIncomingBlock(i);
+
+    if (Incoming == UndefValue::get(Incoming->getType()))
+      Incoming = definedValue(PN, Incoming->getType());
+    NewPN->addIncoming(Incoming, IncBB);
+  }
+  PN.replaceAllUsesWith(NewPN);
+  return true;
+}
+
 bool TVMDefineUndef::runOnBasicBlock(BasicBlock &BB) {
   bool Changed = false;
+  for (PHINode &PN : BB.phis()) {
+    Changed |= definePhi(PN);
+  }
+
   auto It = std::begin(BB);
   while (It != std::end(BB)) {
     auto CS = CallSite(&*It);

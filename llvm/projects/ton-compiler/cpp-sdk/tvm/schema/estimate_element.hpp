@@ -85,7 +85,7 @@ struct estimate_element<varint<32>>
 template<unsigned _keylen, class _element_type>
 struct estimate_element<HashmapE<_keylen, _element_type>>
   : detail::bits<1, 1>
-  , detail::one_ref {};
+  , detail::refs<0, 1> {};
 
 template<class _Tp>
 struct estimate_element<ref<_Tp>>
@@ -97,7 +97,7 @@ struct estimate_element<cell>
   , detail::one_ref {};
 template<>
 struct estimate_element<anydict>
-  : detail::bits<0, 0>
+  : detail::bits<1, 1>
   , detail::refs<0, 1> {};
 template<>
 struct estimate_element<anyval>
@@ -124,10 +124,10 @@ struct estimate_element<int_t<_bitlen>>
 // Container types
 template<class... Types>
 struct estimate_element<std::tuple<Types...>> {
-  static constexpr unsigned min_bits = (estimate_element<Types>::min_bits + ...);
-  static constexpr unsigned max_bits = (estimate_element<Types>::max_bits + ...);
-  static constexpr unsigned min_refs = (estimate_element<Types>::min_refs + ...);
-  static constexpr unsigned max_refs = (estimate_element<Types>::max_refs + ...);
+  static constexpr unsigned min_bits = (0u + ... + estimate_element<Types>::min_bits);
+  static constexpr unsigned max_bits = (0u + ... + estimate_element<Types>::max_bits);
+  static constexpr unsigned min_refs = (0u + ... + estimate_element<Types>::min_refs);
+  static constexpr unsigned max_refs = (0u + ... + estimate_element<Types>::max_refs);
 };
 template<class... Types>
 struct estimate_element<std::variant<Types...>> {

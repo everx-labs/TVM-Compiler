@@ -132,6 +132,28 @@ struct message_relaxed {
 };
 
 struct addr_std_fixed {
+  addr_std_fixed() {}
+
+  addr_std_fixed(int8 workchain_id, uint256 address)
+    : workchain_id(workchain_id), address(address) {
+  }
+
+  addr_std_fixed(lazy<schema::MsgAddressInt> full_addr) {
+    auto addr = std::get<addr_std>(full_addr.val());
+    workchain_id = addr.workchain_id;
+    address = addr.address;
+  }
+  operator lazy<schema::MsgAddressInt>() const {
+    return lazy<schema::MsgAddressInt>::make_std(workchain_id, address);
+  }
+
+  bool operator == (addr_std_fixed tt) const {
+    return workchain_id == tt.workchain_id && address == tt.address;
+  }
+  bool operator != (addr_std_fixed tt) const {
+    return workchain_id != tt.workchain_id || address != tt.address;
+  }
+
   int8 workchain_id;
   uint256 address;
 };

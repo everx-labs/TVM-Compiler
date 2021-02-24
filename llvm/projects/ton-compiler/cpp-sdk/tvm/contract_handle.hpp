@@ -43,7 +43,8 @@ constexpr auto prepare_internal_header() {
 // Prepare message cell for contract call (internal message)
 template<auto Func, class... Args>
 __always_inline
-cell contract_call_prepare(address addr, schema::Grams amount, Args... args) {
+cell contract_call_prepare(address addr, schema::Grams amount,
+    schema::lazy<schema::MsgAddress> src, Args... args) {
   using namespace schema;
 
   auto hdr = prepare_internal_header<Func>();
@@ -52,7 +53,7 @@ cell contract_call_prepare(address addr, schema::Grams amount, Args... args) {
   out_info.ihr_disabled = true;
   out_info.bounce = true;
   out_info.bounced = false;
-  out_info.src = addr_none{};
+  out_info.src = src;
   out_info.dest = addr;
   out_info.created_lt = 0;
   out_info.created_at = 0;
@@ -275,7 +276,8 @@ template<auto Func, class... Args>
 __always_inline
 void contract_call_impl(address addr, schema::Grams amount,
                         unsigned flags, Args... args) {
-  tvm_sendmsg(contract_call_prepare<Func>(addr, amount, args...), flags);
+  using namespace schema;
+  tvm_sendmsg(contract_call_prepare<Func>(addr, amount, MsgAddress{MsgAddressExt{addr_none{}}}, args...), flags);
 }
 
 // Deploy message with function call (immediately after deploy)
@@ -289,7 +291,7 @@ void contract_deploy_impl(address addr, schema::StateInit init,
   auto hdr_plus_args = std::make_tuple(hdr, args...);
   int_msg_info_relaxed out_info;
   out_info.ihr_disabled = true;
-  out_info.bounce = false;
+  out_info.bounce = true;
   out_info.bounced = false;
   out_info.src = addr_none{};
   out_info.dest = addr;
@@ -316,7 +318,7 @@ void contract_deploy_noop_impl(address addr, schema::StateInit init,
   auto hdr = abiv2::internal_msg_header{ uint32(0) };
   int_msg_info_relaxed out_info;
   out_info.ihr_disabled = true;
-  out_info.bounce = false;
+  out_info.bounce = true;
   out_info.bounced = false;
   out_info.src = addr_none{};
   out_info.dest = addr;
@@ -383,6 +385,28 @@ private:
   unsigned flags_;
 };
 
+// message is sent to one contract, but answer is expected from other contract
+template<class ReturnVal>
+class tail_call_configured {
+public:
+  tail_call_configured(address addr, address wait_addr, schema::Grams amount, unsigned flags)
+    : addr_(addr), wait_addr_(wait_addr), amount_(amount), flags_(flags) {}
+  template<auto Func, class... Args>
+  __always_inline
+  awaitable_ret_t<ReturnVal> _call_impl(Args... args) const {
+    static_assert(!std::is_void_v<ReturnVal>);
+
+    tvm_sendmsg(contract_call_prepare<Func>(addr_, amount_, {wait_addr_.sl()}, args...), flags_);
+    temporary_data::setglob(global_id::coroutine_wait_addr, __builtin_tvm_cast_from_slice(wait_addr_.sl()));
+    return {};
+  }
+private:
+  address addr_;
+  address wait_addr_;
+  schema::Grams amount_;
+  unsigned flags_;
+};
+
 class run_getter {
 public:
   explicit run_getter(address addr) : addr_(addr) {}
@@ -413,8 +437,12 @@ public:
   }
   template<auto Func, class... Args>
   __always_inline
-  void _call_impl(Args... args) const {
+  awaitable_ret_t<get_func_rv_t<Func>> _call_impl(Args... args) const {
     contract_deploy_impl<Func>(addr_, init_, amount_, flags_, args...);
+    if constexpr (!std::is_void_v<get_func_rv_t<Func>>) {
+      temporary_data::setglob(global_id::coroutine_wait_addr, __builtin_tvm_cast_from_slice(addr_.sl()));
+      return {};
+    }
   }
 private:
   address addr_;
@@ -431,7 +459,8 @@ public:
   template<auto Func, class... Args>
   __always_inline
   cell _call_impl(Args... args) const {
-    return contract_call_prepare<Func>(addr_, amount_, args...);
+    using namespace schema;
+    return contract_call_prepare<Func>(addr_, amount_, MsgAddress{MsgAddressExt{addr_none{}}}, args...);
   }
 private:
   address addr_;
@@ -557,6 +586,9 @@ public:
 
   // for getter run (from debot)
   using proxy_run_getter = __reflect_proxy<Interface, run_getter, only_getter>;
+  // for tail call - when return is expected from another contract (a->b->c->a)
+  template<class ReturnVal>
+  using proxy_tail_call = __reflect_proxy<Interface, tail_call_configured<ReturnVal>, only_internal>;
 
   contract_handle() {}
   contract_handle(address addr) : addr_(addr) {}
@@ -624,6 +656,12 @@ public:
   __always_inline
   proxy_run_getter run() const {
     return proxy_run_getter(addr_);
+  }
+  template<class ReturnVal>
+  __always_inline
+  auto tail_call(address wait_addr, schema::Grams amount = 10000000,
+                                       unsigned flags = DEFAULT_MSG_FLAGS) const {
+    return proxy_tail_call<ReturnVal>(addr_, wait_addr, amount, flags);
   }
   address get() const { return addr_; }
 

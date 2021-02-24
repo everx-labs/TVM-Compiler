@@ -66,12 +66,20 @@ auto chain_fold_cont(FoldedTup folded_tup, LinearTup linear_tup) {
   }
 }
 
+template <typename> struct is_tuple: std::false_type {};
+template <typename ...T> struct is_tuple<std::tuple<T...>>: std::true_type {};
+
 template<class RT, class LinearTup>
 __always_inline
 auto chain_fold_impl(LinearTup linear_tup) {
-  using ExpandedTup = to_std_tuple_t<RT>;
-  auto [folded_tup, new_linear_tup] = chain_fold_cont<ExpandedTup>(std::tuple<>{}, linear_tup);  
-  return std::make_pair(to_struct<RT>(folded_tup), new_linear_tup);
+  if constexpr (is_tuple<RT>::value) {
+    auto [folded_tup, new_linear_tup] = chain_fold_cont<RT>(std::tuple<>{}, linear_tup);
+    return std::make_pair(folded_tup, new_linear_tup);
+  } else {
+    using ExpandedTup = to_std_tuple_t<RT>;
+    auto [folded_tup, new_linear_tup] = chain_fold_cont<ExpandedTup>(std::tuple<>{}, linear_tup);
+    return std::make_pair(to_struct<RT>(folded_tup), new_linear_tup);
+  }
 }
 
 template<class RT, class LinearTup>
@@ -79,6 +87,13 @@ __always_inline
 auto chain_fold(LinearTup linear_tup) {
   auto [rv, new_linear_tup] = chain_fold_impl<RT>(linear_tup);
   return rv;
+}
+
+template<class Tup, class LinearTup>
+__always_inline
+auto chain_fold_tup(LinearTup linear_tup) {
+  auto [folded_tup, new_linear_tup] = chain_fold_cont<Tup>(std::tuple<>{}, linear_tup);
+  return folded_tup;
 }
 
 }} // namespace tvm::schema

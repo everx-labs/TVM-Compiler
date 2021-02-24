@@ -1295,6 +1295,36 @@ static void speculatePHINodeLoads(PHINode &PN) {
   PN.eraseFromParent();
 }
 
+// TVM local begin
+static bool processSelectUsers(Value *Val, Value *TValue, Value *FValue,
+                               const DataLayout &DL) {
+  for (User *U : Val->users()) {
+    Value *V = U;
+    if (auto *GEP = dyn_cast<GetElementPtrInst>(V))
+      if (GEP->hasAllZeroIndices()) {
+        if (!processSelectUsers(GEP, TValue, FValue, DL))
+          return false;
+        continue;
+      }
+    LoadInst *LI = dyn_cast<LoadInst>(V);
+    if (!LI || !LI->isSimple()) {
+      LLVM_DEBUG(dbgs() << "isSafeSelectToSpeculate FALSE:" << Val << " \n");
+      LLVM_DEBUG(dbgs() << "because of :" << *U << " \n");
+      return false;
+    }
+
+    // Both operands to the select need to be dereferenceable, either
+    // absolutely (e.g. allocas) or at this point because we can see other
+    // accesses to it.
+    if (!isSafeToLoadUnconditionally(TValue, LI->getAlignment(), DL, LI))
+      return false;
+    if (!isSafeToLoadUnconditionally(FValue, LI->getAlignment(), DL, LI))
+      return false;
+  }
+  return true;
+}
+// TVM local end
+
 /// Select instructions that use an alloca and are subsequently loaded can be
 /// rewritten to load both input pointers and then select between the result,
 /// allowing the load of the alloca to be promoted.
@@ -1313,35 +1343,32 @@ static bool isSafeSelectToSpeculate(SelectInst &SI) {
   Value *FValue = SI.getFalseValue();
   const DataLayout &DL = SI.getModule()->getDataLayout();
 
-  for (User *U : SI.users()) {
-    LoadInst *LI = dyn_cast<LoadInst>(U);
-    if (!LI || !LI->isSimple())
-      return false;
-
-    // Both operands to the select need to be dereferenceable, either
-    // absolutely (e.g. allocas) or at this point because we can see other
-    // accesses to it.
-    if (!isSafeToLoadUnconditionally(TValue, LI->getAlignment(), DL, LI))
-      return false;
-    if (!isSafeToLoadUnconditionally(FValue, LI->getAlignment(), DL, LI))
-      return false;
-  }
-
-  return true;
+  // TVM local begin
+  return processSelectUsers(&SI, TValue, FValue, DL);
+  // TVM local end
 }
 
-static void speculateSelectInstLoads(SelectInst &SI) {
-  LLVM_DEBUG(dbgs() << "    original: " << SI << "\n");
-
-  IRBuilderTy IRB(&SI);
-  Value *TV = SI.getTrueValue();
-  Value *FV = SI.getFalseValue();
-  // Replace the loads of the select with a select of two loads.
-  while (!SI.use_empty()) {
-    LoadInst *LI = cast<LoadInst>(SI.user_back());
+// TVM local begin
+static void processSelectUsersForSpeculate(
+    Instruction *Val, Value *TV, Value *FV, IRBuilderTy &IRB, Value *Cond,
+    Type *FixTy) {
+  while (!Val->use_empty()) {
+    Value *LV = Val->user_back();
+    if (auto *GEP = dyn_cast<GetElementPtrInst>(LV))
+      if (GEP->hasAllZeroIndices()) {
+        processSelectUsersForSpeculate(GEP, TV, FV, IRB, Cond, GEP->getType());
+        continue;
+      }
+    LoadInst *LI = cast<LoadInst>(LV);
     assert(LI->isSimple() && "We only speculate simple loads");
 
     IRB.SetInsertPoint(LI);
+    // TVM local begin
+    if (FixTy) {
+      TV = IRB.CreateBitOrPointerCast(TV, FixTy);
+      FV = IRB.CreateBitOrPointerCast(FV, FixTy);
+    }
+    // TVM local end
     LoadInst *TL =
         IRB.CreateLoad(TV, LI->getName() + ".sroa.speculate.load.true");
     LoadInst *FL =
@@ -1359,14 +1386,27 @@ static void speculateSelectInstLoads(SelectInst &SI) {
       FL->setAAMetadata(Tags);
     }
 
-    Value *V = IRB.CreateSelect(SI.getCondition(), TL, FL,
-                                LI->getName() + ".sroa.speculated");
+    Value *V =
+      IRB.CreateSelect(Cond, TL, FL, LI->getName() + ".sroa.speculated");
 
     LLVM_DEBUG(dbgs() << "          speculated to: " << *V << "\n");
     LI->replaceAllUsesWith(V);
     LI->eraseFromParent();
   }
-  SI.eraseFromParent();
+  Val->eraseFromParent();
+}
+// TVM local end
+
+static void speculateSelectInstLoads(SelectInst &SI) {
+  LLVM_DEBUG(dbgs() << "    original: " << SI << "\n");
+
+  IRBuilderTy IRB(&SI);
+  Value *TV = SI.getTrueValue();
+  Value *FV = SI.getFalseValue();
+  // Replace the loads of the select with a select of two loads.
+  // TVM local begin
+  processSelectUsersForSpeculate(&SI, TV, FV, IRB, SI.getCondition(), nullptr);
+  // TVM local end
 }
 
 /// Build a GEP out of a base pointer and indices.

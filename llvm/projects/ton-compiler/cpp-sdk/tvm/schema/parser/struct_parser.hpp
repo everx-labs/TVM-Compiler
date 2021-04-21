@@ -17,7 +17,7 @@ struct make_parser_impl {
   using value_type = _Tp;
 
   template<class _Ctx>
-  inline static std::tuple<optional<_Tp>, parser, _Ctx> parse(parser p, _Ctx parent_ctx) {
+  __always_inline static std::tuple<optional<_Tp>, parser, _Ctx> parse(parser p, _Ctx parent_ctx) {
     ParseContext<_Tp, fmt_tuple> ctx;
     auto [tup, new_p, new_ctx] = make_parser_impl<fmt_tuple>::parse_from_struct(p, ctx);
     if (tup)
@@ -28,7 +28,7 @@ struct make_parser_impl {
 
 template<class _Ctx, size_t Index, class _Tp, class... _RestTypes>
 struct sequence_parser {
-  inline static std::tuple<bool, parser, _Ctx> parse(parser p, _Ctx ctx) {
+  __always_inline static std::tuple<bool, parser, _Ctx> parse(parser p, _Ctx ctx) {
     auto [opt_cur, new_p, new_ctx] = make_parser_impl<_Tp>::parse(p, ctx);
     p = new_p;
     if (opt_cur) {
@@ -41,7 +41,7 @@ struct sequence_parser {
 
 template<class _Ctx, size_t Index, class _Tp>
 struct sequence_parser<_Ctx, Index, _Tp> {
-  inline static std::tuple<bool, parser, _Ctx> parse(parser p, _Ctx ctx) {
+  __always_inline static std::tuple<bool, parser, _Ctx> parse(parser p, _Ctx ctx) {
     auto [opt_cur, new_p, new_ctx] = make_parser_impl<_Tp>::parse(p, ctx);
     p = new_p;
     if (opt_cur) {
@@ -58,7 +58,7 @@ struct make_parser_impl<std::tuple<Types...>> {
 
   // For parsing structs
   template<class _Ctx>
-  inline static std::tuple<optional<value_type>, parser, _Ctx> parse_from_struct(parser p, _Ctx ctx) {
+  __always_inline static std::tuple<optional<value_type>, parser, _Ctx> parse_from_struct(parser p, _Ctx ctx) {
     auto [succ, new_p, new_ctx] = sequence_parser<_Ctx, 0, Types...>::parse(p, ctx);
     if (succ)
       return std::tuple(new_ctx.get_tuple(), new_p, new_ctx);
@@ -67,7 +67,7 @@ struct make_parser_impl<std::tuple<Types...>> {
 
   // For parsing std::tuple fields
   template<class _Ctx>
-  inline static std::tuple<optional<value_type>, parser, _Ctx> parse(parser p, _Ctx parent_ctx) {
+  __always_inline static std::tuple<optional<value_type>, parser, _Ctx> parse(parser p, _Ctx parent_ctx) {
     if constexpr (std::tuple_size_v<value_type> == 0) {
       return { value_type{}, p, parent_ctx };
     } else {

@@ -106,11 +106,6 @@ cell external_body_prepare(address addr, Args... args) {
     .function_id = uint32(id_v<Func>)
   };
   auto hdr_plus_args = std::make_tuple(signature_place, hdr, args...);
-  ext_in_msg_info msg_info {
-    .src = MsgAddressExt{addr_none{}},
-    .dest = addr,
-    .import_fee = Grams{0}
-  };
   using est_t = estimate_element<message<decltype(hdr_plus_args)>>;
   if constexpr (est_t::max_bits > cell::max_bits || est_t::max_refs > cell::max_refs) {
     auto chain_tup = make_chain_tuple(hdr_plus_args);
@@ -136,11 +131,6 @@ cell external_body_prepare_with_pubkey(address addr, schema::uint256 pubkey, Arg
     .function_id = uint32(id_v<Func>)
   };
   auto hdr_plus_args = std::make_tuple(signature_place, hdr, args...);
-  ext_in_msg_info msg_info {
-    .src = MsgAddressExt{addr_none{}},
-    .dest = addr,
-    .import_fee = Grams{0}
-  };
   using est_t = estimate_element<message<decltype(hdr_plus_args)>>;
   if constexpr (est_t::max_bits > cell::max_bits || est_t::max_refs > cell::max_refs) {
     auto chain_tup = make_chain_tuple(hdr_plus_args);

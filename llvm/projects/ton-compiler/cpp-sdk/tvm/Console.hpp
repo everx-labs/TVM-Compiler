@@ -37,6 +37,9 @@ __interface IConsole {
 
   [[internal, answer_id]]
   bool_t iAmHome();
+
+  [[internal, answer_id]]
+  address requestProxy(string message);
 };
 
 using IConsolePtr = handle<IConsole>;

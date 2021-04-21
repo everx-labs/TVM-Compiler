@@ -1,6 +1,7 @@
 #pragma once
 
 #include <tvm/dict_traits.hpp>
+#include <tvm/schema/chain_fold.hpp>
 
 namespace tvm {
 
@@ -67,11 +68,16 @@ struct big_dictionary_const_iterator {
   std::optional<cell> cl_;
 
   __always_inline Element operator*() const {
-    return parse_chain<Element>(parser(*cl_));
+    using namespace schema;
+    using data_tup_t = to_std_tuple_t<Element>;
+    using LinearTup = decltype(make_chain_tuple(data_tup_t{}));
+    auto linear_tup = parse<LinearTup>(parser(*cl_));
+    return to_struct<Element>(chain_fold_tup<data_tup_t>(linear_tup));
   }
 
   __always_inline bool is_end() const { return !cl_; }
 
+  __always_inline
   static big_dictionary_const_iterator create_begin(dictionary dict) {
     std::optional<cell> opt_cl;
     auto [cl, idx, succ] = dict.dictuminref(KeyLen);
@@ -79,26 +85,29 @@ struct big_dictionary_const_iterator {
       opt_cl = cl;
     return big_dictionary_const_iterator{dict, idx, opt_cl};
   }
+  __always_inline
   static big_dictionary_const_iterator create_end(dictionary dict) {
     return big_dictionary_const_iterator{{}, 0, {}};
   }
 
   __always_inline big_dictionary_const_iterator operator++() {
     require(!!cl_, error_code::iterator_overflow);
-    auto [cl, next_idx, succ] = dict_.dictugetnext(idx_, KeyLen);
+    auto [sl, next_idx, succ] = dict_.dictugetnext(idx_, KeyLen);
     if (succ) {
       idx_ = next_idx;
-      cl_ = cl;
+      cl_ = parser(sl).ldref();
     } else {
       cl_.reset();
     }
     return *this;
   }
+  __always_inline
   bool operator==(big_dictionary_const_iterator v) const {
     bool left_end = is_end();
     bool right_end = v.is_end();
     return left_end && right_end;
   }
+  __always_inline
   bool operator!=(big_dictionary_const_iterator v) const {
     return !(*this == v);
   }

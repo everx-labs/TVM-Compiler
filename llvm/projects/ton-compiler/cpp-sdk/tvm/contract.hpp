@@ -159,7 +159,7 @@ __attribute__((tvm_raw_func)) int main_merge(__tvm_cell, __tvm_slice) {         
 
 // Prepare and send empty message with nanograms as transfer value.
 // Only internal destination address allowed.
-static void tvm_transfer(schema::MsgAddressInt dest, unsigned nanograms, bool bounce) {
+static inline void tvm_transfer(schema::MsgAddressInt dest, unsigned nanograms, bool bounce) {
   using namespace schema;
 
   message_relaxed<empty> out_msg;
@@ -180,7 +180,7 @@ static void tvm_transfer(schema::MsgAddressInt dest, unsigned nanograms, bool bo
 }
 // Prepare and send empty message with nanograms as transfer value.
 // Only internal destination address allowed.
-static void tvm_transfer(schema::lazy<schema::MsgAddressInt> dest, unsigned nanograms, bool bounce, unsigned flags, cell payload) {
+static inline void tvm_transfer(schema::lazy<schema::MsgAddressInt> dest, unsigned nanograms, bool bounce, unsigned flags, cell payload) {
   using namespace schema;
 
   message_relaxed<anyval> out_msg;
@@ -210,7 +210,7 @@ static void tvm_transfer(schema::lazy<schema::MsgAddressInt> dest, unsigned nano
   }
   tvm_sendmsg(b.endc(), flags);
 }
-static void tvm_transfer(slice dest, unsigned nanograms, unsigned bounce, unsigned flags, cell payload) {
+static inline void tvm_transfer(slice dest, unsigned nanograms, unsigned bounce, unsigned flags, cell payload) {
   using namespace schema;
 
   message_relaxed<anyval> out_msg;
@@ -240,7 +240,7 @@ static void tvm_transfer(slice dest, unsigned nanograms, unsigned bounce, unsign
   }
   tvm_sendmsg(b.endc(), flags);
 }
-static void tvm_transfer(schema::lazy<schema::MsgAddressInt> dest, unsigned nanograms, bool bounce,
+static inline void tvm_transfer(schema::lazy<schema::MsgAddressInt> dest, unsigned nanograms, bool bounce,
                          unsigned flags = DEFAULT_MSG_FLAGS) {
   using namespace schema;
 

@@ -386,7 +386,7 @@ let TargetPrefix = "tvm" in {
               [IntrNoMem]>;
   def int_tvm_vergrth16 :
       GCCBuiltin<"__builtin_tvm_vergrth16">,
-      Intrinsic<[llvm_i257_ty], [llvm_TVMSlice_ty],
+      Intrinsic<[llvm_i257_ty], [llvm_TVMCell_ty],
               [IntrNoMem]>;
 
   // A.11.2. Gas-related primitives.

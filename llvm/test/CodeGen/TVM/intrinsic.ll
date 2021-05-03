@@ -344,9 +344,9 @@ define i257 @chksignu(i257 %hash, slice %signature, i257 %key) {
 }
 
 ; CHECK-LABEL: vergrth16
-define i257 @vergrth16(slice %sl) {
+define i257 @vergrth16(cell %sl) {
 ; CHECK: VERGRTH16
-  %result = call i257 @llvm.tvm.vergrth16(slice %sl)
+  %result = call i257 @llvm.tvm.vergrth16(cell %sl)
   ret i257 %result
 }
 
@@ -397,7 +397,7 @@ declare void @llvm.tvm.accept()
 declare i257 @llvm.tvm.chksignu(i257 %hash, slice %signature, i257 %key)
 declare i257 @llvm.tvm.hashcu(cell %cell)
 declare i257 @llvm.tvm.hashsu(slice %sl)
-declare i257 @llvm.tvm.vergrth16(slice %sl)
+declare i257 @llvm.tvm.vergrth16(cell %sl)
 declare void @llvm.tvm.setcp(i257 %codepage)
 declare void @llvm.tvm.dump(i257 %slot)
 declare void @llvm.tvm.dump.value(i257 %slot)

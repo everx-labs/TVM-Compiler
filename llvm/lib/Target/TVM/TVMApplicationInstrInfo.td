@@ -48,6 +48,10 @@ defm CHKSIGNU : I0<(outs I257 : $result),
                                                            I257  : $key))],
                    "CHKSIGNU", 0xf910>;
 
+defm VERGRTH16   : I0<(outs I257 : $result), (ins Cell : $cell),
+                   [(set I257 : $result, (int_tvm_vergrth16 Cell : $cell))],
+                   "VERGRTH16", 0xf912>;
+
 def : Pat<(int_tvm_get_temporary_data), (TO_TUPLE_COPY (PUSHC 7))>;
 
 // A.11.4. Configuration primitives.

@@ -396,6 +396,10 @@ let TargetPrefix = "tvm" in {
     GCCBuiltin<"__builtin_tvm_chksignu">,
     Intrinsic<[llvm_i257_ty], [llvm_i257_ty, llvm_TVMSlice_ty, llvm_i257_ty],
               [IntrNoMem]>;
+  def int_tvm_vergrth16 :
+      GCCBuiltin<"__builtin_tvm_vergrth16">,
+      Intrinsic<[llvm_i257_ty], [llvm_TVMCell_ty],
+              [IntrNoMem]>;
 
   // A.11.2. Gas-related primitives.
   def int_tvm_accept :

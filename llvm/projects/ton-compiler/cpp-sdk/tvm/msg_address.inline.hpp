@@ -21,7 +21,7 @@ inline schema::MsgAddress msg_address::unpack() const {
     auto unpacked = tup.unpack();
     schema::addr_std rv;
     if (!__builtin_tvm_isnull(__builtin_tvm_cast_from_slice(unpacked.rewrite_pfx())))
-      rv.Anycast = schema::anycast_info { parser(unpacked.rewrite_pfx()).ldvaruint32() };
+      rv.Anycast = schema::parse<schema::anycast_info>(unpacked.rewrite_pfx());
     rv.workchain_id = unpacked.workchain_id();
     rv.address = parser(unpacked.address()).ldu(256);
     return schema::MsgAddressInt { rv };
@@ -31,7 +31,7 @@ inline schema::MsgAddress msg_address::unpack() const {
     auto unpacked = tup.unpack();
     schema::addr_var rv;
     if (!__builtin_tvm_isnull(__builtin_tvm_cast_from_slice(unpacked.rewrite_pfx())))
-      rv.Anycast = schema::anycast_info { parser(unpacked.rewrite_pfx()).ldvaruint32() };
+      rv.Anycast = schema::parse<schema::anycast_info>(unpacked.rewrite_pfx());
     rv.workchain_id = unpacked.workchain_id();
     rv.address.sl_ = unpacked.address();
     rv.address.bitlen_ = rv.address.sl_.sbits();

@@ -350,6 +350,11 @@ defm MULCONST : BinaryRI<mul, "MULCONST", simm8, 0xa7>;
 defm BITSIZE  : UnaryR<int_tvm_bitsize, "BITSIZE", 0xb602>;
 defm UBITSIZE : UnaryR<int_tvm_ubitsize, "UBITSIZE", 0xb603>;
 
+defm MULDIVR  : I<(outs I257:$res), (ins I257:$x, I257:$y, I257:$z),
+                  (outs), (ins I257:$x, I257:$y, I257:$z),
+                  [(set I257:$res, (int_tvm_muldivr I257:$x, I257:$y, I257:$z))],
+                  "MULDIVR\t$res, $x, $y, $z", "MULDIVR", 0xa985>;
+
 def : Pat<(srl I257:$val, imm:$off), (SHRCONST I257:$val, imm:$off)>;
 
 // TODO: maybe support mulhs/mulhu using double-length multiply-shift operation

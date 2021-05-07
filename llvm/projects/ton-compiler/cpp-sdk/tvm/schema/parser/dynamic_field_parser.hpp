@@ -9,7 +9,7 @@
 namespace tvm { namespace schema {
 
 template<auto _Field, class _ParentStruct, class _ParentTuple>
-__attribute__((alwaysinline))
+__always_inline
 unsigned get_dynfield_size(ParseContext<_ParentStruct, _ParentTuple> ctx) {
   // To get len from already processed field,
   //  we copy current tuple to struct and access its field

@@ -12,6 +12,7 @@
 #include <tvm/awaiting_responses_map.hpp>
 #include <tvm/resumable.hpp>
 #include <tvm/globals.hpp>
+#include <tvm/persistent_data_header.hpp>
 
 #include <experimental/type_traits>
 #include <tvm/schema/abiv2.hpp>
@@ -81,36 +82,6 @@ template<typename T>
 using ext_sender_t = decltype(&T::ext_sender);
 template<typename T>
 constexpr bool supports_ext_sender_v = std::experimental::is_detected_v<ext_sender_t, T>;
-
-template<typename T>
-struct is_resumable : std::false_type {};
-template<typename T>
-struct is_resumable<schema::resumable<T>> : std::true_type {};
-template<typename T>
-constexpr bool is_resumable_v = is_resumable<T>::value;
-
-template<typename T>
-struct mem_fn_ret {};
-template<typename Rv, typename T, typename... Args>
-struct mem_fn_ret<Rv (T::*)(Args...)> {
-  using type = Rv;
-};
-
-template<auto Func>
-constexpr bool is_coroutine_v = is_resumable_v<typename mem_fn_ret<decltype(Func)>::type>;
-
-template<class Interface, unsigned Index, unsigned RestMethods>
-struct interface_has_coroutines_impl {
-  using RetType = get_interface_method_rv<Interface, Index>;
-  static constexpr bool value = is_resumable_v<RetType> ||
-    interface_has_coroutines_impl<Interface, Index + 1, RestMethods - 1>::value;
-};
-template<class Interface, unsigned Index>
-struct interface_has_coroutines_impl<Interface, Index, 0> : std::false_type {};
-template<class Interface>
-constexpr bool interface_has_coroutines_v =
-  interface_has_coroutines_impl<Interface, 0,
-    get_interface_methods_count<Interface>::value>::value;
 
 template<class Contract>
 __always_inline schema::lazy<schema::MsgAddressExt> ext_return_address(Contract& c) {
@@ -231,29 +202,8 @@ __always_inline void send_answer(Contract& c, unsigned func_id, ReturnValue rv) 
     send_external_answer<ImplicitFuncId>(c, func_id, rv);
 }
 
-struct no_replay_protection {
-  using persistent_t = schema::empty;
-};
-template<class Interface, class ReplayAttackProtection>
-struct persistent_header_info {
-  using replay_hdr = typename std::conditional_t<
-    std::is_void_v<ReplayAttackProtection>,
-      no_replay_protection,
-      ReplayAttackProtection>::persistent_t;
-
-  using common_hdr =
-    std::conditional_t<interface_has_coroutines_v<Interface>,
-        std::tuple<replay_hdr, awaiting_responses_map>,
-        replay_hdr>;
-
-   static constexpr bool non_empty = !std::is_void_v<ReplayAttackProtection> ||
-                                     interface_has_coroutines_v<Interface>;
-};
-template<class Interface, class ReplayAttackProtection>
-using persistent_data_header_t = typename persistent_header_info<Interface, ReplayAttackProtection>::common_hdr;
-
 template<class Interface, class ReplayAttackProtection, class DContract>
-inline std::tuple<persistent_data_header_t<Interface, ReplayAttackProtection>, DContract> load_persistent_data() {
+__always_inline std::tuple<persistent_data_header_t<Interface, ReplayAttackProtection>, DContract> load_persistent_data() {
   using namespace schema;
 
   parser persist(persistent_data::get());
@@ -273,7 +223,7 @@ inline std::tuple<persistent_data_header_t<Interface, ReplayAttackProtection>, D
     // Only 1 + bitsize(Header) bits to skip
     using LinearTup = decltype(make_chain_tuple<1 + Est::max_bits, Est::max_refs>(data_tup_t{}));
     // uncomment to print in remark:
-    //__reflect_echo<print_chain_tuple<LinearTup>().c_str()>{};
+    __reflect_echo<print_chain_tuple<LinearTup>().c_str()>{};
     auto linear_tup = parse<LinearTup>(persist);
     DContract base = to_struct<DContract>(chain_fold_tup<data_tup_t>(linear_tup));
     // DContract base = parse_chain<DContract, 1 + Est::max_bits, Est::max_refs>(persist);
@@ -296,7 +246,6 @@ __always_inline Data parse_smart(parser p, parser from_header) {
   if constexpr (dyn_chain) {
     return parse_chain_dynamic<Data>(p);
   } else {
-    using est_header_t = estimate_element<MsgHeader>;
     using header_with_args = std::tuple<MsgHeader, Data>;
     using est_t = estimate_element<std::tuple<MsgHeader, Data>>;
     if constexpr (est_t::max_bits > cell::max_bits || est_t::max_refs > cell::max_refs) {
@@ -312,7 +261,7 @@ __always_inline Data parse_smart(parser p, parser from_header) {
 }
 
 template<class IContract, class ReplayAttackProtection, class DContract>
-inline cell prepare_persistent_data(persistent_data_header_t<IContract, ReplayAttackProtection> persistent_data_header,
+inline cell prepare_persistent_data(persistent_data_header_t<IContract, ReplayAttackProtection> hdr,
                                     DContract base) {
   using namespace schema;
   auto data_tup = to_std_tuple(base);
@@ -320,24 +269,24 @@ inline cell prepare_persistent_data(persistent_data_header_t<IContract, ReplayAt
   // Also add replay attack protection header if needed
   // Then store data_tup_combined into chain of cells
   if constexpr (persistent_header_info<IContract, ReplayAttackProtection>::non_empty) {
-    auto data_tup_combined = std::tuple_cat(std::make_tuple(bool_t(false), persistent_data_header), data_tup);
+    auto data_tup_combined = std::tuple_cat(std::make_tuple(bool_t(false), hdr), data_tup);
     auto chain_tup = make_chain_tuple(data_tup_combined);
     // uncomment to print in remark:
-    //__reflect_echo<print_chain_tuple<decltype(chain_tup)>().c_str()>{};
+    __reflect_echo<print_chain_tuple<decltype(chain_tup)>().c_str()>{};
     return build(chain_tup).make_cell();
   } else {
     auto data_tup_combined = std::tuple_cat(std::make_tuple(bool_t(false)), data_tup);
     auto chain_tup = make_chain_tuple(data_tup_combined);
     // uncomment to print in remark:
-    //__reflect_echo<print_chain_tuple<decltype(chain_tup)>().c_str()>{};
+    __reflect_echo<print_chain_tuple<decltype(chain_tup)>().c_str()>{};
     return build(chain_tup).make_cell();
   }
 }
 
 template<class IContract, class ReplayAttackProtection, class DContract>
-inline void save_persistent_data(persistent_data_header_t<IContract, ReplayAttackProtection> persistent_data_header,
+inline void save_persistent_data(persistent_data_header_t<IContract, ReplayAttackProtection> hdr,
                                  DContract base) {
-  persistent_data::set(prepare_persistent_data<IContract, ReplayAttackProtection, DContract>(persistent_data_header, base));
+  persistent_data::set(prepare_persistent_data<IContract, ReplayAttackProtection, DContract>(hdr, base));
 }
 
 template<bool Internal, class Contract, class MsgHeader, class IContract, class DContract, class ReplayAttackProtection,
@@ -376,14 +325,15 @@ struct smart_switcher_impl {
           c.set_msg_pubkey(hdr.pubkey->get());
       }
 
-      persistent_data_header_t<IContract, ReplayAttackProtection> persistent_data_header;
+      persistent_data_header_t<IContract, ReplayAttackProtection> persistent_hdr;
+      using persistent_hdr_logic = persistent_data_header<IContract, ReplayAttackProtection>;
 
       if constexpr (!get_interface_method_no_read_persistent<IContract, Index>::value) {
         // Load persistent data (not for constructor)
         if constexpr (!is_method_constructor<IContract, my_method_id>()) {
           auto [parsed_hdr, parsed_data] = load_persistent_data<IContract, ReplayAttackProtection, DContract>();
           auto &base = static_cast<DContract&>(c);
-          persistent_data_header = parsed_hdr;
+          persistent_hdr = parsed_hdr;
           base = parsed_data;
         } else {
           parser persist(persistent_data::get());
@@ -398,23 +348,13 @@ struct smart_switcher_impl {
       if constexpr (!std::is_void_v<ReplayAttackProtection> && !is_getter) {
         if constexpr (!is_method_constructor<IContract, my_method_id>()) {
           if constexpr (!Internal) {
-            if constexpr (interface_has_coroutines_v<IContract>) {
-              auto verified = ReplayAttackProtection::check(hdr, std::get<0>(persistent_data_header));
-              tvm_assert(!!verified, error_code::replay_attack_check);
-              std::get<0>(persistent_data_header) = *verified;
-            } else {
-              auto verified = ReplayAttackProtection::check(hdr, persistent_data_header);
-              tvm_assert(!!verified, error_code::replay_attack_check);
-              persistent_data_header = *verified;
-            }
+            auto verified = ReplayAttackProtection::check(hdr, persistent_hdr_logic::get_replay_data(persistent_hdr));
+            tvm_assert(!!verified, error_code::replay_attack_check);
+            persistent_hdr_logic::get_replay_data(persistent_hdr) = *verified;
           }
         } else {
           // Persistent data initialization in constructor
-          if constexpr (interface_has_coroutines_v<IContract>) {
-            persistent_data_header = { ReplayAttackProtection::init(), {} };
-          } else {
-            persistent_data_header = { ReplayAttackProtection::init() };
-          }
+          persistent_hdr = persistent_hdr_logic::init();
         }
       }
       // We don't need accept for getter methods
@@ -422,7 +362,7 @@ struct smart_switcher_impl {
         tvm_accept();
 
       if constexpr (supports_set_persistent_data_header_v<Contract>)
-        c.set_persistent_data_header(persistent_data_header);
+        c.set_persistent_data_header(persistent_hdr);
 
       using Args = get_interface_method_arg_struct<ISmart, Index>;
       constexpr unsigned args_sz = calc_fields_count<Args>::value;
@@ -442,7 +382,7 @@ struct smart_switcher_impl {
       // Execute and send answer if non-void return value
       if constexpr (!std::is_void_v<rv_t>) {
         if constexpr (is_coroutine_v<func>) {
-          next_answer_id = std::get<1>(persistent_data_header).find_next_answer_id().get();
+          next_answer_id = persistent_hdr_logic::get_awaiting(persistent_hdr).find_next_answer_id().get();
           temporary_data::setglob(global_id::answer_id, next_answer_id);
         } else {
           temporary_data::setglob(global_id::answer_id, 0);
@@ -465,10 +405,10 @@ struct smart_switcher_impl {
                 ret_addr_sl = ext_return_address(c).sl();
 
               awaiting_record await_rec = {
-                uint32{my_method_id}, std_addr.workchain_id, std_addr.address, ret_addr_sl };
+                uint32{my_method_id}, std_addr.workchain_id, std_addr.address, {ret_addr_sl} };
               builder b = build(await_rec);
               __tvm_cell cl = serialize_resumable<func>(b.get(), rv);
-              std::get<1>(persistent_data_header).add_awaiting(next_answer_id, cl);
+              persistent_hdr_logic::get_awaiting(persistent_hdr).add_awaiting(next_answer_id, cl);
             } else {
               if constexpr (!std::is_same_v<rv_t, resumable<void>>)
                 send_answer<Internal, is_implicit_id>(c, my_method_id, rv.return_val());
@@ -492,10 +432,10 @@ struct smart_switcher_impl {
                 ret_addr_sl = ext_return_address(c).sl();
 
               awaiting_record await_rec = {
-                uint32{my_method_id}, std_addr.workchain_id, std_addr.address, ret_addr_sl };
+                uint32{my_method_id}, std_addr.workchain_id, std_addr.address, {ret_addr_sl} };
               builder b = build(await_rec);
               __tvm_cell cl = serialize_resumable<func>(b.get(), rv);
-              std::get<1>(persistent_data_header).add_awaiting(next_answer_id, cl);
+              persistent_hdr_logic::get_awaiting(persistent_hdr).add_awaiting(next_answer_id, cl);
             } else {
               if constexpr (!std::is_same_v<rv_t, resumable<void>>)
                 send_answer<Internal, is_implicit_id>(c, my_method_id, rv.return_val());
@@ -520,7 +460,7 @@ struct smart_switcher_impl {
       // Store persistent data
       if constexpr (!get_interface_method_no_write_persistent<IContract, Index>::value && !is_getter) {
         auto &base = static_cast<DContract&>(c);
-        save_persistent_data<IContract, ReplayAttackProtection>(persistent_data_header, base);
+        save_persistent_data<IContract, ReplayAttackProtection>(persistent_hdr, base);
       }
       if constexpr (supports_suicide_addr_v<Contract>) {
         if (auto opt_addr = c.suicide_addr()) {
@@ -573,7 +513,7 @@ struct smart_process_answer_impl {
 
   template<class PersistentHeader>
   __always_inline
-  static int execute(Contract& c, PersistentHeader persistent_data_header, awaiting_record await_rec,
+  static int execute(Contract& c, PersistentHeader persistent_hdr, awaiting_record await_rec,
                      cell msg, slice msg_body, slice await_sl) {
     using ISmart = typename Contract::base;
     static constexpr auto func = get_interface_method_ptr<Contract, ISmart, Index>::value;
@@ -599,11 +539,13 @@ struct smart_process_answer_impl {
           __builtin_tvm_cast_from_slice(body_p.sl()));
 
         if constexpr (supports_set_persistent_data_header_v<Contract>)
-          c.set_persistent_data_header(persistent_data_header);
+          c.set_persistent_data_header(persistent_hdr);
 
         using rv_t = get_interface_method_rv<ISmart, Index>;
 
-        unsigned next_answer_id = std::get<1>(persistent_data_header).find_next_answer_id().get();
+        using persistent_hdr_logic = persistent_data_header<IContract, ReplayAttackProtection>;
+
+        unsigned next_answer_id = persistent_hdr_logic::get_awaiting(persistent_hdr).find_next_answer_id().get();
         temporary_data::setglob(global_id::answer_id, next_answer_id);
 
         auto ret_addr = await_rec.return_addr();
@@ -619,12 +561,12 @@ struct smart_process_answer_impl {
             temporary_data::getglob(global_id::coroutine_wait_addr));
           auto std_addr = std::get<addr_std>(address(wait_addr)());
           awaiting_record await_rec = {
-            uint32{my_method_id}, std_addr.workchain_id, std_addr.address, ret_addr.sl() };
+            uint32{my_method_id}, std_addr.workchain_id, std_addr.address, {ret_addr.sl()} };
           builder b = build(await_rec);
           __tvm_cell cl = serialize_resumable<func>(b.get(), res);
-          std::get<1>(persistent_data_header).add_awaiting(next_answer_id, cl);
+          persistent_hdr_logic::get_awaiting(persistent_hdr).add_awaiting(next_answer_id, cl);
           if constexpr (supports_set_persistent_data_header_v<Contract>)
-            c.set_persistent_data_header(persistent_data_header);
+            c.set_persistent_data_header(persistent_hdr);
         } else {
           if constexpr (!std::is_same_v<rv_t, resumable<void>>) {
             // coroutine is done, sending an answer
@@ -633,13 +575,13 @@ struct smart_process_answer_impl {
         }
         // Store persistent data
         auto &base = static_cast<DContract&>(c);
-        save_persistent_data<IContract, ReplayAttackProtection>(persistent_data_header, base);
+        save_persistent_data<IContract, ReplayAttackProtection>(persistent_hdr, base);
         return my_method_id;
       }
     }
     return smart_process_answer_impl<
       Contract, IContract, DContract, ReplayAttackProtection, Index + 1, RestMethods - 1>
-        ::execute(c, persistent_data_header, await_rec, msg, msg_body, await_sl);
+        ::execute(c, persistent_hdr, await_rec, msg, msg_body, await_sl);
   }
 };
 
@@ -647,7 +589,7 @@ template<class Contract, class IContract, class DContract, class ReplayAttackPro
 struct smart_process_answer_impl<Contract, IContract, DContract, ReplayAttackProtection, Index, 0> {
   template<class PersistentHeader>
   __always_inline
-  static int execute(Contract& c, PersistentHeader persistent_data_header, awaiting_record await_rec,
+  static int execute(Contract& c, PersistentHeader persistent_hdr, awaiting_record await_rec,
                      cell msg, slice msg_body, slice await_sl) {
     tvm_throw(error_code::wrong_answer_id);
     return 0;
@@ -661,35 +603,25 @@ struct smart_process_answer {
   __always_inline static int execute(Contract& c, MsgHeader hdr, cell msg, slice msg_body) {
     using namespace schema;
     unsigned answer_id = schema::abiv2::from_answer_id(hdr.function_id());
-    persistent_data_header_t<IContract, ReplayAttackProtection> persistent_data_header;
-    parser persist(persistent_data::get());
-    bool uninitialized = persist.ldu(1);
     // Load persistent data
-    tvm_assert(!uninitialized, error_code::method_called_without_init);
-    // Load replay attack protection header
-    using HeaderT = decltype(persistent_data_header);
-    auto [data_hdr, =persist] = parse_continue<HeaderT>(persist);
-    tvm_assert(!!data_hdr, error_code::persistent_data_parse_error);
-    persistent_data_header = *data_hdr;
-    if constexpr (supports_set_persistent_data_header_v<Contract>)
-      c.set_persistent_data_header(persistent_data_header);
-
-    using Est = estimate_element<HeaderT>;
-    static_assert(Est::max_bits == Est::min_bits, "Persistent data header can't be dynamic-size");
+    auto [persistent_hdr, parsed_data] = load_persistent_data<IContract, ReplayAttackProtection, DContract>();
     auto &base = static_cast<DContract&>(c);
-    // Only 1 + bitsize(Header) bits to skip
-    base = parse_chain<DContract, 1 + Est::max_bits, Est::max_refs>(persist);
+    base = parsed_data;
+    if constexpr (supports_set_persistent_data_header_v<Contract>)
+      c.set_persistent_data_header(persistent_hdr);
 
-    cell state_cl = std::get<1>(persistent_data_header).find_awaiting(answer_id);
+    using persistent_hdr_logic = persistent_data_header<IContract, ReplayAttackProtection>;
+
+    cell state_cl = persistent_hdr_logic::get_awaiting(persistent_hdr).find_awaiting(answer_id);
     parser p(state_cl.ctos());
     auto [await_rec, =p] = parse_continue<awaiting_record>(p);
     require(!!await_rec, error_code::custom_data_parse_error);
     auto sender = std::get<addr_std>(int_return_address(c).val());
     require(sender.workchain_id == await_rec->waiting_workchain and sender.address == await_rec->waiting_addr, 
       error_code::unexpected_answer);
-    std::get<1>(persistent_data_header).delete_awaiting(answer_id);
+    persistent_hdr_logic::get_awaiting(persistent_hdr).delete_awaiting(answer_id);
     return smart_process_answer_impl<Contract, IContract, DContract, ReplayAttackProtection, 0, methods_count>
-      ::execute(c, persistent_data_header, *await_rec, msg, msg_body, p.sl());
+      ::execute(c, persistent_hdr, *await_rec, msg, msg_body, p.sl());
   }
 };
 
@@ -771,4 +703,5 @@ int smart_switch(cell msg, slice msg_body) {
 }
 
 } // namespace tvm
+
 

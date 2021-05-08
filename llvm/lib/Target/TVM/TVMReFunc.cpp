@@ -927,7 +927,7 @@ struct merger {
       if (cur_len < 5)
         continue;
       auto [best_idx, max_depth] = find_candidate(cur_msg.val);
-      if (!best_idx || max_depth < std::min(10ul, cur_len) || cur_len > max_depth + 5) {
+      if (!best_idx || max_depth < std::min<size_t>(10ul, cur_len) || cur_len > max_depth + 5) {
         candidates.insert({cur_msg.val, cur_len, candidates.size() + 1});
       }
     }

@@ -69,6 +69,7 @@ auto chain_fold_cont(FoldedTup folded_tup, LinearTup linear_tup) {
 template <typename> struct is_tuple: std::false_type {};
 template <typename ...T> struct is_tuple<std::tuple<T...>>: std::true_type {};
 
+// Fold from expanded linear tuple into return type (may be tuple, structure)
 template<class RT, class LinearTup>
 __always_inline
 auto chain_fold_impl(LinearTup linear_tup) {
@@ -82,17 +83,23 @@ auto chain_fold_impl(LinearTup linear_tup) {
   }
 }
 
+// Fold from expanded linear tuple into structure
+// (cell, address, uint128, ref<uint128, uint128>) => DContract{cell, address, point3d{uint128, uint128, uint128}}
 template<class RT, class LinearTup>
 __always_inline
 auto chain_fold(LinearTup linear_tup) {
   auto [rv, new_linear_tup] = chain_fold_impl<RT>(linear_tup);
+  static_assert(std::tuple_size_v<decltype(new_linear_tup)> == 0);
   return rv;
 }
 
+// Fold from expanded linear tuple into structured tuple
+// (cell, address, uint128, ref<uint128, uint128>) => (cell, address, point3d{uint128, uint128, uint128})
 template<class Tup, class LinearTup>
 __always_inline
 auto chain_fold_tup(LinearTup linear_tup) {
   auto [folded_tup, new_linear_tup] = chain_fold_cont<Tup>(std::tuple<>{}, linear_tup);
+  static_assert(std::tuple_size_v<decltype(new_linear_tup)> == 0);
   return folded_tup;
 }
 

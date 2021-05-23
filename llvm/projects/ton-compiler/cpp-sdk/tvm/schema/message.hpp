@@ -23,7 +23,8 @@ struct addr_extern {
 };
 
 struct anycast_info {
-  varuint32 rewrite_pfx;
+  uint_t<5> depth;
+  dynamic_bitfield<&anycast_info::depth> rewrite_pfx;
 
   DEFAULT_EQUAL(anycast_info)
 };

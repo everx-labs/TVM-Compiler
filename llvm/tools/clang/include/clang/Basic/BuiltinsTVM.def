@@ -16,6 +16,7 @@
 
 BUILTIN(__builtin_tvm_div, "WiWiWi", "nc")
 BUILTIN(__builtin_tvm_mod, "WiWiWi", "nc")
+BUILTIN(__builtin_tvm_muldivr, "WiWiWiWi", "nc")
 BUILTIN(__builtin_tvm_get_persistent_data, "Tc", "nc")
 BUILTIN(__builtin_tvm_set_persistent_data, "vTc", "n")
 BUILTIN(__builtin_tvm_get_temporary_data, "Tt", "nc")

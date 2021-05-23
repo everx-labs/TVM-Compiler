@@ -491,6 +491,10 @@ using uint64 = uint_t<64>;
 using uint128 = uint_t<128>;
 using uint256 = uint_t<256>;
 
+__always_inline bool_t operator!(bool_t v) {
+  return bool_t{!v.get()};
+}
+
 template<auto _Field>
 struct dynamic_bitfield {
   dynamic_bitfield() : bitlen_(0) {}

@@ -103,14 +103,14 @@ struct chain_parser_impl<std::tuple<Elems...>, Offset, RefsOffset> {
         if constexpr (is_optional<first_elem_t>::value) {
           if (p.ldu(1)) {
             using SubElem = typename std::decay<decltype(*elem)>::type;
-            using ExpandedTup = typename to_std_tuple_t<SubElem>;
+            using ExpandedTup = to_std_tuple_t<SubElem>;
             auto [elem_tup, =p] = chain_parser_impl<ExpandedTup, 1, 0>::parse(p);
             elem = to_struct<SubElem>(elem_tup);
           } else {
             elem = {};
           }
         } else {
-          using ExpandedTup = typename to_std_tuple_t<first_elem_t>;
+          using ExpandedTup = to_std_tuple_t<first_elem_t>;
           auto [elem_tup, =p] = chain_parser_impl<ExpandedTup, Offset, RefsOffset>::parse(p);
           elem = to_struct<first_elem_t>(elem_tup);
         }

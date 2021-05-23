@@ -7,9 +7,10 @@ namespace tvm {
 
 template<class Element>
 class queue {
+  static constexpr unsigned HeaderLen = 12;
   static constexpr unsigned KeyLen = 64;
   using est_t = schema::estimate_element<std::tuple<schema::uint64, Element>>;
-  static_assert(est_t::max_bits < cell::max_bits,
+  static_assert(HeaderLen + est_t::max_bits < cell::max_bits,
                 "Key + Element must fit one cell");
   static_assert(est_t::max_bits == est_t::min_bits,
                 "Key + Element must be fixed-size");
@@ -134,14 +135,19 @@ public:
 
   __always_inline
   void reindex() {
+#ifndef TVM_NO_QUEUE_REINDEX
     dictionary new_dict;
     unsigned new_idx = 1;
-    auto [sl, idx, succ] = dict_.dictumin(KeyLen);
-    while (succ) {
-      new_dict.dictuset(sl, new_idx++, KeyLen);
-      auto [=sl, =idx, =succ] = dict_.dictugetnext(idx, KeyLen);
-    }
+    bool succ = true;
+    do {
+      auto [sl, idx, =succ] = dict_.dicturemmin(KeyLen);
+      if (succ)
+        new_dict.dictuset(sl, new_idx++, KeyLen);
+    } while (succ);
     dict_ = new_dict;
+#else
+    tvm_throw(error_code::iterator_overflow);
+#endif
   }
 
   using const_iterator = small_dictionary_const_iterator<Element, KeyLen>;

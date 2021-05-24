@@ -30,7 +30,7 @@ __interface IConsole {
   [[internal, answer_id]]
   cell inputCell(string message);
   [[internal, answer_id]]
-  cell inputCode(string message);
+  cell inputCode(string tvc_path);
 
   [[internal, answer_id]]
   int8 getAccountType(address addr);

@@ -799,4 +799,476 @@ let TargetPrefix = "tvm" in {
   def int_tvm_hiddenstack :
     GCCBuiltin<"__builtin_tvm_hiddenstack">,
     Intrinsic<[llvm_i257_ty], [llvm_i257_ty], [IntrNoMem]>;
+
+// ***********************************************************************/
+
+// ******************************************* 
+//
+// A.5.2. Division
+//
+// *******************************************/
+
+// DIVR (x y – q0:= bx/y + 1/2c)
+  def int_tvm_divr :
+    GCCBuiltin<"__builtin_tvm_divr">,
+    Intrinsic<[llvm_i257_ty], [llvm_i257_ty, llvm_i257_ty],
+              [IntrNoMem]>;
+
+// DIVC (x y – q00:= dx/ye)
+  def int_tvm_divc :
+    GCCBuiltin<"__builtin_tvm_divc">,
+    Intrinsic<[llvm_i257_ty], [llvm_i257_ty, llvm_i257_ty],
+              [IntrNoMem]>;
+
+// DIVMOD (x y - q r), where q := bx/yc, r := x - yq
+  def int_tvm_divmod :
+    GCCBuiltin<"__builtin_tvm_divmod">,
+    Intrinsic<[llvm_i257_ty, llvm_i257_ty], [llvm_i257_ty, llvm_i257_ty], [IntrNoMem]>; 
+
+// DIVMODR (x y – q0 r0), where q0:= bx/y + 1/2c, r0:= x - yq0
+  def int_tvm_divmodr :
+    GCCBuiltin<"__builtin_tvm_divmodr">,
+    Intrinsic<[llvm_i257_ty, llvm_i257_ty], [llvm_i257_ty, llvm_i257_ty], [IntrNoMem]>; 
+
+// DIVMODC	(x y – q00 r00), where q00:= dx/ye, r00:= x - yq00
+  def int_tvm_divmodc :
+    GCCBuiltin<"__builtin_tvm_divmodc">,
+    Intrinsic<[llvm_i257_ty, llvm_i257_ty], [llvm_i257_ty, llvm_i257_ty], [IntrNoMem]>; 
+
+// MODPOW2 tt + 1: (x – x mod 2tt+1)
+  def int_tvm_modpow2 :
+    GCCBuiltin<"__builtin_tvm_modpow2">,
+    Intrinsic<[llvm_i257_ty], [llvm_i257_ty, llvm_i257_ty],
+              [IntrNoMem]>;
+
+// MULDIVR	(x y z – q0), where q0= bxy/z + 1/2c
+  def int_tvm_muldivr :
+    GCCBuiltin<"__builtin_tvm_muldivr">,
+    Intrinsic<[llvm_i257_ty], [llvm_i257_ty, llvm_i257_ty, llvm_i257_ty],
+              [IntrNoMem]>;
+
+// MULDIVMOD (x y z – q r), where q := bx · y/zc, r := x · y mod z (same as */MOD in Forth)
+  def int_tvm_muldivmod :
+    GCCBuiltin<"__builtin_tvm_muldivmod">,
+    Intrinsic<[llvm_i257_ty, llvm_i257_ty], [llvm_i257_ty, llvm_i257_ty, llvm_i257_ty], [IntrNoMem]>;
+
+// MULRSHIFT (x y z – bxy * 2-zc) for 0 <= z <= 256
+  def int_tvm_mulrshift :
+    GCCBuiltin<"__builtin_tvm_mulrshift">,
+    Intrinsic<[llvm_i257_ty], [llvm_i257_ty, llvm_i257_ty, llvm_i257_ty],
+              [IntrNoMem]>;
+
+// MULRSHIFTR (x y z – bxy * 2-z+ 1/2c) for 0 <= z <= 256
+  def int_tvm_mulrshiftr :
+    GCCBuiltin<"__builtin_tvm_mulrshiftr">,
+    Intrinsic<[llvm_i257_ty], [llvm_i257_ty, llvm_i257_ty, llvm_i257_ty],
+              [IntrNoMem]>;
+
+// MULRSHIFT tt + 1 (x y - bxy · 2-tt-1c)
+  def int_tvm_mulrshift_tt :
+    GCCBuiltin<"__builtin_tvm_mulrshift_tt">,
+    Intrinsic<[llvm_i257_ty], [llvm_i257_ty, llvm_i257_ty, llvm_i257_ty],
+              [IntrNoMem]>;
+
+// MULRSHIFTR	tt + 1 (x y - bxy · 2-tt-1+ 1/2c)
+  def int_tvm_mulrshiftr_tt :
+    GCCBuiltin<"__builtin_tvm_mulrshiftr_tt">,
+    Intrinsic<[llvm_i257_ty], [llvm_i257_ty, llvm_i257_ty, llvm_i257_ty],
+              [IntrNoMem]>;
+
+// LSHIFTDIV (x y z - b2zx/yc) for 0 <= z <= 256
+  def int_tvm_lshiftdiv :
+    GCCBuiltin<"__builtin_tvm_lshiftdiv">,
+    Intrinsic<[llvm_i257_ty], [llvm_i257_ty, llvm_i257_ty, llvm_i257_ty],
+              [IntrNoMem]>;
+
+// LSHIFTDIVR (x y z – b2zx/y + 1/2c) for 0 <= z <= 256
+  def int_tvm_lshiftdivr :
+    GCCBuiltin<"__builtin_tvm_lshiftdivr">,
+    Intrinsic<[llvm_i257_ty], [llvm_i257_ty, llvm_i257_ty, llvm_i257_ty],
+              [IntrNoMem]>;
+
+// LSHIFTDIV tt + 1 (x y – b2tt+1x/yc)
+  def int_tvm_lshiftdiv_tt :
+    GCCBuiltin<"__builtin_tvm_lshiftdiv_tt">,
+    Intrinsic<[llvm_i257_ty], [llvm_i257_ty, llvm_i257_ty, llvm_i257_ty],
+              [IntrNoMem]>;
+
+// LSHIFTDIVR tt + 1 (x y – b2tt+1x/y+ 1/2c)
+  def int_tvm_lshiftdivr_tt :
+    GCCBuiltin<"__builtin_tvm_lshiftdivr_tt">,
+    Intrinsic<[llvm_i257_ty], [llvm_i257_ty, llvm_i257_ty, llvm_i257_ty],
+              [IntrNoMem]>;
+
+// ******************************************* 
+//
+// A.5.3. Shifts, logical operations
+//
+// *******************************************/ 
+
+  // POW2 (y – 2**y), 0 <= y <= 1023, equivalent to ONE; SWAP; LSHIFT
+  def int_tvm_pow2 :
+    GCCBuiltin<"__builtin_tvm_pow2">,
+    Intrinsic<[llvm_i257_ty], [llvm_i257_ty], [IntrNoMem]>;
+
+   // MINMAX or INTSORT2 (x y – x y or y x), sorts two integer
+  def int_tvm_minmax :
+    GCCBuiltin<"__builtin_tvm_minmax">,
+    Intrinsic<[llvm_i257_ty, llvm_i257_ty], [llvm_i257_ty, llvm_i257_ty], [IntrNoMem]>; 
+
+// ******************************************* 
+//
+// A.5.4. Quiet arithmetic primitives
+//
+// *******************************************/ 
+
+  // QADD (x y – x + y), always works if x and y are	Integer s, but returns a NaN if the addition cannot be performed
+  def int_tvm_qadd :
+    GCCBuiltin<"__builtin_tvm_qadd">,
+    Intrinsic<[llvm_i257_ty], [llvm_i257_ty, llvm_i257_ty],
+              [IntrNoMem]>;
+
+  // QDIV (x y – bx/yc), returns a NaN if y = 0, or if y = -1 and
+  //   x = -2256, or if either of x or y is a NaN
+  def int_tvm_qdiv :
+    GCCBuiltin<"__builtin_tvm_qdiv">,
+    Intrinsic<[llvm_i257_ty], [llvm_i257_ty, llvm_i257_ty],
+              [IntrNoMem]>;
+
+  // QAND (x y – x&y), bitwise “and” (similar to AND), but returns a NaN if either x or y is a NaN
+  def int_tvm_qand :
+    GCCBuiltin<"__builtin_tvm_qand">,
+    Intrinsic<[llvm_i257_ty], [llvm_i257_ty, llvm_i257_ty],
+              [IntrNoMem]>;
+
+  // QOR (x y – x|y), bitwise “or”. If  x = -1 or y = -1, the result is always -1,
+  //  even if the other argument is a NaN
+  def int_tvm_qor :
+    GCCBuiltin<"__builtin_tvm_qor">,
+    Intrinsic<[llvm_i257_ty], [llvm_i257_ty, llvm_i257_ty],
+              [IntrNoMem]>;
+
+// ******************************************* 
+//
+// A.6	Comparison primitives
+//
+// *******************************************/ 
+
+  // SGN (x – sgn(x)), computes the sign of an integer x:	-1 if x < 0, 0 if x = 0, 1 if x > 0
+  def int_tvm_sgn :
+      GCCBuiltin<"__builtin_tvm_sgn">,
+      Intrinsic<[llvm_i257_ty], [llvm_i257_ty], [IntrNoMem]>;
+
+  // ISNAN (x – x = NaN), checks whether x is a NaN
+  def int_tvm_isnan :
+      GCCBuiltin<"__builtin_tvm_isnan">,
+      Intrinsic<[llvm_i257_ty], [llvm_i257_ty], [IntrNoMem]>;
+
+  // CHKNAN (x - x), throws an arithmetic overflow exception if x is a NaN
+  def int_tvm_chknan :
+      GCCBuiltin<"__builtin_tvm_chknan">,
+      Intrinsic<[llvm_i257_ty], [llvm_i257_ty], [IntrNoMem]>;
+
+
+// *******************************************        
+//
+//       A.7        Cell primitives        
+//
+// *******************************************/ 
+
+  // STBREFR or ENDCST (b b00 – b), equivalent to ENDC; SWAP; STREF  
+  def int_tvm_endcst :
+    GCCBuiltin<"__builtin_tvm_endcst">,
+    Intrinsic<[llvm_TVMBuilder_ty],
+              [llvm_TVMBuilder_ty, llvm_TVMBuilder_ty], [IntrNoMem]>;
+
+  // TODO !!!!!!!!!!!!!!!!!!!! 
+  // STIX (x b l – b0), stores a signed l-bit integer x into b for  0 ? l ? 257
+//  def int_tvm_stix :
+//    GCCBuiltin<"__builtin_tvm_stix">,
+//    Intrinsic<[llvm_TVMBuilder_ty], [llvm_i257_ty, llvm_TVMBuilder_ty, llvm_i257_ty],
+//              [IntrNoMem]>;
+
+  // STIXR  (b x l – b0),  similar to STIX, but with arguments in a different order
+  def int_tvm_stixr :
+    GCCBuiltin<"__builtin_tvm_stixr">,
+    Intrinsic<[llvm_TVMBuilder_ty], [llvm_TVMBuilder_ty, llvm_i257_ty, llvm_i257_ty],
+              [IntrNoMem]>;
+
+  // STIXR  (b x l – b0),  similar to STIX, but with arguments in a different order
+  def int_tvm_stuxr :
+    GCCBuiltin<"__builtin_tvm_stuxr">,
+    Intrinsic<[llvm_TVMBuilder_ty], [llvm_TVMBuilder_ty, llvm_i257_ty, llvm_i257_ty],
+              [IntrNoMem]>;  
+
+  // STIR cc + 1 (b x – b0), equivalent to SWAP; STI cc + 1
+  def int_tvm_stir :
+    GCCBuiltin<"__builtin_tvm_stir">,
+    Intrinsic<[llvm_TVMBuilder_ty], [llvm_i257_ty, llvm_TVMBuilder_ty, llvm_i257_ty],
+              [IntrNoMem]>;
+
+  // STUR cc + 1 (b x – b0), equivalent to SWAP; STU cc + 1
+  def int_tvm_stur :
+    GCCBuiltin<"__builtin_tvm_stur">,
+    Intrinsic<[llvm_TVMBuilder_ty], [llvm_i257_ty, llvm_TVMBuilder_ty, llvm_i257_ty],
+              [IntrNoMem]>;
+
+  // STBREF (b0b – b00), equivalent to SWAP; STBREFREV
+  def int_tvm_stbref :
+    GCCBuiltin<"__builtin_tvm_stbref">,
+    Intrinsic<[llvm_TVMBuilder_ty],
+              [llvm_TVMBuilder_ty, llvm_TVMBuilder_ty], [IntrNoMem]>;
+
+  // STB (b0 b – b00), appends all data from Builder b0 to Builder b
+  def int_tvm_stb :
+    GCCBuiltin<"__builtin_tvm_stb">,
+    Intrinsic<[llvm_TVMBuilder_ty],
+              [llvm_TVMBuilder_ty, llvm_TVMBuilder_ty], [IntrNoMem]>;
+
+  // STREFR (b c – b0)
+  def int_tvm_strefr :
+    GCCBuiltin<"__builtin_tvm_strefr">,
+    Intrinsic<[llvm_TVMBuilder_ty],
+              [llvm_TVMBuilder_ty, llvm_TVMCell_ty], [IntrNoMem]>;
+
+  // STSLICER (b s – b0)
+  def int_tvm_stslicer :
+    GCCBuiltin<"__builtin_tvm_stslicer">,
+    Intrinsic<[llvm_TVMBuilder_ty],
+              [llvm_TVMBuilder_ty, llvm_TVMSlice_ty], [IntrNoMem]>;
+
+  // STBR (b b0 – b00), concatenates two Builder s, equivalent to SWAP; STB
+  def int_tvm_stbr :
+    GCCBuiltin<"__builtin_tvm_stbr">,
+    Intrinsic<[llvm_TVMBuilder_ty],
+              [llvm_TVMBuilder_ty, llvm_TVMBuilder_ty], [IntrNoMem]>;
+
+  // STREFQ	(c b – c b -1 or b0 0)
+  def int_tvm_strefq :
+    GCCBuiltin<"__builtin_tvm_strefq">,
+    Intrinsic<[llvm_TVMCell_ty, llvm_TVMBuilder_ty, llvm_i257_ty],
+              [llvm_TVMCell_ty, llvm_TVMBuilder_ty], [IntrNoMem]>;
+
+  // STBREFQ (b0 b – b0 b -1 or b00 0)
+  def int_tvm_stbrefq :
+    GCCBuiltin<"__builtin_tvm_stbrefq">,
+    Intrinsic<[llvm_TVMBuilder_ty, llvm_TVMBuilder_ty, llvm_i257_ty],
+              [llvm_TVMBuilder_ty, llvm_TVMBuilder_ty], [IntrNoMem]>;
+
+  // STSLICEQ (s b - s b -1 or b0 0)
+  def int_tvm_stsliceq :
+    GCCBuiltin<"__builtin_tvm_stsliceq">,
+    Intrinsic<[llvm_TVMSlice_ty, llvm_TVMBuilder_ty, llvm_i257_ty],
+              [llvm_TVMSlice_ty, llvm_TVMBuilder_ty], [IntrNoMem]>;
+
+  // STBQ (b0 b – b0 b -1 or b00 0)
+  def int_tvm_stbq :
+    GCCBuiltin<"__builtin_tvm_stbq">,
+    Intrinsic<[llvm_TVMBuilder_ty, llvm_TVMBuilder_ty, llvm_i257_ty],
+              [llvm_TVMBuilder_ty, llvm_TVMBuilder_ty], [IntrNoMem]>;
+
+  // STBREFRQ (b b0 – b b0 -1 or b00 0)
+  def int_tvm_stbrefrq :
+    GCCBuiltin<"__builtin_tvm_stbrefrq">,
+    Intrinsic<[llvm_TVMBuilder_ty, llvm_TVMBuilder_ty, llvm_i257_ty],
+              [llvm_TVMBuilder_ty, llvm_TVMBuilder_ty], [IntrNoMem]>;
+
+  // STSLICERQ (b s – b s -1 or b00 0)
+  def int_tvm_stslicerq :
+    GCCBuiltin<"__builtin_tvm_stslicerq">,
+    Intrinsic<[llvm_TVMBuilder_ty, llvm_TVMSlice_ty, llvm_i257_ty],
+              [llvm_TVMBuilder_ty, llvm_TVMSlice_ty], [IntrNoMem]>;
+
+  // STBRQ (b b0 – b b0 -1 or b00 0)
+  def int_tvm_stbrq :
+    GCCBuiltin<"__builtin_tvm_stbrq">,
+    Intrinsic<[llvm_TVMBuilder_ty, llvm_TVMBuilder_ty, llvm_i257_ty],
+              [llvm_TVMBuilder_ty, llvm_TVMBuilder_ty], [IntrNoMem]>;
+
+
+  // STREFCONST, equivalent to PUSHREF; STREFR
+  // TODO
+
+  // STREF2CONST, equivalent to STREFCONST; STREFCONST
+  // TODO
+
+
+  // ENDXC  (b x – c), if x6 = 0, creates a special or exotic cell from Builder b
+  def int_tvm_endxc :
+    GCCBuiltin<"__builtin_tvm_endxc">,
+    Intrinsic<[llvm_TVMCell_ty], [llvm_TVMBuilder_ty, llvm_i257_ty], [IntrNoMem]>;
+
+  // STILE4 (x b – b0), stores a little-endian signed 32-bit integer
+  def int_tvm_stile4 :
+    GCCBuiltin<"__builtin_tvm_stile4">,
+    Intrinsic<[llvm_TVMBuilder_ty],
+              [llvm_i257_ty, llvm_TVMBuilder_ty], [IntrNoMem]>;  
+
+  // STULE4 (x b – b0), stores a little-endian unsigned 32-bit integer
+    def int_tvm_stule4 :
+    GCCBuiltin<"__builtin_tvm_stule4">,
+    Intrinsic<[llvm_TVMBuilder_ty],
+              [llvm_i257_ty, llvm_TVMBuilder_ty], [IntrNoMem]>; 
+
+  // STILE8 (x b – b0), stores a little-endian signed 64-bit integer
+  def int_tvm_stile8 :
+    GCCBuiltin<"__builtin_tvm_stile8">,
+    Intrinsic<[llvm_TVMBuilder_ty],
+              [llvm_i257_ty, llvm_TVMBuilder_ty], [IntrNoMem]>; 
+
+  // STULE8 (x b – b0), stores a little-endian unsigned 64-bit integer
+  def int_tvm_stule8 :
+    GCCBuiltin<"__builtin_tvm_stule8">,
+    Intrinsic<[llvm_TVMBuilder_ty],
+              [llvm_i257_ty, llvm_TVMBuilder_ty], [IntrNoMem]>;
+
+  // BDEPTH  (b – x), returns the depth of Builder b. If no cell references are stored in b, then x =  0; 
+  // otherwise x is one plus the maximum of depths of cells referred to from b
+  def int_tvm_bdepth :
+    GCCBuiltin<"__builtin_tvm_bdepth">,
+    Intrinsic<[llvm_i257_ty], [llvm_TVMBuilder_ty]>;
+
+  // BBITREFS (b – x y), returns the numbers of both data bits and cell references in b
+  def int_tvm_bbitrefs :
+    GCCBuiltin<"__builtin_tvm_bbitrefs">,
+    Intrinsic<[llvm_i257_ty, llvm_i257_ty], [llvm_TVMBuilder_ty]>;
+
+  // BREMBITREFS  (b – x0 y0)
+  def int_tvm_brembitrefs :
+    GCCBuiltin<"__builtin_tvm_brembitrefs">,
+    Intrinsic<[llvm_i257_ty, llvm_i257_ty], [llvm_TVMBuilder_ty]>;
+
+  // BCHKBITS cc + 1 (b –), checks whether cc + 1 bits can be stored into b, where 0 <= cc <= 255
+  // TODO
+
+  // BCHKBITS (b x – ), checks whether x bits can be stored into b, 0 <= x <= 1023. If there is no space for x more bits in b ... throws an exception
+  def int_tvm_bchkbits :
+    GCCBuiltin<"__builtin_tvm_bchkbits">,
+    Intrinsic<[], [llvm_TVMBuilder_ty, llvm_i257_ty]>;
+
+  // BCHKREFS (b y – ), checks whether y references can be stored into b, 0 <= y <= 7
+  def int_tvm_bchkrefs :
+    GCCBuiltin<"__builtin_tvm_bchkrefs">,
+    Intrinsic<[], [llvm_TVMBuilder_ty, llvm_i257_ty]>;
+
+  // BCHKBITREFS (b x y – ), checks whether x bits and y references can be stored into b, 0 <= x <= 1023, 0 <= y <= 7
+  def int_tvm_bchkbitrefs :
+    GCCBuiltin<"__builtin_tvm_bchkbitrefs">,
+    Intrinsic<[], [llvm_TVMBuilder_ty, llvm_i257_ty, llvm_i257_ty]>;
+
+  // BCHKBITSQ cc + 1 (b – ?), checks whether cc + 1 bits can be stored into b, where 0 <= cc <= 255
+  // TODO
+
+  // BCHKBITSQ (b x – ?), checks whether x bits can be stored into b, 0 <= x <= 1023
+  def int_tvm_bchkbitsq :
+    GCCBuiltin<"__builtin_tvm_bchkbitsq">,
+    Intrinsic<[llvm_i257_ty], [llvm_TVMBuilder_ty, llvm_i257_ty]>;
+
+  // BCHKREFSQ (b y – ?), checks whether y references can be stored into b, 0 <= y <= 7
+  def int_tvm_bchkrefsq :
+    GCCBuiltin<"__builtin_tvm_bchrefsq">,
+    Intrinsic<[llvm_i257_ty], [llvm_TVMBuilder_ty, llvm_i257_ty]>;
+
+  // BCHKBITREFSQ (b x y – ?), checks whether x bits and y references can be stored into b, 0 <= x <= 1023, 0 <= y <= 7
+  def int_tvm_bchkbitrefsq :
+    GCCBuiltin<"__builtin_tvm_bchkbitrefsq">,
+    Intrinsic<[], [llvm_TVMBuilder_ty, llvm_i257_ty, llvm_i257_ty]>;  
+
+  // STZEROES (b n – b0), stores n binary zeroes into Builder b
+  def int_tvm_stzeroes :
+    GCCBuiltin<"__builtin_tvm_stzeroes">,
+    Intrinsic<[llvm_TVMBuilder_ty], [llvm_TVMBuilder_ty, llvm_i257_ty]>;
+
+  // STONES (b n – b0), stores n binary ones into Builder b
+  def int_tvm_stones :
+    GCCBuiltin<"__builtin_tvm_stones">,
+    Intrinsic<[llvm_TVMBuilder_ty], [llvm_TVMBuilder_ty, llvm_i257_ty]>;
+
+  // STSAME (b n x – b0), stores n binary xes (0 <= x <= 1) into Builder b
+  def int_tvm_stsame :
+    GCCBuiltin<"__builtin_tvm_stsame">,
+    Intrinsic<[llvm_TVMBuilder_ty], [llvm_TVMBuilder_ty, llvm_i257_ty, llvm_i257_ty]>;
+
+  // STSLICECONST sss (b –	b0), stores a constant subslice sss consisting of 0 <= x <= 3 
+  //  references and up to 8y + 1 data bits, with 0 <= y <= 7.
+  // TODO
+
+  // STSLICECONST ‘0’ or STZERO (b – b0), stores one binary zero
+  def int_tvm_stzero :
+    GCCBuiltin<"__builtin_tvm_stzero">,
+    Intrinsic<[llvm_TVMBuilder_ty], [llvm_TVMBuilder_ty]>;
+
+  // STSLICECONST ‘1’ or STONE (b – b0), stores one binary one
+  def int_tvm_stone :
+    GCCBuiltin<"__builtin_tvm_stone">,
+    Intrinsic<[llvm_TVMBuilder_ty], [llvm_TVMBuilder_ty]>;
+
+// ******************************************* 
+//
+// A.10	Dictionary manipulation primitives
+//
+// *******************************************/
+
+// ******************************************* 
+//
+// A.10.2. Dictionary serialization and deserialization
+//
+// *******************************************/
+
+// SKIPDICT or SKIPOPTREF (s – s0), equivalent to LDDICT; NIP
+def int_tvm_skipdict :
+    GCCBuiltin<"__builtin_tvm_skipdict">,
+    Intrinsic<[llvm_TVMSlice_ty],
+              [llvm_TVMSlice_ty]>;
+
+// LDDICTS (s – s0 s00), loads (parses) a (Slice-represented) dictionary s0 from Slice s, and returns the remainder of s as s00
+def int_tvm_lddicts :
+    GCCBuiltin<"__builtin_tvm_lddicts">,
+    Intrinsic<[llvm_TVMSlice_ty, llvm_TVMSlice_ty],
+              [llvm_TVMSlice_ty]>;
+
+// PLDDICTS (s – s0), preloads a (Slice - represented) dictionary s0 from Slice s. Approximately equivalent to LDDICTS; DROP
+def int_tvm_plddicts :
+    GCCBuiltin<"__builtin_tvm_plddicts">,
+    Intrinsic<[llvm_TVMSlice_ty],
+              [llvm_TVMSlice_ty]>;
+
+// F406 — LDDICTQ (s – D s0 -1 or s 0), a quiet version of LDDICT
+def int_tvm_lddictq :
+    GCCBuiltin<"__builtin_tvm_lddictq">,
+    Intrinsic<[llvm_TVMCell_ty, llvm_TVMSlice_ty, llvm_i257_ty],
+              [llvm_TVMSlice_ty]>;
+
+// PLDDICTQ (s – D -1 or 0), a quiet version of PLDDICT
+def int_tvm_plddictq :
+    GCCBuiltin<"__builtin_tvm_plddictq">,
+    Intrinsic<[llvm_TVMCell_ty, llvm_i257_ty],
+              [llvm_TVMSlice_ty]>;
+
+// ******************************************* 
+//
+// A.11.3. Pseudo-random number generator primitives
+//
+// *******************************************/
+
+  // RANDU256 ( –	x), generates a new pseudo-random unsigned 256-bit Integer x
+  def int_tvm_randu256 :
+      GCCBuiltin<"__builtin_tvm_randu256">,
+      Intrinsic<[llvm_i257_ty], [], [IntrNoMem]>;
+
+  // RAND (y – z), generates a new pseudo-random integer z in the range 0...y-1 (or y...-1, if y < 0)
+  def int_tvm_rand :
+      GCCBuiltin<"__builtin_tvm_rand">,
+      Intrinsic<[llvm_i257_ty], [llvm_i257_ty], [IntrNoMem]>;
+
+  // SETRAND  (x	– ), sets the random seed to unsigned 256-bit Integer x
+  def int_tvm_setrand :
+      GCCBuiltin<"__builtin_tvm_setrand">,
+      Intrinsic<[], [llvm_i257_ty], [IntrNoMem]>;
+
+
+  // ADDRAND (x – ), mixes unsigned 256-bit Integer x into the random seed r
+  def int_tvm_addrand :
+      GCCBuiltin<"__builtin_tvm_addrand">,
+      Intrinsic<[], [llvm_i257_ty], [IntrNoMem]>;
 }

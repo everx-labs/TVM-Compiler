@@ -741,4 +741,305 @@ BUILTIN(__builtin_tvm_unpackfirst254, "T254Tt", "nc")
 BUILTIN(__builtin_tvm_unpackfirst255, "T255Tt", "nc")
 BUILTIN(__builtin_tvm_hiddenstack, "WiWi", "nc")
 
+// ***********************************************************************/
+
+// ******************************************* 
+//
+// A.3  Tuple, List, and Null primitives
+//
+// *******************************************/
+
+// 6F00 — NIL ( – t), pushes the only Tuple t = () of length zero
+BUILTIN(__builtin_tvm_nil, "Tt", "nc")
+
+// 6F01 — SINGLE (x – t), creates a singleton t := (x), i.e., a Tuple of length one
+
+// 6F02 — PAIR or CONS (x y – t), creates pair t := (x, y)
+
+// 6F03 — TRIPLE (x y z – t), creates triple t := (x, y, z)
+
+
+// ******************************************* 
+//
+// A.5.2. Division
+//
+// *******************************************/
+
+// DIVR (x y – q0:= bx/y + 1/2c)
+BUILTIN(__builtin_tvm_divr, "WiWiWi", "nc")
+
+// DIVC (x y – q00:= dx/ye)
+BUILTIN(__builtin_tvm_divc, "WiWiWi", "nc")
+
+// DIVMOD (x y - q r), where q := bx/yc, r := x - yq
+BUILTIN(__builtin_tvm_divmod, "{WiWi}WiWi", "nc")
+
+// DIVMODR (x y – q0 r0), where q0:= bx/y + 1/2c, r0:= x - yq0
+BUILTIN(__builtin_tvm_divmodr, "{WiWi}WiWi", "nc")
+
+// DIVMODC	(x y – q00 r00), where q00:= dx/ye, r00:= x - yq00
+BUILTIN(__builtin_tvm_divmodc, "{WiWi}WiWi", "nc")
+
+// MODPOW2 tt + 1: (x – x mod 2tt+1)
+BUILTIN(__builtin_tvm_modpow2, "WiWiWi", "nc")
+
+// MULDIVR	(x y z – q0), where q0= bxy/z + 1/2c
+BUILTIN(__builtin_tvm_muldivr, "WiWiWiWi", "nc")
+
+// MULDIVMOD (x y z – q r), where q := bx · y/zc, r := x · y mod z (same as */MOD in Forth)
+BUILTIN(__builtin_tvm_muldivmod, "{WiWi}WiWiWi", "nc")
+
+// MULRSHIFT (x y z – bxy * 2-zc) for 0 <= z <= 256
+BUILTIN(__builtin_tvm_mulrshift, "WiWiWiWi", "nc")
+
+// MULRSHIFT tt + 1 (x y - bxy · 2-tt-1c)
+BUILTIN(__builtin_tvm_mulrshift_tt, "WiWiWiWi", "nc")
+
+// MULRSHIFTR	tt + 1 (x y - bxy · 2-tt-1+ 1/2c)
+BUILTIN(__builtin_tvm_mulrshiftr_tt, "WiWiWiWi", "nc")
+
+// MULRSHIFTR (x y z – bxy * 2-z+ 1/2c) for 0 <= z <= 256
+BUILTIN(__builtin_tvm_mulrshiftr, "WiWiWiWi", "nc")
+
+// LSHIFTDIV (x y z - b2zx/yc) for 0 <= z <= 256
+BUILTIN(__builtin_tvm_lshiftdiv, "WiWiWiWi", "nc")
+
+// LSHIFTDIVR (x y z – b2zx/y + 1/2c) for 0 <= z <= 256
+BUILTIN(__builtin_tvm_lshiftdivr, "WiWiWiWi", "nc")
+
+// LSHIFTDIV tt + 1 (x y – b2tt+1x/yc)
+BUILTIN(__builtin_tvm_lshiftdiv_tt, "WiWiWiWi", "nc")
+
+// LSHIFTDIVR tt + 1 (x y – b2tt+1x/y+ 1/2c)
+BUILTIN(__builtin_tvm_lshiftdivr_tt, "WiWiWiWi", "nc")
+
+// ******************************************* 
+//
+// A.5.3. Shifts, logical operations
+//
+// *******************************************/ 
+
+
+// POW2 (y – 2**y), 0 <= y <= 1023, equivalent to ONE; SWAP; LSHIFT
+BUILTIN(__builtin_tvm_pow2, "WiWi", "nc")
+
+// MINMAX or INTSORT2 (x y – x y or y x), sorts two integer
+BUILTIN(__builtin_tvm_minmax, "{WiWi}WiWi", "nc")
+
+// ******************************************* 
+//
+// A.5.4. Quiet arithmetic primitives
+//
+// *******************************************/ 
+
+// QADD (x y – x + y), always works if x and y are	Integer s, but returns a NaN if the addition cannot be performed
+BUILTIN(__builtin_tvm_qadd, "WiWiWi", "nc")
+
+// QDIV (x y – bx/yc), returns a NaN if y = 0, or if y = -1 and
+//   x = -2256, or if either of x or y is a NaN
+BUILTIN(__builtin_tvm_qdiv, "WiWiWi", "nc")
+
+// QAND (x y – x&y), bitwise “and” (similar to AND), but returns a NaN if either x or y is a NaN
+BUILTIN(__builtin_tvm_qand, "WiWiWi", "nc")
+
+// QOR (x y – x|y), bitwise “or”. If  x = -1 or y = -1, the result is always -1,
+//  even if the other argument is a NaN
+BUILTIN(__builtin_tvm_qor, "WiWiWi", "nc")
+
+// ******************************************* 
+//
+// A.6	Comparison primitives
+//
+// *******************************************/ 
+
+// SGN (x – sgn(x)), computes the sign of an integer x:	-1 if x < 0, 0 if x = 0, 1 if x > 0
+BUILTIN(__builtin_tvm_sgn, "WiWi", "nc")
+
+// ISNAN (x – x = NaN), checks whether x is a NaN
+BUILTIN(__builtin_tvm_isnan, "WiWi", "nc")
+
+// CHKNAN (x - x), throws an arithmetic overflow exception if x is a NaN
+BUILTIN(__builtin_tvm_chknan, "WiWi", "c")
+
+// *******************************************        
+//
+//       A.7        Cell primitives        
+//
+// *******************************************/ 
+
+// STBREFR or ENDCST (b b00 – b), equivalent to ENDC; SWAP; STREF        
+BUILTIN(__builtin_tvm_endcst, "TbTbTb", "nc")
+
+//  TODO !!!!!!!!!!!!!!!!!!!!!!
+// STIX (x b l – b0), stores a signed l-bit integer x into b for  0 ? l ? 257
+// BUILTIN(__builtin_tvm_stix, "TbWiTbWi", "nc")
+
+// STIXR  (b x l – b0),  similar to STIX, but with arguments in a different order
+BUILTIN(__builtin_tvm_stixr, "TbTbWiWi", "nc")
+
+// STUXR  (b x l – b0),  similar to STUX, but with arguments in a different order
+BUILTIN(__builtin_tvm_stuxr, "TbTbWiWi", "nc")
+
+// STIR cc + 1 (b x – b0), equivalent to SWAP; STI cc + 1
+BUILTIN(__builtin_tvm_stir, "TbWiTbWi", "nc")
+
+// STUR cc + 1 (b x – b0), equivalent to SWAP; STU cc + 1
+BUILTIN(__builtin_tvm_stur, "TbWiTbWi", "nc")
+
+// STBREF (b0 b – b00), equivalent to SWAP; STBREFREV
+BUILTIN(__builtin_tvm_stbref, "TbTbTb", "nc")
+        
+// STB (b0 b – b00), appends all data from Builder b0 to Builder b
+BUILTIN(__builtin_tvm_stb, "TbTbTb", "nc")
+
+// STREFR (b c – b0)
+BUILTIN(__builtin_tvm_strefr, "TbTbTc", "nc")
+
+// STSLICER (b s – b0)
+BUILTIN(__builtin_tvm_stslicer, "TbTbTs", "nc")
+
+// STBR (b b0– b00), concatenates two Builder s, equivalent to SWAP; STB
+BUILTIN(__builtin_tvm_stbr, "TbTbTb", "nc")
+
+// CF18 — STREFQ	(c b – c b -1 or b0 0)
+BUILTIN(__builtin_tvm_strefr, "{TcTbWi}TcTb", "nc")
+
+// CF19 — STBREFQ (b0 b – b0 b -1 or b00 0)
+BUILTIN(__builtin_tvm_stbrefq, "{TbTbWi}TbTb", "nc")
+
+// CF1A - STSLICEQ (s b - s b -1 or b0 0)
+BUILTIN(__builtin_tvm_stsliceq, "{TsTbWi}TsTb", "nc")
+
+// CF1B — STBQ (b0 b – b0 b -1 or b00 0)
+BUILTIN(__builtin_tvm_stbq, "{TbTbWi}TbTb", "nc")
+
+// CF1D — STBREFRQ (b b0 – b b0 -1 or b00 0)
+BUILTIN(__builtin_tvm_stbrefrq, "{TbTbWi}TbTb", "nc")
+
+// CF1E — STSLICERQ (b s – b s -1 or b00 0)
+BUILTIN(__builtin_tvm_stslicerq, "{TsTbWi}TsTb", "nc")
+
+// CF1F — STBRQ (b b0 – b b0 -1 or b00 0)
+BUILTIN(__builtin_tvm_stbrq, "{TbTbWi}TbTb", "nc")
+
+// CF20 — STREFCONST, equivalent to PUSHREF; STREFR
+// TODO
+
+// CF21 — STREF2CONST, equivalent to STREFCONST; STREFCONST
+// TODO
+
+
+// ENDXC  (b x – c), if x6 = 0, creates a special or exotic cell from Builder b
+BUILTIN(__builtin_tvm_endxc, "TcTbWi", "nc")
+
+// STILE4 (x b – b0), stores a little-endian signed 32-bit integer
+BUILTIN(__builtin_tvm_stile4, "TbWiTb", "nc")
+
+// STULE4 (x b – b0), stores a little-endian unsigned 32-bit integer
+BUILTIN(__builtin_tvm_stule4, "TbWiTb", "nc")
+
+// STILE8 (x b – b0), stores a little-endian signed 64-bit integer
+BUILTIN(__builtin_tvm_stile8, "TbWiTb", "nc")
+
+// STULE8 (x b – b0), stores a little-endian unsigned 64-bit integer
+BUILTIN(__builtin_tvm_stule8, "TbWiTb", "nc")
+
+// BDEPTH  (b – x), returns the depth of Builder b. If no cell references are stored in b, then x =  0; 
+// otherwise x is one plus the maximum of depths of cells referred to from b
+BUILTIN(__builtin_tvm_bdepth, "WiTb", "nc")        
+
+// BBITREFS (b – x y), returns the numbers of both data bits and cell references in b
+BUILTIN(__builtin_tvm_bbitrefs, "{WiWi}Tb", "nc") 
+
+// BREMBITREFS  (b – x0 y0)
+BUILTIN(__builtin_tvm_brembitrefs, "{WiWi}Tb", "nc")
+
+// BCHKBITS cc + 1 (b –), checks whether cc + 1 bits can be stored into b, where 0 <= cc <= 255
+// TODO
+
+// BCHKBITS (b x – ), checks whether x bits can be stored into b, 0 <= x <= 1023. If there is no space for x more bits in b ... throws an exception
+BUILTIN(__builtin_tvm_bchkbits, "vTbWi", "c")
+
+// BCHKREFS (b y – ), checks whether y references can be stored into b, 0 <= y <= 7
+BUILTIN(__builtin_tvm_bchkrefs, "vTbWi", "c")
+
+// BCHKBITREFS (b x y – ), checks whether x bits and y references can be stored into b, 0 <= x <= 1023, 0 <= y <= 7
+BUILTIN(__builtin_tvm_bchkbitrefs, "vTbWiWi", "c")
+
+// BCHKBITSQ cc + 1 (b – ?), checks whether cc + 1 bits can be stored into b, where 0 <= cc <= 255
+// TODO
+
+// BCHKBITSQ (b x – ?), checks whether x bits can be stored into b, 0 <= x <= 1023
+BUILTIN(__builtin_tvm_bchkbitsq, "WiTbWi", "nc")
+
+// BCHKREFSQ (b y – ?), checks whether y references can be stored into b, 0 <= y <= 7
+BUILTIN(__builtin_tvm_bchkrefsq, "WiTbWi", "nc")
+
+// BCHKBITREFSQ (b x y – ?), checks whether x bits and y references can be stored into b, 0 <= x <= 1023, 0 <= y <= 7
+BUILTIN(__builtin_tvm_bchkbitrefsq, "WiTbWiWi", "nc")
+
+// STZEROES (b n – b0), stores n binary zeroes into Builder b
+BUILTIN(__builtin_tvm_stzeroes, "TbTbWi", "nc")
+
+// STONES (b n – b0), stores n binary ones into Builder b
+BUILTIN(__builtin_tvm_stones, "TbTbWi", "nc")
+
+// STSAME (b n x – b0), stores n binary xes (0 <= x <= 1) into Builder b
+BUILTIN(__builtin_tvm_stsame, "TbTbWiWi", "nc")
+
+// STSLICECONST sss (b –	b0), stores a constant subslice sss consisting of 0 <= x <= 3 
+//  references and up to 8y + 1 data bits, with 0 <= y <= 7.
+// TODO
+
+// STSLICECONST ‘0’ or STZERO (b – b0), stores one binary zero
+BUILTIN(__builtin_tvm_stzero, "TbTb", "nc")
+
+// STSLICECONST ‘1’ or STONE (b – b0), stores one binary one
+BUILTIN(__builtin_tvm_stone, "TbTb", "nc")
+
+// ******************************************* 
+//
+// A.10	Dictionary manipulation primitives
+//
+// *******************************************/
+
+// ******************************************* 
+//
+// A.10.2. Dictionary serialization and deserialization
+//
+// *******************************************/
+
+// SKIPDICT or SKIPOPTREF (s – s0), equivalent to LDDICT; NIP
+BUILTIN(__builtin_tvm_skipdict, "TsTs", "nc")
+
+// LDDICTS (s – s0 s00), loads (parses) a (Slice-represented) dictionary s0 from Slice s, and returns the remainder of s as s00
+BUILTIN(__builtin_tvm_lddicts, "{TsTs}Ts", "nc")
+
+// PLDDICTS (s – s0), preloads a (Slice - represented) dictionary s0 from Slice s. Approximately equivalent to LDDICTS; DROP
+BUILTIN(__builtin_tvm_plddicts, "TsTs", "nc")
+
+// LDDICTQ (s – D s0 -1 or s 0), a quiet version of LDDICT
+BUILTIN(__builtin_tvm_lddictq, "{TcTsWi}Ts", "nc")
+
+// PLDDICTQ (s – D -1 or 0), a quiet version of PLDDICT
+BUILTIN(__builtin_tvm_plddictq, "{TcWi}Ts", "nc")
+
+// ******************************************* 
+//
+// A.11.3. Pseudo-random number generator primitives
+//
+// *******************************************/
+
+// RANDU256 ( –	x), generates a new pseudo-random unsigned 256-bit Integer x
+BUILTIN(__builtin_tvm_randu256, "Wi", "nc")
+
+// RAND (y – z), generates a new pseudo-random integer z in the range 0...y-1 (or y...-1, if y < 0)
+BUILTIN(__builtin_tvm_rand, "WiWi", "nc")
+
+// SETRAND  (x	– ), sets the random seed to unsigned 256-bit Integer x
+BUILTIN(__builtin_tvm_setrand, "vWi", "nc")
+
+// ADDRAND (x – ), mixes unsigned 256-bit Integer x into the random seed r
+BUILTIN(__builtin_tvm_addrand, "vWi", "nc")
+
 #undef BUILTIN

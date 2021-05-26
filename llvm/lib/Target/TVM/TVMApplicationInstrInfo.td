@@ -104,3 +104,38 @@ defm RAWRESERVE : I<(outs), (ins I257:$x, I257:$y), (outs), (ins),
 defm SETCODE : I<(outs), (ins Cell:$cell), (outs), (ins),
                  [(int_tvm_setcode Cell:$cell)],
                  "SETCODE\t$cell", "SETCODE", 0xfb04>;
+
+
+
+// ******************************************* 
+//
+// A.11.3. Pseudo-random number generator primitives
+//
+// *******************************************/
+
+// F810	— RANDU256 ( –	x), generates a new pseudo-random unsigned 256-bit Integer x
+let hasSideEffects = 1 in
+defm RANDU256 : I0<(outs I257:$x), (ins),
+                    [(set I257:$x, (int_tvm_randu256))],
+                     "RANDU256", 0xf810>;
+
+// F811 — RAND (y – z), generates a new pseudo-random integer z in the range 0...y-1 (or y...-1, if y < 0)
+let hasSideEffects = 1 in
+defm RAND : I<(outs I257:$z), (ins I257:$y),
+               (outs), (ins), 
+               [(set I257:$z, (int_tvm_rand I257:$y))],
+                     "RAND\t$y", "RAND", 0xf811>;
+
+// F814	— SETRAND  (x	– ), sets the random seed to unsigned 256-bit Integer x
+let hasSideEffects = 1 in
+defm SETRAND : I<(outs), (ins I257:$x),
+                 (outs), (ins),
+                    [(int_tvm_setrand I257:$x)],
+                     "SETRAND\t$x", "SETRAND", 0xf814>;
+
+// F815 — ADDRAND (x – ), mixes unsigned 256-bit Integer x into the random seed r
+let hasSideEffects = 1 in
+defm ADDRAND : I<(outs), (ins I257:$x),
+                  (outs), (ins),
+                  [(int_tvm_addrand I257:$x)],
+                     "ADDRAND\t$x", "ADDRAND", 0xf815>;

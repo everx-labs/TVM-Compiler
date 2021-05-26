@@ -364,3 +364,34 @@ defm STDICT     : I0<(outs Builder : $builder),
                      [(set Builder : $builder, (int_tvm_stdict Cell : $dict,
                                                 Builder : $builderi))],
                      "STDICT", 0xf400>;
+
+// ******************************************* 
+//
+// A.10.2. Dictionary serialization and deserialization
+//
+// *******************************************/
+
+// F401 — SKIPDICT or SKIPOPTREF (s – s0), equivalent to LDDICT; NIP
+defm SKIPDICT : I0<(outs Slice:$dict), (ins Slice:$sl),
+                 [(set Slice:$dict, (int_tvm_skipdict Slice:$sl))],
+                 "SKIPDICT", 0xf401>;
+
+// F402 — LDDICTS (s – s0 s00), loads (parses) a (Slice-represented) dictionary s0 from Slice s, and returns the remainder of s as s00
+defm LDDICTS : I0<(outs Slice:$dict, Slice:$rem_sl), (ins Slice:$sl),
+                 [(set Slice:$dict, Slice:$rem_sl, (int_tvm_lddicts Slice:$sl))],
+                 "LDDICTS", 0xf402>;
+
+// F403 — PLDDICTS (s – s0), preloads a (Slice - represented) dictionary s0 from Slice s. Approximately equivalent to LDDICTS; DROP
+defm PLDDICTS : I0<(outs Slice:$dict), (ins Slice:$sl),
+                 [(set Slice:$dict, (int_tvm_plddicts Slice:$sl))],
+                 "PLDDICTS", 0xf403>;
+
+// F406 — LDDICTQ (s – D s0 -1 or s 0), a quiet version of LDDICT
+defm LDDICTQ : I0<(outs Cell:$dict, Slice:$rem_sl, I257:$result), (ins Slice:$sl),
+                 [(set Cell:$dict, Slice:$rem_sl, I257:$result, (int_tvm_lddictq Slice:$sl))],
+                 "LDDICTQ", 0xf406>;
+
+// F407 — PLDDICTQ (s – D -1 or 0), a quiet version of PLDDICT
+defm PLDDICTQ : I0<(outs Cell : $dict, I257:$result), (ins Slice : $sl),
+                    [(set Cell : $dict, I257:$result, (int_tvm_plddictq Slice : $sl))],
+                    "PLDDICTQ", 0xf407>;

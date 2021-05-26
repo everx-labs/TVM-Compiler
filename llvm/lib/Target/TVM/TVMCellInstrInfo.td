@@ -285,3 +285,244 @@ defm STUX : I0<(outs Builder : $builder),
                [(set Builder : $builder, (int_tvm_stu I257 : $value,
                                           Builder : $builderi, I257 : $size))],
                "STUX", 0xcf01>;
+
+
+
+// *******************************************        
+//
+//       A.7        Cell primitives        
+//
+// *******************************************/ 
+
+// CD — STBREFR or ENDCST (b b00 – b), equivalent to ENDC; SWAP; STREF
+let hasSideEffects = 1 in
+defm ENDCST : I<(outs Builder:$obldr), (ins Builder:$ibldr0, Builder:$ibldr),
+               (outs), (ins),
+               [(set Builder:$obldr, (int_tvm_stb Builder:$ibldr0, Builder:$ibldr))],
+               "ENDCST\t$obldr, $ibldr0, $ibldr", "ENDCST", 0xcd>;
+
+// CF11 — STBREF (b0 b – b00), equivalent to SWAP; STBREFREV
+defm STBREF : I<(outs Builder:$obldr), (ins Builder:$ibldr0, Builder:$ibldr),
+               (outs), (ins),
+               [(set Builder:$obldr, (int_tvm_stbref Builder:$ibldr0, Builder:$ibldr))],
+               "STBREFt$obldr, $ibldr0, $ibldr", "STBREF", 0xcf11>;
+
+
+// CF13 — STB (b0 b – b00), appends all data from Builder b0 to Builder b
+defm STB : I<(outs Builder:$obldr), (ins Builder:$ibldr0, Builder:$ibldr),
+               (outs), (ins),
+               [(set Builder:$obldr, (int_tvm_stb Builder:$ibldr0, Builder:$ibldr))],
+               "STB\t$obldr, $ibldr0, $ibldr", "STB", 0xcf13>;
+
+// CF14 — STREFR (b c – b0)
+defm STREFR : I<(outs Builder:$obldr), (ins Builder:$ibldr, Cell:$icell),
+               (outs), (ins),
+               [(set Builder:$obldr, (int_tvm_strefr Builder:$ibldr, Cell:$icell))],
+
+               "STREFR\t$obldr, $ibldr, $icell", "STREFR", 0xcf14>;
+
+
+// CF16 — STSLICER (b s – b0)
+let hasSideEffects = 1 in
+defm STSLICER : I<(outs Builder:$obldr), (ins Builder:$ibldr, Slice:$slice),
+                 (outs), (ins),
+                 [(set Builder:$obldr, (int_tvm_stslicer Builder:$ibldr, Slice:$slice))],
+                 "STSLICER\t$obldr, $ibldr, $slice", "STSLICER", 0xcf16>;
+
+// CF17 — STBR (b b0 – b00), concatenates two Builder s, equivalent to SWAP; STB
+let hasSideEffects = 1 in
+defm STBR : I<(outs Builder:$obldr), (ins Builder:$ibldr0, Builder:$ibldr),
+               (outs), (ins),
+               [(set Builder:$obldr, (int_tvm_stbr Builder:$ibldr0, Builder:$ibldr))],
+               "STBR\t$obldr, $ibldr0, $ibldr", "STBR", 0xcf17>;
+
+// CF18 — STREFQ	(c b – c b -1 or b0 0)
+defm STREFQ : I<(outs Cell:$ocell, Builder:$obldr, I257:$result), (ins  Cell:$icell, Builder:$ibldr),
+               (outs), (ins),
+               [(set Cell:$ocell, Builder:$obldr, I257:$result, (int_tvm_strefq Cell:$icell, Builder:$ibldr))],
+               "STREFQ\t$ocell, $obldr, $result, $icell, $ibldr", "STREFQ", 0xcf18>;
+
+// CF19 — STBREFQ (b0 b – b0 b -1 or b00 0)
+defm STBREFQ : I<(outs Builder:$obldr0, Builder:$obldr, I257:$result), (ins Builder:$ibldr0, Builder:$ibldr),
+               (outs), (ins),
+               [(set Builder:$obldr0, Builder:$obldr, I257:$result, (int_tvm_stbrefq Builder:$ibldr0, Builder:$ibldr))],
+               "STBREFQ\t$obldr0, $obldr, $result, $ibldr0, $ibldr", "STBREFQ", 0xcf19>;
+
+// CF1A - STSLICEQ (s b - s b -1 or b0 0)
+let hasSideEffects = 1 in
+defm STSLICEQ : I<(outs Slice:$oslice, Builder:$obldr, I257:$result), (ins Slice:$islice, Builder:$ibldr),
+                 (outs), (ins),
+                 [(set Slice:$oslice, Builder:$obldr, I257:$result, (int_tvm_stsliceq Slice:$islice, Builder:$ibldr))],
+                 "STSLICEQ\t$oslice, $obldr, $result, $islice, $ibldr", "STSLICEQ", 0xcf1a>;
+
+// CF1B — STBQ (b0 b – b0 b -1 or b00 0)
+let hasSideEffects = 1 in
+defm STBQ : I<(outs  Builder:$obldr0, Builder:$obldr, I257:$result), (ins Builder:$ibldr0, Builder:$ibldr),
+               (outs), (ins),
+               [(set Builder:$obldr0,  Builder:$obldr, I257:$result, (int_tvm_stbq Builder:$ibldr0, Builder:$ibldr))],
+               "STBQ\t$obldr0, $obldr, $result, $ibldr0, $ibldr", "STBQ", 0xcf1b>;
+
+// CF1D — STBREFRQ (b b0 – b b0 -1 or b00 0)
+defm STBREFRQ : I<(outs Builder:$obldr, Builder:$obldr0, I257:$result), (ins Builder:$ibldr, Builder:$ibldr0),
+               (outs), (ins),
+               [(set Builder:$obldr, Builder:$obldr0, I257:$result, (int_tvm_stbrefrq Builder:$ibldr, Builder:$ibldr0))],
+               "STBREFRQ\t$obldr, $obldr0, $result, $ibldr, $ibldr0", "STBREFRQ", 0xcf1d>;
+
+// CF1E — STSLICERQ (b s – b s -1 or b00 0)
+let hasSideEffects = 1 in
+defm STSLICERQ : I<(outs Builder:$obldr, Slice:$oslice, I257:$result), (ins Builder:$ibldr, Slice:$islice),
+                 (outs), (ins),
+                 [(set Builder:$obldr, Slice:$oslice, I257:$result, (int_tvm_stslicerq Builder:$ibldr, Slice:$islice))],
+                 "STSLICEQ\t$obldr, $oslice, $result, $islice, $ibldr", "STSLICEQ", 0xcf1e>;
+
+// CF1F — STBRQ (b b0 – b b0 -1 or b00 0)
+let hasSideEffects = 1 in
+defm STBRQ : I<(outs Builder:$obldr, Builder:$obldr0, I257:$result), (ins Builder:$ibldr, Builder:$ibldr0),
+               (outs), (ins),
+               [(set Builder:$obldr, Builder:$obldr0, I257:$result, (int_tvm_stbrq Builder:$ibldr0, Builder:$ibldr))],
+               "STBR\t$obldr, $result, $ibldr0, $ibldr", "STBR", 0xcf1f>;
+
+// CF20 — STREFCONST, equivalent to PUSHREF; STREFR
+// TODO
+
+// CF21 — STREF2CONST, equivalent to STREFCONST; STREFCONST
+// TODO
+
+// CF23  — ENDXC  (b x – c), if x6 = 0, creates a special or exotic cell from Builder b
+let hasSideEffects = 1 in
+defm ENDXC : I<(outs Cell:$cell), (ins Builder:$bldr, I257:$value), (outs), (ins),
+              [(set Cell:$cell, (int_tvm_endxc Builder:$bldr, I257:$value))],
+              "ENDXC\t$cell, $bldr, $value", "ENDXC", 0xcf23>;
+
+
+// CF28 — STILE4 (x b – b0), stores a little-endian signed 32-bit integer
+defm STILE4 : I<(outs Builder:$obldr), (ins I257:$value, Builder:$ibldr),
+               (outs), (ins),
+               [(set Builder:$obldr, (int_tvm_stile4 I257:$value, Builder:$ibldr))],
+               "STILE4\t$obldr, $value, $ibldr", "STILE4", 0xcf28>;
+
+// CF29 — STULE4 (x b – b0), stores a little-endian unsigned 32-bit integer
+defm STULE4 : I<(outs Builder:$obldr), (ins I257:$value, Builder:$ibldr),
+               (outs), (ins),
+               [(set Builder:$obldr, (int_tvm_stule4 I257:$value, Builder:$ibldr))],
+               "STULE4\t$obldr, $value, $ibldr", "STULE4", 0xcf29>;
+
+// CF2A — STILE8 (x b – b0), stores a little-endian signed 64-bit integer
+defm STILE8 : I<(outs Builder:$obldr), (ins I257:$value, Builder:$ibldr),
+               (outs), (ins),
+               [(set Builder:$obldr, (int_tvm_stile8 I257:$value, Builder:$ibldr))],
+               "STILE8\t$obldr, $value, $ibldr", "STILE8", 0xcf2a>;
+
+// CF2B — STULE8 (x b – b0), stores a little-endian unsigned 64-bit integer
+defm STULE8 : I<(outs Builder:$obldr), (ins I257:$value, Builder:$ibldr),
+               (outs), (ins),
+               [(set Builder:$obldr, (int_tvm_stule8 I257:$value, Builder:$ibldr))],
+               "STULE8\t$obldr, $value, $ibldr", "STULE8", 0xcf2b>;
+
+// CF30 — BDEPTH  (b	– x), returns the depth of Builder b. If no cell references are stored in b, then x =  0; 
+//   otherwise x is one plus the maximum of depths of cells referred to from b
+defm BDEPTH : I<(outs I257:$result), (ins Builder:$b), (outs), (ins),
+               [(set I257:$result, (int_tvm_bdepth Builder:$b))],
+               "BDEPTH\t$result, $b", "BDEPTH", 0xcf30>;
+
+// CF33 — BBITREFS (b – x y), returns the numbers of both data bits and cell references in b
+defm BBITREFS : I<(outs I257:$x, I257:$y),
+             (ins Builder : $bldr),
+             (outs), (ins),
+             [(set I257:$x, I257:$y,
+               (int_tvm_bbitrefs Builder:$bldr))],
+             "BBITREFS\t$x, $y, $bldr", "BBITREFS", 0xcf33>;
+
+// CF37 — BREMBITREFS  (b – x0y0)
+defm BREMBITREFS : I<(outs I257:$x, I257:$y),
+             (ins Builder : $bldr),
+             (outs), (ins),
+             [(set I257:$x, I257:$y,
+               (int_tvm_brembitrefs Builder:$bldr))],
+             "BREMBITREFS\t$x, $y, $bldr", "BREMBITREFS", 0xcf37>;
+
+// CF38cc — BCHKBITS cc + 1 (b –), checks whether cc + 1 bits can be stored into b, where 0 <= cc <= 255
+// TODO
+
+// CF39 — BCHKBITS (b x – ), checks whether x bits can be stored into b, 0 <= x <= 1023. If there is no space for x more bits in b ... throws an exception
+let hasSideEffects = 1 in
+defm BCHKBITS : I<(outs),
+             (ins Builder:$bldr, I257:$x),
+             (outs), (ins),
+             [(int_tvm_bchkbits Builder:$bldr, I257:$x)],
+             "BCHKBITS\t$bldr, $x", "BCHKBITS", 0xcf39>;
+
+// CF3A — BCHKREFS (b y – ), checks whether y references can be stored into b, 0 <= y <= 7
+let hasSideEffects = 1 in
+defm BCHKREFS : I<(outs),
+             (ins Builder:$bldr, I257:$y),
+             (outs), (ins),
+             [(int_tvm_bchkrefs Builder:$bldr, I257:$y)],
+             "BCHKREFS\t$bldr, $y", "BCHKREFS", 0xcf3a>;
+
+// CF3B — BCHKBITREFS (b x y – ), checks whether x bits and y references can be stored into b, 0 <= x <= 1023, 0 <= y <= 7
+let hasSideEffects = 1 in
+defm BCHKBITREFS : I<(outs),
+             (ins Builder:$bldr, I257:$x, I257:$y),
+             (outs), (ins),
+             [(int_tvm_bchkbitrefs Builder:$bldr, I257:$x, I257:$y)],
+             "BCHKBITREFS\t$bldr, $x, $y", "BCHKBITREFS", 0xcf3b>;
+
+// CF3Ccc — BCHKBITSQ cc + 1 (b – ?), checks whether cc + 1 bits can be stored into b, where 0 <= cc <= 255
+// TODO
+
+// CF3D — BCHKBITSQ (b x – ?), checks whether x bits can be stored into b, 0 <= x <= 1023
+defm BCHKBITSQ : I<(outs I257:$result),
+             (ins Builder:$bldr, I257:$x),
+             (outs), (ins),
+             [(set I257:$result, (int_tvm_bchkbitsq Builder:$bldr, I257:$x))],
+             "BCHKBITS\t$result, $bldr, $x", "BCHKBITS", 0xcf3d>;
+
+// CF3E — BCHKREFSQ (b y – ?), checks whether y references can be stored into b, 0 <= y <= 7
+defm BCHKREFSQ : I<(outs I257:$result),
+             (ins Builder:$bldr, I257:$y),
+             (outs), (ins),
+             [(set I257:$result, (int_tvm_bchkrefsq Builder:$bldr, I257:$y))],
+             "BCHKREFSQ\t$result, $bldr, $x", "BCHKREFSQ", 0xcf3e>;
+
+// CF3F — BCHKBITREFSQ (b x y – ?), checks whether x bits and y references can be stored into b, 0 <= x <= 1023, 0 <= y <= 7
+defm BCHKBITREFSQ : I<(outs I257:$result),
+             (ins Builder:$bldr, I257:$x, I257:$y),
+             (outs), (ins),
+             [(set I257:$result, (int_tvm_bchkbitrefsq Builder:$bldr, I257:$x, I257:$y))],
+             "BCHKBITREFS\t$result, $bldr, $x, $y", "BCHKBITREFS", 0xcf3d>;
+
+// CF40 — STZEROES (b n – b0), stores n binary zeroes into Builder b
+defm STZEROES : I<(outs Builder:$obldr), (ins Builder:$ibldr, I257:$value),
+               (outs), (ins),
+               [(set Builder:$obldr, (int_tvm_stzeroes Builder:$ibldr, I257:$value))],
+               "STZEROES\t$obldr, $ibldr, $value", "STZEROES", 0xcf40>;
+
+// CF41 — STONES (b n – b0), stores n binary ones into Builder b
+
+defm STONES : I<(outs Builder:$obldr), (ins Builder:$ibldr, I257:$value),
+               (outs), (ins),
+               [(set Builder:$obldr, (int_tvm_stones Builder:$ibldr, I257:$value))],
+               "STONES\t$obldr, $ibldr, $value", "STONES", 0xcf41>;
+
+// CF42 — STSAME (b n x – b0), stores n binary xes (0 <= x <= 1) into Builder b
+defm STSAME : I<(outs Builder:$obldr), (ins Builder:$ibldr, I257:$n, I257:$x),
+               (outs), (ins),
+               [(set Builder:$obldr, (int_tvm_stsame Builder:$ibldr, I257:$n, I257:$x))],
+               "STSAME\t$obldr, $ibldr, $n, $x", "STSAME", 0xcf42>;
+
+// CFC0_xysss — STSLICECONST sss (b –	b0), stores a constant subslice sss consisting of 0 <= x <= 3 
+//  references and up to 8y + 1 data bits, with 0 <= y <= 7.
+// TODO
+
+// CF81 — STSLICECONST ‘0’ or STZERO (b – b0), stores one binary zero
+defm STZERO  : I<(outs Builder:$obldr), (ins Builder:$ibldr),
+               (outs), (ins),
+               [(set Builder:$obldr, (int_tvm_stzero Builder:$ibldr))],
+               "STZERO\t$obldr, $ibldr", "STZERO", 0xcf81>;
+
+// CF83 — STSLICECONST ‘1’ or STONE (b – b0), stores one binary one
+defm STONE  : I<(outs Builder:$obldr), (ins Builder:$ibldr),
+               (outs), (ins),
+               [(set Builder:$obldr, (int_tvm_stzero Builder:$ibldr))],
+               "STONE\t$obldr, $ibldr", "STONE", 0xcf83>;

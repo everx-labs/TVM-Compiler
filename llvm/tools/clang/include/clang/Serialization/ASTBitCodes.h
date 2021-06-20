@@ -1358,11 +1358,17 @@ namespace serialization {
       /// The internal '__reflect_interface_has_pubkey' template.
       PREDEF_DECL_REFLECT_INTERFACE_HAS_PUBKEY_ID = 43,
 
+      /// The internal '__reflect_interface_has_timestamp' template.
+      PREDEF_DECL_REFLECT_INTERFACE_HAS_TIMESTAMP_ID = 44,
+
+      /// The internal '__reflect_interface_has_expire' template.
+      PREDEF_DECL_REFLECT_INTERFACE_HAS_EXPIRE_ID = 45,
+
       /// The internal '__reflect_signature_func_id' template.
-      PREDEF_DECL_REFLECT_SIGNATURE_FUNC_ID_ID = 44,
+      PREDEF_DECL_REFLECT_SIGNATURE_FUNC_ID_ID = 46,
 
       /// The internal '__reflect_echo' template.
-      PREDEF_DECL_REFLECT_ECHO_ID = 45
+      PREDEF_DECL_REFLECT_ECHO_ID = 47
       // TVM local end
     };
 
@@ -1371,7 +1377,7 @@ namespace serialization {
     /// For more information about predefined declarations, see the
     /// \c PredefinedDeclIDs type and the PREDEF_DECL_*_ID constants.
     // TVM local begin
-    const unsigned int NUM_PREDEF_DECL_IDS = 45;
+    const unsigned int NUM_PREDEF_DECL_IDS = 47;
     // TVM local end
 
     /// Record of updates for a declaration that was modified after

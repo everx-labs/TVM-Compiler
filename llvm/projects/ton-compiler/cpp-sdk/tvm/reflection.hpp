@@ -68,6 +68,12 @@ using get_interface_method_ptr_answer_id =
 template<class Interface>
 using get_interface_has_pubkey =
   __reflect_interface_has_pubkey<std::integral_constant, bool, Interface>;
+template<class Interface>
+using get_interface_has_timestamp =
+  __reflect_interface_has_timestamp<std::integral_constant, bool, Interface>;
+template<class Interface>
+using get_interface_has_expire =
+  __reflect_interface_has_expire<std::integral_constant, bool, Interface>;
 template<const char* Signature>
 using get_signature_func_id =
   __reflect_signature_func_id<std::integral_constant, unsigned, Signature>;

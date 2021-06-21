@@ -57,9 +57,12 @@ class ImmAsmOperand<int Low, int High> : AsmOperandClass {
 
 def SImm8    : ImmAsmOperand<-128,127> { let Name = "SImm8"; }
 def UImm11   : ImmAsmOperand<0,2047> { let Name = "UImm11"; }
+def UImm10   : ImmAsmOperand<0,2047> { let Name = "UImm10"; }
 def UImm8    : ImmAsmOperand<0,255> { let Name = "UImm8"; }
+def UImm7    : ImmAsmOperand<0,127> { let Name = "UImm7"; }
 def UImm6    : ImmAsmOperand<0,63> { let Name = "UImm6"; }
 def UImm4    : ImmAsmOperand<0,15> { let Name = "UImm4"; }
+def UImm3    : ImmAsmOperand<0,7> { let Name = "UImm3"; }
 def UImm2    : ImmAsmOperand<0,3> { let Name = "UImm2"; }
 def UImm1_256: ImmAsmOperand<1,256> { let Name = "UImm1_256"; }
 def UImm1_31: ImmAsmOperand<1,31> { let Name = "UImm1_31"; }
@@ -92,10 +95,14 @@ class uimmN<int Bits> : Operand<i257>, IntImmLeaf<i257, [{
 }]> {
   let ParserMatchClass = !cast<AsmOperandClass>("UImm"#Bits);
 }
+
 def uimm2 : uimmN<2>;
+def uimm3 : uimmN<3>;
 def uimm4 : uimmN<4>;
 def uimm6 : uimmN<6>;
+def uimm7 : uimmN<7>;
 def uimm8 : uimmN<8>;
+def uimm10 : uimmN<10>;
 def uimm11 : uimmN<11>;
 
 def uimm1_256 : Operand<i257>, IntImmLeaf<i257, [{

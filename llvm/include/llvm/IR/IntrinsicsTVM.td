@@ -804,6 +804,104 @@ let TargetPrefix = "tvm" in {
 
 // ******************************************* 
 //
+// A.3  Tuple, List, and Null primitives
+//
+// *******************************************/
+
+  // NIL ( – t), pushes the only Tuple t = () of length zero
+//  def int_tvm_nil :
+//    GCCBuiltin<"__builtin_tvm_nil">,
+//    Intrinsic<[llvm_TVMTuple_ty], [], [IntrNoMem]>;
+
+  // SINGLE (x – t), creates a singleton t := (x), i.e., a Tuple of length one
+  def int_tvm_single :
+    GCCBuiltin<"__builtin_tvm_single">,
+    Intrinsic<[llvm_TVMTuple_ty], [llvm_i257_ty], [IntrNoMem]>;
+
+  // PAIR or CONS (x y – t), creates pair t := (x, y)
+  def int_tvm_pair :
+    GCCBuiltin<"__builtin_tvm_pair">,
+    Intrinsic<[llvm_TVMTuple_ty], [llvm_i257_ty, llvm_i257_ty], [IntrNoMem]>;
+
+  // TRIPLE (x y z – t), creates triple t := (x, y, z)
+  def int_tvm_triple :
+    GCCBuiltin<"__builtin_tvm_triple">,
+    Intrinsic<[llvm_TVMTuple_ty], [llvm_i257_ty, llvm_i257_ty, llvm_i257_ty], [IntrNoMem]>;
+
+  // FIRST or CAR (t – x), returns the fist element of a Tuple
+  def int_tvm_first :
+    GCCBuiltin<"__builtin_tvm_first">,
+    Intrinsic<[llvm_i257_ty], [llvm_TVMTuple_ty], [IntrNoMem]>;
+
+  // SECOND or CDR (t – y), returns the second element of a Tuple
+  def int_tvm_second :
+    GCCBuiltin<"__builtin_tvm_second">,
+    Intrinsic<[llvm_i257_ty], [llvm_TVMTuple_ty], [IntrNoMem]>;
+
+  // THIRD (t – z), returns the third element of a Tuple
+  def int_tvm_third :
+    GCCBuiltin<"__builtin_tvm_third">,
+    Intrinsic<[llvm_i257_ty], [llvm_TVMTuple_ty], [IntrNoMem]>;  
+
+  // UNSINGLE (t – x), unpacks a singleton t = (x)
+  def int_tvm_unsingle :
+    GCCBuiltin<"__builtin_tvm_unsingle">,
+    Intrinsic<[llvm_i257_ty], [llvm_TVMTuple_ty], [IntrNoMem]>; 
+
+  // UNPAIR or UNCONS (t – x y), unpacks a pair t = (x, y)
+  def int_tvm_unpair :
+    GCCBuiltin<"__builtin_tvm_unpair">,
+    Intrinsic<[llvm_i257_ty, llvm_i257_ty], [llvm_TVMTuple_ty], [IntrNoMem]>;
+
+  // UNTRIPLE (t – x y z), unpacks a triple t = (x, y, z)
+  def int_tvm_untriple :
+    GCCBuiltin<"__builtin_tvm_untriple">,
+    Intrinsic<[llvm_i257_ty, llvm_i257_ty, llvm_i257_ty], [llvm_TVMTuple_ty], [IntrNoMem]>;
+
+  // EXPLODE n (t – x1. . . xmm), unpacks a Tuple t = (x1, . . . , xm) and returns its length m, 
+  //  but only if m <= n <= 15. Otherwise throws a type check exception
+  // TODO
+
+  // SETFIRST (t x – t0), sets the first component of Tuple t to x and returns the resulting Tuple t0
+  def int_tvm_setfirst :
+    GCCBuiltin<"__builtin_tvm_setfirst">,
+    Intrinsic<[llvm_TVMTuple_ty], [llvm_TVMTuple_ty, llvm_i257_ty], [IntrNoMem]>;
+
+  // SETSECOND (t x – t0), sets the second component of Tuple t to x and returns the resulting Tuple t0
+  def int_tvm_setsecond :
+    GCCBuiltin<"__builtin_tvm_setsecond">,
+    Intrinsic<[llvm_TVMTuple_ty], [llvm_TVMTuple_ty, llvm_i257_ty], [IntrNoMem]>;
+
+  // SETTHIRD (t x – t0), sets the third component of Tuple t to x and returns the resulting Tuple t0
+  def int_tvm_setthird :
+    GCCBuiltin<"__builtin_tvm_setthird">,
+    Intrinsic<[llvm_TVMTuple_ty], [llvm_TVMTuple_ty, llvm_i257_ty], [IntrNoMem]>;
+
+  // TUPLEVAR (x1. . . xnn – t), creates a new Tuple t of length n similarly to TUPLE, but with 0 <= n <= 255 taken from the stack
+  // TODO
+
+  // UNTUPLEVAR (t n – x1. . . xn), similar to UNTUPLE n, but with 0 <= n <= 255 taken from the stack
+  // TODO
+
+  // UNPACKFIRSTVAR (t n – x1. . . xn), similar to UNPACKFIRST n, but with 0 <= n <= 255 taken from the stack
+  // TODO
+
+  // EXPLODEVAR (t n – x1. . . xmm), similar to EXPLODE n, but with 0 <= n <= 255 taken from the stack
+  // TODO
+
+  // INDEXVARQ (t k – x), similar to INDEXQ n, but with 0 <= k <= 254 taken from the stack
+  def int_tvm_indexvarq :
+    GCCBuiltin<"__builtin_tvm_indexvarq">,
+    Intrinsic<[llvm_i257_ty], [llvm_TVMTuple_ty, llvm_i257_ty], [IntrNoMem]>;
+
+  // SETINDEXVARQ (t x k – t0), similar to SETINDEXQ	k, but with 0 <= k <= 254 taken from the stack
+  def int_tvm_setindexvarq :
+    GCCBuiltin<"__builtin_tvm_setindexvarq">,
+    Intrinsic<[llvm_TVMTuple_ty], [llvm_TVMTuple_ty, llvm_i257_ty, llvm_i257_ty], [IntrNoMem]>;
+
+
+// ******************************************* 
+//
 // A.5.2. Division
 //
 // *******************************************/
@@ -839,12 +937,6 @@ let TargetPrefix = "tvm" in {
   def int_tvm_modpow2 :
     GCCBuiltin<"__builtin_tvm_modpow2">,
     Intrinsic<[llvm_i257_ty], [llvm_i257_ty, llvm_i257_ty],
-              [IntrNoMem]>;
-
-// MULDIVR	(x y z – q0), where q0= bxy/z + 1/2c
-  def int_tvm_muldivr :
-    GCCBuiltin<"__builtin_tvm_muldivr">,
-    Intrinsic<[llvm_i257_ty], [llvm_i257_ty, llvm_i257_ty, llvm_i257_ty],
               [IntrNoMem]>;
 
 // MULDIVMOD (x y z – q r), where q := bx · y/zc, r := x · y mod z (same as */MOD in Forth)
@@ -969,7 +1061,6 @@ let TargetPrefix = "tvm" in {
       GCCBuiltin<"__builtin_tvm_chknan">,
       Intrinsic<[llvm_i257_ty], [llvm_i257_ty], [IntrNoMem]>;
 
-
 // *******************************************        
 //
 //       A.7        Cell primitives        
@@ -982,38 +1073,32 @@ let TargetPrefix = "tvm" in {
     Intrinsic<[llvm_TVMBuilder_ty],
               [llvm_TVMBuilder_ty, llvm_TVMBuilder_ty], [IntrNoMem]>;
 
-  // TODO !!!!!!!!!!!!!!!!!!!! 
-  // STIX (x b l – b0), stores a signed l-bit integer x into b for  0 ? l ? 257
-//  def int_tvm_stix :
-//    GCCBuiltin<"__builtin_tvm_stix">,
-//    Intrinsic<[llvm_TVMBuilder_ty], [llvm_i257_ty, llvm_TVMBuilder_ty, llvm_i257_ty],
-//              [IntrNoMem]>;
-
+  // TODO
   // STIXR  (b x l – b0),  similar to STIX, but with arguments in a different order
-  def int_tvm_stixr :
-    GCCBuiltin<"__builtin_tvm_stixr">,
-    Intrinsic<[llvm_TVMBuilder_ty], [llvm_TVMBuilder_ty, llvm_i257_ty, llvm_i257_ty],
-              [IntrNoMem]>;
+  //def int_tvm_stixr :
+  //  GCCBuiltin<"__builtin_tvm_stixr">,
+  //  Intrinsic<[llvm_TVMBuilder_ty], [llvm_TVMBuilder_ty, llvm_i257_ty, llvm_i257_ty],
+  //            [IntrNoMem]>;
 
-  // STIXR  (b x l – b0),  similar to STIX, but with arguments in a different order
-  def int_tvm_stuxr :
-    GCCBuiltin<"__builtin_tvm_stuxr">,
-    Intrinsic<[llvm_TVMBuilder_ty], [llvm_TVMBuilder_ty, llvm_i257_ty, llvm_i257_ty],
-              [IntrNoMem]>;  
+  // STUXR  (b x l – b0),  similar to STUX, but with arguments in a different order
+  //def int_tvm_stuxr :
+  //  GCCBuiltin<"__builtin_tvm_stuxr">,
+  //  Intrinsic<[llvm_TVMBuilder_ty], [llvm_TVMBuilder_ty, llvm_i257_ty, llvm_i257_ty],
+  //            [IntrNoMem]>;  
 
   // STIR cc + 1 (b x – b0), equivalent to SWAP; STI cc + 1
   def int_tvm_stir :
     GCCBuiltin<"__builtin_tvm_stir">,
-    Intrinsic<[llvm_TVMBuilder_ty], [llvm_i257_ty, llvm_TVMBuilder_ty, llvm_i257_ty],
+    Intrinsic<[llvm_TVMBuilder_ty], [llvm_TVMBuilder_ty, llvm_i257_ty, llvm_i257_ty],
               [IntrNoMem]>;
 
   // STUR cc + 1 (b x – b0), equivalent to SWAP; STU cc + 1
   def int_tvm_stur :
     GCCBuiltin<"__builtin_tvm_stur">,
-    Intrinsic<[llvm_TVMBuilder_ty], [llvm_i257_ty, llvm_TVMBuilder_ty, llvm_i257_ty],
+    Intrinsic<[llvm_TVMBuilder_ty], [llvm_TVMBuilder_ty, llvm_i257_ty, llvm_i257_ty],
               [IntrNoMem]>;
 
-  // STBREF (b0b – b00), equivalent to SWAP; STBREFREV
+  // STBREF (b0 b – b00), equivalent to SWAP; STBREFREV
   def int_tvm_stbref :
     GCCBuiltin<"__builtin_tvm_stbref">,
     Intrinsic<[llvm_TVMBuilder_ty],
@@ -1098,7 +1183,7 @@ let TargetPrefix = "tvm" in {
     GCCBuiltin<"__builtin_tvm_endxc">,
     Intrinsic<[llvm_TVMCell_ty], [llvm_TVMBuilder_ty, llvm_i257_ty], [IntrNoMem]>;
 
-  // STILE4 (x b – b0), stores a little-endian signed 32-bit integer
+// STILE4 (x b – b0), stores a little-endian signed 32-bit integer
   def int_tvm_stile4 :
     GCCBuiltin<"__builtin_tvm_stile4">,
     Intrinsic<[llvm_TVMBuilder_ty],
@@ -1166,7 +1251,7 @@ let TargetPrefix = "tvm" in {
 
   // BCHKREFSQ (b y – ?), checks whether y references can be stored into b, 0 <= y <= 7
   def int_tvm_bchkrefsq :
-    GCCBuiltin<"__builtin_tvm_bchrefsq">,
+    GCCBuiltin<"__builtin_tvm_bchkrefsq">,
     Intrinsic<[llvm_i257_ty], [llvm_TVMBuilder_ty, llvm_i257_ty]>;
 
   // BCHKBITREFSQ (b x y – ?), checks whether x bits and y references can be stored into b, 0 <= x <= 1023, 0 <= y <= 7
@@ -1205,70 +1290,316 @@ let TargetPrefix = "tvm" in {
 
 // ******************************************* 
 //
-// A.10	Dictionary manipulation primitives
+// A.7.2. Cell deserialization primitives
 //
 // *******************************************/
 
-// ******************************************* 
-//
-// A.10.2. Dictionary serialization and deserialization
-//
-// *******************************************/
+  // LDIQ cc + 1 (s – x s0 -1 or s 0), a quiet version of LDI
+  def int_tvm_ldiq :
+    GCCBuiltin<"__builtin_tvm_ldiq">,
+    Intrinsic<[llvm_i257_ty, llvm_TVMSlice_ty, llvm_i257_ty], [llvm_TVMSlice_ty, llvm_i257_ty]>;
 
-// SKIPDICT or SKIPOPTREF (s – s0), equivalent to LDDICT; NIP
-def int_tvm_skipdict :
-    GCCBuiltin<"__builtin_tvm_skipdict">,
-    Intrinsic<[llvm_TVMSlice_ty],
-              [llvm_TVMSlice_ty]>;
+  // PLDIQ cc + 1 (s – x -1 or 0), a quiet version of PLDI
+  def int_tvm_pldiq :
+    GCCBuiltin<"__builtin_tvm_pldiq">,
+    Intrinsic<[llvm_i257_ty, llvm_i257_ty], [llvm_TVMSlice_ty, llvm_i257_ty]>;
 
-// LDDICTS (s – s0 s00), loads (parses) a (Slice-represented) dictionary s0 from Slice s, and returns the remainder of s as s00
-def int_tvm_lddicts :
-    GCCBuiltin<"__builtin_tvm_lddicts">,
-    Intrinsic<[llvm_TVMSlice_ty, llvm_TVMSlice_ty],
-              [llvm_TVMSlice_ty]>;
+  // PLDUQ cc + 1 (s – x -1 or 0), a quiet version of PLDU
+  def int_tvm_plduq :
+    GCCBuiltin<"__builtin_tvm_plduq">,
+    Intrinsic<[llvm_i257_ty, llvm_i257_ty], [llvm_TVMSlice_ty, llvm_i257_ty]>;
 
-// PLDDICTS (s – s0), preloads a (Slice - represented) dictionary s0 from Slice s. Approximately equivalent to LDDICTS; DROP
-def int_tvm_plddicts :
-    GCCBuiltin<"__builtin_tvm_plddicts">,
-    Intrinsic<[llvm_TVMSlice_ty],
-              [llvm_TVMSlice_ty]>;
+  // PLDUZ 32(c + 1) (s - s x), preloads the first 32(c + 1) bits of Slice s into an unsigned integer x, for 0 <= c <= 7
+  def int_tvm_plduz :
+    GCCBuiltin<"__builtin_tvm_plduz">,
+    Intrinsic<[llvm_TVMSlice_ty, llvm_i257_ty], [llvm_TVMSlice_ty, llvm_i257_ty]>;
 
-// F406 — LDDICTQ (s – D s0 -1 or s 0), a quiet version of LDDICT
-def int_tvm_lddictq :
-    GCCBuiltin<"__builtin_tvm_lddictq">,
-    Intrinsic<[llvm_TVMCell_ty, llvm_TVMSlice_ty, llvm_i257_ty],
-              [llvm_TVMSlice_ty]>;
+  // D71A — LDSLICEXQ (s l – s00 s0 -1 or s 0), a quiet version of LDSLICEX
+//  def int_tvm_ldslicexq :
+//    GCCBuiltin<"__builtin_tvm_ldslicexq">,
+//    Intrinsic<[llvm_TVMSlice_ty, llvm_TVMSlice_ty, llvm_i257_ty], [llvm_TVMSlice_ty, llvm_i257_ty]>;
 
-// PLDDICTQ (s – D -1 or 0), a quiet version of PLDDICT
-def int_tvm_plddictq :
-    GCCBuiltin<"__builtin_tvm_plddictq">,
-    Intrinsic<[llvm_TVMCell_ty, llvm_i257_ty],
-              [llvm_TVMSlice_ty]>;
+  // D71B — PLDSLICEXQ (s l – s0 -1 or 0), a quiet version of LDSLICEXQ
+//  def int_tvm_pldslicexq :
+//    GCCBuiltin<"__builtin_tvm_pldsliceq">,
+//    Intrinsic<[llvm_TVMSlice_ty, llvm_i257_ty], [llvm_TVMSlice_ty, llvm_i257_ty]>;
 
-// ******************************************* 
-//
-// A.11.3. Pseudo-random number generator primitives
-//
-// *******************************************/
+  // PLDSLICE cc + 1 (s - s00), returns the first 0 < cc + 1 <= 256 bits of s as s00
+  def int_tvm_pldslice :
+    GCCBuiltin<"__builtin_tvm_pldslice">,
+    Intrinsic<[llvm_TVMSlice_ty], [llvm_TVMSlice_ty, llvm_i257_ty]>;
 
-  // RANDU256 ( –	x), generates a new pseudo-random unsigned 256-bit Integer x
-  def int_tvm_randu256 :
-      GCCBuiltin<"__builtin_tvm_randu256">,
-      Intrinsic<[llvm_i257_ty], [], [IntrNoMem]>;
+  // LDSLICEQ cc + 1 (s – s00 s0 -1 or s 0), a quiet version of LDSLICE
+  def int_tvm_ldsliceq :
+    GCCBuiltin<"__builtin_tvm_ldsliceq">,
+    Intrinsic<[llvm_TVMSlice_ty, llvm_TVMSlice_ty, llvm_i257_ty], [llvm_TVMSlice_ty, llvm_i257_ty]>;
 
-  // RAND (y – z), generates a new pseudo-random integer z in the range 0...y-1 (or y...-1, if y < 0)
-  def int_tvm_rand :
-      GCCBuiltin<"__builtin_tvm_rand">,
-      Intrinsic<[llvm_i257_ty], [llvm_i257_ty], [IntrNoMem]>;
+  // PLDSLICEQ cc + 1 (s – s00 -1 or 0), a quiet version of PLDSLICE
+  def int_tvm_pldsliceq :
+    GCCBuiltin<"__builtin_tvm_pldsliceq">,
+    Intrinsic<[llvm_TVMSlice_ty, llvm_i257_ty], [llvm_TVMSlice_ty, llvm_i257_ty]>;
 
-  // SETRAND  (x	– ), sets the random seed to unsigned 256-bit Integer x
-  def int_tvm_setrand :
-      GCCBuiltin<"__builtin_tvm_setrand">,
-      Intrinsic<[], [llvm_i257_ty], [IntrNoMem]>;
+  // SDCUTFIRST (s l – s0), returns the first 0 <= l <= 1023 bits of s. It is equivalent to PLDSLICEX
+  def int_tvm_sdcutfirst :
+    GCCBuiltin<"__builtin_tvm_sdcutfirst">,
+    Intrinsic<[llvm_TVMSlice_ty], [llvm_TVMSlice_ty, llvm_i257_ty]>;
 
+  // SDSKIPFIRST (s l – s0), returns all but the first 0 <= l <= 1023 bits of s. It is equivalent to LDSLICEX; NIP
+  def int_tvm_sdskipfirst :
+    GCCBuiltin<"__builtin_tvm_sdskipfirst">,
+    Intrinsic<[llvm_TVMSlice_ty], [llvm_TVMSlice_ty, llvm_i257_ty]>;
 
-  // ADDRAND (x – ), mixes unsigned 256-bit Integer x into the random seed r
-  def int_tvm_addrand :
-      GCCBuiltin<"__builtin_tvm_addrand">,
-      Intrinsic<[], [llvm_i257_ty], [IntrNoMem]>;
+  // SDCUTLAST (s l – s0), returns the last 0 <= l <= 1023 bits of s
+  def int_tvm_sdcutlast :
+    GCCBuiltin<"__builtin_tvm_sdcutlast">,
+    Intrinsic<[llvm_TVMSlice_ty], [llvm_TVMSlice_ty, llvm_i257_ty]>;
+
+  // SDSKIPLAST (s l – s0), returns all but the last 0 <= l <= 1023 bits of s
+  def int_tvm_sdskiplast :
+    GCCBuiltin<"__builtin_tvm_sdskiplast">,
+    Intrinsic<[llvm_TVMSlice_ty], [llvm_TVMSlice_ty, llvm_i257_ty]>;
+
+  // SDSUBSTR (s l l0 – s0), returns 0 <= l <= 1023 bits of s starting from offset 0 <= l <= 1023, 
+  //  thus extracting a bit substring out of the data of s
+  def int_tvm_sdsubstr :
+    GCCBuiltin<"__builtin_tvm_sdsdsubstr">,
+    Intrinsic<[llvm_TVMSlice_ty], [llvm_TVMSlice_ty, llvm_i257_ty, llvm_i257_ty]>;
+
+  // SDBEGINSX (s s0 – s00), checks whether s begins with (the data bits of) s0, and removes s0 from s	on success. 
+  //  On failure throws a cell deserialization exception
+  def int_tvm_sdbeginsx :
+    GCCBuiltin<"__builtin_tvm_sdbeginsx">,
+    Intrinsic<[llvm_TVMSlice_ty], [llvm_TVMSlice_ty, llvm_TVMSlice_ty]>;
+
+  // SDBEGINSXQ (s s0 – s00 -1 or s 0), a quiet version of SDBEGINSX
+  def int_tvm_sdbeginsxq :
+    GCCBuiltin<"__builtin_tvm_sdbeginsxq">,
+    Intrinsic<[llvm_TVMSlice_ty, llvm_i257_ty], [llvm_TVMSlice_ty, llvm_TVMSlice_ty]>;
+
+  // SDBEGINS (s – s00), checks whether s begins with constant bitstring sss of length 8x + 3 
+  //   (with continuation bit assumed), where 0 <= x <= 127, and removes sss from s on success
+  def int_tvm_sdbegins :
+    GCCBuiltin<"__builtin_tvm_sdbegins">,
+    Intrinsic<[llvm_TVMSlice_ty], [llvm_TVMSlice_ty, llvm_i257_ty]>;
+
+  // SDBEGINS ‘0’ (s – s00), checks whether s begins with a binary zero
+  def int_tvm_sdbegins0 :
+    GCCBuiltin<"__builtin_tvm_sdbegins0">,
+    Intrinsic<[llvm_TVMSlice_ty], [llvm_TVMSlice_ty]>;
+
+  // SDBEGINS ‘1’ (s – s00), checks whether s begins with a binary one
+  def int_tvm_sdbegins1 :
+    GCCBuiltin<"__builtin_tvm_sdbegins1">,
+    Intrinsic<[llvm_TVMSlice_ty], [llvm_TVMSlice_ty]>;
+
+  // SDBEGINSQ (s – s00 -1 or s 0), a quiet version of SDBEGINS
+  def int_tvm_sdbeginsq :
+    GCCBuiltin<"__builtin_tvm_sdbeginsq">,
+    Intrinsic<[llvm_TVMSlice_ty], [llvm_TVMSlice_ty, llvm_i257_ty]>;
+
+  // SCUTFIRST (s l r – s0), returns the first 0 <= l <= 1023 bits and first 0 <= r <= 4 references of s
+  def int_tvm_scutfirst :
+    GCCBuiltin<"__builtin_tvm_scutfirst">,
+    Intrinsic<[llvm_TVMSlice_ty], [llvm_TVMSlice_ty, llvm_i257_ty, llvm_i257_ty]>;
+
+  // SSKIPFIRST (s l r – s0)
+  def int_tvm_sskipfirst :
+    GCCBuiltin<"__builtin_tvm_sskipfirst">,
+    Intrinsic<[llvm_TVMSlice_ty], [llvm_TVMSlice_ty, llvm_i257_ty, llvm_i257_ty]>;
+
+  // SCUTLAST (s l r – s0), returns the last 0 <= l <= 1023 data bits and last 0 <= r <= 4 references of s
+  def int_tvm_scutlast :
+    GCCBuiltin<"__builtin_tvm_scutlast">,
+    Intrinsic<[llvm_TVMSlice_ty], [llvm_TVMSlice_ty, llvm_i257_ty, llvm_i257_ty]>;
+
+  // SSKIPLAST (s l r – s0)
+  def int_tvm_sskiplast :
+    GCCBuiltin<"__builtin_tvm_sskiplast">,
+    Intrinsic<[llvm_TVMSlice_ty], [llvm_TVMSlice_ty, llvm_i257_ty, llvm_i257_ty]>;
+
+  // SUBSLICE (s l r l0 r0 – s0), returns 0 <= l0 <= 1023 bits and 0 <= r0 <= 4 references from Slice s
+  def int_tvm_subslice :
+    GCCBuiltin<"__builtin_tvm_subslice">,
+    Intrinsic<[llvm_TVMSlice_ty], [llvm_TVMSlice_ty, llvm_i257_ty, llvm_i257_ty, llvm_i257_ty, llvm_i257_ty]>;
+
+  // SPLIT (s l r – s0 s00), splits the first 0 <= l <= 1023 data bits and first 0 <= r <= 4 
+  //  references from s into s0, returning the remainder of s as s00
+  def int_tvm_split :
+    GCCBuiltin<"__builtin_tvm_split">,
+    Intrinsic<[llvm_TVMSlice_ty, llvm_TVMSlice_ty], [llvm_TVMSlice_ty, llvm_i257_ty, llvm_i257_ty]>;
+
+  // SPLITQ (s l r – s0 s00 -1 or s 0), a quiet version of SPLIT
+  def int_tvm_splitq :
+    GCCBuiltin<"__builtin_tvm_splitq">,
+    Intrinsic<[llvm_TVMSlice_ty, llvm_TVMSlice_ty, llvm_i257_ty], [llvm_TVMSlice_ty, llvm_i257_ty, llvm_i257_ty]>;
+
+  // XCTOS (c – s ?), transforms an ordinary or exotic cell into a Slice, as if it were an ordinary cell. 
+  //  A flag is returned indicating whether c is exotic
+  def int_tvm_xctos :
+    GCCBuiltin<"__builtin_tvm_xctos">,
+    Intrinsic<[llvm_TVMSlice_ty, llvm_i257_ty], [llvm_TVMCell_ty]>;
+
+  // XLOAD (c – c0), loads an exotic cell c and returns an ordinary cell c0. If c is already ordinary, does nothing. 
+  //  If c cannot be loaded, throws an exception
+  def int_tvm_xload :
+    GCCBuiltin<"__builtin_tvm_xload">,
+    Intrinsic<[llvm_TVMCell_ty], [llvm_TVMCell_ty]>;
+
+  // XLOADQ (c – c0 -1 or c 0), loads an exotic cell c as XLOAD, but returns 0 on failure
+  def int_tvm_xloadq :
+    GCCBuiltin<"__builtin_tvm_xloadq">,
+    Intrinsic<[llvm_TVMCell_ty, llvm_i257_ty], [llvm_TVMCell_ty]>;
+
+  // SCHKBITS (s l – ), checks whether there are at least l data bits in Slice s. If this is not the case, 
+  //  throws a cell deserialisation (i.e., cell underflow) exception
+  def int_tvm_schkbits :
+    GCCBuiltin<"__builtin_tvm_schkbits">,
+    Intrinsic<[], [llvm_TVMSlice_ty, llvm_i257_ty]>;
+
+  // SCHKREFS (s r – ), checks whether there are at least r references in Slice s
+  def int_tvm_schkrefs :
+    GCCBuiltin<"__builtin_tvm_schkrefs">,
+    Intrinsic<[], [llvm_TVMSlice_ty, llvm_i257_ty]>;
+
+  // SCHKBITREFS (s l r – ), checks whether there are at least l data bits and r references in Slice s
+  def int_tvm_schkbitrefs :
+    GCCBuiltin<"__builtin_tvm_schkbitrefs">,
+    Intrinsic<[], [llvm_TVMSlice_ty, llvm_i257_ty, llvm_i257_ty]>;
+
+  // SCHKBITSQ (s l – ?), checks whether there are at least l data bits in Slice s
+  def int_tvm_schkbitsq :
+    GCCBuiltin<"__builtin_tvm_schkbitsq">,
+    Intrinsic<[llvm_i257_ty], [llvm_TVMSlice_ty, llvm_i257_ty]>;
+
+  // SCHKREFSQ (s r – ?), checks whether there are at least r references in Slice s
+  def int_tvm_schkrefsq :
+    GCCBuiltin<"__builtin_tvm_schkrefsq">,
+    Intrinsic<[llvm_i257_ty], [llvm_TVMSlice_ty, llvm_i257_ty]>;
+
+  // SCHKBITREFSQ (s l r – ?), checks whether there are at least l data bits and r references in Slice s
+  def int_tvm_schkbitrefsq :
+    GCCBuiltin<"__builtin_tvm_schkbitrefsq">,
+    Intrinsic<[llvm_i257_ty], [llvm_TVMSlice_ty, llvm_i257_ty, llvm_i257_ty]>;
+
+  // PLDREFVAR (s n – c), returns the n-th cell reference of Slice s for 0 <= n <= 3
+  def int_tvm_pldrefvar :
+    GCCBuiltin<"__builtin_tvm_pldrefvar">,
+    Intrinsic<[llvm_TVMCell_ty], [llvm_TVMSlice_ty, llvm_i257_ty]>;
+
+  // PLDREFIDX n (s – c), returns the n-th cell reference of Slice s, where 0 <= n <= 3
+  def int_tvm_pldrefidx :
+    GCCBuiltin<"__builtin_tvm_pldrefidx">,
+    Intrinsic<[llvm_TVMCell_ty], [llvm_TVMSlice_ty, llvm_i257_ty]>;
+
+  // PLDREF (s – c), preloads the first cell reference of a Slice
+  def int_tvm_pldref :
+    GCCBuiltin<"__builtin_tvm_pldref">,
+    Intrinsic<[llvm_TVMCell_ty], [llvm_TVMSlice_ty]>;
+
+  // LDILE4 (s – x s0), loads a little-endian signed 32-bit integer
+  def int_tvm_ldile4 :
+    GCCBuiltin<"__builtin_tvm_ldile4">,
+    Intrinsic<[llvm_i257_ty, llvm_TVMSlice_ty], [llvm_TVMSlice_ty]>;
+
+  // LDULE4 (s – x s0), loads a little-endian unsigned 32-bit integer
+  def int_tvm_ldule4 :
+    GCCBuiltin<"__builtin_tvm_ldule4">,
+    Intrinsic<[llvm_i257_ty, llvm_TVMSlice_ty], [llvm_TVMSlice_ty]>;
+
+  // LDILE8 (s – x s0), loads a little-endian signed 64-bit integer
+  def int_tvm_ldile8 :
+    GCCBuiltin<"__builtin_tvm_ldile8">,
+    Intrinsic<[llvm_i257_ty, llvm_TVMSlice_ty], [llvm_TVMSlice_ty]>;
+
+  // LDULE8 (s – x s0), loads a little-endian unsigned 64-bit integer
+  def int_tvm_ldule8 :
+    GCCBuiltin<"__builtin_tvm_ldule8">,
+    Intrinsic<[llvm_i257_ty, llvm_TVMSlice_ty], [llvm_TVMSlice_ty]>;
+
+  // PLDILE4 (s – x), preloads a little-endian signed 32-bit integer
+  def int_tvm_pldile4 :
+    GCCBuiltin<"__builtin_tvm_pldile4">,
+    Intrinsic<[llvm_i257_ty], [llvm_TVMSlice_ty]>;
+
+  // PLDULE4 (s – x), preloads a little-endian unsigned 32-bit integer
+  def int_tvm_pldule4 :
+    GCCBuiltin<"__builtin_tvm_pldule4">,
+    Intrinsic<[llvm_i257_ty], [llvm_TVMSlice_ty]>;
+
+  // PLDILE8 (s – x), preloads a little-endian signed 64-bit integer
+  def int_tvm_pldile8 :
+    GCCBuiltin<"__builtin_tvm_pldile8">,
+    Intrinsic<[llvm_i257_ty], [llvm_TVMSlice_ty]>;
+
+  // PLDULE8 (s – x), preloads a little-endian unsigned 64-bit integer
+  def int_tvm_pldule8 :
+    GCCBuiltin<"__builtin_tvm_pldule8">,
+    Intrinsic<[llvm_i257_ty], [llvm_TVMSlice_ty]>;
+
+  // LDILE4Q (s – x s0 -1 or s 0), quietly loads a little-endian signed 32-bit integer
+  def int_tvm_ldile4q :
+    GCCBuiltin<"__builtin_tvm_ldile4q">,
+    Intrinsic<[llvm_i257_ty, llvm_TVMSlice_ty, llvm_i257_ty], [llvm_TVMSlice_ty]>;
+
+  // LDULE4Q (s – x s0 -1 or s 0), quietly loads a little-endian unsigned 32-bit integer
+  def int_tvm_ldule4q :
+    GCCBuiltin<"__builtin_tvm_ldule4q">,
+    Intrinsic<[llvm_i257_ty, llvm_TVMSlice_ty, llvm_i257_ty], [llvm_TVMSlice_ty]>;
+
+  // LDILE8Q (s – x s0 -1 or s 0), quietly loads a little-endian signed 64-bit integer
+  def int_tvm_ldile8q :
+    GCCBuiltin<"__builtin_tvm_ldile8q">,
+    Intrinsic<[llvm_i257_ty, llvm_TVMSlice_ty, llvm_i257_ty], [llvm_TVMSlice_ty]>;
+
+  // LDULE8Q (s – x s0 -1 or	s 0), quietly loads a little-endian unsigned 64-bit integer
+  def int_tvm_ldule8q :
+    GCCBuiltin<"__builtin_tvm_ldule8q">,
+    Intrinsic<[llvm_i257_ty, llvm_TVMSlice_ty, llvm_i257_ty], [llvm_TVMSlice_ty]>;
+
+  // PLDILE4Q (s – x -1 or 0), quietly preloads a little-endian signed 32-bit integer
+  def int_tvm_pldile4q :
+    GCCBuiltin<"__builtin_tvm_pldile4q">,
+    Intrinsic<[llvm_i257_ty, llvm_i257_ty], [llvm_TVMSlice_ty]>;
+
+  // PLDULE4Q (s – x -1 or	0), quietly preloads a little-endian unsigned 32-bit integer
+  def int_tvm_pldule4q :
+    GCCBuiltin<"__builtin_tvm_pldule4q">,
+    Intrinsic<[llvm_i257_ty, llvm_i257_ty], [llvm_TVMSlice_ty]>;
+
+  // PLDILE8Q (s – x -1 or 0), quietly preloads a little-endian signed 64-bit integer
+  def int_tvm_pldile8q :
+    GCCBuiltin<"__builtin_tvm_pldile8q">,
+    Intrinsic<[llvm_i257_ty, llvm_i257_ty], [llvm_TVMSlice_ty]>;
+
+  // PLDULE8Q (s –	x -1 or 0), quietly preloads a little-endian unsigned 64-bit integer
+  def int_tvm_pldule8q :
+    GCCBuiltin<"__builtin_tvm_pldule8q">,
+    Intrinsic<[llvm_i257_ty, llvm_i257_ty], [llvm_TVMSlice_ty]>;
+
+  // LDZEROES (s – n s0), returns the count n of leading zero bits in s, and removes these bits from s
+  def int_tvm_ldzeroes :
+    GCCBuiltin<"__builtin_tvm_ldzeroes">,
+    Intrinsic<[llvm_i257_ty, llvm_TVMSlice_ty], [llvm_TVMSlice_ty]>;
+
+  // LDONES (s – n s0), returns the count n of leading one bits in s, and removes these bits from s
+  def int_tvm_ldones :
+    GCCBuiltin<"__builtin_tvm_ldones">,
+    Intrinsic<[llvm_i257_ty, llvm_TVMSlice_ty], [llvm_TVMSlice_ty]>;
+
+  // LDSAME (s x – n s0), returns the count	n of leading bits equal to 0 <= x <= 1 in s, and removes these bits from s
+  def int_tvm_ldsame :
+    GCCBuiltin<"__builtin_tvm_ldsame">,
+    Intrinsic<[llvm_i257_ty, llvm_TVMSlice_ty], [llvm_TVMSlice_ty, llvm_i257_ty]>;
+
+  // SDEPTH (s – x), returns the depth of Slice s. If s has no references, then x = 0; 
+  //  otherwise x is one plus the maximum of depths of cells referred to from s
+  def int_tvm_sdepth :
+    GCCBuiltin<"__builtin_tvm_sdepth">,
+    Intrinsic<[llvm_i257_ty], [llvm_TVMSlice_ty]>;
+
+  // CDEPTH (c – x), returns the depth of Cell c. If c has no references, then x = 0; 
+  //  otherwise x is one plus the maximum of depths of cells referred to from c
+  def int_tvm_cdepth :
+    GCCBuiltin<"__builtin_tvm_cdepth">,
+    Intrinsic<[llvm_i257_ty], [llvm_TVMCell_ty]>;
 }

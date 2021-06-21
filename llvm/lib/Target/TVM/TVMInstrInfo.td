@@ -536,14 +536,6 @@ defm MODPOW2 : I<(outs I257:$q),
              [(set I257:$q, (int_tvm_modpow2 I257:$x, uimm1_256:$tt))],
              "MODPOW2\t$tt, $x", "MODPOW2\t$tt", 0xa938>;
 
-
-// A985 — MULDIVR	(x y z – q0), where q0= bxy/z + 1/2c
-defm MULDIVR : I<(outs I257:$q), (ins I257:$x, I257:$y, I257:$z),
-                  (outs), (ins),
-                  [(set I257:$q, 
-                    (int_tvm_muldivr I257:$x, I257:$y, I257:$z))],
-                  "MULDIVR\t$x, $y, $z", "MULDIVR", 0xa985>;
-
 // A98C — MULDIVMOD (x y z – q r), where q := bx · y/zc, r := x · y mod z (same as */MOD in Forth)
 defm MULDIVMOD : I<(outs I257:$q, I257:$r), (ins I257:$x, I257:$y, I257:$z),
                   (outs), (ins),
@@ -607,8 +599,6 @@ defm LSHIFTDIVRTT : I<(outs I257 : $q),
              [(set I257 : $q, (int_tvm_lshiftdivr_tt I257:$x, I257:$y, uimm1_256:$tt))],
              "LSHIFTDIVR\t$tt, $x, $y", "LSHIFTDIVR\t$tt", 0xa9d5>;
 
-
-
 /******************************************* 
 
 A.5.3. Shifts, logical operations
@@ -652,7 +642,7 @@ defm QOR : BinaryRR<int_tvm_qor, "QOR", 0xb7b1>;
 //
 // *******************************************/ 
 
-// B8 - SGN (x – sgn(x)), computes the sign of an integer x:	-1 if x < 0, 0 if x = 0, 1 if x > 0
+// B8 - SGN (x – sgn(x)), computes the sign of an integer x: -1 if x < 0, 0 if x = 0, 1 if x > 0
 defm SGN : UnaryR<int_tvm_sgn, "SGN", 0xB8>;
 
 // C4 - ISNAN (x – x = NaN), checks whether x is a NaN
@@ -661,6 +651,8 @@ defm ISNAN : UnaryR<int_tvm_isnan, "ISNAN", 0xC4>;
 // C5 - CHKNAN (x - x), throws an arithmetic overflow exception if x is a NaN
 let hasSideEffects = 1 in
 defm CHKNAN : UnaryR<int_tvm_chknan, "CHKNAN", 0xC5>;
+
+/*********************************************************************/
 
 include "TVMTupleInstrInfo.td"
 include "TVMLiteralInstrInfo.td"

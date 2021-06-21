@@ -64,6 +64,7 @@ parser.add_argument('--llvm-bin', help='path to LLVM binaries directory')
 parser.add_argument('--linker', help='path to TVM linker executable')
 parser.add_argument('--stdlib', help='path to standard library directory')
 parser.add_argument('--include', help='path to standard include directory')
+parser.add_argument('--sysroot', help='path to standard include directory')
 
 args = parser.parse_args()
 
@@ -75,7 +76,8 @@ tvm_llvm_bin = get_path(args.llvm_bin, '--llvm-bin', 'TVM_LLVM_BINARY_DIR', bind
 tvm_linker = get_path(args.linker, '--linker', 'TVM_LINKER', os.path.join(bindir, 'tvm_linker'))
 tvm_stdlib = get_path(args.stdlib, '--stdlib', 'TVM_LIBRARY_PATH', os.path.join(bindir, '../lib'))
 tvm_include = get_path(args.include, '--include', 'TVM_INCLUDE_PATH', os.path.join(bindir, '../include'))
-tvm_sysroot = os.path.join(bindir, "..");
+tvm_sysroot = get_path(args.sysroot, '--sysroot', 'TVM_INCLUDE_PATH', os.path.join(bindir, '..'))
+#tvm_sysroot = os.path.join(bindir, "..");
 
 input_c   = []
 input_cpp = []

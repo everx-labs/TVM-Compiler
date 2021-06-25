@@ -702,9 +702,15 @@ operator()(const std::pair<Change, std::string> &pair) const {
                      .getInstr();
           },
           [&](pushI v) {
-            MI = BuildMI(*MBB, InsertPt, DL, TII->get(TVM::PUSH))
-                     .addImm(v.i)
-                     .getInstr();
+            if (v.isImm()) {
+              MI = BuildMI(*MBB, InsertPt, DL, TII->get(TVM::PUSH))
+                       .addImm(v.i)
+                       .getInstr();
+            } else {
+              BuildMI(*MBB, InsertPt, DL, TII->get(TVM::CONST_U257_S))
+                  .addCImm(cimm(C, v.i));
+              MI = BuildMI(*MBB, InsertPt, DL, TII->get(TVM::PUSHX)).getInstr();
+            }
           },
           [&](pushUndef) {
             MI = BuildMI(*MBB, InsertPt, DL, TII->get(TVM::CONST_I257_S))

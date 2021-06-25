@@ -38,10 +38,11 @@ using get_func_class_t = typename get_func_class<Func>::type;
 template<auto Func>
 constexpr auto prepare_internal_header() {
   using namespace schema;
-  if constexpr (!std::is_void_v<get_func_rv_t<Func>> && get_interface_method_ptr_internal<Func>::value &&
+  if constexpr (get_interface_method_ptr_internal<Func>::value &&
                 get_interface_method_ptr_answer_id<Func>::value) {
     unsigned answer_id = temporary_data::getglob(global_id::answer_id);
-    return abiv2::internal_msg_header_with_answer_id{ uint32(id_v<Func>), uint32(abiv2::answer_id(answer_id)) };
+    return abiv2::internal_msg_header_with_answer_id{
+      uint32(id_v<Func>), (answer_id >> 32) ? uint32(0) : uint32(abiv2::answer_id(answer_id)) };
   } else {
     return abiv2::internal_msg_header{ uint32(id_v<Func>) };
   }
@@ -559,7 +560,7 @@ public:
   __always_inline
   awaitable_ret_t<ReturnVal> _call_impl(Args... args) const {
     static_assert(!std::is_void_v<ReturnVal>);
-
+    using namespace schema;
     tvm_sendmsg(contract_call_prepare<Func>(addr_, amount_, ihr_disabled_, {wait_addr_.sl()}, args...), flags_);
     temporary_data::setglob(global_id::coroutine_wait_addr, __builtin_tvm_cast_from_slice(wait_addr_.sl()));
     return {};

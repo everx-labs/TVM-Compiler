@@ -42,6 +42,9 @@ __interface IConsole {
   address requestProxy(string message);
 
   [[internal, answer_id]]
+  bool_t setProxy(address addr, uint256 pubkey);
+
+  [[internal, answer_id]]
   uint256 genkey();
 
   [[internal, answer_id]]

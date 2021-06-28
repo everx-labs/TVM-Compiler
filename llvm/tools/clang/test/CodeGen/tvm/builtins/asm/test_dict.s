@@ -468,7 +468,7 @@ _Z17dictuaddgetb_testTVMbiTVMci:
 	.type	_Z13dictidel_testiTVMci,@function
 _Z13dictidel_testiTVMci:
 ; %bb.0:
-	DICTIDEL
+	DICTDEL
 	SWAP
 	DROP
 .Lfunc_end43:
@@ -479,7 +479,7 @@ _Z13dictidel_testiTVMci:
 	.type	_Z16dictidelget_testiTVMci,@function
 _Z16dictidelget_testiTVMci:
 ; %bb.0:
-	DICTIDELGET NULLSWAPIFNOT
+	DICTDELGET NULLSWAPIFNOT
 	XCHG	s0, s2
 	DROP2
 .Lfunc_end44:
@@ -490,7 +490,7 @@ _Z16dictidelget_testiTVMci:
 	.type	_Z19dictidelgetref_testiTVMci,@function
 _Z19dictidelgetref_testiTVMci:
 ; %bb.0:
-	DICTIDELGETREF NULLSWAPIFNOT
+	DICTDELGETREF NULLSWAPIFNOT
 	XCHG	s0, s2
 	DROP2
 .Lfunc_end45:
@@ -501,7 +501,7 @@ _Z19dictidelgetref_testiTVMci:
 	.type	_Z16dictudelget_testiTVMci,@function
 _Z16dictudelget_testiTVMci:
 ; %bb.0:
-	DICTUDELGET NULLSWAPIFNOT
+	DICUDELGET NULLSWAPIFNOT
 	XCHG	s0, s2
 	DROP2
 .Lfunc_end46:
@@ -512,7 +512,7 @@ _Z16dictudelget_testiTVMci:
 	.type	_Z19dictudelgetref_testiTVMci,@function
 _Z19dictudelgetref_testiTVMci:
 ; %bb.0:
-	DICTUDELGETREF NULLSWAPIFNOT
+	DICUDELGETREF NULLSWAPIFNOT
 	XCHG	s0, s2
 	DROP2
 .Lfunc_end47:
@@ -524,6 +524,7 @@ _Z19dictudelgetref_testiTVMci:
 _Z18dictgetoptref_testTVMsTVMci:
 ; %bb.0:
 	DICTGETOPTREF
+	DROP
 .Lfunc_end48:
 	.size	_Z18dictgetoptref_testTVMsTVMci, .Lfunc_end48-_Z18dictgetoptref_testTVMsTVMci
 
@@ -542,6 +543,7 @@ _Z19dictigetoptref_testiTVMci:
 _Z20_dictugetoptref_testiTVMci:
 ; %bb.0:
 	DICTUGETOPTREF
+	DROP
 .Lfunc_end50:
 	.size	_Z20_dictugetoptref_testiTVMci, .Lfunc_end50-_Z20_dictugetoptref_testiTVMci
 
@@ -627,7 +629,7 @@ _Z15pfxdictdel_testTVMsTVMci:
 	.type	_Z18dictgetnexteq_testTVMsTVMci,@function
 _Z18dictgetnexteq_testTVMsTVMci:
 ; %bb.0:
-	DICTGETNEXTEQ NULLSWAPIFNOT2
+	DICTGETNEXTQ NULLSWAPIFNOT2
 	XCHG	s0, s2
 	DROP2
 .Lfunc_end58:
@@ -649,7 +651,7 @@ _Z16dictgetprev_testTVMsTVMci:
 	.type	_Z18dictgetpreveq_testTVMsTVMci,@function
 _Z18dictgetpreveq_testTVMsTVMci:
 ; %bb.0:
-	DICTGETPREVEQ NULLSWAPIFNOT2
+	DICTGETPREVQ NULLSWAPIFNOT2
 	XCHG	s0, s2
 	DROP2
 .Lfunc_end60:
@@ -759,7 +761,7 @@ _Z16dictiminref_testTVMci:
 	.type	_Z12dictmax_testTVMci,@function
 _Z12dictmax_testTVMci:
 ; %bb.0:
-	DICTMAX NULLSWAPIFNOT NULLSWAPIFNOT
+	DICTMAX NULLSWAPIFNOT2
 	XCHG	s0, s2
 	DROP2
 .Lfunc_end70:

@@ -327,7 +327,7 @@ _Z10stone_testTVMb:
 	.type	_Z9ldiq_testTVMs,@function
 _Z9ldiq_testTVMs:
 ; %bb.0:
-	LDIQ	 15  NULLROTRIFNOT
+	LDIQ	 15
 	XCHG	s0, s2
 	DROP2
 .Lfunc_end34:
@@ -338,7 +338,7 @@ _Z9ldiq_testTVMs:
 	.type	_Z10pldiq_testTVMs,@function
 _Z10pldiq_testTVMs:
 ; %bb.0:
-	PLDIQ	 17  NULLSWAPIFNOT
+	PLDIQ	 17
 	SWAP
 	DROP
 .Lfunc_end35:
@@ -349,7 +349,7 @@ _Z10pldiq_testTVMs:
 	.type	_Z10plduq_testTVMs,@function
 _Z10plduq_testTVMs:
 ; %bb.0:
-	PLDUQ	 18  NULLSWAPIFNOT
+	PLDUQ	 18
 	SWAP
 	DROP
 .Lfunc_end36:
@@ -400,7 +400,7 @@ _Z14pldsliceq_testTVMs:
 	.type	_Z14ldslicexq_testTVMsi,@function
 _Z14ldslicexq_testTVMsi:
 ; %bb.0:
-	LDSLICEXQ  NULLROTRIFNOT
+	LDSLICEXQ NULLROTRIFNOT
 	XCHG	s1, s2
 	DROP2
 .Lfunc_end41:
@@ -411,7 +411,7 @@ _Z14ldslicexq_testTVMsi:
 	.type	_Z13pldslice_testTVMsi,@function
 _Z13pldslice_testTVMsi:
 ; %bb.0:
-	PLDSLICEXQ  NULLSWAPIFNOT
+	PLDSLICEXQ NULLSWAPIFNOT
 	DROP
 .Lfunc_end42:
 	.size	_Z13pldslice_testTVMsi, .Lfunc_end42-_Z13pldslice_testTVMsi
@@ -421,7 +421,6 @@ _Z13pldslice_testTVMsi:
 	.type	_Z15sdcutfirst_testTVMs,@function
 _Z15sdcutfirst_testTVMs:
 ; %bb.0:
-	PUSHINT	12
 	SDCUTFIRST
 .Lfunc_end43:
 	.size	_Z15sdcutfirst_testTVMs, .Lfunc_end43-_Z15sdcutfirst_testTVMs
@@ -431,7 +430,6 @@ _Z15sdcutfirst_testTVMs:
 	.type	_Z16sdskipfirst_testTVMs,@function
 _Z16sdskipfirst_testTVMs:
 ; %bb.0:
-	PUSHINT	13
 	SDSKIPFIRST
 .Lfunc_end44:
 	.size	_Z16sdskipfirst_testTVMs, .Lfunc_end44-_Z16sdskipfirst_testTVMs
@@ -441,7 +439,6 @@ _Z16sdskipfirst_testTVMs:
 	.type	_Z14sdcutlast_testTVMs,@function
 _Z14sdcutlast_testTVMs:
 ; %bb.0:
-	PUSHINT	14
 	SDCUTLAST
 .Lfunc_end45:
 	.size	_Z14sdcutlast_testTVMs, .Lfunc_end45-_Z14sdcutlast_testTVMs
@@ -451,7 +448,6 @@ _Z14sdcutlast_testTVMs:
 	.type	_Z15sdskiplast_testTVMs,@function
 _Z15sdskiplast_testTVMs:
 ; %bb.0:
-	PUSHINT	15
 	SDSKIPLAST
 .Lfunc_end46:
 	.size	_Z15sdskiplast_testTVMs, .Lfunc_end46-_Z15sdskiplast_testTVMs
@@ -461,10 +457,6 @@ _Z15sdskiplast_testTVMs:
 	.type	_Z13subslice_testTVMs,@function
 _Z13subslice_testTVMs:
 ; %bb.0:
-	ONE
-	PUSHINT	3
-	PUSHINT	2
-	PUSHINT	3
 	SUBSLICE
 .Lfunc_end47:
 	.size	_Z13subslice_testTVMs, .Lfunc_end47-_Z13subslice_testTVMs
@@ -474,8 +466,6 @@ _Z13subslice_testTVMs:
 	.type	_Z10split_testTVMs,@function
 _Z10split_testTVMs:
 ; %bb.0:
-	ONE
-	PUSHINT	3
 	SPLIT
 	SWAP
 	DROP
@@ -487,8 +477,6 @@ _Z10split_testTVMs:
 	.type	_Z11splitq_testTVMs,@function
 _Z11splitq_testTVMs:
 ; %bb.0:
-	ONE
-	PUSHINT	3
 	SPLITQ
 	XCHG	s1, s2
 	DROP2

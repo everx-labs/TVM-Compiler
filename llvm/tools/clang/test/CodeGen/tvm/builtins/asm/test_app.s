@@ -110,15 +110,6 @@ _Z14changelib_testii:
 .Lfunc_end11:
 	.size	_Z14changelib_testii, .Lfunc_end11-_Z14changelib_testii
 
-	.globl	_Z12dumpstk_testv
-	.p2align	1
-	.type	_Z12dumpstk_testv,@function
-_Z12dumpstk_testv:
-; %bb.0:
-	THROW	2
-.Lfunc_end12:
-	.size	_Z12dumpstk_testv, .Lfunc_end12-_Z12dumpstk_testv
-
 
 	.ident	"TON Labs clang for TVM. Version 7.0.0  (based on LLVM 7.0.0)"
 	.section	".note.GNU-stack","",@progbits

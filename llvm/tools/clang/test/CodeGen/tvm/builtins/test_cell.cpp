@@ -280,47 +280,47 @@ __tvm_slice pldslice_test(__tvm_slice s1, int l)
 }
 
 // SDCUTFIRST (s l – s0), returns the first 0 <= l <= 1023 bits of s. It is equivalent to PLDSLICEX
-__tvm_slice sdcutfirst_test(__tvm_slice s1)
+__tvm_slice sdcutfirst_test(__tvm_slice s1, int l)
 {
-  return __builtin_tvm_sdcutfirst(s1, 12);
+  return __builtin_tvm_sdcutfirst(s1, l);
 }
 
 // SDSKIPFIRST (s l – s0), returns all but the first 0 <= l <= 1023 bits of s. It is equivalent to LDSLICEX; NIP
-__tvm_slice sdskipfirst_test(__tvm_slice s1)
+__tvm_slice sdskipfirst_test(__tvm_slice s1, int l)
 {
-  return __builtin_tvm_sdskipfirst(s1, 13);
+  return __builtin_tvm_sdskipfirst(s1, l);
 }
 
 // SDCUTLAST (s l – s0), returns the last 0 <= l <= 1023 bits of s
-__tvm_slice sdcutlast_test(__tvm_slice s1)
+__tvm_slice sdcutlast_test(__tvm_slice s1, int l)
 {
-  return __builtin_tvm_sdcutlast(s1, 14);
+  return __builtin_tvm_sdcutlast(s1, l);
 }
 
 // SDSKIPLAST (s l – s0), returns all but the last 0 <= l <= 1023 bits of s
-__tvm_slice sdskiplast_test(__tvm_slice s1)
+__tvm_slice sdskiplast_test(__tvm_slice s1, int l)
 {
-  return __builtin_tvm_sdskiplast(s1, 15);
+  return __builtin_tvm_sdskiplast(s1, l);
 }
 
 // SUBSLICE (s l r l0 r0 – s0), returns 0 <= l0 <= 1023 bits and 0 <= r0 <= 4 references from Slice s
-__tvm_slice subslice_test(__tvm_slice s1)
+__tvm_slice subslice_test(__tvm_slice s1, int l, int r, int l0, int r0)
 {
-  return __builtin_tvm_subslice(s1, 1, 3, 2, 3);
+  return __builtin_tvm_subslice(s1, l, r, l0, r0);
 }
 
 // SPLIT (s l r – s0 s00), splits the first 0 <= l <= 1023 data bits and first 0 <= r <= 4 
 //  references from s into s0, returning the remainder of s as s00
-__tvm_slice split_test(__tvm_slice s1)
+__tvm_slice split_test(__tvm_slice s1, int l, int r)
 {
-  auto [s2, s3] = __builtin_tvm_split(s1, 1, 3);
+  auto [s2, s3] = __builtin_tvm_split(s1, l, r);
   return s3;
 }
 
 // SPLITQ (s l r – s0 s00 -1 or s 0), a quiet version of SPLIT
-__tvm_slice splitq_test(__tvm_slice s1)
+__tvm_slice splitq_test(__tvm_slice s1, int l, int r)
 {
-  auto [s2, s3, result] = __builtin_tvm_splitq(s1, 1, 3);
+  auto [s2, s3, result] = __builtin_tvm_splitq(s1, l, r);
   return s3;
 }
 

@@ -639,40 +639,40 @@ defm PLDSLICEQ : I<(outs Slice : $osl, I257 : $result),
 // D720 — SDCUTFIRST (s l – s0), returns the first 0 <= l <= 1023 bits of s. It is equivalent to PLDSLICEX
 let hasSideEffects = 1 in
 defm SDCUTFIRST : I<(outs Slice : $osl),
-             (ins Slice : $isl, uimm10 : $l),
-             (outs), (ins uimm10 : $l),
+             (ins Slice : $isl, I257 : $l),
+             (outs), (ins),
              [(set Slice : $osl, 
-               (int_tvm_sdcutfirst Slice : $isl, uimm10 : $l))],
+               (int_tvm_sdcutfirst Slice : $isl, I257 : $l))],
              "SDCUTFIRST\t $osl, $isl, $l",
              "SDCUTFIRST", 0xd720>;
 
 // D721 — SDSKIPFIRST (s l – s0), returns all but the first 0 <= l <= 1023 bits of s. It is equivalent to LDSLICEX; NIP
 let hasSideEffects = 1 in
 defm SDSKIPFIRST : I<(outs Slice : $osl),
-             (ins Slice : $isl, uimm10 : $l),
-             (outs), (ins uimm10 : $l),
+             (ins Slice : $isl, I257 : $l),
+             (outs), (ins),
              [(set Slice : $osl, 
-               (int_tvm_sdskipfirst Slice : $isl, uimm10 : $l))],
+               (int_tvm_sdskipfirst Slice : $isl, I257 : $l))],
              "SDSKIPFIRST\t $osl, $isl, $l",
              "SDSKIPFIRST", 0xd721>;
 
 // D722 — SDCUTLAST (s l – s0), returns the last 0 <= l <= 1023 bits of s
 let hasSideEffects = 1 in
 defm SDCUTLAST : I<(outs Slice : $osl),
-             (ins Slice : $isl, uimm10 : $l),
-             (outs), (ins uimm10 : $l),
+             (ins Slice : $isl, I257 : $l),
+             (outs), (ins),
              [(set Slice : $osl, 
-               (int_tvm_sdcutlast Slice : $isl, uimm10 : $l))],
+               (int_tvm_sdcutlast Slice : $isl, I257 : $l))],
              "SDCUTLAST\t $osl, $isl, $l",
              "SDCUTLAST", 0xd722>;
 
 // D723	— SDSKIPLAST (s l – s0), returns all but the last 0 <= l <=	1023 bits of s
 let hasSideEffects = 1 in
 defm SDSKIPLAST : I<(outs Slice : $osl),
-             (ins Slice : $isl, uimm10 : $l),
-             (outs), (ins uimm10 : $l),
+             (ins Slice : $isl, I257 : $l),
+             (outs), (ins),
              [(set Slice : $osl, 
-               (int_tvm_sdskiplast Slice : $isl, uimm10 : $l))],
+               (int_tvm_sdskiplast Slice : $isl, I257 : $l))],
              "SDSKIPLAST\t $osl, $isl, $l",
              "SDSKIPLAST", 0xd723>;
 
@@ -680,10 +680,10 @@ defm SDSKIPLAST : I<(outs Slice : $osl),
 //  thus extracting a bit substring out of the data of s
 let hasSideEffects = 1 in
 defm SDSUBSTR : I<(outs Slice : $osl),
-             (ins Slice : $isl, uimm10 : $l, uimm10 : $l0),
-             (outs), (ins uimm10 : $l, uimm10 : $l0),
+             (ins Slice : $isl, I257 : $l, I257 : $l0),
+             (outs), (ins),
              [(set Slice : $osl, 
-               (int_tvm_sdsubstr Slice : $isl, uimm10 : $l, uimm10 : $l0))],
+               (int_tvm_sdsubstr Slice : $isl, I257 : $l, I257 : $l0))],
              "SDSUBSTR\t $osl, $isl, $l, $l0",
              "SDSUBSTR", 0xd724>;
 
@@ -750,50 +750,50 @@ defm SDBEGINSQ : I<(outs Slice : $osl, I257 : $result),
 // D730 — SCUTFIRST (s l r – s0), returns the first 0 <= l <= 1023 bits and first 0 <= r <= 4 references of s
 let hasSideEffects = 1 in
 defm SCUTFIRST : I<(outs Slice : $osl),
-             (ins Slice : $isl, uimm10 : $l, uimm2 : $r),
-             (outs), (ins uimm10 : $l, uimm2 : $r),
+             (ins Slice : $isl, I257 : $l, I257 : $r),
+             (outs), (ins),
              [(set Slice : $osl, 
-               (int_tvm_scutfirst Slice : $isl, uimm10 : $l, uimm2 : $r))],
+               (int_tvm_scutfirst Slice : $isl, I257 : $l, I257 : $r))],
              "SCUTFIRST\t $osl, $isl, $l, $r",
              "SCUTFIRST", 0xd730>;
 
 // D731 — SSKIPFIRST (s l r – s0)
 let hasSideEffects = 1 in
 defm SSKIPFIRST : I<(outs Slice : $osl),
-             (ins Slice : $isl, uimm10 : $l, uimm2 : $r),
-             (outs), (ins uimm10 : $l, uimm2 : $r),
+             (ins Slice : $isl, I257 : $l, I257 : $r),
+             (outs), (ins),
              [(set Slice : $osl, 
-               (int_tvm_sskipfirst Slice : $isl, uimm10 : $l, uimm2 : $r))],
+               (int_tvm_sskipfirst Slice : $isl, I257 : $l, I257 : $r))],
              "SSKIPFIRST\t $osl, $isl, $l, $r",
              "SSKIPFIRST", 0xd731>;
 
 // D732 — SCUTLAST (s l r – s0), returns the last 0 <= l <= 1023 data bits and last 0 <= r <= 4 references of s
 let hasSideEffects = 1 in
 defm SCUTLAST : I<(outs Slice : $osl),
-             (ins Slice : $isl, uimm10 : $l, uimm2 : $r),
-             (outs), (ins uimm10 : $l, uimm2 : $r),
+             (ins Slice : $isl, I257 : $l, I257 : $r),
+             (outs), (ins),
              [(set Slice : $osl, 
-               (int_tvm_scutlast Slice : $isl, uimm10 : $l, uimm2 : $r))],
+               (int_tvm_scutlast Slice : $isl, I257 : $l, I257 : $r))],
              "SCUTLAST\t $osl, $isl, $l, $r",
              "SCUTLAST", 0xd732>;
 
 // D733 — SSKIPLAST (s l r – s0)
 let hasSideEffects = 1 in
 defm SSKIPLAST : I<(outs Slice : $osl),
-             (ins Slice : $isl, uimm10 : $l, uimm2 : $r),
-             (outs), (ins uimm10 : $l, uimm2 : $r),
+             (ins Slice : $isl, I257 : $l, I257 : $r),
+             (outs), (ins),
              [(set Slice : $osl, 
-               (int_tvm_sskiplast Slice : $isl, uimm10 : $l, uimm2 : $r))],
+               (int_tvm_sskiplast Slice : $isl, I257 : $l, I257 : $r))],
              "SSKIPLAST\t $osl, $isl, $l, $r",
              "SSKIPLAST", 0xd733>;
 
 // D734	— SUBSLICE (s l r l0 r0 – s0), returns 0 <= l0 <= 1023 bits and 0 <= r0 <= 4 references from Slice s
 let hasSideEffects = 1 in
 defm SUBSLICE : I<(outs Slice : $osl),
-             (ins Slice : $isl, uimm10 : $l, uimm2 : $r, uimm10 : $l0, uimm2 : $r0),
-             (outs), (ins uimm10 : $l, uimm2 : $r, uimm10 : $l0, uimm2 : $r0),
+             (ins Slice : $isl, I257 : $l, I257 : $r, I257 : $l0, I257 : $r0),
+             (outs), (ins),
              [(set Slice : $osl, 
-               (int_tvm_subslice Slice : $isl, uimm10 : $l, uimm2 : $r, uimm10 : $l0, uimm2 : $r0))],
+               (int_tvm_subslice Slice : $isl, I257 : $l, I257 : $r, I257 : $l0, I257 : $r0))],
              "SUBSLICE\t $osl, $isl, $l, $r, $l0, $r0",
              "SUBSLICE", 0xd734>;
 
@@ -801,19 +801,19 @@ defm SUBSLICE : I<(outs Slice : $osl),
 //  references from s into s0, returning the remainder of s as s00
 let hasSideEffects = 1 in
 defm SPLIT : I<(outs Slice : $osl0, Slice : $osl00),
-             (ins Slice : $isl, uimm10 : $l, uimm2 : $r),
-             (outs), (ins uimm10 : $l, uimm2 : $r),
+             (ins Slice : $isl, I257 : $l, I257 : $r),
+             (outs), (ins),
              [(set Slice : $osl0, Slice : $osl00, 
-               (int_tvm_split Slice : $isl, uimm10 : $l, uimm2 : $r))],
+               (int_tvm_split Slice : $isl, I257 : $l, I257 : $r))],
              "SPLIT\t $osl0, $osl00, $isl, $l, $r",
              "SPLIT", 0xd736>;
 
 // D737 — SPLITQ (s l r – s0 s00 -1 or s 0), a quiet version of SPLIT
 defm SPLITQ : I<(outs Slice : $osl0, Slice : $osl00, I257 : $result),
-             (ins Slice : $isl, uimm10 : $l, uimm2 : $r),
-             (outs), (ins uimm10 : $l, uimm2 : $r),
+             (ins Slice : $isl, I257 : $l, I257 : $r),
+             (outs), (ins),
              [(set Slice : $osl0, Slice : $osl00, I257 : $result, 
-               (int_tvm_splitq Slice : $isl, uimm10 : $l, uimm2 : $r))],
+               (int_tvm_splitq Slice : $isl, I257 : $l, I257 : $r))],
              "SPLITQ\t $osl0, $osl00, $result, $isl, $l, $r",
              "SPLITQ", 0xd737>;
 

@@ -416,72 +416,72 @@ _Z13pldslice_testTVMsi:
 .Lfunc_end42:
 	.size	_Z13pldslice_testTVMsi, .Lfunc_end42-_Z13pldslice_testTVMsi
 
-	.globl	_Z15sdcutfirst_testTVMs
+	.globl	_Z15sdcutfirst_testTVMsi
 	.p2align	1
-	.type	_Z15sdcutfirst_testTVMs,@function
-_Z15sdcutfirst_testTVMs:
+	.type	_Z15sdcutfirst_testTVMsi,@function
+_Z15sdcutfirst_testTVMsi:
 ; %bb.0:
 	SDCUTFIRST
 .Lfunc_end43:
-	.size	_Z15sdcutfirst_testTVMs, .Lfunc_end43-_Z15sdcutfirst_testTVMs
+	.size	_Z15sdcutfirst_testTVMsi, .Lfunc_end43-_Z15sdcutfirst_testTVMsi
 
-	.globl	_Z16sdskipfirst_testTVMs
+	.globl	_Z16sdskipfirst_testTVMsi
 	.p2align	1
-	.type	_Z16sdskipfirst_testTVMs,@function
-_Z16sdskipfirst_testTVMs:
+	.type	_Z16sdskipfirst_testTVMsi,@function
+_Z16sdskipfirst_testTVMsi:
 ; %bb.0:
 	SDSKIPFIRST
 .Lfunc_end44:
-	.size	_Z16sdskipfirst_testTVMs, .Lfunc_end44-_Z16sdskipfirst_testTVMs
+	.size	_Z16sdskipfirst_testTVMsi, .Lfunc_end44-_Z16sdskipfirst_testTVMsi
 
-	.globl	_Z14sdcutlast_testTVMs
+	.globl	_Z14sdcutlast_testTVMsi
 	.p2align	1
-	.type	_Z14sdcutlast_testTVMs,@function
-_Z14sdcutlast_testTVMs:
+	.type	_Z14sdcutlast_testTVMsi,@function
+_Z14sdcutlast_testTVMsi:
 ; %bb.0:
 	SDCUTLAST
 .Lfunc_end45:
-	.size	_Z14sdcutlast_testTVMs, .Lfunc_end45-_Z14sdcutlast_testTVMs
+	.size	_Z14sdcutlast_testTVMsi, .Lfunc_end45-_Z14sdcutlast_testTVMsi
 
-	.globl	_Z15sdskiplast_testTVMs
+	.globl	_Z15sdskiplast_testTVMsi
 	.p2align	1
-	.type	_Z15sdskiplast_testTVMs,@function
-_Z15sdskiplast_testTVMs:
+	.type	_Z15sdskiplast_testTVMsi,@function
+_Z15sdskiplast_testTVMsi:
 ; %bb.0:
 	SDSKIPLAST
 .Lfunc_end46:
-	.size	_Z15sdskiplast_testTVMs, .Lfunc_end46-_Z15sdskiplast_testTVMs
+	.size	_Z15sdskiplast_testTVMsi, .Lfunc_end46-_Z15sdskiplast_testTVMsi
 
-	.globl	_Z13subslice_testTVMs
+	.globl	_Z13subslice_testTVMsiiii
 	.p2align	1
-	.type	_Z13subslice_testTVMs,@function
-_Z13subslice_testTVMs:
+	.type	_Z13subslice_testTVMsiiii,@function
+_Z13subslice_testTVMsiiii:
 ; %bb.0:
 	SUBSLICE
 .Lfunc_end47:
-	.size	_Z13subslice_testTVMs, .Lfunc_end47-_Z13subslice_testTVMs
+	.size	_Z13subslice_testTVMsiiii, .Lfunc_end47-_Z13subslice_testTVMsiiii
 
-	.globl	_Z10split_testTVMs
+	.globl	_Z10split_testTVMsii
 	.p2align	1
-	.type	_Z10split_testTVMs,@function
-_Z10split_testTVMs:
+	.type	_Z10split_testTVMsii,@function
+_Z10split_testTVMsii:
 ; %bb.0:
 	SPLIT
 	SWAP
 	DROP
 .Lfunc_end48:
-	.size	_Z10split_testTVMs, .Lfunc_end48-_Z10split_testTVMs
+	.size	_Z10split_testTVMsii, .Lfunc_end48-_Z10split_testTVMsii
 
-	.globl	_Z11splitq_testTVMs
+	.globl	_Z11splitq_testTVMsii
 	.p2align	1
-	.type	_Z11splitq_testTVMs,@function
-_Z11splitq_testTVMs:
+	.type	_Z11splitq_testTVMsii,@function
+_Z11splitq_testTVMsii:
 ; %bb.0:
 	SPLITQ
 	XCHG	s1, s2
 	DROP2
 .Lfunc_end49:
-	.size	_Z11splitq_testTVMs, .Lfunc_end49-_Z11splitq_testTVMs
+	.size	_Z11splitq_testTVMsii, .Lfunc_end49-_Z11splitq_testTVMsii
 
 	.globl	_Z10xctos_testTVMc
 	.p2align	1

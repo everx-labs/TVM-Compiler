@@ -590,10 +590,22 @@ defm PLDUZ : I<(outs Slice:$osl, I257 : $x),
              "PLDUZ\t $count", 0xd0714>;
 
 // D71A — LDSLICEXQ (s l – s00 s0 -1 or s 0), a quiet version of LDSLICEX
-// TODO
+defm LDSLICEXQ : I<(outs Slice:$osl1, Slice:$osl2, I257 : $result),
+             (ins Slice : $isl, I257 : $l),
+             (outs), (ins),
+             [(set Slice:$osl1, Slice:$osl2, I257 : $result,
+               (int_tvm_ldslicexq Slice : $isl, I257 : $l))],
+             "LDSLICEXQ\t $osl1, $osl2, $result, $isl, $l",
+             "LDSLICEXQ NULLROTRIFNOT", 0xd071a>;
 
 // D71B — PLDSLICEXQ (s l – s0 -1 or 0), a quiet version of LDSLICEXQ
-// TODO
+defm PLDSLICEXQ : I<(outs Slice:$osl, I257 : $result),
+             (ins Slice : $isl, I257 : $l),
+             (outs), (ins),
+             [(set Slice:$osl, I257 : $result,
+               (int_tvm_pldslicexq Slice : $isl, I257 : $l))],
+             "PLDSLICEXQ\t $osl, $result, $isl, $l",
+             "PLDSLICEXQ NULLSWAPIFNOT", 0xd071b>;
 
 // D71Dcc — PLDSLICE cc + 1 (s - s00), returns the first 0 < cc + 1 <= 256 bits of s as s00
 let hasSideEffects = 1 in

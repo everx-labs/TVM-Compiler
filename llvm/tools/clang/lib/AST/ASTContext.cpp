@@ -1263,6 +1263,22 @@ ASTContext::getReflectInterfaceHasPubkeyDecl() const {
 }
 
 BuiltinTemplateDecl *
+ASTContext::getReflectInterfaceHasTimestampDecl() const {
+  if (!ReflectInterfaceHasTimestampDecl)
+    ReflectInterfaceHasTimestampDecl = buildBuiltinTemplateDecl(
+        BTK__reflect_interface_has_timestamp, getReflectInterfaceHasTimestampName());
+  return ReflectInterfaceHasTimestampDecl;
+}
+
+BuiltinTemplateDecl *
+ASTContext::getReflectInterfaceHasExpireDecl() const {
+  if (!ReflectInterfaceHasExpireDecl)
+    ReflectInterfaceHasExpireDecl = buildBuiltinTemplateDecl(
+        BTK__reflect_interface_has_expire, getReflectInterfaceHasExpireName());
+  return ReflectInterfaceHasExpireDecl;
+}
+
+BuiltinTemplateDecl *
 ASTContext::getReflectSignatureFuncIdDecl() const {
   if (!ReflectSignatureFuncIdDecl)
     ReflectSignatureFuncIdDecl = buildBuiltinTemplateDecl(

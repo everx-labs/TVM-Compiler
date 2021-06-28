@@ -174,7 +174,7 @@ public:
     using namespace schema;
     using data_tup_t = to_std_tuple_t<value_type>;
     using LinearTup = decltype(make_chain_tuple(data_tup_t{}));
-    __reflect_echo<print_chain_tuple<LinearTup>().c_str()>{};
+    // __reflect_echo<print_chain_tuple<LinearTup>().c_str()>{};
     auto linear_tup = parse<LinearTup>(parser(cl));
     return to_struct<value_type>(chain_fold_tup<data_tup_t>(linear_tup));
   }

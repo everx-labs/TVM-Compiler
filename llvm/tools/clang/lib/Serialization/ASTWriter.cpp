@@ -4746,6 +4746,10 @@ ASTFileSignature ASTWriter::WriteASTCore(Sema &SemaRef, StringRef isysroot,
                      PREDEF_DECL_REFLECT_METHOD_PTR_ID);
   RegisterPredefDecl(Context.ReflectInterfaceHasPubkeyDecl,
                      PREDEF_DECL_REFLECT_INTERFACE_HAS_PUBKEY_ID);
+  RegisterPredefDecl(Context.ReflectInterfaceHasTimestampDecl,
+                     PREDEF_DECL_REFLECT_INTERFACE_HAS_TIMESTAMP_ID);
+  RegisterPredefDecl(Context.ReflectInterfaceHasExpireDecl,
+                     PREDEF_DECL_REFLECT_INTERFACE_HAS_EXPIRE_ID);
   RegisterPredefDecl(Context.ReflectSignatureFuncIdDecl,
                      PREDEF_DECL_REFLECT_SIGNATURE_FUNC_ID_ID);
   RegisterPredefDecl(Context.ReflectEchoDecl,

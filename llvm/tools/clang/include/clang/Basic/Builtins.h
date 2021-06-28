@@ -329,6 +329,12 @@ enum BuiltinTemplateKind : int {
   /// This names the __reflect_interface_has_pubkey BuiltinTemplateDecl.
   BTK__reflect_interface_has_pubkey,
 
+  /// This names the __reflect_interface_has_timestamp BuiltinTemplateDecl.
+  BTK__reflect_interface_has_timestamp,
+
+  /// This names the __reflect_interface_has_expire BuiltinTemplateDecl.
+  BTK__reflect_interface_has_expire,
+
   /// This names the __reflect_signature_func_id BuiltinTemplateDecl.
   BTK__reflect_signature_func_id,
 

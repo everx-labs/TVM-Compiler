@@ -53,6 +53,7 @@ For Windows / Microsoft Visual Studio 2017/2020 (clang Compiler without linker &
 > mkdir build
 > cd build
 > cmake -G "Visual Studio 15" -DLLVM_TARGETS_TO_BUILD="TVM" -C /path/to/TON-Compiler/cmake/Cache/ton-compiler-alone.cmake ../llvm
+```
 
 Then open generated solution file LLVM.sln with Visual Studio
 

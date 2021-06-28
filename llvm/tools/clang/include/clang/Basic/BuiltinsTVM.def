@@ -750,7 +750,7 @@ BUILTIN(__builtin_tvm_hiddenstack, "WiWi", "nc")
 // *******************************************/
 
 // NIL ( – t), pushes the only Tuple t = () of length zero
-//BUILTIN(__builtin_tvm_nil, "Tt", "nc")
+BUILTIN(__builtin_tvm_nil, "Tt", "nc")
 
 // SINGLE (x – t), creates a singleton t := (x), i.e., a Tuple of length one
 BUILTIN(__builtin_tvm_single, "TtWi", "nc")
@@ -1416,15 +1416,15 @@ BUILTIN(__builtin_tvm_dictuaddb, "{TcWi}TbWiTcWi", "nc")
 
 // DICTADDGETB (b k D n – D0 -1 or D y 0)
 // (builder key slice nbits - (slice -1) | (slice value 0))
-BUILTIN(__builtin_tvm_dictaddgetb, "{TcWi}TbTsTcWi", "nc")
+BUILTIN(__builtin_tvm_dictaddgetb, "{TcTsWi}TbTsTcWi", "nc")
 
 // DICTIADDGETB (b i D n – D0 -1 or D y 0)
 // (builder int slice nbits - (slice' -1) | (slice y 0))
-BUILTIN(__builtin_tvm_dictiaddgetb, "{TcWi}TbWiTcWi", "nc")
+BUILTIN(__builtin_tvm_dictiaddgetb, "{TcTsWi}TbWiTcWi", "nc")
 
 // DICTUADDGETB	(b i D n – D0 -1 or D y 0)
 // (builder uint slice nbits - (slice' -1) | (slice y 0))
-BUILTIN(__builtin_tvm_dictuaddgetb, "{TcWi}TbWiTcWi", "nc")
+BUILTIN(__builtin_tvm_dictuaddgetb, "{TcTsWi}TbWiTcWi", "nc")
 
 // ******************************************* 
 //
@@ -1658,3 +1658,77 @@ BUILTIN(__builtin_tvm_subdictirpget, "TcWiWiTcWi", "nc")
 // (prefix lbits dict nbits - dict')
 BUILTIN(__builtin_tvm_subdicturpget, "TcWiWiTcWi", "nc")
 
+// ******************************************* 
+//
+// A.11.3. Pseudo-random number generator primitives
+//
+// *******************************************/
+
+// RANDU256 ( –	x), generates a new pseudo-random unsigned 256-bit Integer x
+BUILTIN(__builtin_tvm_randu256, "Wi", "nc")
+
+// RAND (y – z), generates a new pseudo-random integer z in the range 0...y-1 (or y...-1, if y < 0)
+BUILTIN(__builtin_tvm_rand, "WiWi", "nc")
+
+// SETRAND  (x	– ), sets the random seed to unsigned 256-bit Integer x
+BUILTIN(__builtin_tvm_setrand, "vWi", "nc")
+
+// ADDRAND (x – ), mixes unsigned 256-bit Integer x into the random seed r
+BUILTIN(__builtin_tvm_addrand, "vWi", "nc")
+
+// ******************************************* 
+//
+// A.11.4. Configuration primitives
+//
+// *******************************************/
+
+// RANDSEED ( –	x), returns the current random seed as an unsigned 256-bit Integer. Equivalent to GETPARAM 6
+BUILTIN(__builtin_tvm_randseed, "Wi", "nc")
+
+// BALANCE ( –	t), returns the remaining balance of the smart contract as a Tuple consisting of an Integer (the remaining Gram balance in nanograms) 
+//   and a Maybe Cell (a dictionary with 32-bit keys representing the balance of “extra currencies”). Equivalent to GETPARAM 7
+BUILTIN(__builtin_tvm_balance, "Tt", "nc")
+
+
+// ******************************************* 
+//
+// A.11.6. Hashing and cryptography primitives
+//
+// *******************************************/
+
+// SHA256U (s – x), computes sha256 of the data bits of Slice s.
+//  If the bit length of s is not divisible by eight, throws a cell underflow exception. The hash value is returned as a 256-bit unsigned integer x
+BUILTIN(__builtin_tvm_sha256u, "WiTs", "nc")
+
+// CHKSIGNS  (d s k - ?) checks whether	s is a valid Ed25519-signature of the data portion of Slice	d using public key k, similarly to CHKSIGNU
+BUILTIN(__builtin_tvm_chksigns, "WiTsWiWi", "nc")
+
+// ******************************************* 
+//
+// A.11.7. Miscellaneous primitives
+//
+// *******************************************/
+
+// CDATASIZEQ (c n – x y z -1 or 0), recursively computes the count of distinct cells x, data bits y, 
+//   and cell references z in the dag rooted at Cell c
+BUILTIN(__builtin_tvm_cdatasizeq, "{WiWiWiWi}TcWi", "nc")
+
+
+// ******************************************* 
+//
+// A.11.10. Outbound message and output action primitives
+//
+// *******************************************/
+
+// RAWRESERVEX  (x D y – ), similar to RAWRESERVE, but also accepts a dictionary D (represented by a Cell or Null ) with extra currencies
+BUILTIN(__builtin_tvm_rawreservex, "vWiTcWi", "nc")
+
+// SETLIBCODE (c x – ), creates an output action that would modify the collection of this smart contract libraries by adding or removing
+//   library with code given in	Cell c
+BUILTIN(__builtin_tvm_setlibcode, "vTcWi", "nc")
+
+// CHANGELIB (h x – ), creates an output action similarly to SETLIBCODE, 
+//   but instead of the library code accepts its hash as an unsigned 256-bit integer
+BUILTIN(__builtin_tvm_changelib, "vWiWi", "nc")
+
+#undef BUILTIN

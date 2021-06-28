@@ -46,6 +46,16 @@ Notes:
 * We strongly recommend to use the installed version of the compiler, otherwise it might be unable to find the required headers and tools by itself, so they have to be specified by hands.
 * A complete C and C++ toolchain require [tvm_linker](https://github.com/tonlabs/TVM-linker/) to be built. We recommend to put the liker binary to `/path/to/install/bin` directory. Otherwise you might need to use `-fuse-ld` option to spicify full name of the linker.
 * `install-distribution` installs only required minimum of tools, while `install` target copies all the LLVM tools to the installation folder. These additional tools doesn't necessary work with TVM target properly.
+
+For Windows / Microsoft Visual Studio 2017/2020 (clang Compiler without linker & other external tools)
+```
+> git clone git@github.com:tonlabs/TON-Compiler.git
+> mkdir build
+> cd build
+> cmake -G "Visual Studio 15" -DLLVM_TARGETS_TO_BUILD="TVM" -C /path/to/TON-Compiler/cmake/Cache/ton-compiler-alone.cmake ../llvm
+
+Then open generated solution file LLVM.sln with Visual Studio
+
 ### Troubleshooting and speeding up the build
 Building Clang takes quite a bit of time, below we list some options to speed it up:
 * Use faster build system via `-GXXX` option. We recommend to choose `ninja-build` (you might need to install it first) using `-GNinja`.

@@ -13,7 +13,7 @@
 //===----------------------------------------------------------------------===//
 
 defm NIL : I<(outs Tuple:$result), (ins), (outs), (ins),
-             [],
+             [(set Tuple:$result, (int_tvm_nil))],
              "NIL\t$result",
              "NIL", 0x6f00>;
 

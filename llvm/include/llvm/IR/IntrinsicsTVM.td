@@ -800,6 +800,7 @@ let TargetPrefix = "tvm" in {
     GCCBuiltin<"__builtin_tvm_hiddenstack">,
     Intrinsic<[llvm_i257_ty], [llvm_i257_ty], [IntrNoMem]>;
 
+
 // ***********************************************************************/
 
 // ******************************************* 
@@ -809,9 +810,9 @@ let TargetPrefix = "tvm" in {
 // *******************************************/
 
   // NIL ( – t), pushes the only Tuple t = () of length zero
-//  def int_tvm_nil :
-//    GCCBuiltin<"__builtin_tvm_nil">,
-//    Intrinsic<[llvm_TVMTuple_ty], [], [IntrNoMem]>;
+  def int_tvm_nil :
+    GCCBuiltin<"__builtin_tvm_nil">,
+    Intrinsic<[llvm_TVMTuple_ty], [], [IntrNoMem]>;
 
   // SINGLE (x – t), creates a singleton t := (x), i.e., a Tuple of length one
   def int_tvm_single :
@@ -898,7 +899,6 @@ let TargetPrefix = "tvm" in {
   def int_tvm_setindexvarq :
     GCCBuiltin<"__builtin_tvm_setindexvarq">,
     Intrinsic<[llvm_TVMTuple_ty], [llvm_TVMTuple_ty, llvm_i257_ty, llvm_i257_ty], [IntrNoMem]>;
-
 
 // ******************************************* 
 //
@@ -1257,7 +1257,7 @@ let TargetPrefix = "tvm" in {
   // BCHKBITREFSQ (b x y – ?), checks whether x bits and y references can be stored into b, 0 <= x <= 1023, 0 <= y <= 7
   def int_tvm_bchkbitrefsq :
     GCCBuiltin<"__builtin_tvm_bchkbitrefsq">,
-    Intrinsic<[], [llvm_TVMBuilder_ty, llvm_i257_ty, llvm_i257_ty]>;  
+    Intrinsic<[llvm_i257_ty], [llvm_TVMBuilder_ty, llvm_i257_ty, llvm_i257_ty]>;  
 
   // STZEROES (b n – b0), stores n binary zeroes into Builder b
   def int_tvm_stzeroes :
@@ -1314,15 +1314,15 @@ let TargetPrefix = "tvm" in {
     GCCBuiltin<"__builtin_tvm_plduz">,
     Intrinsic<[llvm_TVMSlice_ty, llvm_i257_ty], [llvm_TVMSlice_ty, llvm_i257_ty]>;
 
-  // D71A — LDSLICEXQ (s l – s00 s0 -1 or s 0), a quiet version of LDSLICEX
-//  def int_tvm_ldslicexq :
-//    GCCBuiltin<"__builtin_tvm_ldslicexq">,
-//    Intrinsic<[llvm_TVMSlice_ty, llvm_TVMSlice_ty, llvm_i257_ty], [llvm_TVMSlice_ty, llvm_i257_ty]>;
+  // LDSLICEXQ (s l – s00 s0 -1 or s 0), a quiet version of LDSLICEX
+  def int_tvm_ldslicexq :
+    GCCBuiltin<"__builtin_tvm_ldslicexq">,
+    Intrinsic<[llvm_TVMSlice_ty, llvm_TVMSlice_ty, llvm_i257_ty], [llvm_TVMSlice_ty, llvm_i257_ty]>;
 
-  // D71B — PLDSLICEXQ (s l – s0 -1 or 0), a quiet version of LDSLICEXQ
-//  def int_tvm_pldslicexq :
-//    GCCBuiltin<"__builtin_tvm_pldsliceq">,
-//    Intrinsic<[llvm_TVMSlice_ty, llvm_i257_ty], [llvm_TVMSlice_ty, llvm_i257_ty]>;
+  // PLDSLICEXQ (s l – s0 -1 or 0), a quiet version of LDSLICEXQ
+  def int_tvm_pldslicexq :
+    GCCBuiltin<"__builtin_tvm_pldslicexq">,
+    Intrinsic<[llvm_TVMSlice_ty, llvm_i257_ty], [llvm_TVMSlice_ty, llvm_i257_ty]>;
 
   // PLDSLICE cc + 1 (s - s00), returns the first 0 < cc + 1 <= 256 bits of s as s00
   def int_tvm_pldslice :
@@ -1602,4 +1602,751 @@ let TargetPrefix = "tvm" in {
   def int_tvm_cdepth :
     GCCBuiltin<"__builtin_tvm_cdepth">,
     Intrinsic<[llvm_i257_ty], [llvm_TVMCell_ty]>;
+
+// ******************************************* 
+//
+// A.10	Dictionary manipulation primitives
+//
+// *******************************************/
+
+// ******************************************* 
+//
+// A.10.2. Dictionary serialization and deserialization
+//
+// *******************************************/
+
+// SKIPDICT or SKIPOPTREF (s – s0), equivalent to LDDICT; NIP
+def int_tvm_skipdict :
+    GCCBuiltin<"__builtin_tvm_skipdict">,
+    Intrinsic<[llvm_TVMSlice_ty],
+              [llvm_TVMSlice_ty], [IntrNoMem]>;
+
+// LDDICTS (s – s0 s00), loads (parses) a (Slice-represented) dictionary s0 from Slice s, and returns the remainder of s as s00
+def int_tvm_lddicts :
+    GCCBuiltin<"__builtin_tvm_lddicts">,
+    Intrinsic<[llvm_TVMSlice_ty, llvm_TVMSlice_ty],
+              [llvm_TVMSlice_ty], [IntrNoMem]>;
+
+// PLDDICTS (s – s0), preloads a (Slice - represented) dictionary s0 from Slice s. Approximately equivalent to LDDICTS; DROP
+def int_tvm_plddicts :
+    GCCBuiltin<"__builtin_tvm_plddicts">,
+    Intrinsic<[llvm_TVMSlice_ty],
+              [llvm_TVMSlice_ty], [IntrNoMem]>;
+
+// LDDICTQ (s – D s0 -1 or s 0), a quiet version of LDDICT
+def int_tvm_lddictq :
+    GCCBuiltin<"__builtin_tvm_lddictq">,
+    Intrinsic<[llvm_TVMCell_ty, llvm_TVMSlice_ty, llvm_i257_ty],
+              [llvm_TVMSlice_ty], [IntrNoMem]>;
+
+// PLDDICTQ (s – D -1 or 0), a quiet version of PLDDICT
+def int_tvm_plddictq :
+    GCCBuiltin<"__builtin_tvm_plddictq">,
+    Intrinsic<[llvm_TVMCell_ty, llvm_i257_ty],
+              [llvm_TVMSlice_ty], [IntrNoMem]>;
+
+// ******************************************* 
+//
+// A.10.4.	Set/Replace/Add dictionary operations
+//
+// *******************************************/
+
+// DICTISETGET (x i D n – D0 y -1 or D0 0), similar to DICTSETGET, 
+//  but with the key represented by a big-endian signed n-bit Integer I
+// (value int slice nbits - (slice y -1) | (slice 0))
+  def int_tvm_dictisetget :
+    GCCBuiltin<"__builtin_tvm_dictisetget">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_TVMSlice_ty, llvm_i257_ty],
+              [llvm_TVMSlice_ty, llvm_i257_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// DICTISETGETREF (c i D n – D0 c0 -1 or D0 0), a version of DICTSETGETREF with signed Integer i as a key
+// (cell int slice nbits - (slice cell -1) | (slice 0))
+  def int_tvm_dictisetgetref :
+    GCCBuiltin<"__builtin_tvm_dictisetgetref">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_TVMCell_ty, llvm_i257_ty],
+              [llvm_TVMCell_ty, llvm_i257_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// DICTREPLACEGET (x k D n – D0 y -1 or D 0), a Replace counterpart of DICTSETGET: 
+//  on success, also returns the old value associated with the key in question
+// (value int slice nbits - (slice value -1) | (slice 0))
+  def int_tvm_dictreplaceget :
+    GCCBuiltin<"__builtin_tvm_dictreplaceget">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_TVMSlice_ty, llvm_i257_ty],
+              [llvm_TVMSlice_ty, llvm_TVMSlice_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// DICTREPLACEGETREF (c k D n – D0 c0 -1 or D 0)
+// (cell int slice nbits - (slice' cell -1) | (slice 0))
+  def int_tvm_dictreplacegetref :
+    GCCBuiltin<"__builtin_tvm_dictreplacegetref">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_TVMCell_ty, llvm_i257_ty],
+              [llvm_TVMCell_ty /* Dict */, llvm_TVMSlice_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// DICTIREPLACEGET  (x i D n – D0 y -1 or D 0)
+// (value int slice nbits - (slice value -1) | (slice 0))
+  def int_tvm_dictireplaceget :
+    GCCBuiltin<"__builtin_tvm_dictireplaceget">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_TVMSlice_ty, llvm_i257_ty],
+              [llvm_TVMSlice_ty, llvm_i257_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// DICTIREPLACEGETREF (c i D n – D0 c0 -1 or D 0)
+// (cell int slice nbits - (slice' cell -1) | (slice 0))
+  def int_tvm_dictireplacegetref :
+    GCCBuiltin<"__builtin_tvm_dictireplacegetref">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_TVMCell_ty, llvm_i257_ty],
+              [llvm_TVMCell_ty, llvm_i257_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// DICTUREPLACEGET (x i D n – D0 y -1 or D 0)
+// (value uint slice nbits - (slice value -1) | (slice 0))
+  def int_tvm_dictureplaceget :
+    GCCBuiltin<"__builtin_tvm_dictureplaceget">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_TVMSlice_ty, llvm_i257_ty],
+              [llvm_TVMSlice_ty, llvm_i257_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// DICTUREPLACEGETREF (c i D n – D0 c0 -1 or D 0)
+// (cell uint slice nbits - (slice' cell -1) | (slice 0))
+  def int_tvm_dictureplacegetref :
+    GCCBuiltin<"__builtin_tvm_dictureplacegetref">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_TVMCell_ty, llvm_i257_ty],
+              [llvm_TVMCell_ty, llvm_i257_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// DICTADDGET (x k D n – D0 -1 or D y 0), an Add counterpart of DICTSETGET: sets the value associated with key k in dictionary D to x, 
+//   but only if key k is not already present in D. Otherwise, just returns the old value y without changing the dictionary
+// (value key slice nbits - (slice -1) | (slice y 0))
+  def int_tvm_dictaddget :
+    GCCBuiltin<"__builtin_tvm_dictaddget">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_TVMSlice_ty, llvm_i257_ty],
+              [llvm_TVMSlice_ty, llvm_TVMSlice_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// DICTADDGETREF (c k D n – D0 -1 or D c0 0), an Add counterpart of DICTSETGETREF
+// (cell key slice nbits - (slice' -1) | (slice cell 0))
+  def int_tvm_dictaddgetref :
+    GCCBuiltin<"__builtin_tvm_dictaddgetref">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_TVMCell_ty, llvm_i257_ty],
+              [llvm_TVMCell_ty, llvm_TVMSlice_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// DICTIADDGET (x i D n – D0 -1 or D y 0)
+// (value int slice nbits - (slice -1) | (slice value 0))
+  def int_tvm_dictiaddget :
+    GCCBuiltin<"__builtin_tvm_dictiaddget">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_TVMSlice_ty, llvm_i257_ty],
+              [llvm_TVMSlice_ty, llvm_i257_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// DICTIADDGETREF (c i D n – D0 -1 or D c0 0)
+// (cell int slice nbits - (slice -1) | (slice cell 0))
+  def int_tvm_dictiaddgetref :
+    GCCBuiltin<"__builtin_tvm_dictiaddgetref">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_TVMCell_ty, llvm_i257_ty],
+              [llvm_TVMCell_ty, llvm_i257_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// DICTUADDGET	(x i D n – D0 -1 or D y 0)
+// (value uint slice nbits - (slice -1) | (slice value 0))
+  def int_tvm_dictuaddget :
+    GCCBuiltin<"__builtin_tvm_dictuaddget">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_TVMSlice_ty, llvm_i257_ty],
+              [llvm_TVMSlice_ty, llvm_i257_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// DICTUADDGETREF (c i D n – D0 -1 or D c0 0)
+// (cell uint slice nbits - (slice -1) | (slice cell 0))
+  def int_tvm_dictuaddgetref :
+    GCCBuiltin<"__builtin_tvm_dictuaddgetref">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_TVMCell_ty, llvm_i257_ty],
+              [llvm_TVMCell_ty, llvm_i257_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+
+// ******************************************* 
+//
+// A.10.5. Builder-accepting variants of Set dictionary operations.
+//
+// *******************************************/
+
+// DICTSETB (b k D n – D0)
+// (builder key slice nbits - slice)
+  def int_tvm_dictsetb :
+    GCCBuiltin<"__builtin_tvm_dictsetb">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */],
+              [llvm_TVMBuilder_ty, llvm_TVMSlice_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// DICTISETB (b i D n – D0)
+// (builder int slice nbits - slice)
+  def int_tvm_dictisetb :
+    GCCBuiltin<"__builtin_tvm_dictisetb">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */],
+              [llvm_TVMBuilder_ty, llvm_i257_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// DICTUSETB (b i D n – D0)
+// (builder uint slice nbits - slice)
+  def int_tvm_dictusetb :
+    GCCBuiltin<"__builtin_tvm_dictusetb">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */],
+              [llvm_TVMBuilder_ty, llvm_i257_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// DICTSETGETB (b k D n – D0 y -1 or D0 0)
+// (builder key slice nbits - (slice value -1) | (slice 0))
+  def int_tvm_dictsetgetb :
+    GCCBuiltin<"__builtin_tvm_dictsetgetb">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_TVMSlice_ty, llvm_i257_ty],
+              [llvm_TVMBuilder_ty, llvm_TVMSlice_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// DICTISETGETB (b i D n – D0 y -1 or D0 0)
+// (builder int slice nbits - (slice' y -1) | (slice' 0))
+  def int_tvm_dictisetgetb :
+    GCCBuiltin<"__builtin_tvm_dictisetgetb">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_TVMSlice_ty, llvm_i257_ty],
+              [llvm_TVMBuilder_ty, llvm_i257_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// DICTUSETGETB (b i D n – D0 y -1 or D0 0)
+// (builder uint slice nbits - (slice' y -1) | (slice' 0))
+  def int_tvm_dictusetgetb :
+    GCCBuiltin<"__builtin_tvm_dictusetgetb">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_TVMSlice_ty, llvm_i257_ty],
+              [llvm_TVMBuilder_ty, llvm_i257_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// DICTREPLACEB (b k D n – D0 -1 or D 0)
+// (builder int slice nbits - (slice -1) | (slice 0))
+  def int_tvm_dictreplaceb :
+    GCCBuiltin<"__builtin_tvm_dictreplaceb">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_i257_ty],
+              [llvm_TVMBuilder_ty, llvm_TVMSlice_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// DICTIREPLACEB (b i D n – D0 -1 or D 0)
+// (builder uint slice nbits - (slice -1) | (slice 0))
+  def int_tvm_dictireplaceb :
+    GCCBuiltin<"__builtin_tvm_dictireplaceb">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_i257_ty],
+              [llvm_TVMBuilder_ty, llvm_i257_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// DICTUREPLACEB (b i D n – D0 -1 or D 0)
+// (builder uint slice nbits - (slice -1) | (slice 0))
+  def int_tvm_dictureplaceb :
+    GCCBuiltin<"__builtin_tvm_dictureplaceb">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_i257_ty],
+              [llvm_TVMBuilder_ty, llvm_i257_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// DICTREPLACEGETB (b k D n – D0 y -1 or D 0)
+// (builder key slice nbits - (slice value -1) | (slice 0))
+  def int_tvm_dictreplacegetb :
+    GCCBuiltin<"__builtin_tvm_dictreplacegetb">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_TVMSlice_ty, llvm_i257_ty],
+              [llvm_TVMBuilder_ty, llvm_TVMSlice_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// DICTIREPLACEGETB (b i D n – D0 y -1 or D 0)
+// (builder int slice nbits - (slice value -1) | (slice 0))
+  def int_tvm_dictireplacegetb :
+    GCCBuiltin<"__builtin_tvm_dictireplacegetb">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_TVMSlice_ty, llvm_i257_ty],
+              [llvm_TVMBuilder_ty, llvm_i257_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// DICTUREPLACEGETB	(b i D n – D0 y -1 or D 0)
+// (builder uint slice nbits - (slice value -1) | (slice 0))
+  def int_tvm_dictureplacegetb :
+    GCCBuiltin<"__builtin_tvm_dictureplacegetb">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_TVMSlice_ty, llvm_i257_ty],
+              [llvm_TVMBuilder_ty, llvm_i257_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// DICTADDB (b k D n – D0 -1 or D 0)
+// (builder key slice nbits - (slice -1) | (slice 0))
+  def int_tvm_dictaddb :
+    GCCBuiltin<"__builtin_tvm_dictaddb">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_i257_ty],
+              [llvm_TVMBuilder_ty, llvm_TVMSlice_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// DICTIADDB (b i D n – D0 -1 or D 0)
+// (builder int slice nbits - (slice -1) | (slice 0))
+  def int_tvm_dictiaddb :
+    GCCBuiltin<"__builtin_tvm_dictiaddb">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_i257_ty],
+              [llvm_TVMBuilder_ty, llvm_i257_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// DICTUADDB  (b i D n – D0 -1 or D 0)
+// (builder uint slice nbits - (slice -1) | (slice 0))
+  def int_tvm_dictuaddb :
+    GCCBuiltin<"__builtin_tvm_dictuaddb">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_i257_ty],
+              [llvm_TVMBuilder_ty, llvm_i257_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// DICTADDGETB (b k D n – D0 -1 or D y 0)
+// (builder key slice nbits - (slice -1) | (slice value 0))
+  def int_tvm_dictaddgetb :
+    GCCBuiltin<"__builtin_tvm_dictaddgetb">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_TVMSlice_ty, llvm_i257_ty],
+              [llvm_TVMBuilder_ty, llvm_TVMSlice_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// DICTIADDGETB (b i D n – D0 -1 or D y 0)
+// (builder int slice nbits - (slice' -1) | (slice y 0))
+  def int_tvm_dictiaddgetb :
+    GCCBuiltin<"__builtin_tvm_dictiaddgetb">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_TVMSlice_ty, llvm_i257_ty],
+              [llvm_TVMBuilder_ty, llvm_i257_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// DICTUADDGETB	(b i D n – D0 -1 or D y 0)
+// (builder uint slice nbits - (slice' -1) | (slice y 0))
+  def int_tvm_dictuaddgetb :
+    GCCBuiltin<"__builtin_tvm_dictuaddgetb">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_TVMSlice_ty, llvm_i257_ty],
+              [llvm_TVMBuilder_ty, llvm_i257_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// ******************************************* 
+//
+// A.10.6. Delete dictionary operations
+//
+// *******************************************/
+
+// DICTIDEL (i D n – D0 ?), a version of DICTDEL with the key represented by a signed n-bit Integer i. If i does not fit into n bits,
+//   simply returns D 0 (“key not found, dictionary unmodified”)
+// (int slice nbits - (slice' -1) | (slice 0))
+  def int_tvm_dictidel :
+    GCCBuiltin<"__builtin_tvm_dictidel">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_i257_ty],
+              [llvm_i257_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// DICTIDELGET (i D n – D0 x -1 or D 0), a variant of primitive DICTDELGET with signed n-bit integer i as a key
+// (int slice nbits - (slice value -1) | (slice 0))
+ def int_tvm_dictidelget :
+    GCCBuiltin<"__builtin_tvm_dictidelget">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_TVMSlice_ty, llvm_i257_ty],
+              [llvm_i257_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// DICTIDELGETREF (i D n – D0 c -1 or  D 0), a variant of primitive DICTIDELGET returning a Cell instead of a Slice
+// (int slice nbits - (slice cell -1) | (slice 0))
+ def int_tvm_dictidelgetref :
+    GCCBuiltin<"__builtin_tvm_dictidelgetref">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_TVMCell_ty, llvm_i257_ty],
+              [llvm_i257_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// DICTUDELGET (i D n – D0x -1 or D 0), a variant of primitive DICTDELGET with unsigned n-bit integer i as a key
+// (uint slice nbits - (slice value -1) | (slice 0))
+ def int_tvm_dictudelget :
+    GCCBuiltin<"__builtin_tvm_dictudelget">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_TVMSlice_ty, llvm_i257_ty],
+              [llvm_i257_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// DICTUDELGETREF (i D n – D0 c -1 or D 0), a variant of primitive DICTUDELGET returning a Cell instead of a Slice
+// (uint slice nbits - (slice cell -1) | (slice 0))
+ def int_tvm_dictudelgetref :
+    GCCBuiltin<"__builtin_tvm_dictudelgetref">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_TVMCell_ty, llvm_i257_ty],
+              [llvm_i257_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// ******************************************* 
+//
+// A.10.7. “Maybe reference” dictionary operations
+//
+// *******************************************/
+
+// DICTGETOPTREF (k D n – c?), a variant of DICTGETREF that returns Null	
+//   instead of the value c? if the key k is absent from dictionary D
+  def int_tvm_dictgetoptref :
+    GCCBuiltin<"__builtin_tvm_dictgetoptref">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */],
+              [llvm_TVMSlice_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// DICTIGETOPTREF (i D n – c?), similar to DICTGETOPTREF, but also returns Null
+  def int_tvm_dictigetoptref :
+    GCCBuiltin<"__builtin_tvm_dictigetoptref">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */],
+              [llvm_i257_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// DICTUGETOPTREF (i D n – c?), similar to DICTGETOPTREF, but with the key given by unsigned n-bit Integer
+  def int_tvm_dictugetoptref :
+    GCCBuiltin<"__builtin_tvm_dictugetoptref">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */],
+              [llvm_i257_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// DICTSETGETOPTREF	(c? k D n – D0 ~?), a variant of both DICTGETOPTREF and DICTSETGETREF that sets the value corresponding to key k 
+//   in dictionary D to c? (if c? Is Null, then the key is deleted instead), and returns the old value ~? (if the key k was absent before, returns Null instead)
+  def int_tvm_dictsetgetoptref :
+    GCCBuiltin<"__builtin_tvm_dictsetgetoptref">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_TVMCell_ty],
+              [llvm_TVMCell_ty, llvm_TVMSlice_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// DICTISETGETOPTREF (c? i D n – D0 ~?), similar to primitive DICTSETGETOPTREF, but using signed n-bit Integer i as a key. 
+//   If i does not fit into n bits, throws a range checking exception
+  def int_tvm_dictisetgetoptref :
+    GCCBuiltin<"__builtin_tvm_dictisetgetoptref">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_TVMCell_ty],
+              [llvm_TVMCell_ty, llvm_i257_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+
+// DICTUSETGETOPTREF (c? i D n – D0 ~?), similar to primitive DICTSETGETOPTREF, but using unsigned n-bit Integer i as a key
+  def int_tvm_dictusetgetoptref :
+    GCCBuiltin<"__builtin_tvm_dictusetgetoptref">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_TVMCell_ty],
+              [llvm_TVMCell_ty, llvm_i257_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// ******************************************* 
+//
+// A.10.8. Prefix code dictionary operations
+//
+// *******************************************/
+
+// PFXDICTSET (x k D n – D0 -1 or D 0)
+// (value key slice nbits - slice -1|0)
+ def int_tvm_pfxdictset :
+    GCCBuiltin<"__builtin_tvm_pfxdictset">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_i257_ty],
+              [llvm_TVMSlice_ty, llvm_TVMSlice_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// PFXDICTREPLACE (x k D n – D0 -1 or D 0)
+// (value key slice nbits - slice -1|0)
+ def int_tvm_pfxdictreplace :
+    GCCBuiltin<"__builtin_tvm_pfxdictreplace">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_i257_ty],
+              [llvm_TVMSlice_ty, llvm_TVMSlice_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// PFXDICTADD (x k D n – D0 -1 or D 0)
+// (value key slice nbits - slice -1|0)
+ def int_tvm_pfxdictadd :
+    GCCBuiltin<"__builtin_tvm_pfxdictadd">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_i257_ty],
+              [llvm_TVMSlice_ty, llvm_TVMSlice_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// PFXDICTDEL (k D n – D0 -1 or D 0)
+// (key slice nbits - slice -1|0)
+ def int_tvm_pfxdictdel :
+    GCCBuiltin<"__builtin_tvm_pfxdictdel">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_i257_ty],
+              [llvm_TVMSlice_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+
+// ******************************************* 
+//
+// A.10.9. Variants of GetNext and GetPrev operations
+//
+// *******************************************/
+
+// DICTGETNEXTEQ (k D n – x0 k0 -1 or 0), similar to DICTGETNEXT, but computes the minimal key k0 
+//  that is lexicographically greater than or equal to k
+// (key slice nbits - (value key -1) | (0))
+  def int_tvm_dictgetnexteq :
+    GCCBuiltin<"__builtin_tvm_dictgetnexteq">,
+    Intrinsic<[llvm_TVMSlice_ty, llvm_TVMSlice_ty, llvm_i257_ty],
+              [llvm_TVMSlice_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// DICTGETPREV (k D n – x0 k0 -1 or 0), similar to DICTGETNEXT, but computes the maximal key k0 
+//   lexicographically smaller than k
+// (key slice nbits - (value key -1) | (0))
+  def int_tvm_dictgetprev :
+    GCCBuiltin<"__builtin_tvm_dictgetprev">,
+    Intrinsic<[llvm_TVMSlice_ty, llvm_TVMSlice_ty, llvm_i257_ty],
+              [llvm_TVMSlice_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// DICTGETPREVEQ (k D n – x0 k0 -1 or 0), similar to DICTGETPREV, but computes the maximal key k0
+//  lexicographically smaller than or equal to k
+// (key slice nbits - (value key -1) | (0))
+  def int_tvm_dictgetpreveq :
+    GCCBuiltin<"__builtin_tvm_dictgetpreveq">,
+    Intrinsic<[llvm_TVMSlice_ty, llvm_TVMSlice_ty, llvm_i257_ty],
+              [llvm_TVMSlice_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// DICTIGETNEXT (i D n – x0 i0 -1 or 0), similar to DICTGETNEXT, but interprets all keys in dictionary D as big-endian signed n-bit integers, 
+//   and computes the minimal key i0 that is larger than Integer i (which does not necessarily fit into n bits)
+// (int slice nbits - (value key -1) | (0))
+  def int_tvm_dictigetnext :
+    GCCBuiltin<"__builtin_tvm_dictigetnext">,
+    Intrinsic<[llvm_TVMSlice_ty, llvm_TVMSlice_ty, llvm_i257_ty],
+              [llvm_i257_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// DICTIGETNEXTEQ (i D n – x0 i0 -1 or 0)
+// (int slice nbits - (value key -1) | (0))
+  def int_tvm_dictigetnexteq :
+    GCCBuiltin<"__builtin_tvm_dictigetnexteq">,
+    Intrinsic<[llvm_TVMSlice_ty, llvm_TVMSlice_ty, llvm_i257_ty],
+              [llvm_i257_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// DICTIGETPREV (i D n – x0 i0 -1 or 0)
+// (int slice nbits - (value key -1) | (0))
+  def int_tvm_dictigetprev :
+    GCCBuiltin<"__builtin_tvm_dictigetprev">,
+    Intrinsic<[llvm_TVMSlice_ty, llvm_TVMSlice_ty, llvm_i257_ty],
+              [llvm_i257_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// DICTIGETPREVEQ (i D n – x0 i0 -1 or 0)
+// (int slice nbits - (value key -1) | (0))
+  def int_tvm_dictigetpreveq :
+    GCCBuiltin<"__builtin_tvm_dictigetpreveq">,
+    Intrinsic<[llvm_TVMSlice_ty, llvm_TVMSlice_ty, llvm_i257_ty],
+              [llvm_i257_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// DICTUGETNEXTEQ (i D n – x0 i0 -1 or 0)
+// (uint slice nbits - (value key -1) | (0))
+  def int_tvm_dictugetnexteq :
+    GCCBuiltin<"__builtin_tvm_dictugetnexteq">,
+    Intrinsic<[llvm_TVMSlice_ty, llvm_TVMSlice_ty, llvm_i257_ty],
+              [llvm_i257_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// DICTUGETPREVEQ (i D n – x0 i0 -1 or 0)
+// (uint slice nbits - (value key -1) | (0))
+  def int_tvm_dictugetpreveq :
+    GCCBuiltin<"__builtin_tvm_dictugetpreveq">,
+    Intrinsic<[llvm_TVMSlice_ty, llvm_TVMSlice_ty, llvm_i257_ty],
+              [llvm_i257_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// ******************************************* 
+//
+// A.10.10. GetMin, GetMax, RemoveMin, RemoveMax operations
+//
+// *******************************************/
+
+// DICTMINREF (D n – c k -1 or 0), similar to DICTMIN, but returns the only reference in the value as a Cell c
+// (slice nbits - (cell key -1) | (0))
+  def int_tvm_dictminref :
+    GCCBuiltin<"__builtin_tvm_dictminref">,
+    Intrinsic<[llvm_TVMCell_ty, llvm_TVMSlice_ty, llvm_i257_ty],
+              [llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// DICTIMIN (D n – x i -1 or 0), somewhat similar to DICTMIN, but computes the minimal key I under the assumption that all keys are big-endian signed n-bit integers. 
+//   Notice that the key and value returned may differ from those computed by DICTMIN and DICTUMIN
+// (slice nbits - (value int -1) | (0))
+  def int_tvm_dictimin :
+    GCCBuiltin<"__builtin_tvm_dictimin">,
+    Intrinsic<[llvm_TVMSlice_ty, llvm_i257_ty, llvm_i257_ty],
+              [llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// DICTIMINREF (D n – c i -1 or 0)
+// (slice nbits - (cell int -1) | (0))
+  def int_tvm_dictiminref :
+    GCCBuiltin<"__builtin_tvm_dictiminref">,
+    Intrinsic<[llvm_TVMCell_ty, llvm_i257_ty, llvm_i257_ty],
+              [llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// DICTMAX (D n – x k -1 or 0), computes the maximal key k (represented by a Slice with n data bits) 
+//   in dictionary D, and returns k along with the associated value x
+// (slice nbits - (value key -1) | (0))
+  def int_tvm_dictmax :
+    GCCBuiltin<"__builtin_tvm_dictmax">,
+    Intrinsic<[llvm_TVMSlice_ty, llvm_TVMSlice_ty, llvm_i257_ty],
+              [llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// DICTMAXREF (D n – c k -1 or 0)
+// (slice nbits - (cell key -1) | (0))
+  def int_tvm_dictmaxref :
+    GCCBuiltin<"__builtin_tvm_dictmaxref">,
+    Intrinsic<[llvm_TVMCell_ty, llvm_TVMSlice_ty, llvm_i257_ty],
+              [llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// DICTIMAX (D n – x i -1 or 0)
+// (slice nbits - (value int -1) | (0))
+  def int_tvm_dictimax :
+    GCCBuiltin<"__builtin_tvm_dictimax">,
+    Intrinsic<[llvm_TVMSlice_ty, llvm_i257_ty, llvm_i257_ty],
+              [llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// DICTIMAXREF	(D n – c i -1 or 0)
+// (slice nbits - (cell int -1) | (0))
+  def int_tvm_dictimaxref :
+    GCCBuiltin<"__builtin_tvm_dictimaxref">,
+    Intrinsic<[llvm_TVMCell_ty , llvm_i257_ty, llvm_i257_ty],
+              [llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// DICTREMMIN (D n – D0 x k -1 or D 0), computes the minimal key k (represented by a Slice with n data bits) in dictionary D, 
+//   removes k from the dictionary, and returns k along with the associated value x and the modified dictionary D0
+// (slice nbits - (slice value key -1) | (0))
+  def int_tvm_dictremmin :
+    GCCBuiltin<"__builtin_tvm_dictremmin">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_TVMSlice_ty, llvm_TVMSlice_ty, llvm_i257_ty],
+              [llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+//  DICTREMMINREF (D n – D0 c k -1 or D 0), similar to DICTREMMIN,
+//  but returns the only reference in the value as a Cell c
+// (slice nbits - (slice cell key -1) | (0))
+  def int_tvm_dictremminref :
+    GCCBuiltin<"__builtin_tvm_dictremminref">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_TVMCell_ty, llvm_TVMSlice_ty, llvm_i257_ty],
+              [llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// DICTIREMMIN	(D n – D0 x i -1 or D 0), somewhat similar to DICTREMMIN, but computes the minimal key i under the assumption 
+//  that all keys are big-endian signed n-bit integers. Notice that the key and value returned may differ from those computed by DICTREMMIN and
+//  DICTUREMMIN
+// (slice nbits - (slice cell key -1) | (0))
+  def int_tvm_dictiremmin :
+    GCCBuiltin<"__builtin_tvm_dictiremmin">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_TVMSlice_ty, llvm_i257_ty, llvm_i257_ty],
+              [llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// DICTIREMMINREF (D n – D0 c i -1 or D 0)
+// (slice nbits - (slice cell int -1) | (0))
+  def int_tvm_dictiremminref :
+    GCCBuiltin<"__builtin_tvm_dictiremminref">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_TVMCell_ty, llvm_i257_ty, llvm_i257_ty],
+              [llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// DICTREMMAX (D n – D0 x k -1 or D 0), computes the maximal key k (represented by a Slice with n data bits) in dictionary D, 
+//   removes k from the dictionary, and returns k along with the associated value x and the modified dictionary D0
+// (slice nbits - (slice value key -1) | (0))
+ def int_tvm_dictremmax :
+    GCCBuiltin<"__builtin_tvm_dictremmax">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_TVMSlice_ty, llvm_TVMSlice_ty, llvm_i257_ty],
+              [llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// DICTREMMAXREF (D n – D0c k -1 or D 0)
+// (slice nbits - (slice cell key -1) | (0))
+ def int_tvm_dictremmaxref :
+    GCCBuiltin<"__builtin_tvm_dictremmaxref">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_TVMCell_ty, llvm_TVMSlice_ty, llvm_i257_ty],
+              [llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// DICTIREMMAX (D n – D0x i -1 or D 0)
+// (slice nbits - (slice value int -1) | (0))
+ def int_tvm_dictiremmax :
+    GCCBuiltin<"__builtin_tvm_dictiremmax">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_TVMSlice_ty, llvm_i257_ty, llvm_i257_ty],
+              [llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// DICTIREMMAXREF (D n – D0c i -1 or D 0)
+// (slice nbits - (slice cell int -1) | (0))
+ def int_tvm_dictiremmaxref :
+    GCCBuiltin<"__builtin_tvm_dictiremmaxref">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_TVMCell_ty, llvm_i257_ty, llvm_i257_ty],
+              [llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// ******************************************* 
+//
+// A.10.12. SubDictdictionary operations
+//
+// *******************************************/
+
+// SUBDICTGET (k l D n – D0), constructs a subdictionary consisting of all keys beginning with prefix k 
+//  (represented by a Slice, the first 0 <= l <= n <= 1023 data bits of which are used as a key) of length l in dictionary D of type HashmapE(n, X) 
+//  with n-bit keys. On success, returns the new subdictionary of the same type HashmapE(n, X) as a Slice D0
+// (prefix lbits dict nbits - dict)
+ def int_tvm_subdictget :
+    GCCBuiltin<"__builtin_tvm_subdictget">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */],
+              [llvm_TVMSlice_ty, llvm_i257_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// SUBDICTIGET (x l D n – D0), variant of SUBDICTGET with the prefix represented by a signed big-endian l-bit Integer x, where necessarily l <= 257
+// (prefix lbits dict nbits - dict')
+ def int_tvm_subdictiget :
+    GCCBuiltin<"__builtin_tvm_subdictiget">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */],
+              [llvm_i257_ty, llvm_i257_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// SUBDICTUGET (x l D n – D0), variant of SUBDICTGET with the prefix represented by an unsigned big-endian l-bit	Integer	x, where necessarily l <= 256
+// (prefix lbits dict nbits - dict')
+ def int_tvm_subdictuget :
+    GCCBuiltin<"__builtin_tvm_subdictuget">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */],
+              [llvm_i257_ty, llvm_i257_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// SUBDICTRPGET (k l D n – D0), similar to SUBDICTGET, but removes the common prefix	k from all keys of the new dictionary D0, 
+//   which becomes of type HashmapE(n - l, X)
+// (prefix lbits dict nbits - dict')
+ def int_tvm_subdictrpget :
+    GCCBuiltin<"__builtin_tvm_subdictrpget">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */],
+              [llvm_TVMSlice_ty, llvm_i257_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// SUBDICTIRPGET (x l D n – D0), variant of SUBDICTRPGET with the prefix represented by a signed big-endian l-bit Integer x, 
+//  where necessarily l <= 257
+// (prefix lbits dict nbits - dict')
+ def int_tvm_subdictirpget :
+    GCCBuiltin<"__builtin_tvm_subdictirpget">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */],
+              [llvm_i257_ty, llvm_i257_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// SUBDICTURPGET (x l D n – D0), variant of SUBDICTRPGET with the prefix represented by an unsigned big-endian l-bit Integer x, 
+//   where necessarily l <= 256
+// (prefix lbits dict nbits - dict')
+ def int_tvm_subdicturpget :
+    GCCBuiltin<"__builtin_tvm_subdicturpget">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */],
+              [llvm_i257_ty, llvm_i257_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+
+// ******************************************* 
+//
+// A.11.3. Pseudo-random number generator primitives
+//
+// *******************************************/
+
+  // RANDU256 ( –	x), generates a new pseudo-random unsigned 256-bit Integer x
+  def int_tvm_randu256 :
+      GCCBuiltin<"__builtin_tvm_randu256">,
+      Intrinsic<[llvm_i257_ty], [], [IntrNoMem]>;
+
+  // RAND (y – z), generates a new pseudo-random integer z in the range 0...y-1 (or y...-1, if y < 0)
+  def int_tvm_rand :
+      GCCBuiltin<"__builtin_tvm_rand">,
+      Intrinsic<[llvm_i257_ty], [llvm_i257_ty], [IntrNoMem]>;
+
+  // SETRAND  (x	– ), sets the random seed to unsigned 256-bit Integer x
+  def int_tvm_setrand :
+      GCCBuiltin<"__builtin_tvm_setrand">,
+      Intrinsic<[], [llvm_i257_ty]>;
+
+
+  // ADDRAND (x – ), mixes unsigned 256-bit Integer x into the random seed r
+  def int_tvm_addrand :
+      GCCBuiltin<"__builtin_tvm_addrand">,
+      Intrinsic<[], [llvm_i257_ty]>;
+
+// ******************************************* 
+//
+// A.11.4. Configuration primitives
+//
+// *******************************************/
+
+// RANDSEED ( –	x), returns the current random seed as an unsigned 256-bit Integer. Equivalent to GETPARAM 6
+  def int_tvm_randseed :
+      GCCBuiltin<"__builtin_tvm_randseed">,
+      Intrinsic<[llvm_i257_ty], [], [IntrNoMem]>;
+
+// BALANCE ( –	t), returns the remaining balance of the smart contract as a Tuple consisting of an Integer (the remaining Gram balance in nanograms) 
+//   and a Maybe Cell (a dictionary with 32-bit keys representing the balance of “extra currencies”). Equivalent to GETPARAM 7
+  def int_tvm_balance :
+      GCCBuiltin<"__builtin_tvm_balance">,
+      Intrinsic<[llvm_TVMTuple_ty], [], [IntrNoMem]>;
+
+
+// ******************************************* 
+//
+// A.11.6. Hashing and cryptography primitives
+//
+// *******************************************/
+
+// SHA256U (s – x), computes sha256 of the data bits of Slice s.
+//  If the bit length of s is not divisible by eight, throws a cell underflow exception. The hash value is returned as a 256-bit unsigned integer x
+  def int_tvm_sha256u :
+      GCCBuiltin<"__builtin_tvm_sha256u">,
+      Intrinsic<[llvm_i257_ty], [llvm_TVMSlice_ty], [IntrNoMem]>;
+
+// CHKSIGNS  (d s k - ?) checks whether	s is a valid Ed25519-signature of the data portion of Slice	d using public key k, similarly to CHKSIGNU
+  def int_tvm_chksigns :
+      GCCBuiltin<"__builtin_tvm_chksigns">,
+      Intrinsic<[llvm_i257_ty], [llvm_TVMSlice_ty, llvm_i257_ty, llvm_i257_ty], [IntrNoMem]>;
+
+// ******************************************* 
+//
+// A.11.7. Miscellaneous primitives
+//
+// *******************************************/
+
+// CDATASIZEQ (c n – x y z -1 or 0), recursively computes the count of distinct cells x, data bits y, 
+//   and cell references z in the dag rooted at Cell c
+  def int_tvm_cdatasizeq :
+      GCCBuiltin<"__builtin_tvm_cdatasizeq">,
+      Intrinsic<[llvm_i257_ty, llvm_i257_ty, llvm_i257_ty, llvm_i257_ty], [llvm_TVMCell_ty, llvm_i257_ty], [IntrNoMem]>;
+
+// ******************************************* 
+//
+// A.11.10. Outbound message and output action primitives
+//
+// *******************************************/
+
+// RAWRESERVEX  (x D y – ), similar to RAWRESERVE, but also accepts a dictionary D (represented by a Cell or Null ) with extra currencies
+  def int_tvm_rawreservex :
+      GCCBuiltin<"__builtin_tvm_rawreservex">,
+      Intrinsic<[], [llvm_i257_ty, llvm_TVMCell_ty, llvm_i257_ty]>;
+
+// SETLIBCODE (c x – ), creates an output action that would modify the collection of this smart contract libraries by adding or removing
+//   library with code given in	Cell c
+  def int_tvm_setlibcode :
+      GCCBuiltin<"__builtin_tvm_setlibcode">,
+      Intrinsic<[], [llvm_TVMCell_ty, llvm_i257_ty]>;
+
+
+// FB07	— CHANGELIB (h x – ), creates an output action similarly to SETLIBCODE, 
+//   but instead of the library code accepts its hash as an unsigned 256-bit integer
+  def int_tvm_changelib :
+      GCCBuiltin<"__builtin_tvm_changelib">,
+      Intrinsic<[], [llvm_i257_ty, llvm_i257_ty]>;
 }

@@ -9,6 +9,13 @@
 // A.10.2. Dictionary serialization and deserialization
 //
 // *******************************************/
+/*
+__tvm_slice lddict_test(__tvm_slice s)
+{
+  auto [c1, s1] = __builtin_tvm_lddict(s);
+  return s1;
+}
+*/
 
 // SKIPDICT or SKIPOPTREF (s – s0), equivalent to LDDICT; NIP
 __tvm_slice skipdict_test(__tvm_slice s)
@@ -142,7 +149,7 @@ int dictiadd_test(__tvm_slice x, int i, __tvm_cell d, int n)
 
 // DICTIADDREF (c i D n – D0 -1 or D 0)
 // (cell int slice nbits - (slice -1) | (slice 0))
-int dictiaddref_test((__tvm_cell c, int i, __tvm_cell d, int n)
+int dictiaddref_test(__tvm_cell c, int i, __tvm_cell d, int n)
 {
   auto [c1, result] = __builtin_tvm_dictiaddref(c, i, d, n);
   return result;
@@ -158,7 +165,7 @@ int dictuadd_test(__tvm_slice x, int i, __tvm_cell d, int n)
 
 // DICTUADDREF (c i D n – D0 -1 or D 0)
 // (cell uint slice nbits - (slice -1) | (slice 0))
-int dictuaddref_test((__tvm_cell c, int i, __tvm_cell d, int n)
+int dictuaddref_test(__tvm_cell c, int i, __tvm_cell d, int n)
 {
   auto [c1, result] = __builtin_tvm_dictuaddref(c, i, d, n);
   return result;
@@ -177,7 +184,7 @@ int dictaddget_test(__tvm_slice x, __tvm_slice k, __tvm_cell d, int n)
 // (cell key slice nbits - (slice' -1) | (slice cell 0))
 int dictaddgetref_test(__tvm_cell c, __tvm_slice k, __tvm_cell d, int n)
 {
-  auto [c1, s1, result] = __builtin_tvm_dictaddgetref(x, c, d, n);
+  auto [c1, s1, result] = __builtin_tvm_dictaddgetref(c, k, d, n);
   return result;
 }
 
@@ -213,6 +220,7 @@ int dictuaddgetref_test(__tvm_cell c, int i, __tvm_cell d, int n)
   return result;
 }
 
+
 // ******************************************* 
 //
 // A.10.5. Builder-accepting variants of Set dictionary operations.
@@ -242,7 +250,8 @@ __tvm_cell dictusetb_test(__tvm_builder b, int i, __tvm_cell d, int n)
 
 // DICTSETGETB (b k D n – D0 y -1 or D0 0)
 // (builder key slice nbits - (slice value -1) | (slice 0))
-__tvm_cell dictsetgetb_test(__tvm_builder b, __tvm_slice k, __tvm_cell d, int n)
+
+int dictsetgetb_test(__tvm_builder b, __tvm_slice k, __tvm_cell d, int n)
 {
   auto [c1, s1, result] = __builtin_tvm_dictsetgetb(b, k, d, n);
   return result;
@@ -250,7 +259,7 @@ __tvm_cell dictsetgetb_test(__tvm_builder b, __tvm_slice k, __tvm_cell d, int n)
 
 // DICTISETGETB (b i D n – D0 y -1 or D0 0)
 // (builder int slice nbits - (slice' y -1) | (slice' 0))
-__tvm_cell dictisetgetb_test(__tvm_builder b, int i, __tvm_cell d, int n)
+int dictisetgetb_test(__tvm_builder b, int i, __tvm_cell d, int n)
 {
   auto [c1, s1, result] = __builtin_tvm_dictisetgetb(b, i, d, n);
   return result;
@@ -258,7 +267,7 @@ __tvm_cell dictisetgetb_test(__tvm_builder b, int i, __tvm_cell d, int n)
 
 // DICTUSETGETB (b i D n – D0 y -1 or D0 0)
 // (builder uint slice nbits - (slice' y -1) | (slice' 0))
-__tvm_cell dictusetgetb_test(__tvm_builder b, int i, __tvm_cell d, int n)
+int dictusetgetb_test(__tvm_builder b, int i, __tvm_cell d, int n)
 {
   auto [c1, s1, result] = __builtin_tvm_dictusetgetb(b, i, d, n);
   return result;
@@ -266,7 +275,7 @@ __tvm_cell dictusetgetb_test(__tvm_builder b, int i, __tvm_cell d, int n)
 
 // DICTREPLACEB (b k D n – D0 -1 or D 0)
 // (builder int slice nbits - (slice -1) | (slice 0))
-__tvm_cell dictreplaceb_test(__tvm_builder b, __tvm_slice k, __tvm_cell d, int n)
+int dictreplaceb_test(__tvm_builder b, __tvm_slice k, __tvm_cell d, int n)
 {
   auto [c1, result] = __builtin_tvm_dictreplaceb(b, k, d, n);
   return result;
@@ -274,7 +283,7 @@ __tvm_cell dictreplaceb_test(__tvm_builder b, __tvm_slice k, __tvm_cell d, int n
 
 // DICTIREPLACEB (b i D n – D0 -1 or D 0)
 // (builder uint slice nbits - (slice -1) | (slice 0))
-__tvm_cell dictireplaceb_test(__tvm_builder b, int  i, __tvm_cell d, int n)
+int dictireplaceb_test(__tvm_builder b, int  i, __tvm_cell d, int n)
 {
   auto [c1, result] = __builtin_tvm_dictireplaceb(b, i, d, n);
   return result;
@@ -282,7 +291,7 @@ __tvm_cell dictireplaceb_test(__tvm_builder b, int  i, __tvm_cell d, int n)
 
 // DICTUREPLACEB (b i D n – D0 -1 or D 0)
 // (builder uint slice nbits - (slice -1) | (slice 0))
-__tvm_cell dictureplaceb_test(__tvm_builder b, int  i, __tvm_cell d, int n)
+int dictureplaceb_test(__tvm_builder b, int  i, __tvm_cell d, int n)
 {
   auto [c1, result] = __builtin_tvm_dictureplaceb(b, i, d, n);
   return result;
@@ -290,7 +299,7 @@ __tvm_cell dictureplaceb_test(__tvm_builder b, int  i, __tvm_cell d, int n)
 
 // DICTREPLACEGETB (b k D n – D0 y -1 or D 0)
 // (builder key slice nbits - (slice value -1) | (slice 0))
-__tvm_cell dictreplacegetb_test(__tvm_builder b, __tvm_slice k, __tvm_cell d, int n)
+int dictreplacegetb_test(__tvm_builder b, __tvm_slice k, __tvm_cell d, int n)
 {
 	auto[c1, s1, result] = __builtin_tvm_dictreplacegetb(b, k, d, n);
 	return result;
@@ -298,7 +307,7 @@ __tvm_cell dictreplacegetb_test(__tvm_builder b, __tvm_slice k, __tvm_cell d, in
 
 // DICTIREPLACEGETB (b i D n – D0 y -1 or D 0)
 // (builder int slice nbits - (slice value -1) | (slice 0))
-__tvm_cell dictireplacegetb_test(__tvm_builder b, int i, __tvm_cell d, int n)
+int dictireplacegetb_test(__tvm_builder b, int i, __tvm_cell d, int n)
 {
   auto [c1, s1, result] = __builtin_tvm_dictireplacegetb(b, i, d, n);
   return result;
@@ -306,15 +315,15 @@ __tvm_cell dictireplacegetb_test(__tvm_builder b, int i, __tvm_cell d, int n)
 
 // DICTUREPLACEGETB	(b i D n – D0 y -1 or D 0)
 // (builder uint slice nbits - (slice value -1) | (slice 0))
-__tvm_cell dictureplacegetb_test(__tvm_builder b, int i, __tvm_cell d, int n)
+int dictureplacegetb_test(__tvm_builder b, int i, __tvm_cell d, int n)
 {
-	auto[c1, s1, result] = __builtin_tvm_dictureplacegetb(b, i, d, n);
-	return result;
+  auto [c1, s1, result] = __builtin_tvm_dictureplacegetb(b, i, d, n);
+  return result;
 }
 
 // DICTADDB (b k D n – D0 -1 or D 0)
 // (builder key slice nbits - (slice -1) | (slice 0))
-__tvm_cell dictaddb_test(__tvm_builder b, __tvm_slice k, __tvm_cell d, int n)
+int dictaddb_test(__tvm_builder b, __tvm_slice k, __tvm_cell d, int n)
 {
   auto [c1, result] = __builtin_tvm_dictaddb(b, k, d, n);
   return result;
@@ -322,7 +331,7 @@ __tvm_cell dictaddb_test(__tvm_builder b, __tvm_slice k, __tvm_cell d, int n)
 
 // DICTIADDB (b i D n – D0 -1 or D 0)
 // (builder int slice nbits - (slice -1) | (slice 0))
-__tvm_cell dictiaddb_test(__tvm_builder b, int i, __tvm_cell d, int n)
+int dictiaddb_test(__tvm_builder b, int i, __tvm_cell d, int n)
 {
   auto [c1, result] = __builtin_tvm_dictiaddb(b, i, d, n);
   return result;
@@ -330,7 +339,7 @@ __tvm_cell dictiaddb_test(__tvm_builder b, int i, __tvm_cell d, int n)
 
 // DICTUADDB  (b i D n – D0 -1 or D 0)
 // (builder uint slice nbits - (slice -1) | (slice 0))
-__tvm_cell dictuaddb_test(__tvm_builder b, int i, __tvm_cell d, int n)
+int dictuaddb_test(__tvm_builder b, int i, __tvm_cell d, int n)
 {
   auto [c1, result] = __builtin_tvm_dictuaddb(b, i, d, n);
   return result;
@@ -338,27 +347,28 @@ __tvm_cell dictuaddb_test(__tvm_builder b, int i, __tvm_cell d, int n)
 
 // DICTADDGETB (b k D n – D0 -1 or D y 0)
 // (builder key slice nbits - (slice -1) | (slice value 0))
-__tvm_cell dictaddgetb_test(__tvm_builder b, __tvm_slice k, __tvm_cell d, int n)
+int dictaddgetb_test(__tvm_builder b, __tvm_slice k, __tvm_cell d, int n)
 {
-  auto [c1, result] = __builtin_tvm_dictaddgetb(b, k, d, n);
+  auto [c1, s1, result] = __builtin_tvm_dictaddgetb(b, k, d, n);
   return result;
 }
 
 // DICTIADDGETB (b i D n – D0 -1 or D y 0)
 // (builder int slice nbits - (slice' -1) | (slice y 0))
-__tvm_cell dictiaddgetb_test(__tvm_builder b, int i, __tvm_cell d, int n)
+int dictiaddgetb_test(__tvm_builder b, int i, __tvm_cell d, int n)
 {
-  auto [c1, result] = __builtin_tvm_dictiaddgetb(b, i, d, n);
+  auto [c1, s1, result] = __builtin_tvm_dictiaddgetb(b, i, d, n);
   return result;
 }
 
 // DICTUADDGETB	(b i D n – D0 -1 or D y 0)
 // (builder uint slice nbits - (slice' -1) | (slice y 0))
-__tvm_cell dictuaddgetb_test(__tvm_builder b, int i, __tvm_cell d, int n)
+int dictuaddgetb_test(__tvm_builder b, int i, __tvm_cell d, int n)
 {
-  auto [c1, result] = __builtin_tvm_dictuaddgetb(b, i, d, n);
+  auto [c1, s1, result] = __builtin_tvm_dictuaddgetb(b, i, d, n);
   return result;
 }
+
 
 // ******************************************* 
 //
@@ -369,7 +379,7 @@ __tvm_cell dictuaddgetb_test(__tvm_builder b, int i, __tvm_cell d, int n)
 // DICTIDEL (i D n – D0 ?), a version of DICTDEL with the key represented by a signed n-bit Integer i. If i does not fit into n bits,
 //   simply returns D 0 (“key not found, dictionary unmodified”)
 // (int slice nbits - (slice' -1) | (slice 0))
-__tvm_cell dictidel_test(int i, __tvm_cell d, int n)
+int dictidel_test(int i, __tvm_cell d, int n)
 {
   auto [c1, result] = __builtin_tvm_dictidel(i, d, n);
   return result;
@@ -377,7 +387,7 @@ __tvm_cell dictidel_test(int i, __tvm_cell d, int n)
 
 // DICTIDELGET (i D n – D0 x -1 or D 0), a variant of primitive DICTDELGET with signed n-bit integer i as a key
 // (int slice nbits - (slice value -1) | (slice 0))
-__tvm_cell dictidelget_test(int i, __tvm_cell d, int n)
+int dictidelget_test(int i, __tvm_cell d, int n)
 {
   auto [c1, s1, result] = __builtin_tvm_dictidelget(i, d, n);
   return result;
@@ -385,7 +395,7 @@ __tvm_cell dictidelget_test(int i, __tvm_cell d, int n)
 
 // DICTIDELGETREF (i D n – D0 c -1 or  D 0), a variant of primitive DICTIDELGET returning a Cell instead of a Slice
 // (int slice nbits - (slice cell -1) | (slice 0))
-__tvm_cell dictidelgetref_test(int i, __tvm_cell d, int n)
+int dictidelgetref_test(int i, __tvm_cell d, int n)
 {
   auto [c1, c2, result] = __builtin_tvm_dictidelgetref(i, d, n);
   return result;
@@ -393,7 +403,7 @@ __tvm_cell dictidelgetref_test(int i, __tvm_cell d, int n)
 
 // DICTUDELGET (i D n – D0x -1 or D 0), a variant of primitive DICTDELGET with unsigned n-bit integer i as a key
 // (uint slice nbits - (slice value -1) | (slice 0))
-__tvm_cell dictudelget_test(int i, __tvm_cell d, int n)
+int dictudelget_test(int i, __tvm_cell d, int n)
 {
   auto [c1, s1, result] = __builtin_tvm_dictudelget(i, d, n);
   return result;
@@ -401,11 +411,12 @@ __tvm_cell dictudelget_test(int i, __tvm_cell d, int n)
 
 // DICTUDELGETREF (i D n – D0 c -1 or D 0), a variant of primitive DICTUDELGET returning a Cell instead of a Slice
 // (uint slice nbits - (slice cell -1) | (slice 0))
-__tvm_cell dictudelgetref_test(int i, __tvm_cell d, int n)
+int dictudelgetref_test(int i, __tvm_cell d, int n)
 {
   auto [c1, c2, result] = __builtin_tvm_dictudelgetref(i, d, n);
   return result;
 }
+
 
 // ******************************************* 
 //
@@ -429,7 +440,7 @@ __tvm_cell dictigetoptref_test(int i, __tvm_cell d, int n)
 // DICTUGETOPTREF (i D n – c?), similar to DICTGETOPTREF, but with the key given by unsigned n-bit Integer
 __tvm_cell _dictugetoptref_test(int i, __tvm_cell d, int n)
 {
-  return __builtin_tvm__dictugetoptref(i, d, n);
+  return __builtin_tvm_dictugetoptref(i, d, n);
 }
 
 // DICTSETGETOPTREF	(c? k D n – D0 ~?), a variant of both DICTGETOPTREF and DICTSETGETREF that sets the value corresponding to key k 
@@ -444,14 +455,14 @@ __tvm_cell dictsetgetoptref_test(__tvm_cell c, __tvm_slice k, __tvm_cell d, int 
 //   If i does not fit into n bits, throws a range checking exception
 __tvm_cell dictisetgetoptref_test(__tvm_cell c, int i, __tvm_cell d, int n)
 {
-  auto [c1, c2] = __builtin_tvm_dictisetgetoptref(c, k, d, n);
+  auto [c1, c2] = __builtin_tvm_dictisetgetoptref(c, i, d, n);
   return c2;
 }
 
 // DICTUSETGETOPTREF (c? i D n – D0 ~?), similar to primitive DICTSETGETOPTREF, but using unsigned n-bit Integer i as a key
 __tvm_cell dictusetgetoptref_test(__tvm_cell c, int i, __tvm_cell d, int n)
 {
-  auto [c1, c2] = __builtin_tvm_dictusetgetoptref(c, k, d, n);
+  auto [c1, c2] = __builtin_tvm_dictusetgetoptref(c, i, d, n);
   return c2;
 }
 
@@ -492,7 +503,6 @@ int pfxdictdel_test(__tvm_slice k, __tvm_cell d, int n)
   auto [c1, result] = __builtin_tvm_pfxdictdel(k, d, n);
   return result;
 }
-
 
 // ******************************************* 
 //
@@ -646,7 +656,7 @@ int dictimaxref_test(__tvm_cell d, int n)
 // (slice nbits - (slice value key -1) | (0))
 int dictremmin_test(__tvm_cell d, int n)
 {
-  auto [c1, s1, result] = __builtin_tvm_dictremmin(d, n);
+  auto [c1, s1, s2, result] = __builtin_tvm_dictremmin(d, n);
   return result;
 }
 
@@ -655,7 +665,7 @@ int dictremmin_test(__tvm_cell d, int n)
 // (slice nbits - (slice cell key -1) | (0))
 int dictremminref_test(__tvm_cell d, int n)
 {
-  auto [c1, c2, result] = __builtin_tvm_dictremminref(d, n);
+  auto [c1, c2, s1, result] = __builtin_tvm_dictremminref(d, n);
   return result;
 }
 
@@ -682,7 +692,7 @@ int dictiremminref_test(__tvm_cell d, int n)
 // (slice nbits - (slice value key -1) | (0))
 int dictremmax_test(__tvm_cell d, int n)
 {
-  auto [c1, s1, result] = __builtin_tvm_dictremmax(d, n);
+  auto [c1, s1, s2, result] = __builtin_tvm_dictremmax(d, n);
   return result;
 }
 

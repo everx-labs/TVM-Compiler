@@ -4,20 +4,18 @@ __tvm_builder endcst_test(__tvm_builder b1, __tvm_builder b2)
   return __builtin_tvm_endcst(b1, b2);
 }
 
-/*_
 // STIR cc + 1 (b x – b0), equivalent to SWAP; STI cc + 1
-_tvm_builder stir_test(__tvm_builder b1, int value, int precision)
+__tvm_builder stir_test(__tvm_builder b1, int value)
 {
-  return __builtin_tvm_stir(b1, value, precision);
+  return __builtin_tvm_stir(b1, value, 7);
 }
 
 // STUR cc + 1 (b x – b0), equivalent to SWAP; STU cc + 1
-_tvm_builder stur_test(__tvm_builder b1, int value, int precision)
+__tvm_builder stur_test(__tvm_builder b1, int value)
 {
-  return __builtin_tvm_stur(b1, value, precision);
+  return __builtin_tvm_stur(b1, value, 8);
 }
 
-*/
 
 // STBREF (b0 b – b00), equivalent to SWAP; STBREFREV
 __tvm_builder stbref_test(__tvm_builder b1, __tvm_builder b2)
@@ -180,13 +178,10 @@ int bchkrefsq_test(__tvm_builder b1, int y)
 }
 
 // BCHKBITREFSQ (b x y – ?), checks whether x bits and y references can be stored into b, 0 <= x <= 1023, 0 <= y <= 7
-/*
 int bchkbitrefsq_test(__tvm_builder b1, int x, int y)
 {
   return __builtin_tvm_bchkbitrefsq(b1, x, y);
 }
-*/
-
 
 // STZEROES (b n – b0), stores n binary zeroes into Builder b
 __tvm_builder stzeroes_test(__tvm_builder b1, int n)
@@ -270,6 +265,20 @@ __tvm_slice pldsliceq_test(__tvm_slice s1)
   return s2;
 }
 
+// LDSLICEXQ (s l – s00 s0 -1 or s 0), a quiet version of LDSLICEX
+__tvm_slice ldslicexq_test(__tvm_slice s1, int l)
+{
+  auto [s2, s3, result] = __builtin_tvm_ldslicexq(s1, l);
+  return s3;
+}
+
+// PLDSLICEXQ (s l – s0 -1 or 0), a quiet version of LDSLICEXQ
+__tvm_slice pldslice_test(__tvm_slice s1, int l)
+{
+  auto [s2, result] = __builtin_tvm_pldslicexq(s1, l);
+  return s2;
+}
+
 // SDCUTFIRST (s l – s0), returns the first 0 <= l <= 1023 bits of s. It is equivalent to PLDSLICEX
 __tvm_slice sdcutfirst_test(__tvm_slice s1)
 {
@@ -336,6 +345,7 @@ __tvm_cell xloadq_test(__tvm_cell c1)
   auto [c2, result]	= __builtin_tvm_xloadq(c1);
   return c2;
 }
+
 
 // SCHKBITS (s l – ), checks whether there are at least l data bits in Slice s. If this is not the case, 
 //  throws a cell deserialisation (i.e., cell underflow) exception
@@ -534,3 +544,4 @@ int cdepth_test(__tvm_cell c1)
 {
   return __builtin_tvm_cdepth(c1);
 }
+

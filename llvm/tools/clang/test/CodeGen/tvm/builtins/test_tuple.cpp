@@ -95,7 +95,7 @@ __tvm_tuple setthird_test(__tvm_tuple t, int x)
 // TODO
 
 // INDEXVARQ (t k – x), similar to INDEXQ n, but with 0 <= k <= 254 taken from the stack
-int setthird_test(__tvm_tuple t, int k)
+int indexvarq_test(__tvm_tuple t, int k)
 {
   return __builtin_tvm_indexvarq(t, k);
 }

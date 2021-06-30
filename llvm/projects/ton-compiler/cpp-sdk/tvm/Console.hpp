@@ -2,7 +2,7 @@
 
 #include <tvm/contract_handle.hpp>
 
-namespace tvm { namespace schema {
+namespace tvm { inline namespace schema {
 
 __interface IConsole {
   [[internal, answer_id]]

@@ -3,7 +3,7 @@
 #include <experimental/coroutine>
 #include <tvm/schema/message.hpp>
 
-namespace tvm { namespace schema {
+namespace tvm { inline namespace schema {
 
 struct promise_type_void_impl {
   using coro_handle = std::experimental::coroutine_handle<promise_type_void_impl>;

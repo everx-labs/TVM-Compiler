@@ -3,7 +3,7 @@
 #include <tvm/to_std_tuple.hpp>
 #include <tvm/schema/basics.hpp>
 
-namespace tvm { namespace schema {
+namespace tvm { inline namespace schema {
 
 template<class _Tp>
 struct make_builder_impl {

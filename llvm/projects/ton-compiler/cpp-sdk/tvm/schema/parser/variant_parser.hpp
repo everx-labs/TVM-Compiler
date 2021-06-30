@@ -5,7 +5,7 @@
 
 // Parsing of variant
 
-namespace tvm { namespace schema {
+namespace tvm { inline namespace schema {
 
 template<class _ValueT, class _Ctx, class _Tp, class... _RestTypes>
 struct variant_parser {

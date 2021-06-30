@@ -3,7 +3,7 @@
 #include <tvm/schema/basics.hpp>
 #include <tvm/schema/message.hpp>
 
-namespace tvm { namespace schema {
+namespace tvm { inline namespace schema {
 
 template<class _Tp>
 struct estimate_element;

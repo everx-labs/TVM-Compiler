@@ -2,7 +2,7 @@
 
 #include <tvm/schema/json-abi-gen.hpp>
 
-namespace tvm { namespace schema {
+namespace tvm { inline namespace schema {
 
 using namespace hana::literals;
 // Printing of format elements, splitted into cell-fit sub-tuples

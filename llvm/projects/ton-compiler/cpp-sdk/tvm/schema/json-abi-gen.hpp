@@ -8,6 +8,7 @@
 #include <tvm/sequence.hpp>
 #include <tvm/dict_array.hpp>
 #include <tvm/dict_map.hpp>
+#include <tvm/small_dict_map.hpp>
 #include <boost/hana/is_empty.hpp>
 #include <boost/hana/equal.hpp>
 #include <boost/hana/not_equal.hpp>
@@ -30,7 +31,7 @@
 }
 */
 
-namespace tvm { namespace schema { namespace json_abi_gen {
+namespace tvm { inline namespace schema { namespace json_abi_gen {
 
 using namespace hana::literals;
 
@@ -76,6 +77,7 @@ template<> struct is_tuple_type<MsgAddressInt> : std::false_type {};
 template<> struct is_tuple_type<MsgAddressExt> : std::false_type {};
 template<class Element> struct is_tuple_type<dict_array<Element, 32>> : std::false_type {};
 template<class Key, class Value> struct is_tuple_type<dict_map<Key, Value>> : std::false_type {};
+template<class Key, class Value> struct is_tuple_type<small_dict_map<Key, Value>> : std::false_type {};
 template<> struct is_tuple_type<sequence<uint_t<8>>> : std::false_type {};
 template<> struct is_tuple_type<cell> : std::false_type {};
 template<class T> struct is_tuple_type<lazy<T>> : std::false_type {};
@@ -136,6 +138,12 @@ struct make_simple_type_impl<dict_array<Element, 32>> {
 
 template<class Key, class Value>
 struct make_simple_type_impl<dict_map<Key, Value>> {
+  static constexpr auto key_value = make_simple_type_impl<Key>::value;
+  static constexpr auto elem_value = make_simple_type_impl<Value>::value;
+  static constexpr auto value = "map("_s + key_value + ", "_s + elem_value + ")"_s;
+};
+template<class Key, class Value>
+struct make_simple_type_impl<small_dict_map<Key, Value>> {
   static constexpr auto key_value = make_simple_type_impl<Key>::value;
   static constexpr auto elem_value = make_simple_type_impl<Value>::value;
   static constexpr auto value = "map("_s + key_value + ", "_s + elem_value + ")"_s;
@@ -285,6 +293,10 @@ template<unsigned Offset, class ReturnName, class Key, class Value>
 struct make_struct_json<dict_map<Key, Value>, Offset, ReturnName> {
   static constexpr auto value = make_field_impl<dict_map<Key, Value>, 1, Offset>(make_return_name<ReturnName>());
 };
+template<unsigned Offset, class ReturnName, class Key, class Value>
+struct make_struct_json<small_dict_map<Key, Value>, Offset, ReturnName> {
+  static constexpr auto value = make_field_impl<small_dict_map<Key, Value>, 1, Offset>(make_return_name<ReturnName>());
+};
 template<unsigned Offset, class ReturnName>
 struct make_struct_json< sequence<uint_t<8>>, Offset, ReturnName > {
   static constexpr auto value = make_field_impl<sequence<uint_t<8>>, 1, Offset>(make_return_name<ReturnName>());
@@ -413,6 +425,12 @@ struct make_type_signature_impl<dict_array<Element, 32>> {
 
 template<class Key, class Value>
 struct make_type_signature_impl<dict_map<Key, Value>> {
+  static constexpr auto value =
+    "map("_s + make_type_signature<Key>() + ","_s + make_type_signature<Value>() + ")"_s;
+};
+
+template<class Key, class Value>
+struct make_type_signature_impl<small_dict_map<Key, Value>> {
   static constexpr auto value =
     "map("_s + make_type_signature<Key>() + ","_s + make_type_signature<Value>() + ")"_s;
 };

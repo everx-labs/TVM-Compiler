@@ -233,10 +233,9 @@ tvm_sender_pubkey:
     ; c7 initialization state: [* _ * _ . _ _]
     ;
     PUSH c7 FIRST ; (should be GETGLOB 0, but does not work)
-    EXPLODE 10  ;unpack tuple
+    UNPACKFIRST 10  ;unpack tuple
 
-    POP s1      ;drop global config
-    DROP        ;drop number of items
+    DROP        ;drop global config
 
     REVERSE 9, 0
     NEWC

@@ -749,59 +749,59 @@ BUILTIN(__builtin_tvm_hiddenstack, "WiWi", "nc")
 //
 // *******************************************/
 
-// NIL ( – t), pushes the only Tuple t = () of length zero
+// NIL ( - t), pushes the only Tuple t = () of length zero
 BUILTIN(__builtin_tvm_nil, "Tt", "nc")
 
-// SINGLE (x – t), creates a singleton t := (x), i.e., a Tuple of length one
+// SINGLE (x - t), creates a singleton t := (x), i.e., a Tuple of length one
 BUILTIN(__builtin_tvm_single, "TtWi", "nc")
 
-// PAIR or CONS (x y – t), creates pair t := (x, y)
+// PAIR or CONS (x y - t), creates pair t := (x, y)
 BUILTIN(__builtin_tvm_pair, "TtWiWi", "nc")
 
-// TRIPLE (x y z – t), creates triple t := (x, y, z)
+// TRIPLE (x y z - t), creates triple t := (x, y, z)
 BUILTIN(__builtin_tvm_triple, "TtWiWiWi", "nc")
 
-//  FIRST or CAR (t – x), returns the fist element of a Tuple
+//  FIRST or CAR (t - x), returns the fist element of a Tuple
 BUILTIN(__builtin_tvm_first, "WiTt", "nc")
 
-// SECOND or CDR (t – y), returns the second element of a Tuple
+// SECOND or CDR (t - y), returns the second element of a Tuple
 BUILTIN(__builtin_tvm_second, "WiTt", "nc")
 
-// THIRD (t – z), returns the third element of a Tuple
+// THIRD (t - z), returns the third element of a Tuple
 BUILTIN(__builtin_tvm_third, "WiTt", "nc")
 
-// UNSINGLE (t – x), unpacks a singleton t = (x)
+// UNSINGLE (t - x), unpacks a singleton t = (x)
 BUILTIN(__builtin_tvm_unsingle, "WiTt", "nc")
 
-// UNPAIR or UNCONS (t – x y), unpacks a pair t = (x, y)
+// UNPAIR or UNCONS (t - x y), unpacks a pair t = (x, y)
 BUILTIN(__builtin_tvm_unpair, "{WiWi}Tt", "nc")
 
-// UNTRIPLE (t – x y z), unpacks a triple t = (x, y, z)
+// UNTRIPLE (t - x y z), unpacks a triple t = (x, y, z)
 BUILTIN(__builtin_tvm_untriple, "{WiWiWi}Tt", "nc")
 
-// EXPLODE	n (t – x1. . . xmm), unpacks a Tuple t = (x1, . . . , xm) and returns its length m, 
+// EXPLODE	n (t - x1. . . xmm), unpacks a Tuple t = (x1, . . . , xm) and returns its length m, 
 //  but only if m <= n <= 15. Otherwise throws a type check exception
 // TODO
 
-// SETFIRST (t x – t0), sets the first component of Tuple t to x and returns the resulting Tuple t0
+// SETFIRST (t x - t0), sets the first component of Tuple t to x and returns the resulting Tuple t0
 BUILTIN(__builtin_tvm_setfirst, "TtTtWi", "nc")
 
-// SETSECOND (t x – t0), sets the second component of Tuple t to x and returns the resulting Tuple t0
+// SETSECOND (t x - t0), sets the second component of Tuple t to x and returns the resulting Tuple t0
 BUILTIN(__builtin_tvm_setsecond, "TtTtWi", "nc")
 
-// SETTHIRD (t x – t0), sets the third component of Tuple t to x and returns the resulting Tuple t0
+// SETTHIRD (t x - t0), sets the third component of Tuple t to x and returns the resulting Tuple t0
 BUILTIN(__builtin_tvm_setthird, "TtTtWi", "nc")
 
-// UNPACKFIRSTVAR (t n – x1. . . xn), similar to UNPACKFIRST n, but with 0 <= n <= 255 taken from the stack
+// UNPACKFIRSTVAR (t n - x1. . . xn), similar to UNPACKFIRST n, but with 0 <= n <= 255 taken from the stack
 // TODO
 
-// EXPLODEVAR (t n – x1. . . xmm), similar to EXPLODE n, but with 0 <= n <= 255 taken from the stack
+// EXPLODEVAR (t n - x1. . . xmm), similar to EXPLODE n, but with 0 <= n <= 255 taken from the stack
 // TODO
 
-// INDEXVARQ (t k – x), similar to INDEXQ n, but with 0 <= k <= 254 taken from the stack
+// INDEXVARQ (t k - x), similar to INDEXQ n, but with 0 <= k <= 254 taken from the stack
 BUILTIN(__builtin_tvm_indexvarq, "WiTtWi", "nc")
 
-// SETINDEXVARQ (t x k – t0), similar to SETINDEXQ	k, but with 0 <= k <= 254 taken from the stack
+// SETINDEXVARQ (t x k - t0), similar to SETINDEXQ	k, but with 0 <= k <= 254 taken from the stack
 BUILTIN(__builtin_tvm_setindexvarq, "TtTtWiWi", "nc")
 
 // ******************************************* 
@@ -810,28 +810,28 @@ BUILTIN(__builtin_tvm_setindexvarq, "TtTtWiWi", "nc")
 //
 // *******************************************/
 
-// DIVR (x y – q0:= bx/y + 1/2c)
+// DIVR (x y - q0:= bx/y + 1/2c)
 BUILTIN(__builtin_tvm_divr, "WiWiWi", "nc")
 
-// DIVC (x y – q00:= dx/ye)
+// DIVC (x y - q00:= dx/ye)
 BUILTIN(__builtin_tvm_divc, "WiWiWi", "nc")
 
 // DIVMOD (x y - q r), where q := bx/yc, r := x - yq
 BUILTIN(__builtin_tvm_divmod, "{WiWi}WiWi", "nc")
 
-// DIVMODR (x y – q0 r0), where q0:= bx/y + 1/2c, r0:= x - yq0
+// DIVMODR (x y - q0 r0), where q0:= bx/y + 1/2c, r0:= x - yq0
 BUILTIN(__builtin_tvm_divmodr, "{WiWi}WiWi", "nc")
 
-// DIVMODC	(x y – q00 r00), where q00:= dx/ye, r00:= x - yq00
+// DIVMODC	(x y - q00 r00), where q00:= dx/ye, r00:= x - yq00
 BUILTIN(__builtin_tvm_divmodc, "{WiWi}WiWi", "nc")
 
-// MODPOW2 tt + 1: (x – x mod 2tt+1)
+// MODPOW2 tt + 1: (x - x mod 2tt+1)
 BUILTIN(__builtin_tvm_modpow2, "WiWiWi", "nc")
 
-// MULDIVMOD (x y z – q r), where q := bx · y/zc, r := x · y mod z (same as */MOD in Forth)
+// MULDIVMOD (x y z - q r), where q := bx · y/zc, r := x · y mod z (same as */MOD in Forth)
 BUILTIN(__builtin_tvm_muldivmod, "{WiWi}WiWiWi", "nc")
 
-// MULRSHIFT (x y z – bxy * 2-zc) for 0 <= z <= 256
+// MULRSHIFT (x y z - bxy * 2-zc) for 0 <= z <= 256
 BUILTIN(__builtin_tvm_mulrshift, "WiWiWiWi", "nc")
 
 // MULRSHIFT tt + 1 (x y - bxy · 2-tt-1c)
@@ -840,19 +840,19 @@ BUILTIN(__builtin_tvm_mulrshift_tt, "WiWiWiWi", "nc")
 // MULRSHIFTR	tt + 1 (x y - bxy · 2-tt-1+ 1/2c)
 BUILTIN(__builtin_tvm_mulrshiftr_tt, "WiWiWiWi", "nc")
 
-// MULRSHIFTR (x y z – bxy * 2-z+ 1/2c) for 0 <= z <= 256
+// MULRSHIFTR (x y z - bxy * 2-z+ 1/2c) for 0 <= z <= 256
 BUILTIN(__builtin_tvm_mulrshiftr, "WiWiWiWi", "nc")
 
 // LSHIFTDIV (x y z - b2zx/yc) for 0 <= z <= 256
 BUILTIN(__builtin_tvm_lshiftdiv, "WiWiWiWi", "nc")
 
-// LSHIFTDIVR (x y z – b2zx/y + 1/2c) for 0 <= z <= 256
+// LSHIFTDIVR (x y z - b2zx/y + 1/2c) for 0 <= z <= 256
 BUILTIN(__builtin_tvm_lshiftdivr, "WiWiWiWi", "nc")
 
-// LSHIFTDIV tt + 1 (x y – b2tt+1x/yc)
+// LSHIFTDIV tt + 1 (x y - b2tt+1x/yc)
 BUILTIN(__builtin_tvm_lshiftdiv_tt, "WiWiWiWi", "nc")
 
-// LSHIFTDIVR tt + 1 (x y – b2tt+1x/y+ 1/2c)
+// LSHIFTDIVR tt + 1 (x y - b2tt+1x/y+ 1/2c)
 BUILTIN(__builtin_tvm_lshiftdivr_tt, "WiWiWiWi", "nc")
 
 // ******************************************* 
@@ -861,10 +861,10 @@ BUILTIN(__builtin_tvm_lshiftdivr_tt, "WiWiWiWi", "nc")
 //
 // *******************************************/ 
 
-// POW2 (y – 2**y), 0 <= y <= 1023, equivalent to ONE; SWAP; LSHIFT
+// POW2 (y - 2**y), 0 <= y <= 1023, equivalent to ONE; SWAP; LSHIFT
 BUILTIN(__builtin_tvm_pow2, "WiWi", "nc")
 
-// MINMAX or INTSORT2 (x y – x y or y x), sorts two integer
+// MINMAX or INTSORT2 (x y - x y or y x), sorts two integer
 BUILTIN(__builtin_tvm_minmax, "{WiWi}WiWi", "nc")
 
 // ******************************************* 
@@ -873,17 +873,17 @@ BUILTIN(__builtin_tvm_minmax, "{WiWi}WiWi", "nc")
 //
 // *******************************************/ 
 
-// QADD (x y – x + y), always works if x and y are	Integer s, but returns a NaN if the addition cannot be performed
+// QADD (x y - x + y), always works if x and y are	Integer s, but returns a NaN if the addition cannot be performed
 BUILTIN(__builtin_tvm_qadd, "WiWiWi", "nc")
 
-// QDIV (x y – bx/yc), returns a NaN if y = 0, or if y = -1 and
+// QDIV (x y - bx/yc), returns a NaN if y = 0, or if y = -1 and
 //   x = -2256, or if either of x or y is a NaN
 BUILTIN(__builtin_tvm_qdiv, "WiWiWi", "nc")
 
-// QAND (x y – x&y), bitwise “and” (similar to AND), but returns a NaN if either x or y is a NaN
+// QAND (x y - x&y), bitwise “and” (similar to AND), but returns a NaN if either x or y is a NaN
 BUILTIN(__builtin_tvm_qand, "WiWiWi", "nc")
 
-// QOR (x y – x|y), bitwise “or”. If  x = -1 or y = -1, the result is always -1,
+// QOR (x y - x|y), bitwise “or”. If  x = -1 or y = -1, the result is always -1,
 //  even if the other argument is a NaN
 BUILTIN(__builtin_tvm_qor, "WiWiWi", "nc")
 
@@ -893,10 +893,10 @@ BUILTIN(__builtin_tvm_qor, "WiWiWi", "nc")
 //
 // *******************************************/ 
 
-// SGN (x – sgn(x)), computes the sign of an integer x:	-1 if x < 0, 0 if x = 0, 1 if x > 0
+// SGN (x - sgn(x)), computes the sign of an integer x:	-1 if x < 0, 0 if x = 0, 1 if x > 0
 BUILTIN(__builtin_tvm_sgn, "WiWi", "nc")
 
-// ISNAN (x – x = NaN), checks whether x is a NaN
+// ISNAN (x - x = NaN), checks whether x is a NaN
 BUILTIN(__builtin_tvm_isnan, "WiWi", "nc")
 
 // CHKNAN (x - x), throws an arithmetic overflow exception if x is a NaN
@@ -908,57 +908,57 @@ BUILTIN(__builtin_tvm_chknan, "WiWi", "c")
 //
 // *******************************************/ 
 
-// STBREFR or ENDCST (b b00 – b), equivalent to ENDC; SWAP; STREF        
+// STBREFR or ENDCST (b b00 - b), equivalent to ENDC; SWAP; STREF        
 BUILTIN(__builtin_tvm_endcst, "TbTbTb", "nc")
 
-// STIXR  (b x l – b0),  similar to STIX, but with arguments in a different order
+// STIXR  (b x l - b0),  similar to STIX, but with arguments in a different order
 // TODO
 //BUILTIN(__builtin_tvm_stixr, "TbTbWiWi", "nc")
 
-// STUXR  (b x l – b0),  similar to STUX, but with arguments in a different order
+// STUXR  (b x l - b0),  similar to STUX, but with arguments in a different order
 // TODO
 //BUILTIN(__builtin_tvm_stuxr, "TbTbWiWi", "nc")
 
-// STIR cc + 1 (b x – b0), equivalent to SWAP; STI cc + 1
+// STIR cc + 1 (b x - b0), equivalent to SWAP; STI cc + 1
 BUILTIN(__builtin_tvm_stir, "TbTbWiWi", "nc")
 
-// STUR cc + 1 (b x – b0), equivalent to SWAP; STU cc + 1
+// STUR cc + 1 (b x - b0), equivalent to SWAP; STU cc + 1
 BUILTIN(__builtin_tvm_stur, "TbTbWiWi", "nc")
 
-// STBREF (b0 b – b00), equivalent to SWAP; STBREFREV
+// STBREF (b0 b - b00), equivalent to SWAP; STBREFREV
 BUILTIN(__builtin_tvm_stbref, "TbTbTb", "nc")
         
-// STB (b0 b – b00), appends all data from Builder b0 to Builder b
+// STB (b0 b - b00), appends all data from Builder b0 to Builder b
 BUILTIN(__builtin_tvm_stb, "TbTbTb", "nc")
 
-// STREFR (b c – b0)
+// STREFR (b c - b0)
 BUILTIN(__builtin_tvm_strefr, "TbTbTc", "nc")
 
-// STSLICER (b s – b0)
+// STSLICER (b s - b0)
 BUILTIN(__builtin_tvm_stslicer, "TbTbTs", "nc")
 
-// STBR (b b0 – b00), concatenates two Builder s, equivalent to SWAP; STB
+// STBR (b b0 - b00), concatenates two Builder s, equivalent to SWAP; STB
 BUILTIN(__builtin_tvm_stbr, "TbTbTb", "nc")
 
-// STREFQ (c b – c b -1 or b0 0)
+// STREFQ (c b - c b -1 or b0 0)
 BUILTIN(__builtin_tvm_strefq, "{TcTbWi}TcTb", "nc")
 
-// STBREFQ (b0 b – b0 b -1 or b00 0)
+// STBREFQ (b0 b - b0 b -1 or b00 0)
 BUILTIN(__builtin_tvm_stbrefq, "{TbTbWi}TbTb", "nc")
 
 // STSLICEQ (s b - s b -1 or b0 0)
 BUILTIN(__builtin_tvm_stsliceq, "{TsTbWi}TsTb", "nc")
 
-// STBQ (b0 b – b0 b -1 or b00 0)
+// STBQ (b0 b - b0 b -1 or b00 0)
 BUILTIN(__builtin_tvm_stbq, "{TbTbWi}TbTb", "nc")
 
-// STBREFRQ (b b0 – b b0 -1 or b00 0)
+// STBREFRQ (b b0 - b b0 -1 or b00 0)
 BUILTIN(__builtin_tvm_stbrefrq, "{TbTbWi}TbTb", "nc")
 
-// STSLICERQ (b s – b s -1 or b00 0)
+// STSLICERQ (b s - b s -1 or b00 0)
 BUILTIN(__builtin_tvm_stslicerq, "{TbTsWi}TbTs", "nc")
 
-// STBRQ (b b0 – b b0 -1 or b00 0)
+// STBRQ (b b0 - b b0 -1 or b00 0)
 BUILTIN(__builtin_tvm_stbrq, "{TbTbWi}TbTb", "nc")
 
 // CF20 — STREFCONST, equivalent to PUSHREF; STREFR
@@ -968,72 +968,72 @@ BUILTIN(__builtin_tvm_stbrq, "{TbTbWi}TbTb", "nc")
 // TODO
 
 
-// ENDXC  (b x – c), if x6 = 0, creates a special or exotic cell from Builder b
+// ENDXC  (b x - c), if x6 = 0, creates a special or exotic cell from Builder b
 BUILTIN(__builtin_tvm_endxc, "TcTbWi", "nc")
 
-// STILE4 (x b – b0), stores a little-endian signed 32-bit integer
+// STILE4 (x b - b0), stores a little-endian signed 32-bit integer
 BUILTIN(__builtin_tvm_stile4, "TbWiTb", "nc")
 
-// STULE4 (x b – b0), stores a little-endian unsigned 32-bit integer
+// STULE4 (x b - b0), stores a little-endian unsigned 32-bit integer
 BUILTIN(__builtin_tvm_stule4, "TbWiTb", "nc")
 
-// STILE8 (x b – b0), stores a little-endian signed 64-bit integer
+// STILE8 (x b - b0), stores a little-endian signed 64-bit integer
 BUILTIN(__builtin_tvm_stile8, "TbWiTb", "nc")
 
-// STULE8 (x b – b0), stores a little-endian unsigned 64-bit integer
+// STULE8 (x b - b0), stores a little-endian unsigned 64-bit integer
 BUILTIN(__builtin_tvm_stule8, "TbWiTb", "nc")
 
-// BDEPTH  (b – x), returns the depth of Builder b. If no cell references are stored in b, then x =  0; 
+// BDEPTH  (b - x), returns the depth of Builder b. If no cell references are stored in b, then x =  0; 
 // otherwise x is one plus the maximum of depths of cells referred to from b
 BUILTIN(__builtin_tvm_bdepth, "WiTb", "nc")        
 
-// BBITREFS (b – x y), returns the numbers of both data bits and cell references in b
+// BBITREFS (b - x y), returns the numbers of both data bits and cell references in b
 BUILTIN(__builtin_tvm_bbitrefs, "{WiWi}Tb", "nc") 
 
-// BREMBITREFS  (b – x0 y0)
+// BREMBITREFS  (b - x0 y0)
 BUILTIN(__builtin_tvm_brembitrefs, "{WiWi}Tb", "nc")
 
-// BCHKBITS cc + 1 (b –), checks whether cc + 1 bits can be stored into b, where 0 <= cc <= 255
+// BCHKBITS cc + 1 (b -), checks whether cc + 1 bits can be stored into b, where 0 <= cc <= 255
 // TODO
 
-// BCHKBITS (b x – ), checks whether x bits can be stored into b, 0 <= x <= 1023. If there is no space for x more bits in b ... throws an exception
+// BCHKBITS (b x - ), checks whether x bits can be stored into b, 0 <= x <= 1023. If there is no space for x more bits in b ... throws an exception
 BUILTIN(__builtin_tvm_bchkbits, "vTbWi", "c")
 
-// BCHKREFS (b y – ), checks whether y references can be stored into b, 0 <= y <= 7
+// BCHKREFS (b y - ), checks whether y references can be stored into b, 0 <= y <= 7
 BUILTIN(__builtin_tvm_bchkrefs, "vTbWi", "c")
 
-// BCHKBITREFS (b x y – ), checks whether x bits and y references can be stored into b, 0 <= x <= 1023, 0 <= y <= 7
+// BCHKBITREFS (b x y - ), checks whether x bits and y references can be stored into b, 0 <= x <= 1023, 0 <= y <= 7
 BUILTIN(__builtin_tvm_bchkbitrefs, "vTbWiWi", "c")
 
-// BCHKBITSQ cc + 1 (b – ?), checks whether cc + 1 bits can be stored into b, where 0 <= cc <= 255
+// BCHKBITSQ cc + 1 (b - ?), checks whether cc + 1 bits can be stored into b, where 0 <= cc <= 255
 // TODO
 
-// BCHKBITSQ (b x – ?), checks whether x bits can be stored into b, 0 <= x <= 1023
+// BCHKBITSQ (b x - ?), checks whether x bits can be stored into b, 0 <= x <= 1023
 BUILTIN(__builtin_tvm_bchkbitsq, "WiTbWi", "nc")
 
-// BCHKREFSQ (b y – ?), checks whether y references can be stored into b, 0 <= y <= 7
+// BCHKREFSQ (b y - ?), checks whether y references can be stored into b, 0 <= y <= 7
 BUILTIN(__builtin_tvm_bchkrefsq, "WiTbWi", "nc")
 
-// BCHKBITREFSQ (b x y – ?), checks whether x bits and y references can be stored into b, 0 <= x <= 1023, 0 <= y <= 7
+// BCHKBITREFSQ (b x y - ?), checks whether x bits and y references can be stored into b, 0 <= x <= 1023, 0 <= y <= 7
 BUILTIN(__builtin_tvm_bchkbitrefsq, "WiTbWiWi", "nc")
 
-// STZEROES (b n – b0), stores n binary zeroes into Builder b
+// STZEROES (b n - b0), stores n binary zeroes into Builder b
 BUILTIN(__builtin_tvm_stzeroes, "TbTbWi", "nc")
 
-// STONES (b n – b0), stores n binary ones into Builder b
+// STONES (b n - b0), stores n binary ones into Builder b
 BUILTIN(__builtin_tvm_stones, "TbTbWi", "nc")
 
-// STSAME (b n x – b0), stores n binary xes (0 <= x <= 1) into Builder b
+// STSAME (b n x - b0), stores n binary xes (0 <= x <= 1) into Builder b
 BUILTIN(__builtin_tvm_stsame, "TbTbWiWi", "nc")
 
-// STSLICECONST sss (b –	b0), stores a constant subslice sss consisting of 0 <= x <= 3 
+// STSLICECONST sss (b -	b0), stores a constant subslice sss consisting of 0 <= x <= 3 
 //  references and up to 8y + 1 data bits, with 0 <= y <= 7.
 // TODO
 
-// STSLICECONST ‘0’ or STZERO (b – b0), stores one binary zero
+// STSLICECONST ‘0’ or STZERO (b - b0), stores one binary zero
 BUILTIN(__builtin_tvm_stzero, "TbTb", "nc")
 
-// STSLICECONST ‘1’ or STONE (b – b0), stores one binary one
+// STSLICECONST ‘1’ or STONE (b - b0), stores one binary one
 BUILTIN(__builtin_tvm_stone, "TbTb", "nc")
 
 // ******************************************* 
@@ -1042,192 +1042,192 @@ BUILTIN(__builtin_tvm_stone, "TbTb", "nc")
 //
 // *******************************************/
 
-// LDIQ cc + 1 (s – x s0 -1 or s 0), a quiet version of LDI
+// LDIQ cc + 1 (s - x s0 -1 or s 0), a quiet version of LDI
 BUILTIN(__builtin_tvm_ldiq, "{WiTsWi}TsWi", "nc")
 
-// PLDIQ cc + 1 (s – x -1 or 0), a quiet version of PLDI
+// PLDIQ cc + 1 (s - x -1 or 0), a quiet version of PLDI
 BUILTIN(__builtin_tvm_pldiq, "{WiWi}TsWi", "nc")
 
-// PLDUQ cc + 1 (s – x -1 or 0), a quiet version of PLDU
+// PLDUQ cc + 1 (s - x -1 or 0), a quiet version of PLDU
 BUILTIN(__builtin_tvm_plduq, "{WiWi}TsWi", "nc")
 
 // PLDUZ 32(c + 1) (s - s x), preloads the first 32(c + 1) bits of Slice s into an unsigned integer x, for 0 <= c <= 7
 BUILTIN(__builtin_tvm_plduz, "{TsWi}TsWi", "nc")
 
-// LDSLICEXQ (s l – s00 s0 -1 or s 0), a quiet version of LDSLICEX
+// LDSLICEXQ (s l - s00 s0 -1 or s 0), a quiet version of LDSLICEX
 BUILTIN(__builtin_tvm_ldslicexq, "{TsTsWi}TsWi", "nc")
 
-// PLDSLICEXQ (s l – s0 -1 or 0), a quiet version of LDSLICEXQ
+// PLDSLICEXQ (s l - s0 -1 or 0), a quiet version of LDSLICEXQ
 BUILTIN(__builtin_tvm_pldslicexq, "{TsWi}TsWi", "nc")
 
 // PLDSLICE cc + 1 (s - s00), returns the first 0 < cc + 1 <= 256 bits of s as s00
 BUILTIN(__builtin_tvm_pldslice, "TsTsWi", "nc")
 
-// LDSLICEQ cc + 1 (s – s00 s0 -1 or s 0), a quiet version of LDSLICE
+// LDSLICEQ cc + 1 (s - s00 s0 -1 or s 0), a quiet version of LDSLICE
 BUILTIN(__builtin_tvm_ldsliceq, "{TsTsWi}TsWi", "nc")
 
-// PLDSLICEQ cc + 1 (s – s00 -1 or 0), a quiet version of PLDSLICE
+// PLDSLICEQ cc + 1 (s - s00 -1 or 0), a quiet version of PLDSLICE
 BUILTIN(__builtin_tvm_pldsliceq, "{TsWi}TsWi", "nc")
 
-// SDCUTFIRST (s l – s0), returns the first 0 <= l <= 1023 bits of s. It is equivalent to PLDSLICEX
+// SDCUTFIRST (s l - s0), returns the first 0 <= l <= 1023 bits of s. It is equivalent to PLDSLICEX
 BUILTIN(__builtin_tvm_sdcutfirst, "TsTsWi", "nc")
 
-// SDSKIPFIRST (s l – s0), returns all but the first 0 <= l <= 1023 bits of s. It is equivalent to LDSLICEX; NIP
+// SDSKIPFIRST (s l - s0), returns all but the first 0 <= l <= 1023 bits of s. It is equivalent to LDSLICEX; NIP
 BUILTIN(__builtin_tvm_sdskipfirst, "TsTsWi", "nc")
 
-// SDCUTLAST (s l – s0), returns the last 0 <= l <= 1023 bits of s
+// SDCUTLAST (s l - s0), returns the last 0 <= l <= 1023 bits of s
 BUILTIN(__builtin_tvm_sdcutlast, "TsTsWi", "nc")
 
-// SDSKIPLAST (s l – s0), returns all but the last 0 <= l <= 1023 bits of s
+// SDSKIPLAST (s l - s0), returns all but the last 0 <= l <= 1023 bits of s
 BUILTIN(__builtin_tvm_sdskiplast, "TsTsWi", "nc")
 
-// SDSUBSTR (s l l0 – s0), returns 0 <= l <= 1023 bits of s starting from offset 0 <= l <= 1023, 
+// SDSUBSTR (s l l0 - s0), returns 0 <= l <= 1023 bits of s starting from offset 0 <= l <= 1023, 
 //  thus extracting a bit substring out of the data of s
 BUILTIN(__builtin_tvm_sdsubstr, "TsTsWiWi", "nc")
 
-// SDBEGINSX (s s0 – s00), checks whether s begins with (the data bits of) s0, and removes s0 from s	on success. 
+// SDBEGINSX (s s0 - s00), checks whether s begins with (the data bits of) s0, and removes s0 from s	on success. 
 //  On failure throws a cell deserialization exception
 BUILTIN(__builtin_tvm_sdbeginsx, "TsTsTs", "c")
 
-// SDBEGINSXQ (s s0 – s00 -1 or s 0), a quiet version of SDBEGINSX
+// SDBEGINSXQ (s s0 - s00 -1 or s 0), a quiet version of SDBEGINSX
 BUILTIN(__builtin_tvm_sdbeginsxq, "{TsWi}TsTs", "nc")
 
-// SDBEGINS (s – s00), checks whether s begins with constant bitstring sss of length 8x + 3 
+// SDBEGINS (s - s00), checks whether s begins with constant bitstring sss of length 8x + 3 
 //   (with continuation bit assumed), where 0 <= x <= 127, and removes sss from s on success
 BUILTIN(__builtin_tvm_sdbegins, "TsTsWi", "c")
 
-// SDBEGINS ‘0’ (s – s00), checks whether s begins with a binary zero
+// SDBEGINS ‘0’ (s - s00), checks whether s begins with a binary zero
 BUILTIN(__builtin_tvm_sbegins0, "TsTs", "c")
 
-// SDBEGINS ‘1’ (s – s00), checks whether s begins with a binary one
+// SDBEGINS ‘1’ (s - s00), checks whether s begins with a binary one
 BUILTIN(__builtin_tvm_sdbegins1, "TsTs", "c")
 
-// SDBEGINSQ (s – s00 -1 or s 0), a quiet version of SDBEGINS
+// SDBEGINSQ (s - s00 -1 or s 0), a quiet version of SDBEGINS
 BUILTIN(__builtin_tvm_sdbeginsq, "TsTsWi", "nc")
 
-// SCUTFIRST (s l r – s0), returns the first 0 <= l <= 1023 bits and first 0 <= r <= 4 references of s
+// SCUTFIRST (s l r - s0), returns the first 0 <= l <= 1023 bits and first 0 <= r <= 4 references of s
 BUILTIN(__builtin_tvm_scutfirst, "TsTsWiWi", "nc")
 
-// SSKIPFIRST (s l r – s0)
+// SSKIPFIRST (s l r - s0)
 BUILTIN(__builtin_tvm_sskipfirst, "TsTsWiWi", "nc")
 
-// SCUTLAST (s l r – s0), returns the last 0 <= l <= 1023 data bits and last 0 <= r <= 4 references of s
+// SCUTLAST (s l r - s0), returns the last 0 <= l <= 1023 data bits and last 0 <= r <= 4 references of s
 BUILTIN(__builtin_tvm_scutlast, "TsTsWiWi", "nc")
 
-// SSKIPLAST (s l r – s0)
+// SSKIPLAST (s l r - s0)
 BUILTIN(__builtin_tvm_sskiplast, "TsTsWiWi", "nc")
 
-// SUBSLICE (s l r l0 r0 – s0), returns 0 <= l0 <= 1023 bits and 0 <= r0 <= 4 references from Slice s
+// SUBSLICE (s l r l0 r0 - s0), returns 0 <= l0 <= 1023 bits and 0 <= r0 <= 4 references from Slice s
 BUILTIN(__builtin_tvm_subslice, "TsTsWiWiWiWi", "nc")
 
-// SPLIT (s l r – s0 s00), splits the first 0 <= l <= 1023 data bits and first 0 <= r <= 4 
+// SPLIT (s l r - s0 s00), splits the first 0 <= l <= 1023 data bits and first 0 <= r <= 4 
 //  references from s into s0, returning the remainder of s as s00
 BUILTIN(__builtin_tvm_split, "{TsTs}TsWiWi", "c")
 
-// SPLITQ (s l r – s0 s00 -1 or s 0), a quiet version of SPLIT
+// SPLITQ (s l r - s0 s00 -1 or s 0), a quiet version of SPLIT
 BUILTIN(__builtin_tvm_splitq, "{TsTsWi}TsWiWi", "nc")
 
-// XCTOS (c – s ?), transforms an ordinary or exotic cell into a Slice, as if it were an ordinary cell. 
+// XCTOS (c - s ?), transforms an ordinary or exotic cell into a Slice, as if it were an ordinary cell. 
 //  A flag is returned indicating whether c is exotic
 BUILTIN(__builtin_tvm_xctos, "{TsWi}Tc", "nc")
 
-// XLOAD (c – c0), loads an exotic cell c and returns an ordinary cell c0. If c is already ordinary, does nothing. 
+// XLOAD (c - c0), loads an exotic cell c and returns an ordinary cell c0. If c is already ordinary, does nothing. 
 //  If c cannot be loaded, throws an exception
 BUILTIN(__builtin_tvm_xload, "TcTc", "c")
 
-// XLOADQ (c – c0 -1 or c 0), loads an exotic cell c as XLOAD, but returns 0 on failure
+// XLOADQ (c - c0 -1 or c 0), loads an exotic cell c as XLOAD, but returns 0 on failure
 BUILTIN(__builtin_tvm_xloadq, "{TcWi}Tc", "nc")
 
-// SCHKBITS (s l – ), checks whether there are at least l data bits in Slice s. If this is not the case, 
+// SCHKBITS (s l - ), checks whether there are at least l data bits in Slice s. If this is not the case, 
 //  throws a cell deserialisation (i.e., cell underflow) exception
 BUILTIN(__builtin_tvm_schkbits, "vTsWi", "c")
 
-// SCHKREFS (s r – ), checks whether there are at least r references in Slice s
+// SCHKREFS (s r - ), checks whether there are at least r references in Slice s
 BUILTIN(__builtin_tvm_schkrefs, "vTsWi", "c")
 
-// SCHKBITREFS	(s l r – ), checks whether there are at least l data bits and r references in Slice s
+// SCHKBITREFS	(s l r - ), checks whether there are at least l data bits and r references in Slice s
 BUILTIN(__builtin_tvm_schkbitrefs, "vTsWiWi", "c")
 
-// SCHKBITSQ (s l – ?), checks whether there are at least l data bits in Slice s
+// SCHKBITSQ (s l - ?), checks whether there are at least l data bits in Slice s
 BUILTIN(__builtin_tvm_schkbitsq, "WiTsWi", "nc")
 
-// SCHKREFSQ (s r – ?), checks whether there are at least r references in Slice s
+// SCHKREFSQ (s r - ?), checks whether there are at least r references in Slice s
 BUILTIN(__builtin_tvm_schkrefsq, "WiTsWi", "nc")
 
-// SCHKBITREFSQ (s l r – ?), checks whether there are at least l data bits and r references in Slice s
+// SCHKBITREFSQ (s l r - ?), checks whether there are at least l data bits and r references in Slice s
 BUILTIN(__builtin_tvm_schkbitrefsq, "WiTsWiWi", "nc")
 
-// PLDREFVAR (s n – c), returns the n-th cell reference of Slice s for 0 <= n <= 3
+// PLDREFVAR (s n - c), returns the n-th cell reference of Slice s for 0 <= n <= 3
 BUILTIN(__builtin_tvm_pldrefvar, "TcTsWi", "nc")
 
-// PLDREFIDX n	(s – c), returns the n-th cell reference of Slice s, where 0 <= n <= 3
+// PLDREFIDX n	(s - c), returns the n-th cell reference of Slice s, where 0 <= n <= 3
 BUILTIN(__builtin_tvm_pldrefidx, "TcTsWi", "nc")
 
-// PLDREF (s – c), preloads the first cell reference of a Slice
+// PLDREF (s - c), preloads the first cell reference of a Slice
 BUILTIN(__builtin_tvm_pldref, "TcTs", "nc")
 
-// LDILE4 (s – x s0), loads a little-endian signed 32-bit integer
+// LDILE4 (s - x s0), loads a little-endian signed 32-bit integer
 BUILTIN(__builtin_tvm_ldile4, "{WiTs}Ts", "nc")
 
-// LDULE4 (s – x s0), loads a little-endian unsigned 32-bit integer
+// LDULE4 (s - x s0), loads a little-endian unsigned 32-bit integer
 BUILTIN(__builtin_tvm_ldule4, "{WiTs}Ts", "nc")
 
-// LDILE8 (s – x s0), loads a little-endian signed 64-bit integer
+// LDILE8 (s - x s0), loads a little-endian signed 64-bit integer
 BUILTIN(__builtin_tvm_ldile8, "{WiTs}Ts", "nc")
 
-// LDULE8 (s – x s0), loads a little-endian unsigned 64-bit integer
+// LDULE8 (s - x s0), loads a little-endian unsigned 64-bit integer
 BUILTIN(__builtin_tvm_ldule8, "{WiTs}Ts", "nc")
 
-// PLDILE4 (s – x), preloads a little-endian signed 32-bit integer
+// PLDILE4 (s - x), preloads a little-endian signed 32-bit integer
 BUILTIN(__builtin_tvm_pldile4, "WiTs", "nc")
 
-// PLDULE4 (s – x), preloads a little-endian unsigned 32-bit integer
+// PLDULE4 (s - x), preloads a little-endian unsigned 32-bit integer
 BUILTIN(__builtin_tvm_pldule4, "WiTs", "nc")
 
-// PLDILE8 (s – x), preloads a little-endian signed 64-bit integer
+// PLDILE8 (s - x), preloads a little-endian signed 64-bit integer
 BUILTIN(__builtin_tvm_pldile8, "WiTs", "nc")
 
-// PLDULE8 (s – x), preloads a little-endian unsigned 64-bit integer
+// PLDULE8 (s - x), preloads a little-endian unsigned 64-bit integer
 BUILTIN(__builtin_tvm_pldule8, "WiTs", "nc")
 
-// LDILE4Q (s – x s0 -1 or s 0), quietly loads a little-endian signed 32-bit integer
+// LDILE4Q (s - x s0 -1 or s 0), quietly loads a little-endian signed 32-bit integer
 BUILTIN(__builtin_tvm_ldile4q, "{WiTsWi}Ts", "nc")
 
-// LDULE4Q (s – x s0 -1 or s 0), quietly loads a little-endian unsigned 32-bit integer
+// LDULE4Q (s - x s0 -1 or s 0), quietly loads a little-endian unsigned 32-bit integer
 BUILTIN(__builtin_tvm_ldule4q, "{WiTsWi}Ts", "nc")
 
-// LDILE8Q	(s – x s0 -1 or	s 0), quietly loads a little-endian signed 64-bit integer
+// LDILE8Q	(s - x s0 -1 or	s 0), quietly loads a little-endian signed 64-bit integer
 BUILTIN(__builtin_tvm_ldile8q, "{WiTsWi}Ts", "nc")
 
-// LDULE8Q	(s – x s0 -1 or	s 0), quietly loads a little-endian unsigned 64-bit integer
+// LDULE8Q	(s - x s0 -1 or	s 0), quietly loads a little-endian unsigned 64-bit integer
 BUILTIN(__builtin_tvm_ldule8q, "{WiTsWi}Ts", "nc")
 
-// PLDILE4Q (s – x -1 or 0), quietly preloads a little-endian signed 32-bit integer
+// PLDILE4Q (s - x -1 or 0), quietly preloads a little-endian signed 32-bit integer
 BUILTIN(__builtin_tvm_pldile4q, "{WiWi}Ts", "nc")
 
-// PLDULE4Q (s – x -1 or	0), quietly preloads a little-endian unsigned 32-bit integer
+// PLDULE4Q (s - x -1 or	0), quietly preloads a little-endian unsigned 32-bit integer
 BUILTIN(__builtin_tvm_pldule4q, "{WiWi}Ts", "nc")
 
-// PLDILE8Q (s – x -1 or 0), quietly preloads a little-endian signed 64-bit integer
+// PLDILE8Q (s - x -1 or 0), quietly preloads a little-endian signed 64-bit integer
 BUILTIN(__builtin_tvm_pldile8q, "{WiWi}Ts", "nc")
 
-// PLDULE8Q (s – x -1 or 0), quietly preloads a little-endian unsigned 64-bit integer
+// PLDULE8Q (s - x -1 or 0), quietly preloads a little-endian unsigned 64-bit integer
 BUILTIN(__builtin_tvm_pldule8q, "{WiWi}Ts", "nc")
 
-// LDZEROES (s – n s0), returns the count n of leading zero bits in s, and removes these bits from s
+// LDZEROES (s - n s0), returns the count n of leading zero bits in s, and removes these bits from s
 BUILTIN(__builtin_tvm_ldzeroes, "{WiTs}Ts", "nc")
 
-// LDONES (s – n s0), returns the count n of leading one bits in s, and removes these bits from s
+// LDONES (s - n s0), returns the count n of leading one bits in s, and removes these bits from s
 BUILTIN(__builtin_tvm_ldones, "{WiTs}Ts", "nc")
 
-// LDSAME (s x – n s0), returns the count	n of leading bits equal to 0 <= x <= 1 in s, and removes these bits from s
+// LDSAME (s x - n s0), returns the count	n of leading bits equal to 0 <= x <= 1 in s, and removes these bits from s
 BUILTIN(__builtin_tvm_ldsame, "{WiTs}TsWi", "nc")
 
-// SDEPTH (s – x), returns the depth of Slice s. If s has no references, then x = 0; 
+// SDEPTH (s - x), returns the depth of Slice s. If s has no references, then x = 0; 
 //  otherwise x is one plus the maximum of depths of cells referred to from s
 BUILTIN(__builtin_tvm_sdepth, "WiTs", "nc")
 
-// CDEPTH (c – x), returns the depth of Cell c. If c has no references, then x = 0; 
+// CDEPTH (c - x), returns the depth of Cell c. If c has no references, then x = 0; 
 //  otherwise x is one plus the maximum of depths of cells referred to from c
 BUILTIN(__builtin_tvm_cdepth, "WiTc", "nc")
 
@@ -1243,19 +1243,19 @@ BUILTIN(__builtin_tvm_cdepth, "WiTc", "nc")
 //
 // *******************************************/
 
-// SKIPDICT or SKIPOPTREF (s – s0), equivalent to LDDICT; NIP
+// SKIPDICT or SKIPOPTREF (s - s0), equivalent to LDDICT; NIP
 BUILTIN(__builtin_tvm_skipdict, "TsTs", "nc")
 
-// LDDICTS (s – s0 s00), loads (parses) a (Slice-represented) dictionary s0 from Slice s, and returns the remainder of s as s00
+// LDDICTS (s - s0 s00), loads (parses) a (Slice-represented) dictionary s0 from Slice s, and returns the remainder of s as s00
 BUILTIN(__builtin_tvm_lddicts, "{TsTs}Ts", "nc")
 
-// PLDDICTS (s – s0), preloads a (Slice - represented) dictionary s0 from Slice s. Approximately equivalent to LDDICTS; DROP
+// PLDDICTS (s - s0), preloads a (Slice - represented) dictionary s0 from Slice s. Approximately equivalent to LDDICTS; DROP
 BUILTIN(__builtin_tvm_plddicts, "TsTs", "nc")
 
-// LDDICTQ (s – D s0 -1 or s 0), a quiet version of LDDICT
+// LDDICTQ (s - D s0 -1 or s 0), a quiet version of LDDICT
 BUILTIN(__builtin_tvm_lddictq, "{TcTsWi}Ts", "nc")
 
-// PLDDICTQ (s – D -1 or 0), a quiet version of PLDDICT
+// PLDDICTQ (s - D -1 or 0), a quiet version of PLDDICT
 BUILTIN(__builtin_tvm_plddictq, "{TcWi}Ts", "nc")
 
 // ******************************************* 
@@ -1264,87 +1264,87 @@ BUILTIN(__builtin_tvm_plddictq, "{TcWi}Ts", "nc")
 //
 // *******************************************/
 
-// DICTISETGET (x i D n – D0 y -1 or D0 0), similar to DICTSETGET, 
+// DICTISETGET (x i D n - D0 y -1 or D0 0), similar to DICTSETGET, 
 //  but with the key represented by a big-endian signed n-bit Integer I
 // (value int slice nbits - (slice y -1) | (slice 0))
 BUILTIN(__builtin_tvm_dictisetget, "{TcTsWi}TsWiTcWi", "nc")
 
-// DICTISETGETREF (c i D n – D0 c0 -1 or D0 0), a version of DICTSETGETREF with signed Integer i as a key
+// DICTISETGETREF (c i D n - D0 c0 -1 or D0 0), a version of DICTSETGETREF with signed Integer i as a key
 // (cell int slice nbits - (slice cell -1) | (slice 0))
 BUILTIN(__builtin_tvm_dictisetgetref, "{TcTcWi}TcWiTcWi", "nc")
 
-// DICTREPLACEGET (x k D n – D0 y -1 or D 0), a Replace counterpart of DICTSETGET: 
+// DICTREPLACEGET (x k D n - D0 y -1 or D 0), a Replace counterpart of DICTSETGET: 
 //  on success, also returns the old value associated with the key in question
 // (value int slice nbits - (slice value -1) | (slice 0))
 BUILTIN(__builtin_tvm_dictreplaceget, "{TcTsWi}TsTsTcWi", "nc")
 
-// DICTREPLACEGETREF (c k D n – D0 c0 -1 or D 0)
+// DICTREPLACEGETREF (c k D n - D0 c0 -1 or D 0)
 // (cell int slice nbits - (slice' cell -1) | (slice 0))
 BUILTIN(__builtin_tvm_dictreplacegetref, "{TcTcWi}TcTsTcWi", "nc")
 
-// DICTIREPLACEGET  (x i D n – D0 y -1 or D 0)
+// DICTIREPLACEGET  (x i D n - D0 y -1 or D 0)
 // (value int slice nbits - (slice value -1) | (slice 0))
 BUILTIN(__builtin_tvm_dictireplaceget, "{TcTsWi}TsWiTcWi", "nc")
 
-// DICTIREPLACEGETREF (c i D n – D0 c0 -1 or D 0)
+// DICTIREPLACEGETREF (c i D n - D0 c0 -1 or D 0)
 // (cell int slice nbits - (slice' cell -1) | (slice 0))
 BUILTIN(__builtin_tvm_dictireplacegetref, "{TcTcWi}TcWiTcWi", "nc")
 
-// DICTUREPLACEGET (x i D n – D0 y -1 or D 0)
+// DICTUREPLACEGET (x i D n - D0 y -1 or D 0)
 // (value uint slice nbits - (slice value -1) | (slice 0))
 BUILTIN(__builtin_tvm_dictureplaceget, "{TcTsWi}TsWiTcWi", "nc")
 
-// DICTUREPLACEGETREF (c i D n – D0 c0 -1 or D 0)
+// DICTUREPLACEGETREF (c i D n - D0 c0 -1 or D 0)
 // (cell uint slice nbits - (slice' cell -1) | (slice 0))
 BUILTIN(__builtin_tvm_dictureplacegetref, "{TcTcWi}TcWiTcWi", "nc")
 
-// DICTADD (x k D n – D0 -1 or D 0), an Add counterpart of DICTSET: sets the value associated with key k in dictionary D to x, but
+// DICTADD (x k D n - D0 -1 or D 0), an Add counterpart of DICTSET: sets the value associated with key k in dictionary D to x, but
 //   only if it is not already present in D
 // (value key slice nbits - (slice -1) | (slice 0))
 BUILTIN(__builtin_tvm_dictadd, "{TcWi}TsTsTcWi", "nc")
 
-// DICTADDREF (c k D n – D0 -1 or D 0)
+// DICTADDREF (c k D n - D0 -1 or D 0)
 // (value key slice nbits - (slice -1) | (slice y 0))
 BUILTIN(__builtin_tvm_dictaddref, "{TcWi}TcTsTcWi", "nc")
 
-// DICTIADD (x i D n – D0 -1 or D 0)
+// DICTIADD (x i D n - D0 -1 or D 0)
 // (value int slice nbits - (slice -1) | (slice 0))
 BUILTIN(__builtin_tvm_dictiadd, "{TcWi}TsWiTcWi", "nc")
 
-// DICTIADDREF (c i D n – D0 -1 or D 0)
+// DICTIADDREF (c i D n - D0 -1 or D 0)
 // (cell int slice nbits - (slice -1) | (slice 0))
 BUILTIN(__builtin_tvm_dictiaddref, "{TcWi}TcWiTcWi", "nc")
 
-// DICTUADD  (x i D n – D0 -1 or D 0)
+// DICTUADD  (x i D n - D0 -1 or D 0)
 // (value uint slice nbits - (slice -1) | (slice 0))
 BUILTIN(__builtin_tvm_dictuadd, "{TcWi}TsWiTcWi", "nc")
 
-// DICTUADDREF (c i D n – D0 -1 or D 0)
+// DICTUADDREF (c i D n - D0 -1 or D 0)
 // (cell uint slice nbits - (slice -1) | (slice 0))
 BUILTIN(__builtin_tvm_dictuaddref, "{TcWi}TcWiTcWi", "nc")
 
-// DICTADDGET (x k D n – D0 -1 or D y 0), an Add counterpart of DICTSETGET: sets the value associated with key k in dictionary D to x, 
+// DICTADDGET (x k D n - D0 -1 or D y 0), an Add counterpart of DICTSETGET: sets the value associated with key k in dictionary D to x, 
 //   but only if key k is not already present in D. Otherwise, just returns the old value y without changing the dictionary
 // (value key slice nbits - (slice -1) | (slice y 0))
 BUILTIN(__builtin_tvm_dictaddget, "{TcTsWi}TsTsTcWi", "nc")
 
-// DICTADDGETREF (c k D n – D0 -1 or D c0 0), an Add counterpart of DICTSETGETREF
+// DICTADDGETREF (c k D n - D0 -1 or D c0 0), an Add counterpart of DICTSETGETREF
 // (cell key slice nbits - (slice' -1) | (slice cell 0))
 BUILTIN(__builtin_tvm_dictaddgetref, "{TcTcWi}TcTsTcWi", "nc")
 
-// DICTIADDGET (x i D n – D0 -1 or D y 0)
+// DICTIADDGET (x i D n - D0 -1 or D y 0)
 // (value int slice nbits - (slice -1) | (slice value 0))
 BUILTIN(__builtin_tvm_dictiaddget, "{TcTsWi}TsWiTcWi", "nc")
 
-// DICTIADDGETREF (c i D n – D0 -1 or D c0 0)
+// DICTIADDGETREF (c i D n - D0 -1 or D c0 0)
 // (cell int slice nbits - (slice -1) | (slice cell 0))
 BUILTIN(__builtin_tvm_dictiaddgetref, "{TcTcWi}TcWiTcWi", "nc")
 
-// DICTUADDGET	(x i D n – D0 -1 or D y 0)
+// DICTUADDGET	(x i D n - D0 -1 or D y 0)
 // (value uint slice nbits - (slice -1) | (slice value 0))
 BUILTIN(__builtin_tvm_dictuaddget, "{TcTsWi}TsWiTcWi", "nc")
 
-// DICTUADDGETREF (c i D n – D0 -1 or D c0 0)
+// DICTUADDGETREF (c i D n - D0 -1 or D c0 0)
 // (cell uint slice nbits - (slice -1) | (slice cell 0))
 BUILTIN(__builtin_tvm_dictuaddgetref, "{TcTcWi}TcWiTcWi", "nc")
 
@@ -1354,75 +1354,75 @@ BUILTIN(__builtin_tvm_dictuaddgetref, "{TcTcWi}TcWiTcWi", "nc")
 //
 // *******************************************/
 
-// DICTSETB (b k D n – D0)
+// DICTSETB (b k D n - D0)
 // (builder key slice nbits - slice)
 BUILTIN(__builtin_tvm_dictsetb, "TcTbTsTcWi", "nc")
 
-// DICTISETB (b i D n – D0)
+// DICTISETB (b i D n - D0)
 // (builder int slice nbits - slice)
 BUILTIN(__builtin_tvm_dictisetb, "TcTbWiTcWi", "nc")
 
-// DICTUSETB (b i D n – D0)
+// DICTUSETB (b i D n - D0)
 // (builder uint slice nbits - slice)
 BUILTIN(__builtin_tvm_dictusetb, "TcTbWiTcWi", "nc")
 
-// DICTSETGETB (b k D n – D0 y -1 or D0 0)
+// DICTSETGETB (b k D n - D0 y -1 or D0 0)
 // (builder key slice nbits - (slice value -1) | (slice 0))
 BUILTIN(__builtin_tvm_dictsetgetb, "{TcTsWi}TbTsTcWi", "nc")
 
-// DICTISETGETB (b i D n – D0 y -1 or D0 0)
+// DICTISETGETB (b i D n - D0 y -1 or D0 0)
 // (builder int slice nbits - (slice' y -1) | (slice' 0))
 BUILTIN(__builtin_tvm_dictisetgetb, "{TcTsWi}TbWiTcWi", "nc")
 
-// DICTUSETGETB (b i D n – D0 y -1 or D0 0)
+// DICTUSETGETB (b i D n - D0 y -1 or D0 0)
 // (builder uint slice nbits - (slice' y -1) | (slice' 0))
 BUILTIN(__builtin_tvm_dictusetgetb, "{TcTsWi}TbWiTcWi", "nc")
 
-// DICTREPLACEB (b k D n – D0 -1 or D 0)
+// DICTREPLACEB (b k D n - D0 -1 or D 0)
 // (builder int slice nbits - (slice -1) | (slice 0))
 BUILTIN(__builtin_tvm_dictreplaceb, "{TcWi}TbTsTcWi", "nc")
 
-// DICTIREPLACEB (b i D n – D0 -1 or D 0)
+// DICTIREPLACEB (b i D n - D0 -1 or D 0)
 // (builder uint slice nbits - (slice -1) | (slice 0))
 BUILTIN(__builtin_tvm_dictireplaceb, "{TcWi}TbWiTcWi", "nc")
 
-// DICTUREPLACEB (b i D n – D0 -1 or D 0)
+// DICTUREPLACEB (b i D n - D0 -1 or D 0)
 // (builder uint slice nbits - (slice -1) | (slice 0))
 BUILTIN(__builtin_tvm_dictureplaceb, "{TcWi}TbWiTcWi", "nc")
 
-// DICTREPLACEGETB (b k D n – D0 y -1 or D 0)
+// DICTREPLACEGETB (b k D n - D0 y -1 or D 0)
 // (builder key slice nbits - (slice value -1) | (slice 0))
 BUILTIN(__builtin_tvm_dictreplacegetb, "{TcTsWi}TbTsTcWi", "nc")
 
-// DICTIREPLACEGETB (b i D n – D0 y -1 or D 0)
+// DICTIREPLACEGETB (b i D n - D0 y -1 or D 0)
 // (builder int slice nbits - (slice value -1) | (slice 0))
 BUILTIN(__builtin_tvm_dictireplacegetb, "{TcTsWi}TbWiTcWi", "nc")
 
-// DICTUREPLACEGETB	(b i D n – D0 y -1 or D 0)
+// DICTUREPLACEGETB	(b i D n - D0 y -1 or D 0)
 // (builder uint slice nbits - (slice value -1) | (slice 0))
 BUILTIN(__builtin_tvm_dictureplacegetb, "{TcTsWi}TbWiTcWi", "nc")
 
-// DICTADDB (b k D n – D0 -1 or D 0)
+// DICTADDB (b k D n - D0 -1 or D 0)
 // (builder key slice nbits - (slice -1) | (slice 0))
 BUILTIN(__builtin_tvm_dictaddb, "{TcWi}TbTsTcWi", "nc")
 
-// DICTIADDB (b i D n – D0 -1 or D 0)
+// DICTIADDB (b i D n - D0 -1 or D 0)
 // (builder int slice nbits - (slice -1) | (slice 0))
 BUILTIN(__builtin_tvm_dictiaddb, "{TcWi}TbWiTcWi", "nc")
 
-// DICTUADDB  (b i D n – D0 -1 or D 0)
+// DICTUADDB  (b i D n - D0 -1 or D 0)
 // (builder uint slice nbits - (slice -1) | (slice 0))
 BUILTIN(__builtin_tvm_dictuaddb, "{TcWi}TbWiTcWi", "nc")
 
-// DICTADDGETB (b k D n – D0 -1 or D y 0)
+// DICTADDGETB (b k D n - D0 -1 or D y 0)
 // (builder key slice nbits - (slice -1) | (slice value 0))
 BUILTIN(__builtin_tvm_dictaddgetb, "{TcTsWi}TbTsTcWi", "nc")
 
-// DICTIADDGETB (b i D n – D0 -1 or D y 0)
+// DICTIADDGETB (b i D n - D0 -1 or D y 0)
 // (builder int slice nbits - (slice' -1) | (slice y 0))
 BUILTIN(__builtin_tvm_dictiaddgetb, "{TcTsWi}TbWiTcWi", "nc")
 
-// DICTUADDGETB	(b i D n – D0 -1 or D y 0)
+// DICTUADDGETB	(b i D n - D0 -1 or D y 0)
 // (builder uint slice nbits - (slice' -1) | (slice y 0))
 BUILTIN(__builtin_tvm_dictuaddgetb, "{TcTsWi}TbWiTcWi", "nc")
 
@@ -1432,24 +1432,24 @@ BUILTIN(__builtin_tvm_dictuaddgetb, "{TcTsWi}TbWiTcWi", "nc")
 //
 // *******************************************/
 
-// DICTIDEL (i D n – D0 ?), a version of DICTDEL with the key represented by a signed n-bit Integer i. If i does not fit into n bits,
+// DICTIDEL (i D n - D0 ?), a version of DICTDEL with the key represented by a signed n-bit Integer i. If i does not fit into n bits,
 //   simply returns D 0 (“key not found, dictionary unmodified”)
 // (int slice nbits - (slice' -1) | (slice 0))
 BUILTIN(__builtin_tvm_dictidel, "{TcWi}WiTcWi", "nc")
 
-// DICTIDELGET (i D n – D0 x -1 or D 0), a variant of primitive DICTDELGET with signed n-bit integer i as a key
+// DICTIDELGET (i D n - D0 x -1 or D 0), a variant of primitive DICTDELGET with signed n-bit integer i as a key
 // (int slice nbits - (slice value -1) | (slice 0))
 BUILTIN(__builtin_tvm_dictidelget, "{TcTsWi}WiTcWi", "nc")
 
-// DICTIDELGETREF (i D n – D0 c -1 or  D 0), a variant of primitive DICTIDELGET returning a Cell instead of a Slice
+// DICTIDELGETREF (i D n - D0 c -1 or  D 0), a variant of primitive DICTIDELGET returning a Cell instead of a Slice
 // (int slice nbits - (slice cell -1) | (slice 0))
 BUILTIN(__builtin_tvm_dictidelgetref, "{TcTcWi}WiTcWi", "nc")
 
-// DICTUDELGET (i D n – D0x -1 or D 0), a variant of primitive DICTDELGET with unsigned n-bit integer i as a key
+// DICTUDELGET (i D n - D0x -1 or D 0), a variant of primitive DICTDELGET with unsigned n-bit integer i as a key
 // (uint slice nbits - (slice value -1) | (slice 0))
 BUILTIN(__builtin_tvm_dictudelget, "{TcTsWi}WiTcWi", "nc")
 
-// DICTUDELGETREF (i D n – D0 c -1 or D 0), a variant of primitive DICTUDELGET returning a Cell instead of a Slice
+// DICTUDELGETREF (i D n - D0 c -1 or D 0), a variant of primitive DICTUDELGET returning a Cell instead of a Slice
 // (uint slice nbits - (slice cell -1) | (slice 0))
 BUILTIN(__builtin_tvm_dictudelgetref, "{TcTcWi}WiTcWi", "nc")
 
@@ -1459,25 +1459,25 @@ BUILTIN(__builtin_tvm_dictudelgetref, "{TcTcWi}WiTcWi", "nc")
 //
 // *******************************************/
 
-// DICTGETOPTREF (k D n – c?), a variant of DICTGETREF that returns Null	
+// DICTGETOPTREF (k D n - c?), a variant of DICTGETREF that returns Null	
 //   instead of the value c? if the key k is absent from dictionary D
 BUILTIN(__builtin_tvm_dictgetoptref, "TcTsTcWi", "nc")
 
-// DICTIGETOPTREF (i D n – c?), similar to DICTGETOPTREF, but also returns Null
+// DICTIGETOPTREF (i D n - c?), similar to DICTGETOPTREF, but also returns Null
 BUILTIN(__builtin_tvm_dictigetoptref, "TcWiTcWi", "nc")
 
-// DICTUGETOPTREF (i D n – c?), similar to DICTGETOPTREF, but with the key given by unsigned n-bit Integer
+// DICTUGETOPTREF (i D n - c?), similar to DICTGETOPTREF, but with the key given by unsigned n-bit Integer
 BUILTIN(__builtin_tvm_dictugetoptref, "TcWiTcWi", "nc")
 
-// DICTSETGETOPTREF	(c? k D n – D0 ~?), a variant of both DICTGETOPTREF and DICTSETGETREF that sets the value corresponding to key k 
+// DICTSETGETOPTREF	(c? k D n - D0 ~?), a variant of both DICTGETOPTREF and DICTSETGETREF that sets the value corresponding to key k 
 //   in dictionary D to c? (if c? Is Null, then the key is deleted instead), and returns the old value ~? (if the key k was absent before, returns Null instead)
 BUILTIN(__builtin_tvm_dictsetgetoptref, "{TcTc}TcTsTcWi", "nc")
 
-// DICTISETGETOPTREF (c? i D n – D0 ~?), similar to primitive DICTSETGETOPTREF, but using signed n-bit Integer i as a key. 
+// DICTISETGETOPTREF (c? i D n - D0 ~?), similar to primitive DICTSETGETOPTREF, but using signed n-bit Integer i as a key. 
 //   If i does not fit into n bits, throws a range checking exception
 BUILTIN(__builtin_tvm_dictisetgetoptref, "{TcTc}TcWiTcWi", "c")
 
-// DICTUSETGETOPTREF (c? i D n – D0 ~?), similar to primitive DICTSETGETOPTREF, but using unsigned n-bit Integer i as a key
+// DICTUSETGETOPTREF (c? i D n - D0 ~?), similar to primitive DICTSETGETOPTREF, but using unsigned n-bit Integer i as a key
 BUILTIN(__builtin_tvm_dictusetgetoptref, "{TcTc}TcWiTcWi", "c")
 
 // ******************************************* 
@@ -1486,19 +1486,19 @@ BUILTIN(__builtin_tvm_dictusetgetoptref, "{TcTc}TcWiTcWi", "c")
 //
 // *******************************************/
 
-// PFXDICTSET (x k D n – D0 -1 or D 0)
+// PFXDICTSET (x k D n - D0 -1 or D 0)
 // (value key slice nbits - slice -1|0)
 BUILTIN(__builtin_tvm_pfxdictset, "{TcWi}TsTsTcWi", "nc")
 
-// PFXDICTREPLACE (x k D n – D0 -1 or D 0)
+// PFXDICTREPLACE (x k D n - D0 -1 or D 0)
 // (value key slice nbits - slice -1|0)
 BUILTIN(__builtin_tvm_pfxdictreplace, "{TcWi}TsTsTcWi", "nc")
 
-// PFXDICTADD (x k D n – D0 -1 or D 0)
+// PFXDICTADD (x k D n - D0 -1 or D 0)
 // (value key slice nbits - slice -1|0)
 BUILTIN(__builtin_tvm_pfxdictadd, "{TcWi}TsTsTcWi", "nc")
 
-// PFXDICTDEL (k D n – D0 -1 or D 0)
+// PFXDICTDEL (k D n - D0 -1 or D 0)
 // (key slice nbits - slice -1|0)
 BUILTIN(__builtin_tvm_pfxdictdel, "{TcWi}TsTcWi", "nc")
 
@@ -1509,43 +1509,43 @@ BUILTIN(__builtin_tvm_pfxdictdel, "{TcWi}TsTcWi", "nc")
 //
 // *******************************************/
 
-// DICTGETNEXTEQ (k D n – x0 k0 -1 or 0), similar to DICTGETNEXT, but computes the minimal key k0 
+// DICTGETNEXTEQ (k D n - x0 k0 -1 or 0), similar to DICTGETNEXT, but computes the minimal key k0 
 //  that is lexicographically greater than or equal to k
 // (key slice nbits - (value key -1) | (0))
 BUILTIN(__builtin_tvm_dictgetnexteq, "{TsTsWi}TsTcWi", "nc")
 
-// DICTGETPREV (k D n – x0 k0 -1 or 0), similar to DICTGETNEXT, but computes the maximal key k0 
+// DICTGETPREV (k D n - x0 k0 -1 or 0), similar to DICTGETNEXT, but computes the maximal key k0 
 //   lexicographically smaller than k
 // (key slice nbits - (value key -1) | (0))
 BUILTIN(__builtin_tvm_dictgetprev, "{TsTsWi}TsTcWi", "nc")
 
-// DICTGETPREVEQ (k D n – x0 k0 -1 or 0), similar to DICTGETPREV, but computes the maximal key k0
+// DICTGETPREVEQ (k D n - x0 k0 -1 or 0), similar to DICTGETPREV, but computes the maximal key k0
 //  lexicographically smaller than or equal to k
 // (key slice nbits - (value key -1) | (0))
 BUILTIN(__builtin_tvm_dictgetpreveq, "{TsTsWi}TsTcWi", "nc")
 
-// DICTIGETNEXT (i D n – x0 i0 -1 or 0), similar to DICTGETNEXT, but interprets all keys in dictionary D as big-endian signed n-bit integers, 
+// DICTIGETNEXT (i D n - x0 i0 -1 or 0), similar to DICTGETNEXT, but interprets all keys in dictionary D as big-endian signed n-bit integers, 
 //   and computes the minimal key i0 that is larger than Integer i (which does not necessarily fit into n bits)
 // (int slice nbits - (value key -1) | (0))
 BUILTIN(__builtin_tvm_dictigetnext, "{TsTsWi}WiTcWi", "nc")
 
-// DICTIGETNEXTEQ (i D n – x0 i0 -1 or 0)
+// DICTIGETNEXTEQ (i D n - x0 i0 -1 or 0)
 // (int slice nbits - (value key -1) | (0))
 BUILTIN(__builtin_tvm_dictigetnexteq, "{TsTsWi}WiTcWi", "nc")
 
-// DICTIGETPREV (i D n – x0 i0 -1 or 0)
+// DICTIGETPREV (i D n - x0 i0 -1 or 0)
 // (int slice nbits - (value key -1) | (0))
 BUILTIN(__builtin_tvm_dictigetprev, "{TsTsWi}WiTcWi", "nc")
 
-// DICTIGETPREVEQ (i D n – x0 i0 -1 or 0)
+// DICTIGETPREVEQ (i D n - x0 i0 -1 or 0)
 // (int slice nbits - (value key -1) | (0))
 BUILTIN(__builtin_tvm_dictigetpreveq, "{TsTsWi}WiTcWi", "nc")
 
-// DICTUGETNEXTEQ (i D n – x0 i0 -1 or 0)
+// DICTUGETNEXTEQ (i D n - x0 i0 -1 or 0)
 // (uint slice nbits - (value key -1) | (0))
 BUILTIN(__builtin_tvm_dictugetnexteq, "{TsTsWi}WiTcWi", "nc")
 
-// DICTUGETPREVEQ (i D n – x0 i0 -1 or 0)
+// DICTUGETPREVEQ (i D n - x0 i0 -1 or 0)
 // (uint slice nbits - (value key -1) | (0))
 BUILTIN(__builtin_tvm_dictugetpreveq, "{TsTsWi}WiTcWi", "nc")
 
@@ -1556,70 +1556,70 @@ BUILTIN(__builtin_tvm_dictugetpreveq, "{TsTsWi}WiTcWi", "nc")
 //
 // *******************************************/
 
-// DICTMINREF (D n – c k -1 or 0), similar to DICTMIN, but returns the only reference in the value as a Cell c
+// DICTMINREF (D n - c k -1 or 0), similar to DICTMIN, but returns the only reference in the value as a Cell c
 // (slice nbits - (cell key -1) | (0))
 BUILTIN(__builtin_tvm_dictminref, "{TcTsWi}TcWi", "nc")
 
-// DICTIMIN (D n – x i -1 or 0), somewhat similar to DICTMIN, but computes the minimal key I under the assumption that all keys are big-endian signed n-bit integers. 
+// DICTIMIN (D n - x i -1 or 0), somewhat similar to DICTMIN, but computes the minimal key I under the assumption that all keys are big-endian signed n-bit integers. 
 //   Notice that the key and value returned may differ from those computed by DICTMIN and DICTUMIN
 // (slice nbits - (value int -1) | (0))
 BUILTIN(__builtin_tvm_dictimin, "{TsWiWi}TcWi", "nc")
 
-// DICTIMINREF (D n – c i -1 or 0)
+// DICTIMINREF (D n - c i -1 or 0)
 // (slice nbits - (cell int -1) | (0))
 BUILTIN(__builtin_tvm_dictiminref, "{TcWiWi}TcWi", "nc")
 
-// DICTMAX (D n – x k -1 or 0), computes the maximal key k (represented by a Slice with n data bits) 
+// DICTMAX (D n - x k -1 or 0), computes the maximal key k (represented by a Slice with n data bits) 
 //   in dictionary D, and returns k along with the associated value x
 // (slice nbits - (value key -1) | (0))
 BUILTIN(__builtin_tvm_dictmax, "{TsTsWi}TcWi", "nc")
 
-// DICTMAXREF (D n – c k -1 or 0)
+// DICTMAXREF (D n - c k -1 or 0)
 // (slice nbits - (cell key -1) | (0))
 BUILTIN(__builtin_tvm_dictmaxref, "{TcTsWi}TcWi", "nc")
 
-// DICTIMAX (D n – x i -1 or 0)
+// DICTIMAX (D n - x i -1 or 0)
 // (slice nbits - (value int -1) | (0))
 BUILTIN(__builtin_tvm_dictimax, "{TsWiWi}TcWi", "nc")
 
-// DICTIMAXREF	(D n – c i -1 or 0)
+// DICTIMAXREF	(D n - c i -1 or 0)
 // (slice nbits - (cell int -1) | (0))
 BUILTIN(__builtin_tvm_dictimaxref, "{TcWiWi}TcWi", "nc")
 
-// DICTREMMIN (D n – D0 x k -1 or D 0), computes the minimal key k (represented by a Slice with n data bits) in dictionary D, 
+// DICTREMMIN (D n - D0 x k -1 or D 0), computes the minimal key k (represented by a Slice with n data bits) in dictionary D, 
 //   removes k from the dictionary, and returns k along with the associated value x and the modified dictionary D0
 // (slice nbits - (slice value key -1) | (0))
 BUILTIN(__builtin_tvm_dictremmin, "{TcTsTsWi}TcWi", "nc")
 
-//  DICTREMMINREF (D n – D0 c k -1 or D 0), similar to DICTREMMIN,
+//  DICTREMMINREF (D n - D0 c k -1 or D 0), similar to DICTREMMIN,
 //  but returns the only reference in the value as a Cell c
 // (slice nbits - (slice cell key -1) | (0))
 BUILTIN(__builtin_tvm_dictremminref, "{TcTcTsWi}TcWi", "nc")
 
-// DICTIREMMIN	(D n – D0 x i -1 or D 0), somewhat similar to DICTREMMIN, but computes the minimal key i under the assumption 
+// DICTIREMMIN	(D n - D0 x i -1 or D 0), somewhat similar to DICTREMMIN, but computes the minimal key i under the assumption 
 //  that all keys are big-endian signed n-bit integers. Notice that the key and value returned may differ from those computed by DICTREMMIN and
 //  DICTUREMMIN
 // (slice nbits - (slice cell key -1) | (0))
 BUILTIN(__builtin_tvm_dictiremmin, "{TcTsWiWi}TcWi", "nc")
 
-// DICTIREMMINREF (D n – D0 c i -1 or D 0)
+// DICTIREMMINREF (D n - D0 c i -1 or D 0)
 // (slice nbits - (slice cell int -1) | (0))
 BUILTIN(__builtin_tvm_dictiremminref, "{TcTcWiWi}TcWi", "nc")
 
-// DICTREMMAX (D n – D0 x k -1 or D 0), computes the maximal key k (represented by a Slice with n data bits) in dictionary D, 
+// DICTREMMAX (D n - D0 x k -1 or D 0), computes the maximal key k (represented by a Slice with n data bits) in dictionary D, 
 //   removes k from the dictionary, and returns k along with the associated value x and the modified dictionary D0
 // (slice nbits - (slice value key -1) | (0))
 BUILTIN(__builtin_tvm_dictremmax, "{TcTsTsWi}TcWi", "nc")
 
-// DICTREMMAXREF (D n – D0c k -1 or D 0)
+// DICTREMMAXREF (D n - D0c k -1 or D 0)
 // (slice nbits - (slice cell key -1) | (0))
 BUILTIN(__builtin_tvm_dictremmaxref, "{TcTcTsWi}TcWi", "nc")
 
-// DICTIREMMAX (D n – D0x i -1 or D 0)
+// DICTIREMMAX (D n - D0x i -1 or D 0)
 // (slice nbits - (slice value int -1) | (0))
 BUILTIN(__builtin_tvm_dictiremmax, "{TcTsWiWi}TcWi", "nc")
 
-// DICTIREMMAXREF (D n – D0c i -1 or D 0)
+// DICTIREMMAXREF (D n - D0c i -1 or D 0)
 // (slice nbits - (slice cell int -1) | (0))
 BUILTIN(__builtin_tvm_dictiremmaxref, "{TcTcWiWi}TcWi", "nc")
 
@@ -1629,31 +1629,31 @@ BUILTIN(__builtin_tvm_dictiremmaxref, "{TcTcWiWi}TcWi", "nc")
 //
 // *******************************************/
 
-// SUBDICTGET (k l D n – D0), constructs a subdictionary consisting of all keys beginning with prefix k 
+// SUBDICTGET (k l D n - D0), constructs a subdictionary consisting of all keys beginning with prefix k 
 //  (represented by a Slice, the first 0 <= l <= n <= 1023 data bits of which are used as a key) of length l in dictionary D of type HashmapE(n, X) 
 //  with n-bit keys. On success, returns the new subdictionary of the same type HashmapE(n, X) as a Slice D0
 // (prefix lbits dict nbits - dict)
 BUILTIN(__builtin_tvm_subdictget, "TcTsWiTcWi", "nc")
 
-// SUBDICTIGET (x l D n – D0), variant of SUBDICTGET with the prefix represented by a signed big-endian l-bit Integer x, where necessarily l <= 257
+// SUBDICTIGET (x l D n - D0), variant of SUBDICTGET with the prefix represented by a signed big-endian l-bit Integer x, where necessarily l <= 257
 // (prefix lbits dict nbits - dict')
 BUILTIN(__builtin_tvm_subdictiget, "TcWiWiTcWi", "nc")
 
-// SUBDICTUGET (x l D n – D0), variant of SUBDICTGET with the prefix represented by an unsigned big-endian l-bit	Integer	x, where necessarily l <= 256
+// SUBDICTUGET (x l D n - D0), variant of SUBDICTGET with the prefix represented by an unsigned big-endian l-bit	Integer	x, where necessarily l <= 256
 // (prefix lbits dict nbits - dict')
 BUILTIN(__builtin_tvm_subdictuget, "TcWiWiTcWi", "nc")
 
-// SUBDICTRPGET (k l D n – D0), similar to SUBDICTGET, but removes the common prefix	k from all keys of the new dictionary D0, 
+// SUBDICTRPGET (k l D n - D0), similar to SUBDICTGET, but removes the common prefix	k from all keys of the new dictionary D0, 
 //   which becomes of type HashmapE(n - l, X)
 // (prefix lbits dict nbits - dict')
 BUILTIN(__builtin_tvm_subdictrpget, "TcTsWiTcWi", "nc")
 
-// SUBDICTIRPGET (x l D n – D0), variant of SUBDICTRPGET with the prefix represented by a signed big-endian l-bit Integer x, 
+// SUBDICTIRPGET (x l D n - D0), variant of SUBDICTRPGET with the prefix represented by a signed big-endian l-bit Integer x, 
 //  where necessarily l <= 257
 // (prefix lbits dict nbits - dict')
 BUILTIN(__builtin_tvm_subdictirpget, "TcWiWiTcWi", "nc")
 
-// SUBDICTURPGET (x l D n – D0), variant of SUBDICTRPGET with the prefix represented by an unsigned big-endian l-bit Integer x, 
+// SUBDICTURPGET (x l D n - D0), variant of SUBDICTRPGET with the prefix represented by an unsigned big-endian l-bit Integer x, 
 //   where necessarily l <= 256
 // (prefix lbits dict nbits - dict')
 BUILTIN(__builtin_tvm_subdicturpget, "TcWiWiTcWi", "nc")
@@ -1664,16 +1664,16 @@ BUILTIN(__builtin_tvm_subdicturpget, "TcWiWiTcWi", "nc")
 //
 // *******************************************/
 
-// RANDU256 ( –	x), generates a new pseudo-random unsigned 256-bit Integer x
+// RANDU256 ( -	x), generates a new pseudo-random unsigned 256-bit Integer x
 BUILTIN(__builtin_tvm_randu256, "Wi", "nc")
 
-// RAND (y – z), generates a new pseudo-random integer z in the range 0...y-1 (or y...-1, if y < 0)
+// RAND (y - z), generates a new pseudo-random integer z in the range 0...y-1 (or y...-1, if y < 0)
 BUILTIN(__builtin_tvm_rand, "WiWi", "nc")
 
-// SETRAND  (x	– ), sets the random seed to unsigned 256-bit Integer x
+// SETRAND  (x	- ), sets the random seed to unsigned 256-bit Integer x
 BUILTIN(__builtin_tvm_setrand, "vWi", "nc")
 
-// ADDRAND (x – ), mixes unsigned 256-bit Integer x into the random seed r
+// ADDRAND (x - ), mixes unsigned 256-bit Integer x into the random seed r
 BUILTIN(__builtin_tvm_addrand, "vWi", "nc")
 
 // ******************************************* 
@@ -1682,10 +1682,10 @@ BUILTIN(__builtin_tvm_addrand, "vWi", "nc")
 //
 // *******************************************/
 
-// RANDSEED ( –	x), returns the current random seed as an unsigned 256-bit Integer. Equivalent to GETPARAM 6
+// RANDSEED ( -	x), returns the current random seed as an unsigned 256-bit Integer. Equivalent to GETPARAM 6
 BUILTIN(__builtin_tvm_randseed, "Wi", "nc")
 
-// BALANCE ( –	t), returns the remaining balance of the smart contract as a Tuple consisting of an Integer (the remaining Gram balance in nanograms) 
+// BALANCE ( -	t), returns the remaining balance of the smart contract as a Tuple consisting of an Integer (the remaining Gram balance in nanograms) 
 //   and a Maybe Cell (a dictionary with 32-bit keys representing the balance of “extra currencies”). Equivalent to GETPARAM 7
 BUILTIN(__builtin_tvm_balance, "Tt", "nc")
 
@@ -1696,7 +1696,7 @@ BUILTIN(__builtin_tvm_balance, "Tt", "nc")
 //
 // *******************************************/
 
-// SHA256U (s – x), computes sha256 of the data bits of Slice s.
+// SHA256U (s - x), computes sha256 of the data bits of Slice s.
 //  If the bit length of s is not divisible by eight, throws a cell underflow exception. The hash value is returned as a 256-bit unsigned integer x
 BUILTIN(__builtin_tvm_sha256u, "WiTs", "nc")
 
@@ -1709,7 +1709,7 @@ BUILTIN(__builtin_tvm_chksigns, "WiTsWiWi", "nc")
 //
 // *******************************************/
 
-// CDATASIZEQ (c n – x y z -1 or 0), recursively computes the count of distinct cells x, data bits y, 
+// CDATASIZEQ (c n - x y z -1 or 0), recursively computes the count of distinct cells x, data bits y, 
 //   and cell references z in the dag rooted at Cell c
 BUILTIN(__builtin_tvm_cdatasizeq, "{WiWiWiWi}TcWi", "nc")
 
@@ -1720,14 +1720,14 @@ BUILTIN(__builtin_tvm_cdatasizeq, "{WiWiWiWi}TcWi", "nc")
 //
 // *******************************************/
 
-// RAWRESERVEX  (x D y – ), similar to RAWRESERVE, but also accepts a dictionary D (represented by a Cell or Null ) with extra currencies
+// RAWRESERVEX  (x D y - ), similar to RAWRESERVE, but also accepts a dictionary D (represented by a Cell or Null ) with extra currencies
 BUILTIN(__builtin_tvm_rawreservex, "vWiTcWi", "nc")
 
-// SETLIBCODE (c x – ), creates an output action that would modify the collection of this smart contract libraries by adding or removing
+// SETLIBCODE (c x - ), creates an output action that would modify the collection of this smart contract libraries by adding or removing
 //   library with code given in	Cell c
 BUILTIN(__builtin_tvm_setlibcode, "vTcWi", "nc")
 
-// CHANGELIB (h x – ), creates an output action similarly to SETLIBCODE, 
+// CHANGELIB (h x - ), creates an output action similarly to SETLIBCODE, 
 //   but instead of the library code accepts its hash as an unsigned 256-bit integer
 BUILTIN(__builtin_tvm_changelib, "vWiWi", "nc")
 

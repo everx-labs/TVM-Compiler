@@ -197,101 +197,101 @@ defm CDDDR : I<(outs I257:$result), (ins Tuple:$tuple),
 //
 // *******************************************/
 
-// 6F00 - NIL ( – t), pushes the only Tuple t = () of length zero
+// 6F00 - NIL ( - t), pushes the only Tuple t = () of length zero
 //defm NIL : I<(outs Tuple:$t), (ins), (outs), (ins),
 //             [(set Tuple:$t, (int_tvm_nil))],
 //             "NIL\t$t",
 //             "NIL", 0x6f00>;
 
-// 6F01 — SINGLE (x – t), creates a singleton t := (x), i.e., a Tuple of length one
+// 6F01 — SINGLE (x - t), creates a singleton t := (x), i.e., a Tuple of length one
 defm SIGNLE : I<(outs Tuple:$t), (ins I257:$x), (outs), (ins),
              [(set Tuple:$t, (int_tvm_single I257:$x))],
              "SINGLE\t$t, $x",
              "SIGNLE", 0x6f01>;
-// 6F02 — PAIR or CONS (x y – t), creates pair t := (x, y)
+// 6F02 — PAIR or CONS (x y - t), creates pair t := (x, y)
 defm PAIR : I<(outs Tuple:$t), (ins I257:$x, I257:$y), (outs), (ins),
              [(set Tuple:$t, (int_tvm_pair I257:$x, I257:$y))],
              "PAIR\t$t, $x, $y",
              "PAIR", 0x6f02>;
 
-// 6F03 — TRIPLE (x y z – t), creates triple t := (x, y, z)
+// 6F03 — TRIPLE (x y z - t), creates triple t := (x, y, z)
 defm TRIPLE : I<(outs Tuple:$t), (ins I257:$x, I257:$y, I257:$z), (outs), (ins),
              [(set Tuple:$t, (int_tvm_triple I257:$x, I257:$y, I257:$z))],
              "TRIPLE\t$t, $x, $y, $z",
              "TRIPLE", 0x6f03>;
 
-// 6F10 — FIRST or CAR (t – x), returns the fist element of a Tuple
+// 6F10 — FIRST or CAR (t - x), returns the fist element of a Tuple
 defm FIRST : I<(outs I257:$x), (ins Tuple:$t), (outs), (ins),
              [(set I257:$x, (int_tvm_first Tuple:$t))],
              "FIRST\t$x, $t",
              "FIRST", 0x6f10>;
 
-// 6F11 — SECOND or CDR (t – y), returns the second element of a Tuple
+// 6F11 — SECOND or CDR (t - y), returns the second element of a Tuple
 defm SECOND : I<(outs I257:$y), (ins Tuple:$t), (outs), (ins),
              [(set I257:$y, (int_tvm_second Tuple:$t))],
              "SECOND\t$y, $t",
              "SECOND", 0x6f11>;
 
-// 6F12 — THIRD (t – z), returns the third element of a Tuple
+// 6F12 — THIRD (t - z), returns the third element of a Tuple
 defm THIRD : I<(outs I257:$z), (ins Tuple:$t), (outs), (ins),
              [(set I257:$z, (int_tvm_third Tuple:$t))],
              "SECOND\t$z, $t",
              "SECOND", 0x6f12>;
 
-// 6F21 — UNSINGLE (t – x), unpacks a singleton t = (x)
+// 6F21 — UNSINGLE (t - x), unpacks a singleton t = (x)
 defm UNSIGNLE : I<(outs I257:$x), (ins Tuple:$t), (outs), (ins),
              [(set I257:$x, (int_tvm_unsingle Tuple:$t))],
              "UNSINGLE\t$x, $t",
              "UNSIGNLE", 0x6f21>;
 
-// 6F22 — UNPAIR or UNCONS (t – x y), unpacks a pair t = (x, y)
+// 6F22 — UNPAIR or UNCONS (t - x y), unpacks a pair t = (x, y)
 defm UNPAIR : I<(outs I257:$x, I257:$y), (ins Tuple:$t), (outs), (ins),
              [(set I257:$x, I257:$y, (int_tvm_unpair Tuple:$t))],
              "UNPAIR\t$x, $y, $t",
              "UNPAIR", 0x6f22>;
 
-// 6F23 — UNTRIPLE (t – x y z), unpacks a triple t = (x, y, z)
+// 6F23 — UNTRIPLE (t - x y z), unpacks a triple t = (x, y, z)
 defm UNTRIPLE : I<(outs I257:$x, I257:$y, I257:$z), (ins Tuple:$t), (outs), (ins),
              [(set I257:$x, I257:$y, I257:$z, (int_tvm_untriple Tuple:$t))],
              "UNTRIPLE\t$x, $y, $z, $t",
              "UNTRIPLE", 0x6f23>;
 
-// 6F4n — EXPLODE	n (t – x1. . . xmm), unpacks a Tuple t = (x1, . . . , xm) and returns its length m, 
+// 6F4n — EXPLODE	n (t - x1. . . xmm), unpacks a Tuple t = (x1, . . . , xm) and returns its length m, 
 //  but only if m <= n <= 15. Otherwise throws a type check exception
 // TODO
 
-// 6F50 — SETFIRST (t x – t0), sets the first component of Tuple t to x and returns the resulting Tuple t0
+// 6F50 — SETFIRST (t x - t0), sets the first component of Tuple t to x and returns the resulting Tuple t0
 defm SETFIRST : I<(outs Tuple:$ot), (ins Tuple:$it, I257:$x), (outs), (ins),
              [(set Tuple:$ot, (int_tvm_setfirst Tuple:$it, I257:$x))],
              "SETFIRST\t$ot, $it, $x",
              "SETFIRST", 0x6f50>;
 
-// 6F51 — SETSECOND (t x – t0), sets the second component of Tuple t to x and returns the resulting Tuple t0
+// 6F51 — SETSECOND (t x - t0), sets the second component of Tuple t to x and returns the resulting Tuple t0
 defm SETSECOND : I<(outs Tuple:$ot), (ins Tuple:$it, I257:$x), (outs), (ins),
              [(set Tuple:$ot, (int_tvm_setsecond Tuple:$it, I257:$x))],
              "SETSECOND\t$ot, $it, $x",
              "SETSECOND", 0x6f51>;
 
-// 6F52 — SETTHIRD (t x – t0), sets the third component of Tuple t to x and returns the resulting Tuple t0
+// 6F52 — SETTHIRD (t x - t0), sets the third component of Tuple t to x and returns the resulting Tuple t0
 defm SETTHIRD : I<(outs Tuple:$ot), (ins Tuple:$it, I257:$x), (outs), (ins),
              [(set Tuple:$ot, (int_tvm_setthird Tuple:$it, I257:$x))],
              "SETTHIRD\t$ot, $it, $x",
              "SETTHIRD", 0x6f52>;
 
-// 6F83 — UNPACKFIRSTVAR (t n – x1. . . xn), similar to UNPACKFIRST n, but with 0 <= n <= 255 taken from the stack
+// 6F83 — UNPACKFIRSTVAR (t n - x1. . . xn), similar to UNPACKFIRST n, but with 0 <= n <= 255 taken from the stack
 // TODO
 
-// 6F84 — EXPLODEVAR (t n – x1. . . xmm), similar to EXPLODE n, but with 0 <= n <= 255 taken from the stack
+// 6F84 — EXPLODEVAR (t n - x1. . . xmm), similar to EXPLODE n, but with 0 <= n <= 255 taken from the stack
 // TODO
 
-// 6F86 — INDEXVARQ (t k – x), similar to INDEXQ n, but with 0 <= k <= 254 taken from the stack
+// 6F86 — INDEXVARQ (t k - x), similar to INDEXQ n, but with 0 <= k <= 254 taken from the stack
 defm INDEXVARQ : I<(outs I257:$x), (ins Tuple:$t, I257:$k),
                   (outs), (ins),
                   [(set I257:$x, (int_tvm_indexvarq Tuple:$t, I257:$k))],
                   "INDEXVARQ\t$x, $t, $k",
                   "INDEXVARQ", 0x6f86>;
 
-// 6F87 — SETINDEXVARQ (t x k – t0), similar to SETINDEXQ	k, but with 0 <= k <= 254 taken from the stack
+// 6F87 — SETINDEXVARQ (t x k - t0), similar to SETINDEXQ	k, but with 0 <= k <= 254 taken from the stack
 defm SETINDEXVARQ : I<(outs Tuple:$ot), (ins Tuple:$it, I257:$x, I257:$k),
                   (outs), (ins),
                   [(set Tuple:$ot, (int_tvm_setindexvarq Tuple:$it, I257:$x, I257:$k))],

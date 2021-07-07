@@ -536,7 +536,7 @@ defm MODPOW2 : I<(outs I257:$q),
              [(set I257:$q, (int_tvm_modpow2 I257:$x, uimm1_256:$tt))],
              "MODPOW2\t$tt, $x", "MODPOW2\t$tt", 0xa938>;
 
-// A98C — MULDIVMOD (x y z - q r), where q := bx · y/zc, r := x · y mod z (same as */MOD in Forth)
+// A98C — MULDIVMOD (x y z - q r), where q := bx * y/zc, r := x * y mod z (same as */MOD in Forth)
 defm MULDIVMOD : I<(outs I257:$q, I257:$r), (ins I257:$x, I257:$y, I257:$z),
                   (outs), (ins),
                   [(set I257:$q, I257:$r,
@@ -557,14 +557,14 @@ defm MULRSHIFTR : I<(outs I257:$q), (ins I257:$x, I257:$y, I257:$z),
                     (int_tvm_mulrshiftr I257:$x, I257:$y, I257:$z))],
                   "MULRSHIFTR\t$x, $y, $z", "MULRSHIFTR", 0xa9a5>;
 
-// A9B4tt — MULRSHIFT tt + 1 (x y - bxy · 2-tt-1c)
+// A9B4tt — MULRSHIFT tt + 1 (x y - bxy * 2-tt-1c)
 defm MULRSHIFTTT : I<(outs I257 : $q),
              (ins I257:$x, I257 : $y, uimm1_256:$tt),
              (outs), (ins uimm1_256:$tt),
              [(set I257 : $q, (int_tvm_mulrshift_tt I257:$x, I257:$y, uimm1_256:$tt))],
              "MULRSHIFT\t$tt, $x, $y", "MULRSHIFT\t$tt", 0xa9b4>;
 
-// A9B5tt — MULRSHIFTR	tt + 1 (x y - bxy · 2-tt-1+ 1/2c)
+// A9B5tt — MULRSHIFTR	tt + 1 (x y - bxy * 2-tt-1+ 1/2c)
 defm MULRSHIFTRTT : I<(outs I257 : $q),
             (ins I257:$x, I257 : $y, uimm1_256:$tt),
              (outs), (ins uimm1_256:$tt),

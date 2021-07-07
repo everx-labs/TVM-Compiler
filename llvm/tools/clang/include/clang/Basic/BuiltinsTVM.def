@@ -828,16 +828,16 @@ BUILTIN(__builtin_tvm_divmodc, "{WiWi}WiWi", "nc")
 // MODPOW2 tt + 1: (x - x mod 2tt+1)
 BUILTIN(__builtin_tvm_modpow2, "WiWiWi", "nc")
 
-// MULDIVMOD (x y z - q r), where q := bx · y/zc, r := x · y mod z (same as */MOD in Forth)
+// MULDIVMOD (x y z - q r), where q := bx * y/zc, r := x * y mod z (same as */MOD in Forth)
 BUILTIN(__builtin_tvm_muldivmod, "{WiWi}WiWiWi", "nc")
 
 // MULRSHIFT (x y z - bxy * 2-zc) for 0 <= z <= 256
 BUILTIN(__builtin_tvm_mulrshift, "WiWiWiWi", "nc")
 
-// MULRSHIFT tt + 1 (x y - bxy · 2-tt-1c)
+// MULRSHIFT tt + 1 (x y - bxy * 2-tt-1c)
 BUILTIN(__builtin_tvm_mulrshift_tt, "WiWiWiWi", "nc")
 
-// MULRSHIFTR	tt + 1 (x y - bxy · 2-tt-1+ 1/2c)
+// MULRSHIFTR	tt + 1 (x y - bxy * 2-tt-1+ 1/2c)
 BUILTIN(__builtin_tvm_mulrshiftr_tt, "WiWiWiWi", "nc")
 
 // MULRSHIFTR (x y z - bxy * 2-z+ 1/2c) for 0 <= z <= 256

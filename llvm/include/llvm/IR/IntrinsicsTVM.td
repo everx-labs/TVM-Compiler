@@ -939,7 +939,7 @@ let TargetPrefix = "tvm" in {
     Intrinsic<[llvm_i257_ty], [llvm_i257_ty, llvm_i257_ty],
               [IntrNoMem]>;
 
-// MULDIVMOD (x y z - q r), where q := bx · y/zc, r := x · y mod z (same as */MOD in Forth)
+// MULDIVMOD (x y z - q r), where q := bx * y/zc, r := x * y mod z (same as */MOD in Forth)
   def int_tvm_muldivmod :
     GCCBuiltin<"__builtin_tvm_muldivmod">,
     Intrinsic<[llvm_i257_ty, llvm_i257_ty], [llvm_i257_ty, llvm_i257_ty, llvm_i257_ty], [IntrNoMem]>;
@@ -956,13 +956,13 @@ let TargetPrefix = "tvm" in {
     Intrinsic<[llvm_i257_ty], [llvm_i257_ty, llvm_i257_ty, llvm_i257_ty],
               [IntrNoMem]>;
 
-// MULRSHIFT tt + 1 (x y - bxy · 2-tt-1c)
+// MULRSHIFT tt + 1 (x y - bxy * 2-tt-1c)
   def int_tvm_mulrshift_tt :
     GCCBuiltin<"__builtin_tvm_mulrshift_tt">,
     Intrinsic<[llvm_i257_ty], [llvm_i257_ty, llvm_i257_ty, llvm_i257_ty],
               [IntrNoMem]>;
 
-// MULRSHIFTR	tt + 1 (x y - bxy · 2-tt-1+ 1/2c)
+// MULRSHIFTR	tt + 1 (x y - bxy * 2-tt-1+ 1/2c)
   def int_tvm_mulrshiftr_tt :
     GCCBuiltin<"__builtin_tvm_mulrshiftr_tt">,
     Intrinsic<[llvm_i257_ty], [llvm_i257_ty, llvm_i257_ty, llvm_i257_ty],

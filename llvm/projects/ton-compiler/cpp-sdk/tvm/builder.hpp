@@ -18,6 +18,10 @@ public:
     bldr_ = __builtin_tvm_stu(val, bldr_, len);
     return *this;
   }
+  builder& stb(bool val) {
+    bldr_ = __builtin_tvm_stu(val, bldr_, 1);
+    return *this;
+  }
   builder& sti(int val, unsigned len) {
     bldr_ = __builtin_tvm_sti(val, bldr_, len);
     return *this;

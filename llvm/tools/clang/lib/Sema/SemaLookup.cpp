@@ -770,6 +770,12 @@ static bool LookupBuiltin(Sema &S, LookupResult &R) {
         } else if (II == S.getASTContext().getReflectInterfaceHasPubkeyName()) {
           R.addDecl(S.getASTContext().getReflectInterfaceHasPubkeyDecl());
           return true;
+        } else if (II == S.getASTContext().getReflectInterfaceHasTimestampName()) {
+          R.addDecl(S.getASTContext().getReflectInterfaceHasTimestampDecl());
+          return true;
+        } else if (II == S.getASTContext().getReflectInterfaceHasExpireName()) {
+          R.addDecl(S.getASTContext().getReflectInterfaceHasExpireDecl());
+          return true;
         } else if (II == S.getASTContext().getReflectSignatureFuncIdName()) {
           R.addDecl(S.getASTContext().getReflectSignatureFuncIdDecl());
           return true;

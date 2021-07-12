@@ -1860,7 +1860,9 @@ public:
   bool isObjCIndependentClassType() const;      // __attribute__((objc_independent_class))
   // TVM local begin
   bool isTVMTupleStructType() const;            // __attribute__((tvm_tuple))
-  bool isTVMNoPubkeyInterfaceType() const;     // __attribute__((no_pubkey))
+  bool isTVMNoPubkeyInterfaceType() const;      // __attribute__((no_pubkey))
+  bool isTVMNoTimestampInterfaceType() const;   // __attribute__((no_timestamp))
+  bool isTVMNoExpireInterfaceType() const;      // __attribute__((no_expire))
   // Generated into literal llvm struct like { ty, ty, ... }
   bool isTVMLiteralStructType() const;
   // TVM local end

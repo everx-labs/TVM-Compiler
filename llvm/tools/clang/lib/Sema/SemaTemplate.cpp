@@ -3542,9 +3542,12 @@ checkBuiltinTemplateIdType(Sema &SemaRef, BuiltinTemplateDecl *BTD,
           << "Arguments should be {Interface, Impl}";
       return QualType();
     }
+
     CXXRecordDecl *NewRec = cast<CXXRecordDecl>(Context.buildImplicitRecord(
         ("__reflect_proxy<"
-         + InterfaceRec->getName() + "," + ImplRec->getName() + ">").str(),
+         + InterfaceRec->getName() + ","
+         + ImplRec->getName() + ","
+         + TypeIdx.getAsIntegral().toString(10) + ">").str(),
         TTK_Class));
     NewRec->startDefinition();
     NewRec->addAttr(new (Context) FinalAttr(TemplateLoc, Context, false));
@@ -3593,9 +3596,6 @@ checkBuiltinTemplateIdType(Sema &SemaRef, BuiltinTemplateDecl *BTD,
         if (!Meth->hasAttr<TVMGetterFuncAttr>())
           continue;
       }
-
-      if (Meth->getName() == "constructor")
-        continue;
 
       SmallVector<QualType, 8> MethArgs;
       for (auto *Arg : Meth->parameters()) {

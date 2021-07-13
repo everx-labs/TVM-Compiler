@@ -508,91 +508,91 @@ defm DIVR : BinaryRR<int_tvm_divr, "DIVR", 0xa905>;
 // A906 - DIVC (x y - q00:= dx/ye)
 defm DIVRC : BinaryRR<int_tvm_divc, "DIVC", 0xa906>;
 
-// A90C — DIVMOD (x y - q r), where q := bx/yc, r := x - yq
+// A90C - DIVMOD (x y - q r), where q := bx/yc, r := x - yq
 defm DIVMOD : I<(outs I257:$q, I257:$r), (ins I257:$x, I257:$y),
                   (outs), (ins),
                   [(set I257:$q, I257:$r,
                     (int_tvm_divmod I257:$x, I257:$y))],
                   "DIVMOD\t$x, $y", "DIVMOD", 0xa90c>;
 
-// A90D — DIVMODR (x y - q0 r0), where q0:= bx/y + 1/2c, r0:= x - yq0
+// A90D - DIVMODR (x y - q0 r0), where q0:= bx/y + 1/2c, r0:= x - yq0
 defm DIVMODR : I<(outs I257:$q, I257:$r), (ins I257:$x, I257:$y),
                   (outs), (ins),
                   [(set I257:$q, I257:$r,
                     (int_tvm_divmodr I257:$x, I257:$y))],
                   "DIVMODR\t$x, $y", "DIVMODR", 0xa90c>;
 
-// A90E — DIVMODC	(x y - q00 r00), where q00:= dx/ye, r00:= x - yq00
+// A90E - DIVMODC	(x y - q00 r00), where q00:= dx/ye, r00:= x - yq00
 defm DIVMODC : I<(outs I257:$q, I257:$r), (ins I257:$x, I257:$y),
                   (outs), (ins),
                   [(set I257:$q, I257:$r,
                     (int_tvm_divmodc I257:$x, I257:$y))],
                   "DIVMODC\t$x, $y", "DIVMODC", 0xa90e>;
 
-// A938tt — MODPOW2 tt + 1: (x - x mod 2tt+1)
+// A938tt - MODPOW2 tt + 1: (x - x mod 2tt+1)
 defm MODPOW2 : I<(outs I257:$q),
              (ins I257:$x, uimm1_256:$tt),
              (outs), (ins uimm1_256:$tt),
              [(set I257:$q, (int_tvm_modpow2 I257:$x, uimm1_256:$tt))],
              "MODPOW2\t$tt, $x", "MODPOW2\t$tt", 0xa938>;
 
-// A98C — MULDIVMOD (x y z - q r), where q := bx * y/zc, r := x * y mod z (same as */MOD in Forth)
+// A98C - MULDIVMOD (x y z - q r), where q := bx * y/zc, r := x * y mod z (same as */MOD in Forth)
 defm MULDIVMOD : I<(outs I257:$q, I257:$r), (ins I257:$x, I257:$y, I257:$z),
                   (outs), (ins),
                   [(set I257:$q, I257:$r,
                     (int_tvm_muldivmod I257:$x, I257:$y, I257:$z))],
                   "MULDIVMOD\t$x, $y, $z", "MULDIVMOD", 0xa98c>;
 
-// A9A4 — MULRSHIFT (x y z - bxy * 2-zc) for 0 <= z <= 256
+// A9A4 - MULRSHIFT (x y z - bxy * 2-zc) for 0 <= z <= 256
 defm MULRSHIFT : I<(outs I257:$q), (ins I257:$x, I257:$y, I257:$z),
                   (outs), (ins),
                   [(set I257:$q, 
                     (int_tvm_mulrshift I257:$x, I257:$y, I257:$z))],
                   "MULRSHIFT\t$x, $y, $z", "MULRSHIFT", 0xa9a4>;
 
-// A9A5 — MULRSHIFTR (x y z - bxy * 2-z+ 1/2c) for 0 <= z <= 256
+// A9A5 - MULRSHIFTR (x y z - bxy * 2-z+ 1/2c) for 0 <= z <= 256
 defm MULRSHIFTR : I<(outs I257:$q), (ins I257:$x, I257:$y, I257:$z),
                   (outs), (ins),
                   [(set I257:$q, 
                     (int_tvm_mulrshiftr I257:$x, I257:$y, I257:$z))],
                   "MULRSHIFTR\t$x, $y, $z", "MULRSHIFTR", 0xa9a5>;
 
-// A9B4tt — MULRSHIFT tt + 1 (x y - bxy * 2-tt-1c)
+// A9B4tt - MULRSHIFT tt + 1 (x y - bxy * 2-tt-1c)
 defm MULRSHIFTTT : I<(outs I257 : $q),
              (ins I257:$x, I257 : $y, uimm1_256:$tt),
              (outs), (ins uimm1_256:$tt),
              [(set I257 : $q, (int_tvm_mulrshift_tt I257:$x, I257:$y, uimm1_256:$tt))],
              "MULRSHIFT\t$tt, $x, $y", "MULRSHIFT\t$tt", 0xa9b4>;
 
-// A9B5tt — MULRSHIFTR	tt + 1 (x y - bxy * 2-tt-1+ 1/2c)
+// A9B5tt - MULRSHIFTR	tt + 1 (x y - bxy * 2-tt-1+ 1/2c)
 defm MULRSHIFTRTT : I<(outs I257 : $q),
             (ins I257:$x, I257 : $y, uimm1_256:$tt),
              (outs), (ins uimm1_256:$tt),
              [(set I257 : $q, (int_tvm_mulrshiftr_tt I257:$x, I257:$y, uimm1_256:$tt))],
              "MULRSHIFTR\t$tt", "MULRSHIFTR\t$tt", 0xa9b5>;
 
-// A9C4 — LSHIFTDIV (x y z - b2zx/yc) for 0 <= z <= 256
+// A9C4 - LSHIFTDIV (x y z - b2zx/yc) for 0 <= z <= 256
 defm LSHIFTDIV : I<(outs I257:$q), (ins I257:$x, I257:$y, I257:$z),
                   (outs), (ins),
                   [(set I257:$q, 
                     (int_tvm_lshiftdiv I257:$x, I257:$y, I257:$z))],
                   "LSHIFTDIV\t$x, $y, $z", "LSHIFTDIV", 0xa9c4>;
 
-// A9C5 — LSHIFTDIVR (x y z - b2zx/y + 1/2c) for 0 <= z <= 256
+// A9C5 - LSHIFTDIVR (x y z - b2zx/y + 1/2c) for 0 <= z <= 256
 defm LSHIFTDIVR : I<(outs I257:$q), (ins I257:$x, I257:$y, I257:$z),
                   (outs), (ins),
                   [(set I257:$q, 
                     (int_tvm_lshiftdivr I257:$x, I257:$y, I257:$z))],
                   "LSHIFTDIVR\t$x, $y, $z", "LSHIFTDIVR", 0xa9c4>;
 
-// A9D4tt — LSHIFTDIV tt + 1 (x y - b2tt+1x/yc)
+// A9D4tt - LSHIFTDIV tt + 1 (x y - b2tt+1x/yc)
 defm LSHIFTDIVTT : I<(outs I257 : $q),
             (ins I257:$x, I257 : $y, uimm1_256:$tt),
              (outs), (ins uimm1_256:$tt),
              [(set I257 : $q, (int_tvm_lshiftdiv_tt I257:$x, I257:$y, uimm1_256:$tt))],
              "LSHIFTDIV\t$tt, $x, $y", "LSHIFTDIV\t$tt", 0xa9d4>;
 
-// A9D5tt — LSHIFTDIVR tt + 1 (x y - b2tt+1x/y+ 1/2c)
+// A9D5tt - LSHIFTDIVR tt + 1 (x y - b2tt+1x/y+ 1/2c)
 defm LSHIFTDIVRTT : I<(outs I257 : $q),
             (ins I257:$x, I257 : $y, uimm1_256:$tt),
              (outs), (ins uimm1_256:$tt),
@@ -605,10 +605,10 @@ A.5.3. Shifts, logical operations
 
 *******************************************/
 
-// AE — POW2 (y - 2**y), 0 <= y <= 1023, equivalent to ONE; SWAP; LSHIFT
+// AE - POW2 (y - 2**y), 0 <= y <= 1023, equivalent to ONE; SWAP; LSHIFT
 defm POW2 : UnaryR<int_tvm_pow2, "POW2", 0xae>;
 
-// B60A — MINMAX or INTSORT2 (x y - x y or y x), sorts two integers
+// B60A - MINMAX or INTSORT2 (x y - x y or y x), sorts two integers
 let hasSideEffects = 1 in
 defm MINMAX : I<(outs I257:$ox, I257:$oy), (ins I257:$x, I257:$y),
                   (outs), (ins),
@@ -625,14 +625,14 @@ defm MINMAX : I<(outs I257:$ox, I257:$oy), (ins I257:$x, I257:$y),
 // B7A0 - QADD (x y - x + y), always works if x and y are	Integer s, but returns a NaN if the addition cannot be performed
 defm QADD : BinaryRR<int_tvm_qadd, "QADD", 0xb7a0>;
 
-// B7A904 — QDIV (x y - bx/yc), returns a NaN if y = 0, or if y = -1 and
+// B7A904 - QDIV (x y - bx/yc), returns a NaN if y = 0, or if y = -1 and
 //   x = -2256, or if either of x or y is a NaN
 defm QDIV : BinaryRR<int_tvm_qdiv, "QDIV", 0xb7a904>;
 
-// B7B0 — QAND (x y - x&y), bitwise “and” (similar to AND), but returns a NaN if either x or y is a NaN
+// B7B0 - QAND (x y - x&y), bitwise "and" (similar to AND), but returns a NaN if either x or y is a NaN
 defm QAND : BinaryRR<int_tvm_qand, "QAND", 0xb7b0>;
 
-// B7B1 —  QOR (x y - x|y), bitwise “or”. If  x = -1 or y = -1, the result is always -1,
+// B7B1 -  QOR (x y - x|y), bitwise "or". If  x = -1 or y = -1, the result is always -1,
 //  even if the other argument is a NaN
 defm QOR : BinaryRR<int_tvm_qor, "QOR", 0xb7b1>;
 

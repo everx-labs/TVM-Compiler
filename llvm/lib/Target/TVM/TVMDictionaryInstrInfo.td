@@ -371,31 +371,31 @@ defm STDICT     : I0<(outs Builder : $builder),
 //
 // *******************************************/
 
-// F401 — SKIPDICT or SKIPOPTREF (s - s0), equivalent to LDDICT; NIP
+// F401 - SKIPDICT or SKIPOPTREF (s - s0), equivalent to LDDICT; NIP
 let mayLoad = 1 in
 defm SKIPDICT : I0<(outs Slice:$dict), (ins Slice:$sl),
                  [(set Slice:$dict, (int_tvm_skipdict Slice:$sl))],
                  "SKIPDICT", 0xf401>;
 
-// F402 — LDDICTS (s - s0 s00), loads (parses) a (Slice-represented) dictionary s0 from Slice s, and returns the remainder of s as s00
+// F402 - LDDICTS (s - s0 s00), loads (parses) a (Slice-represented) dictionary s0 from Slice s, and returns the remainder of s as s00
 let mayLoad = 1 in
 defm LDDICTS : I0<(outs Slice:$dict, Slice:$rem_sl), (ins Slice:$sl),
                  [(set Slice:$dict, Slice:$rem_sl, (int_tvm_lddicts Slice:$sl))],
                  "LDDICTS", 0xf402>;
 
-// F403 — PLDDICTS (s - s0), preloads a (Slice - represented) dictionary s0 from Slice s. Approximately equivalent to LDDICTS; DROP
+// F403 - PLDDICTS (s - s0), preloads a (Slice - represented) dictionary s0 from Slice s. Approximately equivalent to LDDICTS; DROP
 let mayLoad = 1 in
 defm PLDDICTS : I0<(outs Slice:$dict), (ins Slice:$sl), 
                  [(set Slice:$dict, (int_tvm_plddicts Slice:$sl))],
                  "PLDDICTS", 0xf403>;
 
-// F406 — LDDICTQ (s - D s0 -1 or s 0), a quiet version of LDDICT
+// F406 - LDDICTQ (s - D s0 -1 or s 0), a quiet version of LDDICT
 let mayLoad = 1 in
 defm LDDICTQ : I0<(outs Cell:$dict, Slice:$rem_sl, I257:$result), (ins Slice:$sl), 
                  [(set Cell:$dict, Slice:$rem_sl, I257:$result, (int_tvm_lddictq Slice:$sl))],
                  "LDDICTQ", 0xf406>;
 
-// F407 — PLDDICTQ (s - D -1 or 0), a quiet version of PLDDICT
+// F407 - PLDDICTQ (s - D -1 or 0), a quiet version of PLDDICT
 let mayLoad = 1 in
 defm PLDDICTQ : I0<(outs Cell : $dict, I257:$result), (ins Slice : $sl),
                     [(set Cell : $dict, I257:$result, (int_tvm_plddictq Slice : $sl))],
@@ -407,7 +407,7 @@ defm PLDDICTQ : I0<(outs Cell : $dict, I257:$result), (ins Slice : $sl),
 //
 // *******************************************/
 
-// F41C — DICTISETGET (x i D n - D0 y -1 or D0 0), similar to DICTSETGET, 
+// F41C - DICTISETGET (x i D n - D0 y -1 or D0 0), similar to DICTSETGET, 
 //  but with the key represented by a big-endian signed n-bit Integer I
 // (value int slice nbits - (slice y -1) | (slice 0))
 let mayLoad = 1, mayStore = 1 in
@@ -419,7 +419,7 @@ let mayLoad = 1, mayStore = 1 in
       "DICTISETGET\t$newdict, $oldval, $succ, $val, $i, $dict, $precision",
       "DICTISETGET NULLSWAPIFNOT", 0xf41c>;
 
-// F41D — DICTISETGETREF (c i D n - D0 c0 -1 or D0 0), a version of DICTSETGETREF with signed Integer i as a key
+// F41D - DICTISETGETREF (c i D n - D0 c0 -1 or D0 0), a version of DICTSETGETREF with signed Integer i as a key
 // (cell int slice nbits - (slice cell -1) | (slice 0))
 let mayLoad = 1, mayStore = 1 in
   defm DICTISETGETREF :
@@ -430,7 +430,7 @@ let mayLoad = 1, mayStore = 1 in
       "DICTISETGETREF\t$newdict, $oldval, $succ, $val, $i, $dict, $precision",
       "DICTISETGETREF NULLSWAPIFNOT", 0xf41d>;
 
-// F42A — DICTREPLACEGET (x k D n - D0 y -1 or D 0), a Replace counterpart of DICTSETGET: 
+// F42A - DICTREPLACEGET (x k D n - D0 y -1 or D 0), a Replace counterpart of DICTSETGET: 
 //  on success, also returns the old value associated with the key in question
 // (value int slice nbits - (slice value -1) | (slice 0))
 let mayLoad = 1, mayStore = 1 in
@@ -442,7 +442,7 @@ let mayLoad = 1, mayStore = 1 in
       "DICTREPLACEGET\t$newdict, $oldval, $succ, $val, $key, $dict, $precision",
       "DICTREPLACEGET NULLSWAPIFNOT", 0xf42a>;
 
-// F42B — DICTREPLACEGETREF (c k D n - D0 c0 -1 or D 0)
+// F42B - DICTREPLACEGETREF (c k D n - D0 c0 -1 or D 0)
 // (cell int slice nbits - (slice' cell -1) | (slice 0))
 let mayLoad = 1, mayStore = 1 in
   defm DICTREPLACEGETREF :
@@ -453,7 +453,7 @@ let mayLoad = 1, mayStore = 1 in
       "DICTREPLACEGETREF\t$newdict, $oldval, $succ, $val, $key, $dict, $precision",
       "DICTREPLACEGETREF NULLSWAPIFNOT", 0xf42b>;
 
-// F42C — DICTIREPLACEGET  (x i D n - D0 y -1 or D 0)
+// F42C - DICTIREPLACEGET  (x i D n - D0 y -1 or D 0)
 // (value int slice nbits - (slice value -1) | (slice 0))
 let mayLoad = 1, mayStore = 1 in
   defm DICTIREPLACEGET :
@@ -464,7 +464,7 @@ let mayLoad = 1, mayStore = 1 in
       "DICTIREPLACEGET\t$newdict, $oldval, $succ, $val, $i, $dict, $precision",
       "DICTIREPLACEGET NULLSWAPIFNOT", 0xf42c>;
 
-// F42D — DICTIREPLACEGETREF (c i D n - D0 c0 -1 or D 0)
+// F42D - DICTIREPLACEGETREF (c i D n - D0 c0 -1 or D 0)
 // (cell int slice nbits - (slice' cell -1) | (slice 0))
 let mayLoad = 1, mayStore = 1 in
   defm DICTIREPLACEGETREF :
@@ -475,7 +475,7 @@ let mayLoad = 1, mayStore = 1 in
       "DICTIREPLACEGETREF\t$newdict, $oldval, $succ, $val, $i, $dict, $precision",
       "DICTIREPLACEGETREF NULLSWAPIFNOT", 0xf42d>;
 
-// F42E — DICTUREPLACEGET (x i D n - D0 y -1 or D 0)
+// F42E - DICTUREPLACEGET (x i D n - D0 y -1 or D 0)
 // (value uint slice nbits - (slice value -1) | (slice 0))
 let mayLoad = 1, mayStore = 1 in
   defm DICTUREPLACEGET :
@@ -486,7 +486,7 @@ let mayLoad = 1, mayStore = 1 in
       "DICTUREPLACEGET\t$newdict, $oldval, $succ, $val, $i, $dict, $precision",
       "DICTUREPLACEGET NULLSWAPIFNOT", 0xf42e>;
 
-// F42F — DICTUREPLACEGETREF (c i D n - D0 c0 -1 or D 0)
+// F42F - DICTUREPLACEGETREF (c i D n - D0 c0 -1 or D 0)
 // (cell uint slice nbits - (slice' cell -1) | (slice 0))
 let mayLoad = 1, mayStore = 1 in
   defm DICTUREPLACEGETREF :
@@ -497,7 +497,7 @@ let mayLoad = 1, mayStore = 1 in
       "DICTUREPLACEGETREF\t$newdict, $oldval, $succ, $val, $i, $dict, $precision",
       "DICTUREPLACEGETREF NULLSWAPIFNOT", 0xf42f>;
 
-// F43A — DICTADDGET (x k D n - D0 -1 or D y 0), an Add counterpart of DICTSETGET: sets the value associated with key k in dictionary D to x, 
+// F43A - DICTADDGET (x k D n - D0 -1 or D y 0), an Add counterpart of DICTSETGET: sets the value associated with key k in dictionary D to x, 
 //   but only if key k is not already present in D. Otherwise, just returns the old value y without changing the dictionary
 // (value key slice nbits - (slice -1) | (slice y 0))
 let mayLoad = 1, mayStore = 1 in
@@ -509,7 +509,7 @@ let mayLoad = 1, mayStore = 1 in
       "DICTADDGET\t$newdict, $oldval, $succ, $val, $key, $dict, $precision",
       "DICTADDGET NULLSWAPIFNOT", 0xf43a>;
 
-// F43B	— DICTADDGETREF (c k D n - D0 -1 or D c0 0), an Add counterpart of DICTSETGETREF
+// F43B	- DICTADDGETREF (c k D n - D0 -1 or D c0 0), an Add counterpart of DICTSETGETREF
 // (cell key slice nbits - (slice' -1) | (slice cell 0))
 let mayLoad = 1, mayStore = 1 in
   defm DICTADDGETREF :
@@ -520,7 +520,7 @@ let mayLoad = 1, mayStore = 1 in
       "DICTADDGETREF\t$newdict, $oldval, $succ, $val, $key, $dict, $precision",
       "DICTADDGETREF NULLSWAPIFNOT", 0xf43b>;
 
-// F43C — DICTIADDGET (x i D n - D0 -1 or D y 0)
+// F43C - DICTIADDGET (x i D n - D0 -1 or D y 0)
 // (value int slice nbits - (slice -1) | (slice value 0))
 let mayLoad = 1, mayStore = 1 in
   defm DICTIADDGET :
@@ -531,7 +531,7 @@ let mayLoad = 1, mayStore = 1 in
       "DICTIADDGET\t$newdict, $oldval, $succ, $val, $i, $dict, $precision",
       "DICTIADDGET NULLSWAPIFNOT", 0xf43c>;
 
-// F43D — DICTIADDGETREF (c i D n - D0 -1 or D c0 0)
+// F43D - DICTIADDGETREF (c i D n - D0 -1 or D c0 0)
 let mayLoad = 1, mayStore = 1 in
   defm DICTIADDGETREF :
     I<(outs Cell:$newdict, Cell:$oldval, I257:$succ),
@@ -541,7 +541,7 @@ let mayLoad = 1, mayStore = 1 in
       "DICTIADDGETREF\t$newdict, $oldval, $succ, $val, $i, $dict, $precision",
       "DICTIADDGETREF NULLSWAPIFNOT", 0xf43d>;
 
-// F43E — DICTUADDGET	(x i D n - D0 -1 or D y 0)
+// F43E - DICTUADDGET	(x i D n - D0 -1 or D y 0)
 // (value uint slice nbits - (slice -1) | (slice value 0))
 let mayLoad = 1, mayStore = 1 in
   defm DICTUADDGET :
@@ -552,7 +552,7 @@ let mayLoad = 1, mayStore = 1 in
       "DICTUADDGET\t$newdict, $oldval, $succ, $val, $i, $dict, $precision",
       "DICTUADDGET NULLSWAPIFNOT", 0xf43e>;
 
-// F43F — DICTUADDGETREF (c i D n - D0 -1 or D c0 0)
+// F43F - DICTUADDGETREF (c i D n - D0 -1 or D c0 0)
 // (cell uint slice nbits - (slice -1) | (slice cell 0))
 let mayLoad = 1, mayStore = 1 in
   defm DICTUADDGETREF :
@@ -569,25 +569,25 @@ let mayLoad = 1, mayStore = 1 in
 //
 // *******************************************/
 
-// F441 — DICTSETB (b k D n - D0)
+// F441 - DICTSETB (b k D n - D0)
 // (builder key slice nbits - slice)
 defm DICTSETB : I<(outs Cell:$odict), (ins Builder:$bldr, Slice:$key, Cell:$idict, I257:$precision), (outs), (ins),
                  [(set Cell:$odict, (int_tvm_dictsetb Builder:$bldr, Slice:$key, Cell:$idict, I257:$precision))],
                  "DICTSETB\t$odict, $bldr, $key, $idict, $precision","DICTSETB", 0xf441>;
 
-// F442 — DICTISETB (b i D n - D0)
+// F442 - DICTISETB (b i D n - D0)
 // (builder int slice nbits - slice)
 defm DICTISETB : I<(outs Cell:$odict), (ins Builder:$bldr, I257:$i, Cell:$idict, I257:$precision), (outs), (ins),
                  [(set Cell:$odict, (int_tvm_dictisetb Builder:$bldr, I257:$i, Cell:$idict, I257:$precision))],
                  "DICTISETB\t$odict, $bldr, $i, $idict, $precision","DICTISETB", 0xf442>;
 
-// F443 — DICTUSETB (b i D n - D0)
+// F443 - DICTUSETB (b i D n - D0)
 // (builder uint slice nbits - slice)
 defm DICTUSETB : I<(outs Cell:$odict), (ins Builder:$bldr, I257:$i, Cell:$idict, I257:$precision), (outs), (ins),
                  [(set Cell:$odict, (int_tvm_dictusetb Builder:$bldr, I257:$i, Cell:$idict, I257:$precision))],
                  "DICTUSETB\t$odict, $bldr, $i, $idict, $precision","DICTUSETB", 0xf443>;
 
-// F445 — DICTSETGETB (b k D n - D0 y -1 or D0 0)
+// F445 - DICTSETGETB (b k D n - D0 y -1 or D0 0)
 // (builder key slice nbits - (slice value -1) | (slice 0))
 let mayLoad = 1, mayStore = 1 in
   defm DICTSETGETB :
@@ -598,7 +598,7 @@ let mayLoad = 1, mayStore = 1 in
       "DICTSETGETB\t$newdict, $oldval, $succ, $bldr, $key, $dict, $precision",
       "DICTSETGETB NULLSWAPIFNOT", 0xf445>;
 
-// F446 — DICTISETGETB (b i D n - D0 y -1 or D0 0)
+// F446 - DICTISETGETB (b i D n - D0 y -1 or D0 0)
 // (builder int slice nbits - (slice' y -1) | (slice' 0))
 let mayLoad = 1, mayStore = 1 in
   defm DICTISETGETB :
@@ -609,7 +609,7 @@ let mayLoad = 1, mayStore = 1 in
       "DICTISETGETB\t$newdict, $oldval, $succ, $bldr, $i, $dict, $precision",
       "DICTISETGETB NULLSWAPIFNOT", 0xf446>;
 
-// F447 — DICTUSETGETB (b i D n - D0 y -1 or D0 0)
+// F447 - DICTUSETGETB (b i D n - D0 y -1 or D0 0)
 // (builder uint slice nbits - (slice' y -1) | (slice' 0))
 let mayLoad = 1, mayStore = 1 in
   defm DICTUSETGETB :
@@ -620,25 +620,25 @@ let mayLoad = 1, mayStore = 1 in
       "DICTUSETGETB\t$newdict, $oldval, $succ, $bldr, $i, $dict, $precision",
       "DICTUSETGETB NULLSWAPIFNOT", 0xf447>;
 
-// F449 — DICTREPLACEB (b k D n - D0 -1 or D 0)
+// F449 - DICTREPLACEB (b k D n - D0 -1 or D 0)
 // (builder key slice nbits - (slice -1) | (slice 0))
 defm DICTREPLACEB : I<(outs Cell:$odict, I257:$result), (ins Builder:$bldr, Slice:$key, Cell:$idict, I257:$precision), (outs), (ins),
                  [(set Cell:$odict, I257:$result, (int_tvm_dictreplaceb Builder:$bldr, Slice:$key, Cell:$idict, I257:$precision))],
                  "DICTREPLACEB\t$odict, $result, $bldr, $key, $idict, $precision","DICTREPLACEB", 0xf449>;
 
-// F44A — DICTIREPLACEB (b i D n - D0 -1 or D 0)
+// F44A - DICTIREPLACEB (b i D n - D0 -1 or D 0)
 // (builder uint slice nbits - (slice -1) | (slice 0))
 defm DICTIREPLACEB : I<(outs Cell:$odict, I257:$result), (ins Builder:$bldr, I257:$i, Cell:$idict, I257:$precision), (outs), (ins),
                  [(set Cell:$odict, I257:$result, (int_tvm_dictireplaceb Builder:$bldr, I257:$i, Cell:$idict, I257:$precision))],
                  "DICTIREPLACEB\t$odict, $result, $bldr, $i, $idict, $precision","DICTIREPLACEB", 0xf44a>;
 
-// F44B — DICTUREPLACEB (b i D n - D0 -1 or D 0)
+// F44B - DICTUREPLACEB (b i D n - D0 -1 or D 0)
 // (builder uint slice nbits - (slice -1) | (slice 0))
 defm DICTUREPLACEB : I<(outs Cell:$odict, I257:$result), (ins Builder:$bldr, I257:$i, Cell:$idict, I257:$precision), (outs), (ins),
                  [(set Cell:$odict, I257:$result, (int_tvm_dictureplaceb Builder:$bldr, I257:$i, Cell:$idict, I257:$precision))],
                  "DICTUREPLACEB\t$odict, $result, $bldr, $i, $idict, $precision","DICTUREPLACEB", 0xf44a>;
 
-// F44D — DICTREPLACEGETB (b k D n - D0 y -1 or D 0)
+// F44D - DICTREPLACEGETB (b k D n - D0 y -1 or D 0)
 // (builder key slice nbits - (slice value -1) | (slice 0))
 let mayLoad = 1, mayStore = 1 in
   defm DICTREPLACEGETB :
@@ -650,7 +650,7 @@ let mayLoad = 1, mayStore = 1 in
       "DICTREPLACEGETB NULLSWAPIFNOT", 0xf44d>;
 
 
-// F44E — DICTIREPLACEGETB (b i D n - D0 y -1 or D 0)
+// F44E - DICTIREPLACEGETB (b i D n - D0 y -1 or D 0)
 // (builder int slice nbits - (slice value -1) | (slice 0))
 let mayLoad = 1, mayStore = 1 in
   defm DICTIREPLACEGETB :
@@ -661,7 +661,7 @@ let mayLoad = 1, mayStore = 1 in
       "DICTIREPLACEGETB\t$newdict, $oldval, $succ, $bldr, $i, $dict, $precision",
       "DICTIREPLACEGETB NULLSWAPIFNOT", 0xf44e>;
 
-// F44F — DICTUREPLACEGETB	(b i D n - D0 y -1 or D 0)
+// F44F - DICTUREPLACEGETB	(b i D n - D0 y -1 or D 0)
 // (builder uint slice nbits - (slice value -1) | (slice 0))
 let mayLoad = 1, mayStore = 1 in
   defm DICTUREPLACEGETB :
@@ -673,26 +673,26 @@ let mayLoad = 1, mayStore = 1 in
       "DICTUREPLACEGETB NULLSWAPIFNOT", 0xf44f>;
 
 
-// F451 — DICTADDB (b k D n - D0 -1 or D 0)
+// F451 - DICTADDB (b k D n - D0 -1 or D 0)
 // (builder key slice nbits - (slice -1) | (slice 0))
 defm DICTADDB : I<(outs Cell:$odict, I257:$result), (ins Builder:$bldr, Slice:$key, Cell:$idict, I257:$precision), (outs), (ins),
                  [(set Cell:$odict, I257:$result, (int_tvm_dictaddb Builder:$bldr, Slice:$key, Cell:$idict, I257:$precision))],
                  "DICTADDB\t$odict,  $result, $bldr, $key, $idict, $precision","DICTADDB", 0xf451>;
 
-// F452 — DICTIADDB (b i D n - D0 -1 or D 0)
+// F452 - DICTIADDB (b i D n - D0 -1 or D 0)
 // (builder int slice nbits - (slice -1) | (slice 0))
 defm DICTIADDB : I<(outs Cell:$odict, I257:$result), (ins Builder:$bldr, I257:$i, Cell:$idict, I257:$precision), (outs), (ins),
                  [(set Cell:$odict, I257:$result, (int_tvm_dictiaddb Builder:$bldr, I257:$i, Cell:$idict, I257:$precision))],
                  "DICTIADDB\t$odict, $result, $bldr, $i, $idict, $precision","DICTIADDB", 0xf452>;
 
 
-// F453 — DICTUADDB  (b i D n - D0 -1 or D 0)
+// F453 - DICTUADDB  (b i D n - D0 -1 or D 0)
 // (builder uint slice nbits - (slice -1) | (slice 0))
 defm DICTUADDB : I<(outs Cell:$odict, I257:$result), (ins Builder:$bldr, I257:$i, Cell:$idict, I257:$precision), (outs), (ins),
                  [(set Cell:$odict, I257:$result, (int_tvm_dictuaddb Builder:$bldr, I257:$i, Cell:$idict, I257:$precision))],
                  "DICTUADDB\t$odict, $result, $bldr, $i, $idict, $precision","DICTUADDB", 0xf453>;
 
-// F455 — DICTADDGETB (b k D n - D0 -1 or D y 0)
+// F455 - DICTADDGETB (b k D n - D0 -1 or D y 0)
 // (builder key slice nbits - (slice -1) | (slice value 0))
 let mayLoad = 1, mayStore = 1 in
   defm DICTADDGETB :
@@ -703,7 +703,7 @@ let mayLoad = 1, mayStore = 1 in
       "DICTADDGETB\t$newdict, $oldval, $succ, $bldr, $key, $dict, $precision",
       "DICTADDGETB NULLSWAPIFNOT", 0xf455>;
 	  
-// F456 — DICTIADDGETB (b i D n - D0 -1 or D y 0)
+// F456 - DICTIADDGETB (b i D n - D0 -1 or D y 0)
 // (builder int slice nbits - (slice' -1) | (slice y 0))
 let mayLoad = 1, mayStore = 1 in
   defm DICTIADDGETB :
@@ -714,7 +714,7 @@ let mayLoad = 1, mayStore = 1 in
       "DICTIADDGETB\t$newdict, $oldval, $succ, $bldr, $i, $dict, $precision",
       "DICTIADDGETB NULLSWAPIFNOT", 0xf456>;
 
-// F457 — DICTUADDGETB	(b i D n - D0 -1 or D y 0)
+// F457 - DICTUADDGETB	(b i D n - D0 -1 or D y 0)
 // (builder uint slice nbits - (slice' -1) | (slice y 0))
 let mayLoad = 1, mayStore = 1 in
   defm DICTUADDGETB :
@@ -732,8 +732,8 @@ let mayLoad = 1, mayStore = 1 in
 //
 // *******************************************/
 
-// F45A	— DICTIDEL (i D n - D0 ?), a version of DICTDEL with the key represented by a signed n-bit Integer i. If i does not fit into n bits,
-//   simply returns D 0 (“key not found, dictionary unmodified”)
+// F45A	- DICTIDEL (i D n - D0 ?), a version of DICTDEL with the key represented by a signed n-bit Integer i. If i does not fit into n bits,
+//   simply returns D 0 ("key not found, dictionary unmodified")
 // (int slice nbits - (slice' -1) | (slice 0))
 let mayStore = 1 in
   defm DICITDEL :
@@ -744,7 +744,7 @@ let mayStore = 1 in
       "DICTDEL\t$newdict, $succ, $i, $dict, $precision",
       "DICTDEL", 0xf45a>;
 
-// F464 — DICTIDELGET (i D n - D0 x -1 or D 0), a variant of primitive DICTDELGET with signed n-bit integer i as a key
+// F464 - DICTIDELGET (i D n - D0 x -1 or D 0), a variant of primitive DICTDELGET with signed n-bit integer i as a key
 // (int slice nbits - (slice value -1) | (slice 0))
 let mayLoad = 1, mayStore = 1 in
   defm DICITDELGET :
@@ -755,7 +755,7 @@ let mayLoad = 1, mayStore = 1 in
       "DICTDELGET\t$newdict, $x, $succ, $i, $dict, $precision",
       "DICTDELGET NULLSWAPIFNOT", 0xf464>;
 
-// F465	— DICTIDELGETREF (i D n - D0 c -1 or  D 0), a variant of primitive DICTIDELGET returning a Cell instead of a Slice
+// F465	- DICTIDELGETREF (i D n - D0 c -1 or  D 0), a variant of primitive DICTIDELGET returning a Cell instead of a Slice
 // (int slice nbits - (slice cell -1) | (slice 0))
 let mayLoad = 1, mayStore = 1 in
   defm DICITDELGETREF :
@@ -766,7 +766,7 @@ let mayLoad = 1, mayStore = 1 in
       "DICTDELGETREF\t$newdict, $c, $succ, $i, $dict, $precision",
       "DICTDELGETREF NULLSWAPIFNOT", 0xf465>;
 
-// F466 — DICTUDELGET (i D n - D0x -1 or D 0), a variant of primitive DICTDELGET with unsigned n-bit integer i as a key
+// F466 - DICTUDELGET (i D n - D0x -1 or D 0), a variant of primitive DICTDELGET with unsigned n-bit integer i as a key
 // (uint slice nbits - (slice value -1) | (slice 0))
 let mayLoad = 1, mayStore = 1 in
   defm DICUTDELGET :
@@ -777,7 +777,7 @@ let mayLoad = 1, mayStore = 1 in
       "DICUDELGET\t$newdict, $x, $succ, $i, $dict, $precision",
       "DICUDELGET NULLSWAPIFNOT", 0xf466>;
 
-// F467	— DICTUDELGETREF (i D n - D0 c -1 or D 0), a variant of primitive DICTUDELGET returning a Cell instead of a Slice
+// F467	- DICTUDELGETREF (i D n - D0 c -1 or D 0), a variant of primitive DICTUDELGET returning a Cell instead of a Slice
 let mayLoad = 1, mayStore = 1 in
   defm DICUTDELGETREF :
     I<(outs Cell:$newdict, Cell:$c, I257:$succ),
@@ -790,11 +790,11 @@ let mayLoad = 1, mayStore = 1 in
 
 // ******************************************* 
 //
-// A.10.7. “Maybe reference” dictionary operations
+// A.10.7. "Maybe reference" dictionary operations
 //
 // *******************************************/
 
-// F469 — DICTGETOPTREF (k D n - c?), a variant of DICTGETREF that returns Null	
+// F469 - DICTGETOPTREF (k D n - c?), a variant of DICTGETREF that returns Null	
 //   instead of the value c? if the key k is absent from dictionary D
 // (key slice nbits - (slice -1) | (slice 0))
 let mayLoad = 1 in
@@ -803,21 +803,21 @@ defm DICTGETOPTREF : I<(outs Cell:$c, I257:$result), (ins Slice:$key, Cell:$idic
 				   (int_tvm_dictgetoptref Slice:$key, Cell:$idict, I257:$precision))],
                  "DICTGETOPTREF\t$c,  $result, $idict, $precision","DICTGETOPTREF", 0xf469>;
 
-// F46A — DICTIGETOPTREF (i D n - c?), similar to DICTGETOPTREF, but also returns Null
+// F46A - DICTIGETOPTREF (i D n - c?), similar to DICTGETOPTREF, but also returns Null
 let mayLoad = 1 in
 defm DICTIGETOPTREF : I<(outs Cell:$c), (ins I257:$i, Cell:$idict, I257:$precision), (outs), (ins),
                  [(set Cell:$c,  
 				   (int_tvm_dictigetoptref I257:$i, Cell:$idict, I257:$precision))],
                  "DICTIGETOPTREF\t$c, $i, $idict, $precision","DICTIGETOPTREF", 0xf46a>;
 
-// F46B — DICTUGETOPTREF (i D n - c?), similar to DICTGETOPTREF, but with the key given by unsigned n-bit Integer
+// F46B - DICTUGETOPTREF (i D n - c?), similar to DICTGETOPTREF, but with the key given by unsigned n-bit Integer
 let mayLoad = 1 in
 defm DICTUGETOPTREF : I<(outs Cell:$c, I257:$result), (ins I257:$i, Cell:$idict, I257:$precision), (outs), (ins),
                  [(set Cell:$c, I257:$result, 
 				   (int_tvm_dictugetoptref I257:$i, Cell:$idict, I257:$precision))],
                  "DICTUGETOPTREF\t$c,  $result, $idict, $precision","DICTUGETOPTREF", 0xf46b>;
 
-// F46D	— DICTSETGETOPTREF	(c? k D n - D0 ~?), a variant of both DICTGETOPTREF and DICTSETGETREF that sets the value corresponding to key k 
+// F46D	- DICTSETGETOPTREF	(c? k D n - D0 ~?), a variant of both DICTGETOPTREF and DICTSETGETREF that sets the value corresponding to key k 
 //   in dictionary D to c? (if c? Is Null, then the key is deleted instead), and returns the old value ~? (if the key k was absent before, returns Null instead)
 let mayLoad = 1, mayStore = 1 in
 defm DICTSETGETOPTREF : I<(outs Cell:$odict, Cell:$oc), (ins Cell:$ic, Slice:$key, Cell:$idict, I257:$precision), (outs), (ins),
@@ -825,7 +825,7 @@ defm DICTSETGETOPTREF : I<(outs Cell:$odict, Cell:$oc), (ins Cell:$ic, Slice:$ke
 				   (int_tvm_dictsetgetoptref Cell:$ic, Slice:$key, Cell:$idict, I257:$precision))],
                  "DICTSETGETOPTREF\t$odict, $oc, $ic, $key, $idict, $precision","DICTSETGETOPTREF", 0xf46d>;
 
-// F46E — DICTISETGETOPTREF (c? i D n - D0 ~?), similar to primitive DICTSETGETOPTREF, but using signed n-bit Integer i as a key. 
+// F46E - DICTISETGETOPTREF (c? i D n - D0 ~?), similar to primitive DICTSETGETOPTREF, but using signed n-bit Integer i as a key. 
 //   If i does not fit into n bits, throws a range checking exception
 let mayLoad = 1, mayStore = 1 in
 defm DICTISETGETOPTREF : I<(outs Cell:$odict, Cell:$oc), (ins Cell:$ic, I257:$i, Cell:$idict, I257:$precision), (outs), (ins),
@@ -833,7 +833,7 @@ defm DICTISETGETOPTREF : I<(outs Cell:$odict, Cell:$oc), (ins Cell:$ic, I257:$i,
 				   (int_tvm_dictisetgetoptref Cell:$ic, I257:$i, Cell:$idict, I257:$precision))],
                  "DICTISETGETOPTREF\t$odict, $oc, $ic, $i, $idict, $precision","DICTISETGETOPTREF", 0xf46e>;
 
-// F46F	— DICTUSETGETOPTREF (c? i D n -	D0 ~?), similar to primitive DICTSETGETOPTREF, but using unsigned n-bit Integer i as a key
+// F46F	- DICTUSETGETOPTREF (c? i D n -	D0 ~?), similar to primitive DICTSETGETOPTREF, but using unsigned n-bit Integer i as a key
 let mayLoad = 1, mayStore = 1 in
 defm DICTUSETGETOPTREF : I<(outs Cell:$odict, Cell:$oc), (ins Cell:$ic, I257:$i, Cell:$idict, I257:$precision), (outs), (ins),
                  [(set Cell:$odict, Cell:$oc, 
@@ -846,28 +846,28 @@ defm DICTUSETGETOPTREF : I<(outs Cell:$odict, Cell:$oc), (ins Cell:$ic, I257:$i,
 //
 // *******************************************/
 
-// F470 — PFXDICTSET (x k D n - D0 -1 or D 0)
+// F470 - PFXDICTSET (x k D n - D0 -1 or D 0)
 // (value key slice nbits - slice -1|0)
 let mayStore = 1 in
 defm PFXDICTSET : I<(outs Cell:$odict, I257:$result), (ins Slice:$value, Slice:$key, Cell:$idict, I257:$precision), (outs), (ins),
                  [(set Cell:$odict, I257:$result, (int_tvm_pfxdictset Slice:$value, Slice:$key, Cell:$idict, I257:$precision))],
                  "PFXDICTSET\t$odict, $result, $value, $key, $idict, $precision","PFXDICTSET", 0xf470>;
 
-// F471 — PFXDICTREPLACE (x k D n - D0 -1 or D 0)
+// F471 - PFXDICTREPLACE (x k D n - D0 -1 or D 0)
 // (value key slice nbits - slice -1|0)
 let mayLoad = 1, mayStore = 1 in
 defm PFXDICTREPLACE : I<(outs Cell:$odict, I257:$result), (ins Slice:$value, Slice:$key, Cell:$idict, I257:$precision), (outs), (ins),
                  [(set Cell:$odict, I257:$result, (int_tvm_pfxdictreplace Slice:$value, Slice:$key, Cell:$idict, I257:$precision))],
                  "PFXDICTREPLACE\t$odict, $result, $value, $key, $idict, $precision","PFXDICTREPLACE", 0xf471>;
 
-// F472 — PFXDICTADD (x k D n - D0 -1 or D 0)
+// F472 - PFXDICTADD (x k D n - D0 -1 or D 0)
 // (value key slice nbits - slice -1|0)
 let mayStore = 1 in
 defm PFXDICTADD : I<(outs Cell:$odict, I257:$result), (ins Slice:$value, Slice:$key, Cell:$idict, I257:$precision), (outs), (ins),
                  [(set Cell:$odict, I257:$result, (int_tvm_pfxdictadd Slice:$value, Slice:$key, Cell:$idict, I257:$precision))],
                  "PFXDICTADD\t$odict, $result, $value, $key, $idict, $precision","PFXDICTADD", 0xf472>;
 
-// F473 — PFXDICTDEL (k D n - D0 -1 or D 0)
+// F473 - PFXDICTDEL (k D n - D0 -1 or D 0)
 // (key slice nbits - slice -1|0)
 let mayStore = 1 in
 defm PFXDICTDEL : I<(outs Cell:$odict, I257:$result), (ins Slice:$key, Cell:$idict, I257:$precision), (outs), (ins),
@@ -880,7 +880,7 @@ defm PFXDICTDEL : I<(outs Cell:$odict, I257:$result), (ins Slice:$key, Cell:$idi
 //
 // *******************************************/
 
-// F475 — DICTGETNEXTEQ (k D n - x0 k0 -1 or 0), similar to DICTGETNEXT, but computes the minimal key k0 
+// F475 - DICTGETNEXTEQ (k D n - x0 k0 -1 or 0), similar to DICTGETNEXT, but computes the minimal key k0 
 //  that is lexicographically greater than or equal to k
 // (key slice nbits - (value key -1) | (0))
 let mayLoad = 1 in
@@ -892,7 +892,7 @@ let mayLoad = 1 in
       "DICTGETNEXTQ\t$value, $next, $status, $key, $dict, $precision",
       "DICTGETNEXTQ NULLSWAPIFNOT2", 0xf475>;
 
-// F476 — DICTGETPREV (k D n - x0 k0 -1 or 0), similar to DICTGETNEXT, but computes the maximal key k0 
+// F476 - DICTGETPREV (k D n - x0 k0 -1 or 0), similar to DICTGETNEXT, but computes the maximal key k0 
 //   lexicographically smaller than k
 // (key slice nbits - (value key -1) | (0))
 let mayLoad = 1 in
@@ -904,7 +904,7 @@ let mayLoad = 1 in
       "DICTGETPREV\t$value, $prev, $status, $key, $dict, $precision",
       "DICTGETPREV NULLSWAPIFNOT2", 0xf476>;
 
-// F477 — DICTGETPREVEQ (k D n - x0 k0 -1 or 0), similar to DICTGETPREV, but computes the maximal key k0
+// F477 - DICTGETPREVEQ (k D n - x0 k0 -1 or 0), similar to DICTGETPREV, but computes the maximal key k0
 //  lexicographically smaller than or equal to k
 // (key slice nbits - (value key -1) | (0))
 let mayLoad = 1 in
@@ -916,7 +916,7 @@ let mayLoad = 1 in
       "DICTGETPREVQ\t$value, $prev, $status, $key, $dict, $precision",
       "DICTGETPREVQ NULLSWAPIFNOT2", 0xf477>;
 
-// F478 — DICTIGETNEXT (i D n - x0 i0 -1 or 0), similar to DICTGETNEXT, but interprets all keys in dictionary D as big-endian signed n-bit integers, 
+// F478 - DICTIGETNEXT (i D n - x0 i0 -1 or 0), similar to DICTGETNEXT, but interprets all keys in dictionary D as big-endian signed n-bit integers, 
 //   and computes the minimal key i0 that is larger than Integer i (which does not necessarily fit into n bits)
 // (int slice nbits - (value key -1) | (0))
 let mayLoad = 1 in
@@ -928,7 +928,7 @@ let mayLoad = 1 in
       "DICTIGETNEXT\t$value, $next, $status, $i, $dict, $precision",
       "DICTIGETNEXT NULLSWAPIFNOT2", 0xf478>;
 
-// F479 — DICTIGETNEXTEQ (i D n - x0 i0 -1 or 0)
+// F479 - DICTIGETNEXTEQ (i D n - x0 i0 -1 or 0)
 // (int slice nbits - (value key -1) | (0))
 let mayLoad = 1 in
   defm DICTIGETNEXTEQ :
@@ -939,7 +939,7 @@ let mayLoad = 1 in
       "DICTIGETNEXTEQ\t$value, $next, $status, $i, $dict, $precision",
       "DICTIGETNEXTEQ NULLSWAPIFNOT2", 0xf479>;
 
-// F47A — DICTIGETPREV (i D n - x0 i0 -1 or 0)
+// F47A - DICTIGETPREV (i D n - x0 i0 -1 or 0)
 // (int slice nbits - (value key -1) | (0))
 let mayLoad = 1 in
   defm DICTIGETPREV :
@@ -950,7 +950,7 @@ let mayLoad = 1 in
       "DICTIGETPREV\t$value, $prev, $status, $i, $dict, $precision",
       "DICTIGETPREV NULLSWAPIFNOT2", 0xf47a>;
 
-// F47B — DICTIGETPREVEQ (i D n - x0 i0 -1 or 0)
+// F47B - DICTIGETPREVEQ (i D n - x0 i0 -1 or 0)
 // (int slice nbits - (value key -1) | (0))
 let mayLoad = 1 in
   defm DICTIGETPREVEQ :
@@ -961,7 +961,7 @@ let mayLoad = 1 in
       "DICTIGETPREVEQ\t$value, $prev, $status, $i, $dict, $precision",
       "DICTIGETPREVEQ NULLSWAPIFNOT2", 0xf47b>;
 
-// F47D — DICTUGETNEXTEQ (i D n - x0 i0 -1 or 0)
+// F47D - DICTUGETNEXTEQ (i D n - x0 i0 -1 or 0)
 // (uint slice nbits - (value key -1) | (0))
 let mayLoad = 1 in
   defm DICTUGETNEXTEQ :
@@ -972,7 +972,7 @@ let mayLoad = 1 in
       "DICTUGETNEXTEQ\t$value, $prev, $status, $i, $dict, $precision",
       "DICTUGETNEXTEQ NULLSWAPIFNOT2", 0xf47d>;
 
-// F47F — DICTUGETPREVEQ (i D n - x0 i0 -1 or 0)
+// F47F - DICTUGETPREVEQ (i D n - x0 i0 -1 or 0)
 // (uint slice nbits - (value key -1) | (0))
 let mayLoad = 1 in
   defm DICTUGETPREVEQ :
@@ -990,7 +990,7 @@ let mayLoad = 1 in
 //
 // *******************************************/
 
-// F483	— DICTMINREF (D n - c k -1 or 0), similar to DICTMIN, but returns the only reference in the value as a Cell c
+// F483	- DICTMINREF (D n - c k -1 or 0), similar to DICTMIN, but returns the only reference in the value as a Cell c
 // (slice nbits - (cell key -1) | (0))
 let mayLoad = 1 in
   defm DICTMINREF :
@@ -1001,7 +1001,7 @@ let mayLoad = 1 in
       "DICTMINREF\t$c, $key, $status, $dict, $precision",
       "DICTMINREF NULLSWAPIFNOT2", 0xf483>;
 
-// F484 — DICTIMIN (D n - x i -1 or 0), somewhat similar to DICTMIN, but computes the minimal key I under the assumption that all keys are big-endian signed n-bit integers. 
+// F484 - DICTIMIN (D n - x i -1 or 0), somewhat similar to DICTMIN, but computes the minimal key I under the assumption that all keys are big-endian signed n-bit integers. 
 //   Notice that the key and value returned may differ from those computed by DICTMIN and DICTUMIN
 // (slice nbits - (value int -1) | (0))
 let mayLoad = 1 in
@@ -1013,7 +1013,7 @@ let mayLoad = 1 in
       "DICTIMIN\t$x, $i, $status, $dict, $precision",
       "DICTIMIN NULLSWAPIFNOT2", 0xf484>;
 
-// F485 — DICTIMINREF (D n - c i -1 or 0)
+// F485 - DICTIMINREF (D n - c i -1 or 0)
 // (slice nbits - (cell int -1) | (0))
 let mayLoad = 1 in
   defm DICTIMINREF :
@@ -1024,7 +1024,7 @@ let mayLoad = 1 in
       "DICTIMINREF\t$c, $i, $status, $dict, $precision",
       "DICTIMINREF NULLSWAPIFNOT2", 0xf485>;
 
-// F48A — DICTMAX (D n - x k -1 or 0), computes the maximal key k (represented by a Slice with n data bits) 
+// F48A - DICTMAX (D n - x k -1 or 0), computes the maximal key k (represented by a Slice with n data bits) 
 //   in dictionary D, and returns k along with the associated value x
 // (slice nbits - (value key -1) | (0))
 let mayLoad = 1 in
@@ -1036,7 +1036,7 @@ let mayLoad = 1 in
       "DICTMAX\t$x, $key, $status, $dict, $precision",
       "DICTMAX NULLSWAPIFNOT2", 0xf48a>;
 
-// F48B — DICTMAXREF (D n - c k -1 or 0)
+// F48B - DICTMAXREF (D n - c k -1 or 0)
 // (slice nbits - (cell key -1) | (0))
 let mayLoad = 1 in
   defm DICTMAXREF :
@@ -1047,7 +1047,7 @@ let mayLoad = 1 in
       "DICTMAXREF\t$c, $key, $status, $dict, $precision",
       "DICTMAXREF NULLSWAPIFNOT2", 0xf48b>;
 
-// F48C — DICTIMAX (D n - x i -1 or 0)
+// F48C - DICTIMAX (D n - x i -1 or 0)
 // (slice nbits - (value int -1) | (0))
 let mayLoad = 1 in
   defm DICTIMAX :
@@ -1058,7 +1058,7 @@ let mayLoad = 1 in
       "DICTIMAX\t$x, $i, $status, $dict, $precision",
       "DICTIMAX NULLSWAPIFNOT2", 0xf48c>;
 
-// F48D — DICTIMAXREF	(D n - c i -1 or 0)
+// F48D - DICTIMAXREF	(D n - c i -1 or 0)
 // (slice nbits - (cell int -1) | (0))
 let mayLoad = 1 in
   defm DICTIMAXREF :
@@ -1069,7 +1069,7 @@ let mayLoad = 1 in
       "DICTIMAXREF\t$c, $i, $status, $dict, $precision",
       "DICTIMAXREF NULLSWAPIFNOT2", 0xf48d>;
 
-// F492 — DICTREMMIN (D n - D0 x k -1 or D 0), computes the minimal key k (represented by a Slice with n data bits) in dictionary D, 
+// F492 - DICTREMMIN (D n - D0 x k -1 or D 0), computes the minimal key k (represented by a Slice with n data bits) in dictionary D, 
 //   removes k from the dictionary, and returns k along with the associated value x and the modified dictionary D0
 // (slice nbits - (slice value key -1) | (0))
 let mayLoad = 1 in
@@ -1081,7 +1081,7 @@ let mayLoad = 1 in
       "DICTREMMIN\t$odict, $x, $key, $status, $dict, $precision",
       "DICTREMMIN NULLSWAPIFNOT2", 0xf492>;
 
-// F493 — DICTREMMINREF (D n - D0 c k -1 or D 0), similar to DICTREMMIN,
+// F493 - DICTREMMINREF (D n - D0 c k -1 or D 0), similar to DICTREMMIN,
 //  but returns the only reference in the value as a Cell c
 // (slice nbits - (slice cell key -1) | (0))
 let mayLoad = 1 in
@@ -1093,7 +1093,7 @@ let mayLoad = 1 in
       "DICTREMMINREF\t$odict, $c, $key, $status, $dict, $precision",
       "DICTREMMINREF NULLSWAPIFNOT2", 0xf493>;
 
-// F494	— DICTIREMMIN	(D n - D0 x i -1 or D 0), somewhat similar to DICTREMMIN, but computes the minimal key i under the assumption 
+// F494	- DICTIREMMIN	(D n - D0 x i -1 or D 0), somewhat similar to DICTREMMIN, but computes the minimal key i under the assumption 
 //  that all keys are big-endian signed n-bit integers. Notice that the key and value returned may differ from those computed by DICTREMMIN and
 //  DICTUREMMIN
 // (slice nbits - (slice cell key -1) | (0))
@@ -1106,7 +1106,7 @@ let mayLoad = 1 in
       "DICTIREMMIN\t$odict, $x, $i, $status, $dict, $precision",
       "DICTIREMMIN NULLSWAPIFNOT2", 0xf494>;
 
-// F495 — DICTIREMMINREF (D n - D0 c i -1 or D 0)
+// F495 - DICTIREMMINREF (D n - D0 c i -1 or D 0)
 // (slice nbits - (slice cell int -1) | (0))
 let mayLoad = 1 in
   defm DICITREMMINREF :
@@ -1117,7 +1117,7 @@ let mayLoad = 1 in
       "DICTIREMMINREF\t$odict, $c, $i, $status, $dict, $precision",
       "DICTIREMMINREF NULLSWAPIFNOT2", 0xf495>;
 
-// F49A — DICTREMMAX (D n - D0 x k -1 or D 0), computes the maximal key k (represented by a Slice with n data bits) in dictionary D, 
+// F49A - DICTREMMAX (D n - D0 x k -1 or D 0), computes the maximal key k (represented by a Slice with n data bits) in dictionary D, 
 //   removes k from the dictionary, and returns k along with the associated value x and the modified dictionary D0
 // (slice nbits - (slice value key -1) | (0))
 let mayLoad = 1 in
@@ -1129,7 +1129,7 @@ let mayLoad = 1 in
       "DICTREMMAX\t$odict, $x, $key, $status, $dict, $precision",
       "DICTREMMAX NULLSWAPIFNOT2", 0xf49a>;
 
-// F49B — DICTREMMAXREF  (D n - D0 c k -1 or D 0)
+// F49B - DICTREMMAXREF  (D n - D0 c k -1 or D 0)
 // (slice nbits - (slice cell key -1) | (0))
 let mayLoad = 1 in
   defm DICTREMMAXREF :
@@ -1140,7 +1140,7 @@ let mayLoad = 1 in
       "DICTREMMAXREF\t$odict, $c, $key, $status, $dict, $precision",
       "DICTREMMAXREF NULLSWAPIFNOT2", 0xf49b>;
 
-// F49C — DICTIREMMAX	(D n - D0 x i -1 or D 0)
+// F49C - DICTIREMMAX	(D n - D0 x i -1 or D 0)
 // (slice nbits - (slice value int -1) | (0))
 let mayLoad = 1 in
   defm DICITREMMAX :
@@ -1151,7 +1151,7 @@ let mayLoad = 1 in
       "DICTIREMMAX\t$odict, $x, $i, $status, $dict, $precision",
       "DICTIREMMAX NULLSWAPIFNOT2", 0xf49c>;
 
-// F49D — DICTIREMMAXREF (D n - D0 c i -1 or D 0)
+// F49D - DICTIREMMAXREF (D n - D0 c i -1 or D 0)
 // (slice nbits - (slice cell int -1) | (0))
 let mayLoad = 1 in
   defm DICITREMMAXREF :
@@ -1169,7 +1169,7 @@ let mayLoad = 1 in
 //
 // *******************************************/
 
-// F4B1 — SUBDICTGET (k l D n - D0), constructs a subdictionary consisting of all keys beginning with prefix k 
+// F4B1 - SUBDICTGET (k l D n - D0), constructs a subdictionary consisting of all keys beginning with prefix k 
 //  (represented by a Slice, the first 0 <= l <= n <= 1023 data bits of which are used as a key) of length l in dictionary D of type HashmapE(n, X) 
 //  with n-bit keys. On success, returns the new subdictionary of the same type HashmapE(n, X) as a Slice D0
 // (prefix lbits dict nbits - dict)
@@ -1181,7 +1181,7 @@ let mayLoad = 1 in
       "SUBDICTGET\t$odict, $prefix, $lbits, $idict, $precision",
       "SUBDICTGET", 0xf4b1>;
 
-// F4B2	— SUBDICTIGET (x l D n - D0), variant of SUBDICTGET with the prefix represented by a signed big-endian l-bit Integer x, where necessarily l <= 257
+// F4B2	- SUBDICTIGET (x l D n - D0), variant of SUBDICTGET with the prefix represented by a signed big-endian l-bit Integer x, where necessarily l <= 257
 // (prefix lbits dict nbits - dict')
   defm SUBDICTIGET :
     I<(outs Cell:$odict),
@@ -1191,7 +1191,7 @@ let mayLoad = 1 in
       "SUBDICTIGET\t$odict, $prefix, $lbits, $idict, $precision",
       "SUBDICTIGET", 0xf4b2>;
 
-// F4B3 — SUBDICTUGET (x l D n - D0), variant of SUBDICTGET with the prefix represented by an unsigned big-endian l-bit	Integer	x, where necessarily l <= 256
+// F4B3 - SUBDICTUGET (x l D n - D0), variant of SUBDICTGET with the prefix represented by an unsigned big-endian l-bit	Integer	x, where necessarily l <= 256
 // (prefix lbits dict nbits - dict')
   defm SUBDICTUGET :
     I<(outs Cell:$odict),
@@ -1201,7 +1201,7 @@ let mayLoad = 1 in
       "SUBDICTUGET\t$odict, $prefix, $lbits, $idict, $precision",
       "SUBDICTUGET", 0xf4b3>;
 
-// F4B5	— SUBDICTRPGET (k l D n - D0), similar to SUBDICTGET, but removes the common prefix	k from all keys of the new dictionary D0, 
+// F4B5	- SUBDICTRPGET (k l D n - D0), similar to SUBDICTGET, but removes the common prefix	k from all keys of the new dictionary D0, 
 //   which becomes of type HashmapE(n - l, X)
 // (prefix lbits dict nbits - dict')
   defm SUBDICTRPGET :
@@ -1212,7 +1212,7 @@ let mayLoad = 1 in
       "SUBDICTRPGET\t$odict, $prefix, $lbits, $idict, $precision",
       "SUBDICTRPGET", 0xf4b5>;
 
-// F4B6 — SUBDICTIRPGET (x l D n - D0), variant of SUBDICTRPGET with the prefix represented by a signed big-endian l-bit Integer x, 
+// F4B6 - SUBDICTIRPGET (x l D n - D0), variant of SUBDICTRPGET with the prefix represented by a signed big-endian l-bit Integer x, 
 //  where necessarily l <= 257
 // (prefix lbits dict nbits - dict')
   defm SUBDICTIRPGET :
@@ -1223,7 +1223,7 @@ let mayLoad = 1 in
       "SUBDICTIRPGET\t$odict, $prefix, $lbits, $idict, $precision",
       "SUBDICTIRPGET", 0xf4b6>;
 
-// F4B7 — SUBDICTURPGET (x l D n - D0), variant of SUBDICTRPGET with the prefix represented by an unsigned big-endian l-bit Integer x, 
+// F4B7 - SUBDICTURPGET (x l D n - D0), variant of SUBDICTRPGET with the prefix represented by an unsigned big-endian l-bit Integer x, 
 //   where necessarily l <= 256
 // (prefix lbits dict nbits - dict')
   defm SUBDICTURPGET :

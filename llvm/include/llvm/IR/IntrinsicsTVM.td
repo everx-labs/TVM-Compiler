@@ -1026,14 +1026,15 @@ let TargetPrefix = "tvm" in {
     GCCBuiltin<"__builtin_tvm_qdiv">,
     Intrinsic<[llvm_i257_ty], [llvm_i257_ty, llvm_i257_ty],
               [IntrNoMem]>;
+              [IntrNoMem]>;
 
-  // QAND (x y - x&y), bitwise “and” (similar to AND), but returns a NaN if either x or y is a NaN
+  // QAND (x y - x&y), bitwise "and" (similar to AND), but returns a NaN if either x or y is a NaN
   def int_tvm_qand :
     GCCBuiltin<"__builtin_tvm_qand">,
     Intrinsic<[llvm_i257_ty], [llvm_i257_ty, llvm_i257_ty],
               [IntrNoMem]>;
 
-  // QOR (x y - x|y), bitwise “or”. If  x = -1 or y = -1, the result is always -1,
+  // QOR (x y - x|y), bitwise "or". If  x = -1 or y = -1, the result is always -1,
   //  even if the other argument is a NaN
   def int_tvm_qor :
     GCCBuiltin<"__builtin_tvm_qor">,
@@ -1892,7 +1893,7 @@ def int_tvm_plddictq :
 // *******************************************/
 
 // DICTIDEL (i D n - D0 ?), a version of DICTDEL with the key represented by a signed n-bit Integer i. If i does not fit into n bits,
-//   simply returns D 0 (“key not found, dictionary unmodified”)
+//   simply returns D 0 ("key not found, dictionary unmodified")
 // (int slice nbits - (slice' -1) | (slice 0))
   def int_tvm_dictidel :
     GCCBuiltin<"__builtin_tvm_dictidel">,
@@ -1929,7 +1930,7 @@ def int_tvm_plddictq :
 
 // ******************************************* 
 //
-// A.10.7. “Maybe reference” dictionary operations
+// A.10.7. "Maybe reference" dictionary operations
 //
 // *******************************************/
 
@@ -2291,7 +2292,7 @@ def int_tvm_plddictq :
       Intrinsic<[llvm_i257_ty], [], [IntrNoMem]>;
 
 // BALANCE ( -	t), returns the remaining balance of the smart contract as a Tuple consisting of an Integer (the remaining Gram balance in nanograms) 
-//   and a Maybe Cell (a dictionary with 32-bit keys representing the balance of “extra currencies”). Equivalent to GETPARAM 7
+//   and a Maybe Cell (a dictionary with 32-bit keys representing the balance of "extra currencies"). Equivalent to GETPARAM 7
   def int_tvm_balance :
       GCCBuiltin<"__builtin_tvm_balance">,
       Intrinsic<[llvm_TVMTuple_ty], [], [IntrNoMem]>;

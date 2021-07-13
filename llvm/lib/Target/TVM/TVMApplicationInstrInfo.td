@@ -111,27 +111,27 @@ defm SETCODE : I<(outs), (ins Cell:$cell), (outs), (ins),
 //
 // *******************************************/
 
-// F810	— RANDU256 ( -	x), generates a new pseudo-random unsigned 256-bit Integer x
+// F810	- RANDU256 ( -	x), generates a new pseudo-random unsigned 256-bit Integer x
 let hasSideEffects = 1 in
 defm RANDU256 : I0<(outs I257:$x), (ins),
                     [(set I257:$x, (int_tvm_randu256))],
                      "RANDU256", 0xf810>;
 
-// F811 — RAND (y - z), generates a new pseudo-random integer z in the range 0...y-1 (or y...-1, if y < 0)
+// F811 - RAND (y - z), generates a new pseudo-random integer z in the range 0...y-1 (or y...-1, if y < 0)
 let hasSideEffects = 1 in
 defm RAND : I<(outs I257:$z), (ins I257:$y),
                (outs), (ins), 
                [(set I257:$z, (int_tvm_rand I257:$y))],
                      "RAND\t$y", "RAND", 0xf811>;
 
-// F814	— SETRAND  (x	- ), sets the random seed to unsigned 256-bit Integer x
+// F814	- SETRAND  (x	- ), sets the random seed to unsigned 256-bit Integer x
 let hasSideEffects = 1 in
 defm SETRAND : I<(outs), (ins I257:$x),
                  (outs), (ins),
                     [(int_tvm_setrand I257:$x)],
                      "SETRAND\t$x", "SETRAND", 0xf814>;
 
-// F815 — ADDRAND (x - ), mixes unsigned 256-bit Integer x into the random seed r
+// F815 - ADDRAND (x - ), mixes unsigned 256-bit Integer x into the random seed r
 let hasSideEffects = 1 in
 defm ADDRAND : I<(outs), (ins I257:$x),
                   (outs), (ins),
@@ -144,14 +144,14 @@ defm ADDRAND : I<(outs), (ins I257:$x),
 //
 // *******************************************/
 
-// F826	— RANDSEED ( -	x), returns the current random seed as an unsigned 256-bit Integer. Equivalent to GETPARAM 6
+// F826	- RANDSEED ( -	x), returns the current random seed as an unsigned 256-bit Integer. Equivalent to GETPARAM 6
 defm RANDSEED : I<(outs I257:$x), (ins),
                   (outs), (ins),
                   [(set I257:$x, (int_tvm_randseed))],
                      "RANDSEED\t$x", "RANDSEED", 0xf826>;
 
-// F827	— BALANCE ( -	t), returns the remaining balance of the smart contract as a Tuple consisting of an Integer (the remaining Gram balance in nanograms) 
-//   and a Maybe Cell (a dictionary with 32-bit keys representing the balance of “extra currencies”). Equivalent to GETPARAM 7
+// F827	- BALANCE ( -	t), returns the remaining balance of the smart contract as a Tuple consisting of an Integer (the remaining Gram balance in nanograms) 
+//   and a Maybe Cell (a dictionary with 32-bit keys representing the balance of "extra currencies"). Equivalent to GETPARAM 7
 defm BALANCE : I<(outs Tuple:$t), (ins),
                   (outs), (ins),
                   [(set Tuple:$t, (int_tvm_balance))],
@@ -163,14 +163,14 @@ defm BALANCE : I<(outs Tuple:$t), (ins),
 //
 // *******************************************/
 
-// F902 — SHA256U (s - x), computes sha256 of the data bits of Slice s.
+// F902 - SHA256U (s - x), computes sha256 of the data bits of Slice s.
 //  If the bit length of s is not divisible by eight, throws a cell underflow exception. The hash value is returned as a 256-bit unsigned integer x
 defm SHA256U : I<(outs I257:$x), (ins Slice:$s),
                   (outs), (ins),
                   [(set I257:$x, (int_tvm_sha256u Slice:$s))],
                      "SHA256U\t$x, $s", "SHA256U", 0xf902>;
 
-// F911	— CHKSIGNS  (d s k - ?) checks whether	s is a valid Ed25519-signature of the data portion of Slice	d using public key k, similarly to CHKSIGNU
+// F911	- CHKSIGNS  (d s k - ?) checks whether	s is a valid Ed25519-signature of the data portion of Slice	d using public key k, similarly to CHKSIGNU
 defm CHKSIGNS : I<(outs I257:$result), (ins Slice:$d, I257:$s, I257:$k),
                   (outs), (ins),
                   [(set I257:$result, (int_tvm_chksigns Slice:$d, I257:$s, I257:$k))],
@@ -182,7 +182,7 @@ defm CHKSIGNS : I<(outs I257:$result), (ins Slice:$d, I257:$s, I257:$k),
 //
 // *******************************************/
 
-// F940	— CDATASIZEQ (c n - x y z -1 or 0), recursively computes the count of distinct cells x, data bits y, 
+// F940	- CDATASIZEQ (c n - x y z -1 or 0), recursively computes the count of distinct cells x, data bits y, 
 //   and cell references z in the dag rooted at Cell c
 defm CDATASIZEQ : I<(outs I257:$x, I257:$y, I257:$z, I257:$result), (ins Cell:$c, I257:$n),
                   (outs), (ins),
@@ -196,14 +196,14 @@ defm CDATASIZEQ : I<(outs I257:$x, I257:$y, I257:$z, I257:$result), (ins Cell:$c
 //
 // *******************************************/
 
-// FB03	— RAWRESERVEX  (x D y - ), similar to RAWRESERVE, but also accepts a dictionary D (represented by a Cell or Null ) with extra currencies
+// FB03	- RAWRESERVEX  (x D y - ), similar to RAWRESERVE, but also accepts a dictionary D (represented by a Cell or Null ) with extra currencies
 let hasSideEffects = 1 in
 defm RAWRESERVEX : I<(outs), (ins I257:$x, Cell:$d, I257:$y),
                   (outs), (ins),
                   [(int_tvm_rawreservex I257:$x, Cell:$d, I257:$y)],
                      "RAWRESERVEX\t$x, $d, $y", "RAWRESERVEX", 0xfb03>;
 
-// FB06 — SETLIBCODE (c x - ), creates an output action that would modify the collection of this smart contract libraries by adding or removing
+// FB06 - SETLIBCODE (c x - ), creates an output action that would modify the collection of this smart contract libraries by adding or removing
 //   library with code given in	Cell c
 let hasSideEffects = 1 in
 defm SETLIBCODE : I<(outs), (ins Cell:$c, I257:$x),
@@ -211,7 +211,7 @@ defm SETLIBCODE : I<(outs), (ins Cell:$c, I257:$x),
                   [(int_tvm_setlibcode Cell:$c, I257:$x)],
                      "SETLIBCODE\t$c, $x", "SETLIBCODE", 0xfb06>;
 
-// FB07	— CHANGELIB (h x - ), creates an output action similarly to SETLIBCODE, 
+// FB07	- CHANGELIB (h x - ), creates an output action similarly to SETLIBCODE, 
 //   but instead of the library code accepts its hash as an unsigned 256-bit integer
 let hasSideEffects = 1 in
 defm CHANGELIB : I<(outs), (ins I257:$h, I257:$x),

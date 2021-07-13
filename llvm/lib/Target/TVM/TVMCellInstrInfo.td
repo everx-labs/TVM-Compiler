@@ -531,13 +531,13 @@ defm STSAME : I<(outs Builder:$obldr), (ins Builder:$ibldr, I257:$n, I257:$x),
 //  references and up to 8y + 1 data bits, with 0 <= y <= 7.
 // TODO
 
-// CF81 - STSLICECONST ‘0’ or STZERO (b - b0), stores one binary zero
+// CF81 - STSLICECONST '0' or STZERO (b - b0), stores one binary zero
 defm STZERO  : I<(outs Builder:$obldr), (ins Builder:$ibldr),
                (outs), (ins),
                [(set Builder:$obldr, (int_tvm_stzero Builder:$ibldr))],
                "STZERO\t$obldr, $ibldr", "STZERO", 0xcf81>;
 
-// CF83 - STSLICECONST ‘1’ or STONE (b - b0), stores one binary one
+// CF83 - STSLICECONST '1' or STONE (b - b0), stores one binary one
 defm STONE  : I<(outs Builder:$obldr), (ins Builder:$ibldr),
                (outs), (ins),
                [(set Builder:$obldr, (int_tvm_stone Builder:$ibldr))],
@@ -718,7 +718,7 @@ defm SDBEGINS : I<(outs Slice : $osl),
              "SDBEGINS$x\t $osl, $isl",
              "SDBEGINS$x", 0xd72a>;
 
-// D72802 - SDBEGINS ‘0’ (s - s00), checks whether s begins with a binary zero
+// D72802 - SDBEGINS '0' (s - s00), checks whether s begins with a binary zero
 let hasSideEffects = 1 in
 defm SDBEGINS0 : I<(outs Slice : $osl),
              (ins Slice : $isl),
@@ -728,7 +728,7 @@ defm SDBEGINS0 : I<(outs Slice : $osl),
              "SDBEGINS0\t $osl, $isl",
              "SDBEGINS0", 0xd72802>;
 
-// D72806 - SDBEGINS ‘1’ (s - s00), checks whether s begins with a binary one
+// D72806 - SDBEGINS '1' (s - s00), checks whether s begins with a binary one
 let hasSideEffects = 1 in
 defm SDBEGINS1 : I<(outs Slice : $osl),
              (ins Slice : $isl),

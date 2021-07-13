@@ -1279,12 +1279,12 @@ let TargetPrefix = "tvm" in {
   //  references and up to 8y + 1 data bits, with 0 <= y <= 7.
   // TODO
 
-  // STSLICECONST ‘0’ or STZERO (b - b0), stores one binary zero
+  // STSLICECONST '0' or STZERO (b - b0), stores one binary zero
   def int_tvm_stzero :
     GCCBuiltin<"__builtin_tvm_stzero">,
     Intrinsic<[llvm_TVMBuilder_ty], [llvm_TVMBuilder_ty]>;
 
-  // STSLICECONST ‘1’ or STONE (b - b0), stores one binary one
+  // STSLICECONST '1' or STONE (b - b0), stores one binary one
   def int_tvm_stone :
     GCCBuiltin<"__builtin_tvm_stone">,
     Intrinsic<[llvm_TVMBuilder_ty], [llvm_TVMBuilder_ty]>;
@@ -1383,12 +1383,12 @@ let TargetPrefix = "tvm" in {
     GCCBuiltin<"__builtin_tvm_sdbegins">,
     Intrinsic<[llvm_TVMSlice_ty], [llvm_TVMSlice_ty, llvm_i257_ty]>;
 
-  // SDBEGINS ‘0’ (s - s00), checks whether s begins with a binary zero
+  // SDBEGINS '0' (s - s00), checks whether s begins with a binary zero
   def int_tvm_sdbegins0 :
     GCCBuiltin<"__builtin_tvm_sdbegins0">,
     Intrinsic<[llvm_TVMSlice_ty], [llvm_TVMSlice_ty]>;
 
-  // SDBEGINS ‘1’ (s - s00), checks whether s begins with a binary one
+  // SDBEGINS '1' (s - s00), checks whether s begins with a binary one
   def int_tvm_sdbegins1 :
     GCCBuiltin<"__builtin_tvm_sdbegins1">,
     Intrinsic<[llvm_TVMSlice_ty], [llvm_TVMSlice_ty]>;
@@ -2345,7 +2345,7 @@ def int_tvm_plddictq :
       Intrinsic<[], [llvm_TVMCell_ty, llvm_i257_ty]>;
 
 
-// FB07	— CHANGELIB (h x - ), creates an output action similarly to SETLIBCODE, 
+// FB07	- CHANGELIB (h x - ), creates an output action similarly to SETLIBCODE, 
 //   but instead of the library code accepts its hash as an unsigned 256-bit integer
   def int_tvm_changelib :
       GCCBuiltin<"__builtin_tvm_changelib">,

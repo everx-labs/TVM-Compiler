@@ -1030,10 +1030,10 @@ BUILTIN(__builtin_tvm_stsame, "TbTbWiWi", "nc")
 //  references and up to 8y + 1 data bits, with 0 <= y <= 7.
 // TODO
 
-// STSLICECONST ‘0’ or STZERO (b - b0), stores one binary zero
+// STSLICECONST '0' or STZERO (b - b0), stores one binary zero
 BUILTIN(__builtin_tvm_stzero, "TbTb", "nc")
 
-// STSLICECONST ‘1’ or STONE (b - b0), stores one binary one
+// STSLICECONST '1' or STONE (b - b0), stores one binary one
 BUILTIN(__builtin_tvm_stone, "TbTb", "nc")
 
 // ******************************************* 
@@ -1096,10 +1096,10 @@ BUILTIN(__builtin_tvm_sdbeginsxq, "{TsWi}TsTs", "nc")
 //   (with continuation bit assumed), where 0 <= x <= 127, and removes sss from s on success
 BUILTIN(__builtin_tvm_sdbegins, "TsTsWi", "c")
 
-// SDBEGINS ‘0’ (s - s00), checks whether s begins with a binary zero
+// SDBEGINS '0' (s - s00), checks whether s begins with a binary zero
 BUILTIN(__builtin_tvm_sbegins0, "TsTs", "c")
 
-// SDBEGINS ‘1’ (s - s00), checks whether s begins with a binary one
+// SDBEGINS '1' (s - s00), checks whether s begins with a binary one
 BUILTIN(__builtin_tvm_sdbegins1, "TsTs", "c")
 
 // SDBEGINSQ (s - s00 -1 or s 0), a quiet version of SDBEGINS

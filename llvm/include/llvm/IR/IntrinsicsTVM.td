@@ -1026,7 +1026,6 @@ let TargetPrefix = "tvm" in {
     GCCBuiltin<"__builtin_tvm_qdiv">,
     Intrinsic<[llvm_i257_ty], [llvm_i257_ty, llvm_i257_ty],
               [IntrNoMem]>;
-              [IntrNoMem]>;
 
   // QAND (x y - x&y), bitwise "and" (similar to AND), but returns a NaN if either x or y is a NaN
   def int_tvm_qand :

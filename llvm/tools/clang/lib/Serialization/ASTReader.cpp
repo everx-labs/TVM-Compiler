@@ -7418,6 +7418,12 @@ static Decl *getPredefinedDecl(ASTContext &Context, PredefinedDeclIDs ID) {
   case PREDEF_DECL_REFLECT_INTERFACE_HAS_PUBKEY_ID:
     return Context.getReflectInterfaceHasPubkeyDecl();
 
+  case PREDEF_DECL_REFLECT_INTERFACE_HAS_TIMESTAMP_ID:
+    return Context.getReflectInterfaceHasTimestampDecl();
+
+  case PREDEF_DECL_REFLECT_INTERFACE_HAS_EXPIRE_ID:
+    return Context.getReflectInterfaceHasExpireDecl();
+
   case PREDEF_DECL_REFLECT_SIGNATURE_FUNC_ID_ID:
     return Context.getReflectSignatureFuncIdDecl();
 

@@ -109,6 +109,7 @@ public:
         assert(i <= PushLimit && "Unimplemented");
       }
     }
+    bool isImm() const { return i <= PushLimit; }
     unsigned i;
   };
   struct pushHidden : pushI {

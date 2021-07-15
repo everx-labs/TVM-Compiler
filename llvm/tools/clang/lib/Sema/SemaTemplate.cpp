@@ -3735,6 +3735,42 @@ checkBuiltinTemplateIdType(Sema &SemaRef, BuiltinTemplateDecl *BTD,
     return SemaRef.CheckTemplateIdType(Converted[0].getAsTemplate(),
                                        TemplateLoc, SyntheticTemplateArgs);
   }
+  case BTK__reflect_interface_has_timestamp: {
+    ASTContext &Context = SemaRef.getASTContext();
+    assert(Converted.size() == 3 &&
+      "__reflect_interface_has_timestamp'<T, IntType, Interface>");
+    TemplateArgument IntType = Converted[1], InterfaceArg = Converted[2];
+    QualType InterfaceTy = InterfaceArg.getAsType();
+    QualType IntTy = IntType.getAsType();
+    llvm::APSInt Rv(static_cast<uint32_t>(Context.getTypeSize(IntTy)));
+    Rv = !InterfaceTy.getTypePtr()->isTVMNoTimestampInterfaceType();
+
+    TemplateArgumentListInfo SyntheticTemplateArgs;
+    SyntheticTemplateArgs.addArgument(TemplateArgs[1]);
+    TemplateArgument RvArg(Context, Rv, IntTy);
+    SyntheticTemplateArgs.addArgument(SemaRef.getTrivialTemplateArgumentLoc(
+        RvArg, IntTy, TemplateArgs[0].getLocation()));
+    return SemaRef.CheckTemplateIdType(Converted[0].getAsTemplate(),
+                                       TemplateLoc, SyntheticTemplateArgs);
+  }
+  case BTK__reflect_interface_has_expire: {
+    ASTContext &Context = SemaRef.getASTContext();
+    assert(Converted.size() == 3 &&
+      "__reflect_interface_has_expire'<T, IntType, Interface>");
+    TemplateArgument IntType = Converted[1], InterfaceArg = Converted[2];
+    QualType InterfaceTy = InterfaceArg.getAsType();
+    QualType IntTy = IntType.getAsType();
+    llvm::APSInt Rv(static_cast<uint32_t>(Context.getTypeSize(IntTy)));
+    Rv = !InterfaceTy.getTypePtr()->isTVMNoExpireInterfaceType();
+
+    TemplateArgumentListInfo SyntheticTemplateArgs;
+    SyntheticTemplateArgs.addArgument(TemplateArgs[1]);
+    TemplateArgument RvArg(Context, Rv, IntTy);
+    SyntheticTemplateArgs.addArgument(SemaRef.getTrivialTemplateArgumentLoc(
+        RvArg, IntTy, TemplateArgs[0].getLocation()));
+    return SemaRef.CheckTemplateIdType(Converted[0].getAsTemplate(),
+                                       TemplateLoc, SyntheticTemplateArgs);
+  }
   case BTK__reflect_signature_func_id: {
     ASTContext &Context = SemaRef.getASTContext();
     assert(Converted.size() == 3 &&

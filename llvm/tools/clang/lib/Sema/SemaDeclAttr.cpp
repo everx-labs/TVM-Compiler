@@ -6396,6 +6396,12 @@ static void ProcessDeclAttribute(Sema &S, Scope *scope, Decl *D,
   case ParsedAttr::AT_TVMNoPubkeyInterface:
     handleSimpleAttribute<TVMNoPubkeyInterfaceAttr>(S, D, AL);
     break;
+  case ParsedAttr::AT_TVMNoTimestampInterface:
+    handleSimpleAttribute<TVMNoTimestampInterfaceAttr>(S, D, AL);
+    break;
+  case ParsedAttr::AT_TVMNoExpireInterface:
+    handleSimpleAttribute<TVMNoExpireInterfaceAttr>(S, D, AL);
+    break;
   case ParsedAttr::AT_TVMRawFunc:
     handleSimpleAttribute<TVMRawFuncAttr>(S, D, AL);
     break;

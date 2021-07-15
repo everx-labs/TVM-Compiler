@@ -223,7 +223,7 @@ __always_inline std::tuple<persistent_data_header_t<Interface, ReplayAttackProte
     // Only 1 + bitsize(Header) bits to skip
     using LinearTup = decltype(make_chain_tuple<1 + Est::max_bits, Est::max_refs>(data_tup_t{}));
     // uncomment to print in remark:
-    __reflect_echo<print_chain_tuple<LinearTup>().c_str()>{};
+    // __reflect_echo<print_chain_tuple<LinearTup>().c_str()>{};
     auto linear_tup = parse<LinearTup>(persist);
     DContract base = to_struct<DContract>(chain_fold_tup<data_tup_t>(linear_tup));
     // DContract base = parse_chain<DContract, 1 + Est::max_bits, Est::max_refs>(persist);
@@ -272,13 +272,13 @@ inline cell prepare_persistent_data(persistent_data_header_t<IContract, ReplayAt
     auto data_tup_combined = std::tuple_cat(std::make_tuple(bool_t(false), hdr), data_tup);
     auto chain_tup = make_chain_tuple(data_tup_combined);
     // uncomment to print in remark:
-    __reflect_echo<print_chain_tuple<decltype(chain_tup)>().c_str()>{};
+    // __reflect_echo<print_chain_tuple<decltype(chain_tup)>().c_str()>{};
     return build(chain_tup).make_cell();
   } else {
     auto data_tup_combined = std::tuple_cat(std::make_tuple(bool_t(false)), data_tup);
     auto chain_tup = make_chain_tuple(data_tup_combined);
     // uncomment to print in remark:
-    __reflect_echo<print_chain_tuple<decltype(chain_tup)>().c_str()>{};
+    // __reflect_echo<print_chain_tuple<decltype(chain_tup)>().c_str()>{};
     return build(chain_tup).make_cell();
   }
 }
@@ -371,7 +371,7 @@ struct smart_switcher_impl {
       parser body_p(msg_body);
 
       constexpr bool HasAnswerId =
-        get_interface_method_internal<IContract, Index>::value && !std::is_void_v<rv_t> &&
+        get_interface_method_internal<IContract, Index>::value &&
         get_interface_method_answer_id<IContract, Index>::value;
       using FixedHeader = std::conditional_t<HasAnswerId, std::tuple<MsgHeader, uint32>, MsgHeader>;
       if constexpr (HasAnswerId) {

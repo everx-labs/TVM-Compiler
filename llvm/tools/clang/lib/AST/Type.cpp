@@ -3970,6 +3970,22 @@ bool Type::isTVMNoPubkeyInterfaceType() const {
   return false;
 }
 
+bool Type::isTVMNoTimestampInterfaceType() const {
+  if (const auto *RT = getAs<RecordType>())
+    return RT->getDecl()->hasAttr<TVMNoTimestampInterfaceAttr>();
+  if (const auto *typedefType = dyn_cast<TypedefType>(this))
+    return typedefType->getDecl()->hasAttr<TVMNoTimestampInterfaceAttr>();
+  return false;
+}
+
+bool Type::isTVMNoExpireInterfaceType() const {
+  if (const auto *RT = getAs<RecordType>())
+    return RT->getDecl()->hasAttr<TVMNoExpireInterfaceAttr>();
+  if (const auto *typedefType = dyn_cast<TypedefType>(this))
+    return typedefType->getDecl()->hasAttr<TVMNoExpireInterfaceAttr>();
+  return false;
+}
+
 bool Type::isTVMLiteralStructType() const {
   if (const auto *RT = getAs<RecordType>())
     return RT->getDecl()->isLiteral() &&

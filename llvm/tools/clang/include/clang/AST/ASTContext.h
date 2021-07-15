@@ -388,6 +388,10 @@ class ASTContext : public RefCountedBase<ASTContext> {
   mutable IdentifierInfo *ReflectMethodPtrName = nullptr;
   /// The identifier '__reflect_interface_has_pubkey'.
   mutable IdentifierInfo *ReflectInterfaceHasPubkeyName = nullptr;
+  /// The identifier '__reflect_interface_has_timestamp'.
+  mutable IdentifierInfo *ReflectInterfaceHasTimestampName = nullptr;
+  /// The identifier '__reflect_interface_has_expire'.
+  mutable IdentifierInfo *ReflectInterfaceHasExpireName = nullptr;
   /// The identifier '__reflect_signature_func_id'.
   mutable IdentifierInfo *ReflectSignatureFuncIdName = nullptr;
   /// The identifier '__reflect_echo'.
@@ -601,6 +605,8 @@ private:
   mutable BuiltinTemplateDecl *ReflectProxyDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectMethodPtrDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectInterfaceHasPubkeyDecl = nullptr;
+  mutable BuiltinTemplateDecl *ReflectInterfaceHasTimestampDecl = nullptr;
+  mutable BuiltinTemplateDecl *ReflectInterfaceHasExpireDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectSignatureFuncIdDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectEchoDecl = nullptr;
   // TVM local end
@@ -1134,6 +1140,8 @@ public:
   BuiltinTemplateDecl *getReflectProxyDecl() const;
   BuiltinTemplateDecl *getReflectMethodPtrDecl() const;
   BuiltinTemplateDecl *getReflectInterfaceHasPubkeyDecl() const;
+  BuiltinTemplateDecl *getReflectInterfaceHasTimestampDecl() const;
+  BuiltinTemplateDecl *getReflectInterfaceHasExpireDecl() const;
   BuiltinTemplateDecl *getReflectSignatureFuncIdDecl() const;
   BuiltinTemplateDecl *getReflectEchoDecl() const;
   // TVM local end
@@ -2056,6 +2064,18 @@ public:
     if (!ReflectInterfaceHasPubkeyName)
       ReflectInterfaceHasPubkeyName = &Idents.get("__reflect_interface_has_pubkey");
     return ReflectInterfaceHasPubkeyName;
+  }
+
+  IdentifierInfo *getReflectInterfaceHasTimestampName() const {
+    if (!ReflectInterfaceHasTimestampName)
+      ReflectInterfaceHasTimestampName = &Idents.get("__reflect_interface_has_timestamp");
+    return ReflectInterfaceHasTimestampName;
+  }
+
+  IdentifierInfo *getReflectInterfaceHasExpireName() const {
+    if (!ReflectInterfaceHasExpireName)
+      ReflectInterfaceHasExpireName = &Idents.get("__reflect_interface_has_expire");
+    return ReflectInterfaceHasExpireName;
   }
 
   IdentifierInfo *getReflectSignatureFuncIdName() const {

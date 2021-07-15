@@ -1657,6 +1657,18 @@ def TVMNoPubkeyInterface : InheritableAttr {
   let Documentation = [Undocumented];
   let MeaningfulToClassTemplateDefinition = 1;
 }
+def TVMNoTimestampInterface : InheritableAttr {
+  let Spellings = [GCC<"no_timestamp">, CXX11<"", "no_timestamp", 201309>,
+                   C2x<"", "no_timestamp">];
+  let Documentation = [Undocumented];
+  let MeaningfulToClassTemplateDefinition = 1;
+}
+def TVMNoExpireInterface : InheritableAttr {
+  let Spellings = [GCC<"no_expire">, CXX11<"", "no_expire", 201309>,
+                   C2x<"", "no_expire">];
+  let Documentation = [Undocumented];
+  let MeaningfulToClassTemplateDefinition = 1;
+}
 def TVMRawFunc : Attr {
   let Spellings = [GCC<"tvm_raw_func">, CXX11<"", "tvm_raw_func", 201309>,
                    C2x<"", "tvm_raw_func">];

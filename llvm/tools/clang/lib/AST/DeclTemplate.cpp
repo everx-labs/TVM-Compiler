@@ -1815,7 +1815,9 @@ createReflectMethodPtrParameterList(const ASTContext &C, DeclContext *DC) {
 }
 
 // __reflect_interface_has_pubkey<T, IntType, Interface> -
-//   'has_pubkey' attribute of the Interface,
+// __reflect_interface_has_timestamp<T, IntType, Interface> -
+// __reflect_interface_has_expire<T, IntType, Interface> -
+//   'has_pubkey'/'has_time'/'has_expire' attribute of the Interface,
 //   provided into T<IntType, HasPubkey>
 static TemplateParameterList *
 createReflectInterfaceHasPubkeyParameterList(const ASTContext &C, DeclContext *DC) {
@@ -1993,6 +1995,8 @@ static TemplateParameterList *createBuiltinTemplateParameterList(
   case BTK__reflect_method_ptr:
     return createReflectMethodPtrParameterList(C, DC);
   case BTK__reflect_interface_has_pubkey:
+  case BTK__reflect_interface_has_timestamp:
+  case BTK__reflect_interface_has_expire:
     return createReflectInterfaceHasPubkeyParameterList(C, DC);
   case BTK__reflect_signature_func_id:
     return createReflectSignatureFuncIdParameterList(C, DC);

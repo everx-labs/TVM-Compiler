@@ -1,3 +1,5 @@
+// RUN: %clang -std=c++17 --target=tvm -S -O3 %s -o asm/test_app.s
+
 // ******************************************* 
 //
 // A.11.3. Pseudo-random number generator primitives

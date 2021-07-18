@@ -1,3 +1,5 @@
+// RUN: %clang -std=c++17 --target=tvm -S -O3 %s -o asm/test_dict.s
+
 // ******************************************* 
 //
 // A.10	Dictionary manipulation primitives

@@ -1,3 +1,5 @@
+// RUN: %clang -std=c++17 --target=tvm -S -O3 %s -o asm/test_tuple.s
+
 // ******************************************* 
 //
 // A.3  Tuple, List, and Null primitives

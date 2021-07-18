@@ -57,7 +57,7 @@ class ImmAsmOperand<int Low, int High> : AsmOperandClass {
 
 def SImm8    : ImmAsmOperand<-128,127> { let Name = "SImm8"; }
 def UImm11   : ImmAsmOperand<0,2047> { let Name = "UImm11"; }
-def UImm10   : ImmAsmOperand<0,2047> { let Name = "UImm10"; }
+def UImm10   : ImmAsmOperand<0,1023> { let Name = "UImm10"; }
 def UImm8    : ImmAsmOperand<0,255> { let Name = "UImm8"; }
 def UImm7    : ImmAsmOperand<0,127> { let Name = "UImm7"; }
 def UImm6    : ImmAsmOperand<0,63> { let Name = "UImm6"; }

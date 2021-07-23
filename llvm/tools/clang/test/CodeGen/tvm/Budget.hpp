@@ -2,7 +2,7 @@
 
 #include <tvm/schema/message.hpp>
 
-namespace tvm { namespace schema {
+namespace tvm { inline namespace schema {
 
 __interface [[no_pubkey]] IBudget {
 

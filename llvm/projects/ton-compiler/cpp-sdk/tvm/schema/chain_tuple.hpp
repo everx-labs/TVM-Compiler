@@ -20,7 +20,7 @@
 #include <tvm/schema/chain_builder.hpp>
 #include <tvm/schema/chain_tuple_printer.hpp>
 
-namespace tvm { namespace schema {
+namespace tvm { inline namespace schema {
 
 namespace hana = boost::hana;
 

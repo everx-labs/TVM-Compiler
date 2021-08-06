@@ -4,6 +4,7 @@
 #define DEFAULT_SUPPORT_FUNCTIONS(TVM_INTERFACE, TVM_REPLAY_PROTECTION)                                    \
   unsigned msg_pubkey_ = 0;                                                                                \
   __always_inline void set_msg_pubkey(unsigned pubkey) { msg_pubkey_ = pubkey; }                           \
+  [[deprecated("Use msg_pubkey instead")]]                                                                 \
   __always_inline unsigned tvm_pubkey() const { return msg_pubkey_; }                                      \
   __always_inline unsigned msg_pubkey() const { return msg_pubkey_; }                                      \
   std::variant<cell, slice> msg_slice_;                                                                    \

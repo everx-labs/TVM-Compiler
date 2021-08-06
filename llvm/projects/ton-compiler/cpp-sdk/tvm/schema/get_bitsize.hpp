@@ -2,7 +2,7 @@
 
 #include <tvm/schema/basics.hpp>
 
-namespace tvm { namespace schema {
+namespace tvm { inline namespace schema {
 
 // Calculates static bitsize for format element or returns 0 if it can't be calculated compile-time
 template<class _Tp>

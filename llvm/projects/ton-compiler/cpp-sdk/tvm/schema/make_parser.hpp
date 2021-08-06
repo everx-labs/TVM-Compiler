@@ -8,7 +8,7 @@
 #include <tvm/schema/parser/variant_parser.hpp>
 #include <tvm/schema/parser/dynamic_field_parser.hpp>
 
-namespace tvm { namespace schema {
+namespace tvm { inline namespace schema {
 
 template<unsigned _bitlen, unsigned _code>
 struct make_parser_impl<bitconst<_bitlen, _code>> {

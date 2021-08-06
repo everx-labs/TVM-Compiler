@@ -7,7 +7,7 @@
 
 // Parsing of struct/class and std tuples
 
-namespace tvm { namespace schema {
+namespace tvm { inline namespace schema {
 
 template<class _Tp>
 struct make_parser_impl {

@@ -2,7 +2,7 @@
 
 #include <tvm/schema/basics.hpp>
 
-namespace tvm { namespace schema {
+namespace tvm { inline namespace schema {
 
 using std::optional;
 using std::variant;

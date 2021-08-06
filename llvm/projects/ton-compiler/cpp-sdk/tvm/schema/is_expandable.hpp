@@ -1,6 +1,6 @@
 #pragma once
 
-namespace tvm { namespace schema {
+namespace tvm { inline namespace schema {
 
 // Helper to understand if this type is an expandable structure
 template<class T>

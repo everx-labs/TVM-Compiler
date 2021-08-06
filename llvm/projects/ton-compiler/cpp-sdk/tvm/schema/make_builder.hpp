@@ -8,7 +8,7 @@
 #include <tvm/schema/message.hpp>
 #include <experimental/type_traits>
 
-namespace tvm { namespace schema {
+namespace tvm { inline namespace schema {
 
 template<unsigned _bitlen, unsigned _code>
 struct make_builder_impl<bitconst<_bitlen, _code>> {

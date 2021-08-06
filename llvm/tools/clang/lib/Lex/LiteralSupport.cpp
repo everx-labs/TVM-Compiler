@@ -809,6 +809,21 @@ bool NumericLiteralParser::isValidUDSuffix(const LangOptions &LangOpts,
   if (!LangOpts.CPlusPlus14)
     return false;
 
+  // TVM local begin
+  if (llvm::StringSwitch<bool>(Suffix)
+      .Cases("nanoton", "nano", "nTon", "nT", true)
+      .Cases("microton", "micro", "mcTon", "mcT", true)
+      .Cases("milliton", "milli", "mTon", "mT", true)
+      .Cases("ton", "Ton", "T", "UT", true)
+      .Cases("kiloton", "kTon", "KT", "UKT", true)
+      .Cases("megaton", "MTon", "MT", "UMT", true)
+      .Cases("gigaton", "GTon", "GT", "UGT", true)
+      .Cases("u8", "u16", "u32", "u64", "u128", "u256", true)
+      .Cases("i8", "i16", "i32", "i64", "i128", "i256", true)
+      .Default(false))
+    return true;
+  // TVM local end
+
   // In C++14, "s", "h", "min", "ms", "us", and "ns" are used in the library.
   // Per tweaked N3660, "il", "i", and "if" are also used in the library.
   // In C++2a "d" and "y" are used in the library.

@@ -3,7 +3,7 @@
 #include <tvm/builder.hpp>
 #include <tvm/schema/basics.hpp>
 
-namespace tvm { namespace schema {
+namespace tvm { inline namespace schema {
 
 struct builder_visitor {
   template<class T>

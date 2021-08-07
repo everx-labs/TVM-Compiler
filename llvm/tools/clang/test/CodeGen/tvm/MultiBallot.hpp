@@ -7,7 +7,7 @@
 #include <tvm/dict_array.hpp>
 #include <tvm/dict_set.hpp>
 
-namespace tvm { namespace schema {
+namespace tvm { inline namespace schema {
 
 using VotesType = uint128;
 using DepositType = uint256;

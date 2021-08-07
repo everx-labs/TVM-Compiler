@@ -8,60 +8,6 @@
 
 namespace tvm {
 
-__always_inline
-constexpr size_t strlength(const char* str) {
-  size_t __len = 0;
-  for (; str[__len]; ++__len);
-  return __len;
-}
-
-template<unsigned Count, class Iterator>
-__always_inline
-constexpr unsigned combine_bytes(Iterator it) {
-  constexpr unsigned BYTE_SZ = 8;
-  if constexpr (Count > 1)
-    return (*it << (BYTE_SZ * (Count - 1))) | combine_bytes<Count - 1>(std::next(it));
-  else
-    return *it;
-}
-
-template<unsigned Size, class Iterator>
-__always_inline
-cell string_into_cells(Iterator it) {
-  constexpr unsigned MAX_UINT_SZ = 256;
-  constexpr unsigned BYTE_SZ = 8;
-  constexpr unsigned MAX_BYTES_IN_CELL = cell::max_bits / BYTE_SZ;
-  constexpr unsigned MAX_BYTES_IN_UINT = MAX_UINT_SZ / BYTE_SZ;
-
-  builder b;
-  if constexpr (Size > MAX_BYTES_IN_CELL) {
-    cell next_cell = string_into_cells<Size - MAX_BYTES_IN_CELL, Iterator>(
-      std::next(it, MAX_BYTES_IN_CELL));
-    b.stref(next_cell);
-  }
-  if constexpr (Size >= MAX_BYTES_IN_UINT) {
-    unsigned value = combine_bytes<MAX_BYTES_IN_UINT>(it);
-    b.stu(value, MAX_UINT_SZ);
-    std::advance(it, MAX_BYTES_IN_UINT);
-  }
-  if constexpr (Size >= 2 * MAX_BYTES_IN_UINT) {
-    unsigned value = combine_bytes<MAX_BYTES_IN_UINT>(it);
-    b.stu(value, MAX_UINT_SZ);
-    std::advance(it, MAX_BYTES_IN_UINT);
-  }
-  if constexpr (Size >= 3 * MAX_BYTES_IN_UINT) {
-    unsigned value = combine_bytes<MAX_BYTES_IN_UINT>(it);
-    b.stu(value, MAX_UINT_SZ);
-    std::advance(it, MAX_BYTES_IN_UINT);
-  }
-  constexpr auto RestSz = std::min(Size, MAX_BYTES_IN_CELL) % MAX_BYTES_IN_UINT;
-  if constexpr (RestSz) {
-    unsigned value = combine_bytes<RestSz>(it);
-    b.stu(value, RestSz * BYTE_SZ);
-  }
-  return b.make_cell();
-}
-
 // Array represented in flat sequence of elements
 // Default constructor contains null cell (for optimization of arguments parsing)
 template<class Element>
@@ -84,12 +30,6 @@ public:
   sequence(std::initializer_list<int> il) {
     assign(il.begin(), il.end());
   }
-  template <std::size_t N>
-  __always_inline
-  constexpr sequence(const char (&str) [N]) {
-    cl_ = string_into_cells<N>(str);
-  }
-
   __always_inline
   sequence& operator=(std::initializer_list<Element> il) {
     assign(il.begin(), il.end());
@@ -98,12 +38,6 @@ public:
   __always_inline
   sequence& operator=(std::initializer_list<int> il) {
     assign(il.begin(), il.end());
-    return *this;
-  }
-  template <std::size_t N>
-  __always_inline
-  constexpr sequence& operator=(const char (&str) [N]) {
-    cl_ = string_into_cells<N>(str);
     return *this;
   }
 

@@ -1,6 +1,6 @@
 #pragma once
 
-namespace tvm { namespace schema {
+namespace tvm { inline namespace schema {
 
 __interface IMultisigWallet {
   [[external]]

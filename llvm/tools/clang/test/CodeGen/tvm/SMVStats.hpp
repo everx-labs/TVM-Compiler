@@ -6,7 +6,7 @@
 #include <tvm/replay_attack_protection/timestamp.hpp>
 #include <tvm/smart_switcher.hpp>
 
-namespace tvm { namespace schema {
+namespace tvm { inline namespace schema {
 
 // For internal purposes (fixed-size address)
 struct TransferRecord {

@@ -1,19 +1,19 @@
 #pragma once
 
-#include <tvm/schema/json-abi-gen.hpp>
+#include <tvm/static_print.hpp>
 
-namespace tvm { namespace schema {
+namespace tvm { inline namespace schema {
 
 using namespace hana::literals;
 // Printing of format elements, splitted into cell-fit sub-tuples
 
 template<unsigned val>
 constexpr auto make_uint() {
-  return json_abi_gen::to_string<10>(hana::integral_c<unsigned, val>);
+  return to_string<10>(hana::integral_c<unsigned, val>);
 }
 template<unsigned val>
 constexpr auto make_hex() {
-  return json_abi_gen::to_string<16>(hana::integral_c<unsigned, val>);
+  return to_string<16>(hana::integral_c<unsigned, val>);
 }
 
 template<class T> struct element_printer;

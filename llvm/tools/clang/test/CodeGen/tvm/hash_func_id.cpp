@@ -8,6 +8,7 @@
 #include <tvm/replay_attack_protection/timestamp.hpp>
 #include <tvm/default_support_functions.hpp>
 #include <tvm/debot.hpp>
+#include <tvm/static_print.hpp>
 
 using namespace tvm;
 using namespace schema;
@@ -34,16 +35,16 @@ __interface [[no_pubkey]] ISMV_Debot {
   DebotOptions getDebotOptions();
 };
 
-static_assert(get_func_id<&ISMV_Debot::constructor>() == 0x172daa29);
-static_assert(get_func_id<ISMV_Debot, 0>() == 0x172daa29);
-static_assert(get_func_id<&ISMV_Debot::fetch>() == 0x68c4f887);
-static_assert(get_func_id<ISMV_Debot, 1>() == 0x68c4f887);
+static_assert(get_func_id<&ISMV_Debot::constructor>() == 0x558ad7fb);
+static_assert(get_func_id<ISMV_Debot, 0>() == 0x558ad7fb);
+static_assert(get_func_id<&ISMV_Debot::fetch>() == 0x12314fe6);
+static_assert(get_func_id<ISMV_Debot, 1>() == 0x12314fe6);
 static_assert(get_func_id<&ISMV_Debot::start>() == 0x059c0d6f);
 static_assert(get_func_id<ISMV_Debot, 2>() == 0x059c0d6f);
 static_assert(get_func_id<&ISMV_Debot::quit>() == 0x30025d94);
 static_assert(get_func_id<ISMV_Debot, 3>() == 0x30025d94);
-static_assert(get_func_id<&ISMV_Debot::getVersion>() == 0x3541576f);
-static_assert(get_func_id<ISMV_Debot, 4>() == 0x3541576f);
-static_assert(get_func_id<&ISMV_Debot::getDebotOptions>() == 0x7decd0db);
-static_assert(get_func_id<ISMV_Debot, 5>() == 0x7decd0db);
+static_assert(get_func_id<&ISMV_Debot::getVersion>() == 0x08a9ad83);
+static_assert(get_func_id<ISMV_Debot, 4>() == 0x08a9ad83);
+static_assert(get_func_id<&ISMV_Debot::getDebotOptions>() == 0x2259a30a);
+static_assert(get_func_id<ISMV_Debot, 5>() == 0x2259a30a);
 

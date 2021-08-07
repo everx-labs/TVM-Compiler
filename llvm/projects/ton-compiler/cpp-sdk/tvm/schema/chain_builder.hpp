@@ -16,7 +16,7 @@
 #include <boost/hana/take_back.hpp>
 #include <boost/hana/ext/std/tuple.hpp>
 
-namespace tvm { namespace schema {
+namespace tvm { inline namespace schema {
 
 namespace hana = boost::hana;
 

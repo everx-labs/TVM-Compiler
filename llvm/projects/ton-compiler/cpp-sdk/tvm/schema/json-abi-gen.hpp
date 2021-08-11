@@ -582,7 +582,7 @@ constexpr auto make_func_signature() {
   using ArgsTuple = to_std_tuple_t<Arg>;
   using Rv = get_interface_method_rv<Interface, CurMethod>;
   constexpr bool HasAnswerId =
-    get_interface_method_internal<Interface, CurMethod>::value && !std::is_void_v<Rv> &&
+    get_interface_method_internal<Interface, CurMethod>::value &&
     get_interface_method_answer_id<Interface, CurMethod>::value;
   // TODO: remove answer_id field generation in abi when abiv3 will provide answer_id in header
   auto prefix = make_signature_prefix<HasAnswerId, std::tuple_size_v<ArgsTuple>>();
@@ -598,7 +598,7 @@ constexpr auto make_func_signature() {
   using ArgsTuple = to_std_tuple_t<Arg>;
   using Rv = get_interface_method_ptr_rv<MethodPtr>;
   constexpr bool HasAnswerId =
-    get_interface_method_ptr_internal<MethodPtr>::value && !std::is_void_v<Rv> &&
+    get_interface_method_ptr_internal<MethodPtr>::value &&
     get_interface_method_ptr_answer_id<MethodPtr>::value;
   // TODO: remove answer_id field generation in abi when abiv3 will provide answer_id in header
   auto prefix = make_signature_prefix<HasAnswerId, std::tuple_size_v<ArgsTuple>>();
@@ -628,7 +628,7 @@ struct make_json_abi_impl {
   static constexpr bool ImplicitFuncId =
     get_interface_method_implicit_func_id<Interface, CurMethod>::value || !FuncId;
   static constexpr bool HasAnswerId =
-    get_interface_method_internal<Interface, CurMethod>::value && !std::is_void_v<Rv> &&
+    get_interface_method_internal<Interface, CurMethod>::value &&
     get_interface_method_answer_id<Interface, CurMethod>::value;
 
   static constexpr auto value =
@@ -645,7 +645,7 @@ struct make_json_abi_impl<Interface, CurMethod, 1> {
   static constexpr bool ImplicitFuncId =
     get_interface_method_implicit_func_id<Interface, CurMethod>::value || !FuncId;
   static constexpr bool HasAnswerId =
-    get_interface_method_internal<Interface, CurMethod>::value && !std::is_void_v<Rv> &&
+    get_interface_method_internal<Interface, CurMethod>::value &&
     get_interface_method_answer_id<Interface, CurMethod>::value;
 
   static constexpr auto value =

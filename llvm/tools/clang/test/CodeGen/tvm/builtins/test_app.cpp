@@ -1,4 +1,5 @@
-// RUN: %clang -std=c++17 --target=tvm -S -O3 %s -o asm/test_app.s
+// RUN: %clang -std=c++17 --target=tvm -S -O3 %s -o -
+// CHECK-NOT: call {{ }}
 
 // ******************************************* 
 //

@@ -1523,7 +1523,7 @@ void IRTranslator::finalizeFunction() {
   FrameIndices.clear();
   MachinePreds.clear();
   // MachineIRBuilder::DebugLoc can outlive the DILocation it holds. Clear it
-  // to avoid accessing free’d memory (in runOnMachineFunction) and to avoid
+  // to avoid accessing free'd memory (in runOnMachineFunction) and to avoid
   // destroying it twice (in ~IRTranslator() and ~LLVMContext())
   EntryBuilder = MachineIRBuilder();
   CurBuilder = MachineIRBuilder();

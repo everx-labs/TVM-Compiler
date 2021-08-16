@@ -1,4 +1,5 @@
-// RUN: %clang -std=c++17 --target=tvm -S -O3 %s -o asm/test_cell.s
+// RUN: %clang -std=c++17 --target=tvm -S -O3 %s -o -
+// CHECK-NOT: call {{ }}
 
 // STBREFR or ENDCST (b b00 – b), equivalent to ENDC; SWAP; STREF 
 __tvm_builder endcst_test(__tvm_builder b1, __tvm_builder b2)

@@ -1,0 +1,973 @@
+//===-- TVMRegStackify.cpp - Register Stackification ----------------------===//
+//
+//                     The LLVM Compiler Infrastructure
+//
+// This file is distributed under the University of Illinois Open Source
+// License. See LICENSE.TXT for details.
+//
+//===----------------------------------------------------------------------===//
+///
+/// \file
+/// This file implements a locla (intrablock) scheduling pass.
+///
+///
+//===----------------------------------------------------------------------===//
+
+#include "TVM.h"
+#include "TVMStack.h"
+#include "TVMStackFixup.h"
+#include "TVMSubtarget.h"
+#include "llvm/ADT/PostOrderIterator.h"
+#include "llvm/ADT/SmallVector.h"
+#include "llvm/Analysis/AliasAnalysis.h"
+#include "llvm/CodeGen/LiveIntervals.h"
+#include "llvm/CodeGen/MachineBlockFrequencyInfo.h"
+#include "llvm/CodeGen/MachineDominators.h"
+#include "llvm/CodeGen/MachineInstrBuilder.h"
+#include "llvm/CodeGen/MachineModuleInfoImpls.h"
+#include "llvm/CodeGen/MachineRegisterInfo.h"
+#include "llvm/CodeGen/Passes.h"
+#include "llvm/Support/Debug.h"
+#include "llvm/Support/raw_ostream.h"
+
+#include <iostream>
+#include <unordered_set>
+
+using namespace llvm;
+using namespace std;
+
+#define DEBUG_TYPE "tvm-local-scheduler"
+
+/*
+class InstructionTree {
+  MachineInstr &instr;
+  const TargetInstrInfo *instrInfo;
+  vector<InstructionTree *> children;
+
+public:
+  InstructionTree(MachineInstr &insn, const TargetInstrInfo *TII = nullptr)
+      : instr(insn), instrInfo(TII), children() {}
+
+  ~InstructionTree() {}
+
+  MachineInstr &getInstruction() { return instr; }
+
+  void addChild(InstructionTree *child) { children.push_back(child); }
+
+  string toString() {
+    string str;
+    raw_string_ostream OS(str);
+    instr.print(OS, true, false, true, false, instrInfo);
+    if (children.size() > 0) {
+      OS << "(";
+      bool first = true;
+      for (auto tree : children) {
+        if (!first)
+          OS << ",";
+        OS << tree->toString();
+        first = false;
+      }
+      OS << ")";
+    }
+    return OS.str();
+  }
+};
+
+class TreeGraphNode {
+  int index;
+  InstructionTree *tree;
+  vector<TreeGraphNode *> predecessors;
+
+public:
+  TreeGraphNode(int idx, InstructionTree *itree)
+      : index(idx), tree(itree), predecessors() {}
+
+  int getIndex() { return index; }
+
+  InstructionTree *getTree() { return tree; }
+
+  void addPredecessor(TreeGraphNode *node) { predecessors.push_back(node); }
+
+  bool hasPredecessor(TreeGraphNode *node) {
+    auto it = find(predecessors.begin(), predecessors.end(), node);
+    return it != predecessors.end();
+  }
+
+  int getPredecessorNum() { return predecessors.size(); }
+
+  vector<TreeGraphNode *> &getPredecessors() { return predecessors; }
+
+  string toString() { return tree->toString(); }
+};
+
+class TreeGraph {
+  vector<TreeGraphNode *> roots;
+  vector<TreeGraphNode *> leafs;
+  vector<TreeGraphNode *> nodes;
+
+public:
+  TreeGraph() : roots(), leafs(), nodes() {}
+
+  ~TreeGraph() {}
+
+  int size() { return nodes.size(); }
+
+  TreeGraphNode *addNode(InstructionTree *tree) {
+    TreeGraphNode *node = new TreeGraphNode(nodes.size(), tree);
+    nodes.push_back(node);
+    return node;
+  }
+
+  void addRoot(TreeGraphNode *node) { roots.push_back(node); }
+
+  void addLeaf(TreeGraphNode *node) { leafs.push_back(node); }
+
+  void addEdge(TreeGraphNode *from, TreeGraphNode *to) {
+    to->addPredecessor(from);
+  };
+
+  // Calculate root & leafs
+  void preprocess();
+
+  bool verify();
+
+  void findTopologicalSorts(vector<vector<TreeGraphNode *>> &topsorts);
+
+  static string toString(vector<TreeGraphNode *> list);
+
+  string toString(int count[]);
+
+private:
+  void findTopologicalSorts(vector<vector<TreeGraphNode *>> &topsorts,
+                            int count[], vector<TreeGraphNode *> &queue,
+                            vector<TreeGraphNode *> &topsort);
+
+  static void remove(vector<TreeGraphNode *> list, TreeGraphNode *element) {
+    std::remove(list.begin(), list.end(), element);
+  }
+};
+
+void TreeGraph::preprocess() {
+  vector<uint8_t> hasSuccessors(size());
+  for (int i = 0; i < size(); i++)
+    hasSuccessors[i] = 0;
+  for (auto node : nodes) {
+    if (node->getPredecessorNum() == 0) {
+      roots.push_back(node);
+    } else {
+      for (auto pred : node->getPredecessors()) {
+        hasSuccessors[pred->getIndex()] = 1;
+      }
+    }
+  }
+  for (auto node : nodes) {
+    if (!hasSuccessors[node->getIndex()])
+      leafs.push_back(node);
+  }
+}
+
+bool TreeGraph::verify() {
+  bool valid = true;
+  for (auto node : nodes) {
+    if (node->getPredecessorNum() == 0) {
+      auto it = find(leafs.begin(), leafs.end(), node);
+      if (it == leafs.end())
+        valid = false;
+    }
+  }
+  return valid;
+}
+
+void TreeGraph::findTopologicalSorts(
+    vector<vector<TreeGraphNode *>> &topsorts) {
+  vector<TreeGraphNode *> queue(leafs);
+  vector<TreeGraphNode *> topsort;
+  int *count = new int[size()];
+  for (int i = 0; i < size(); i++)
+    count[i] = 0;
+  for (TreeGraphNode *node : nodes) {
+    for (auto pred : node->getPredecessors()) {
+      count[pred->getIndex()]++;
+    }
+  }
+  std::cout << "  count = " << toString(count).c_str() << endl;
+  findTopologicalSorts(topsorts, count, queue, topsort);
+  delete[] count;
+}
+
+string TreeGraph::toString(vector<TreeGraphNode *> list) {
+  string str;
+  bool first = true;
+  for (auto node : list) {
+    if (!first)
+      str += ", ";
+    str += node->toString();
+    first = false;
+  }
+  return str;
+}
+
+string TreeGraph::toString(int count[]) {
+  string str;
+  char buf[10];
+  for (int i = 0; i < size(); i++) {
+    _itoa_s(count[i], buf, 10);
+    str += buf;
+    if (i < size() - 1)
+      str += ", ";
+  }
+  return str;
+}
+
+void TreeGraph::findTopologicalSorts(vector<vector<TreeGraphNode *>> &topsorts,
+                                     int count[],
+                                     vector<TreeGraphNode *> &queue,
+                                     vector<TreeGraphNode *> &topsort) {
+  //	std::cout << "queue : " << toString(queue).c_str() << "  topsort = " <<
+  //toString(topsort).c_str() << "  count = " << toString(count).c_str() <<
+  //endl;
+  if (!queue.empty()) {
+    for (TreeGraphNode *node : queue) {
+      topsort.push_back(node);
+      // Create the queue without node element
+      vector<TreeGraphNode *> subQueue;
+      for (TreeGraphNode *snode : queue) {
+        if (snode != node)
+          subQueue.push_back(snode);
+      }
+      // save count indexes, which we decremented
+      vector<int> decrements;
+      for (auto pred : node->getPredecessors()) {
+        decrements.push_back(pred->getIndex());
+        int cnt = count[pred->getIndex()] - 1;
+        count[pred->getIndex()] = cnt;
+        if (cnt == 0)
+          subQueue.push_back(pred);
+      }
+      findTopologicalSorts(topsorts, count, subQueue, topsort);
+      topsort.pop_back();
+      // restore count indexes
+      for (auto index : decrements) {
+        count[index] = count[index] + 1;
+      }
+    }
+  } else {
+    if (topsort.size() == size()) {
+      //			std::cout << "topsort " <<
+      //toString(topsort).c_str() << endl;
+      topsorts.push_back(topsort);
+    }
+  }
+}
+*/
+
+// Convert Register list to string
+string regListToString(vector<unsigned> const &list) {
+  string str = "[ ";
+  bool first = true;
+  for (unsigned reg : list) {
+    if (!first)
+      str += ", ";
+    str += "%";
+    str += (reg & 0x7FFF);
+    first = false;
+  }
+  str += " ]";
+  return str;
+}
+
+// Convert Register unordered set to string
+string regSetToString(unordered_set<unsigned> const &set) {
+  string str = "[ ";
+  bool first = true;
+  for (unsigned reg : set) {
+    if (!first)
+      str += ", ";
+    str += "%";
+    str += (reg & 0x7FFF);
+    first = false;
+  }
+  str += " ]";
+  return str;
+}
+
+// Convert Register unordered map (for example, to def/use count) to string
+string regMapToString(unordered_map<unsigned, unsigned> const &map) {
+  string str = "[ ";
+  bool first = true;
+  for (std::pair<unsigned, unsigned> it : map) {
+    if (!first)
+      str += ", ";
+    str += "%";
+    str += (it.first & 0x7FFF);
+    str += " = ";
+    str += (it.second);
+    first = false;
+  }
+  str += " ]";
+  return str;
+}
+
+// Simple test if vector contains the register or other value
+static bool contains(vector<unsigned> const &list, unsigned reg) {
+  //  return std::find(list.begin(), list.end(), value) != list.end();
+
+  for (int i = 0; i < list.size(); i++) {
+    if (list[i] == reg)
+      return true;
+  }
+  return false;
+}
+
+// Find index of the register in vector
+static unsigned indexOf(vector<unsigned> const &list, unsigned reg) {
+  unsigned idx;
+  for (idx = 0; idx < list.size(); idx++) {
+    if (list[idx] == reg)
+      break;
+  }
+  return idx;
+}
+
+// Representing Machine Block as data queue to disguise an original stack model
+class BlockQueueInfo {
+public:
+  // Preferred Input Queue (without register repetitions, will be duplicated
+  // inside block if needed)
+  vector<unsigned> preferredInputQueue;
+  // Preferred Output Queue
+  vector<unsigned> preferredOutputQueue;
+  // Number of uses of register inside the block
+  unordered_map<unsigned, unsigned> numUses;
+  // Actual Input Queue, must be converted on the start of block to convenient
+  // for block calculations
+  vector<unsigned> actualInputQueue;
+  // Actual Output Queue, must be converted from Preferred Output Queue during
+  // queue fixup on join CFG or DJ-Graph edges
+  vector<unsigned> actualOutputQueue;
+
+  BlockQueueInfo()
+      : preferredInputQueue(), preferredOutputQueue(), numUses(),
+        actualInputQueue(), actualOutputQueue() {}
+
+  void dump();
+
+	// Calculate fixup on block input
+  StackFixup calculateInputFixup(MachineFunction &MF) {
+    return calculateFixup(MF, preferredInputQueue, actualInputQueue);
+	}
+
+	// Calculate fixup on block output
+	StackFixup calculateOutputFixup(MachineFunction &MF) {
+    return calculateFixup(MF, actualOutputQueue, preferredOutputQueue);
+	}
+
+  // Calculate optimized queue from several different queues
+  // Needs for fork/join queue fixups
+  static void calculateOptimizedMerge(vector<vector<unsigned>> const &queues,
+                                      vector<unsigned> const &queueWeights,
+                                      vector<unsigned> merge);
+
+  static void calculateOptimizedMerge(vector<vector<unsigned>> const &queues,
+                                      vector<unsigned> merge);
+
+	// Calculate fixup from different queue (stack) values
+  static StackFixup calculateFixup(MachineFunction &MF, vector<unsigned> const &dst,
+                            vector<unsigned> const &src);
+};
+
+enum DJEdgeKind { Dominance, Join };
+
+class DJNode {
+  friend class DJGraph;
+
+  MachineBasicBlock *MBB;
+  int level;
+  vector<pair<DJNode *, DJEdgeKind>> predecessors;
+  vector<pair<DJNode *, DJEdgeKind>> successors;
+  BlockQueueInfo queueInfo;
+
+private:
+  DJNode(MachineBasicBlock *mbb)
+      : MBB(mbb), level(-1), predecessors(), successors(), queueInfo() {}
+
+public:
+  MachineBasicBlock &getMBB() { return *MBB; }
+
+  int getLevel() { return level; }
+
+  void setLevel(int lev) { level = lev; }
+
+  BlockQueueInfo &getBlockQueueInfo() { return queueInfo; }
+
+  bool hasPredecessor(DJNode *node, DJEdgeKind kind);
+
+  bool hasSuccessor(DJNode *node, DJEdgeKind kind);
+
+	bool isImmediatelyDominates(DJNode *node) {
+    return hasSuccessor(node, Dominance);
+	}
+
+	bool isDominates(DJNode *node);
+
+	// Calculate fixup on block input
+  StackFixup calculateInputFixup(MachineFunction &MF) {
+    return getBlockQueueInfo().calculateInputFixup(MF);
+  }
+
+  // Calculate fixup on block output
+  StackFixup calculateOutputFixup(MachineFunction &MF) {
+    return getBlockQueueInfo().calculateOutputFixup(MF);
+	}
+
+	string toString();
+
+  // Machine-DJ Graph iterators
+  using pred_iterator = vector<pair<DJNode *, DJEdgeKind>>::iterator;
+  using const_pred_iterator =
+      vector<pair<DJNode *, DJEdgeKind>>::const_iterator;
+  using succ_iterator = vector<pair<DJNode *, DJEdgeKind>>::iterator;
+  using const_succ_iterator =
+      vector<pair<DJNode *, DJEdgeKind>>::const_iterator;
+
+  pred_iterator pred_begin() { return predecessors.begin(); }
+
+  const_pred_iterator pred_begin() const { return predecessors.begin(); }
+
+  pred_iterator pred_end() { return predecessors.end(); }
+
+  const_pred_iterator pred_end() const { return predecessors.end(); }
+
+  unsigned pred_size() const { return (unsigned)predecessors.size(); }
+
+  bool pred_empty() const { return predecessors.empty(); }
+
+  succ_iterator succ_begin() { return successors.begin(); }
+
+  const_succ_iterator succ_begin() const { return successors.begin(); }
+
+  succ_iterator succ_end() { return successors.end(); }
+
+  const_succ_iterator succ_end() const { return successors.end(); }
+
+  unsigned succ_size() const { return (unsigned)successors.size(); }
+
+  bool succ_empty() const { return successors.empty(); }
+
+  inline iterator_range<pred_iterator> predecessors() {
+    return make_range(pred_begin(), pred_end());
+  }
+
+  inline iterator_range<const_pred_iterator> predecessors() const {
+    return make_range(pred_begin(), pred_end());
+  }
+
+  inline iterator_range<succ_iterator> successors() {
+    return make_range(succ_begin(), succ_end());
+  }
+
+  inline iterator_range<const_succ_iterator> successors() const {
+    return make_range(succ_begin(), succ_end());
+  }
+
+private:
+  void addPredecessor(DJNode *pred, DJEdgeKind kind) {
+    predecessors.push_back(make_pair(pred, kind));
+  }
+
+  void addSuccessor(DJNode *pred, DJEdgeKind kind) {
+    successors.push_back(make_pair(pred, kind));
+  }
+};
+
+bool DJNode::hasPredecessor(DJNode *node, DJEdgeKind kind) { 
+	for (pair<DJNode*, DJEdgeKind> pred : predecessors()) {
+    if (pred.first == this && pred.second == kind)
+      return true;
+  }
+  return false;
+}
+
+bool DJNode::hasSuccessor(DJNode *node, DJEdgeKind kind) {
+  for (pair<DJNode *, DJEdgeKind> succ : successors()) {
+    if (succ.first == this && succ.second == kind)
+      return true;
+  }
+  return false;
+}
+
+bool DJNode::isDominates(DJNode *node) { 
+	if (isImmediatelyDominates(node))
+    return true;
+  for (pair<DJNode *, DJEdgeKind> succ : successors()) {
+     if (succ.second == Dominance && succ.first->isDominates(node))
+       return true;
+	}
+  return false;
+}
+
+string DJNode::toString() { 
+	MCSymbol *sym = getMBB().getSymbol(); 
+	return sym->getName().str();
+}
+
+class DJGraph {
+  // Dominator levels
+  vector<vector<DJNode *>> levels;
+  vector<DJNode *> nodes;
+  DJNode *root;
+
+  // Pool-allocate DJGraph-lifetime
+  BumpPtrAllocator Allocator;
+
+  // Allocation management for DJ Nodes in graph
+  Recycler<DJNode> DJNodeRecycler;
+
+public:
+  DJGraph(MachineFunction &MF, MachineDominatorTree &MDT) : levels() {
+    init(MF, MDT);
+  }
+
+  DJNode *getRoot() { return root; }
+
+	unsigned getNumLevels() { return levels.size();  }
+
+  vector<vector<DJNode *>> const &getLevels() { return levels; }
+
+  void dump();
+
+  using iterator = vector<DJNode *>::iterator;
+  using const_iterator = vector<DJNode *>::const_iterator;
+
+  iterator begin() { return nodes.begin(); }
+
+  const_iterator begin() const { return nodes.begin(); }
+
+  iterator end() { return nodes.end(); }
+
+  const_iterator end() const { return nodes.end(); }
+
+private:
+  void init(MachineFunction &MF, MachineDominatorTree &MDT);
+
+  DJNode *createDJNode(MachineBasicBlock *MBB);
+
+  void addEdge(DJNode *source, DJNode *target, DJEdgeKind kind);
+
+  void walkDomTree(MachineDomTreeNode *domTreeNode, int level,
+                   unordered_map<MachineBasicBlock *, DJNode *> const &nodeMap);
+};
+
+void DJGraph::init(MachineFunction &MF, MachineDominatorTree &MDT) {
+  unordered_map<MachineBasicBlock *, DJNode *> nodeMap;
+  for (MachineBasicBlock &MBB : MF) {
+    DJNode *djNode = createDJNode(&MBB);
+    nodes.push_back(djNode);
+  }
+  walkDomTree(MDT.getRootNode(), 0, nodeMap);
+
+  for (MachineBasicBlock &source : MF) {
+    for (MachineBasicBlock *target : source.successors()) {
+      DJNode *sourceNode = nodeMap[&source];
+      DJNode *targetNode = nodeMap[target];
+      if (sourceNode->isDominates(targetNode))
+        continue;
+      addEdge(sourceNode, targetNode, Join);
+    }
+  }
+}
+
+ DJNode *DJGraph::createDJNode(MachineBasicBlock * MBB) {
+   return new (DJNodeRecycler.Allocate<MachineBasicBlock>(Allocator)) DJNode(MBB);
+ }
+
+void DJGraph::walkDomTree(
+    MachineDomTreeNode * domTreeNode, int level,
+    unordered_map<MachineBasicBlock *, DJNode *> const &nodeMap) {
+  if (levels.size() < level)
+    levels.push_back(vector<DJNode *>());
+  MachineBasicBlock *MBB = domTreeNode->getBlock();
+  DJNode *node = nodeMap[MBB];
+  node->setLevel(level);
+  levels[level].push_back(node);
+  for (MachineDomTreeNode *child : domTreeNode->getChildren()) {
+    DJNode *target = nodeMap[child->getBlock()];
+    addEdge(node, target, Dominance);
+    walkDomTree(child, level + 1, nodeMap);
+  }
+}
+
+void DJGraph::addEdge(DJNode * source, DJNode * target, DJEdgeKind kind) {
+  source->addSuccessor(target, kind);
+  target->addPredecessor(source, kind);
+}
+
+void DJGraph::dump() { 
+	dbgs() << "DJGraph: " << "\n";
+  for (unsigned i = 0; i < getNumLevels(); i++) {
+    dbgs() << "Level " << i << ": ";
+    bool first = true;
+    for (DJNode *node : levels[i]) {
+      assert(node->getLevel() == i);
+      if (!first)
+        dbgs() << ", ";
+      dbgs() << node->toString();
+      first = false;
+		}
+	}
+  dbgs() << "Dominant Edges:\n";
+  for (unsigned i = 0; i < getNumLevels(); i++) {
+    for (DJNode *source : levels[i]) {
+      for (pair<DJNode *, DJEdgeKind> target : source->successors()) {
+        if (target.second == Dominance) {
+          dbgs() << source->toString();
+          dbgs() << " -> ";
+          dbgs() << target.first->toString();
+          dbgs() << "\n";
+        }
+			}
+    }
+  }
+	dbgs() << "Join Edges:\n";
+  for (unsigned i = 0; i < getNumLevels(); i++) {
+    for (DJNode *source : levels[i]) {
+      for (pair<DJNode *, DJEdgeKind> target : source->successors()) {
+        if (target.second == Join) {
+          dbgs() << source->toString();
+          dbgs() << " -> ";
+          dbgs() << target.first->toString();
+          dbgs() << "\n";
+        }
+      }
+    }
+  }
+}
+
+namespace {
+class TVMLocalScheduler final : public MachineFunctionPass {
+  StringRef getPassName() const override { return "TVM Local Scheduler"; }
+
+  void getAnalysisUsage(AnalysisUsage &AU) const override {
+    AU.addRequired<LiveIntervals>();
+    AU.addPreservedID(LiveVariablesID);
+    AU.addRequired<MachineLoopInfo>();
+    AU.addPreserved<MachineLoopInfo>();
+    AU.addRequired<MachineDominatorTree>();
+    AU.addPreserved<MachineDominatorTree>();
+    MachineFunctionPass::getAnalysisUsage(AU);
+  }
+
+  bool runOnMachineFunction(MachineFunction &MF) override;
+
+public:
+  static char ID; // Pass identification, replacement for typeid
+  TVMLocalScheduler() : MachineFunctionPass(ID) {}
+
+private:
+  bool runOnBasicBlocks(MachineFunction &MF);
+
+//  void createTreeGraph(MachineBasicBlock &MBB);
+
+  // Gather "pseodo-global" registers, i.e. such that can be reified
+  // (pushed)
+  //  from constant values (like block addresses) or fixed places on stack,
+  //  like parameters
+  // Other values will be received from block input "queue"
+  void
+  gatherPseudoGlobal(MachineFunction &MF,
+                      unordered_map<unsigned, MachineInstr *> &pseudoMap);
+
+  // Similar as from TVMStackModel, but with unordered set
+  void gatherBlockLiveIns(MachineBasicBlock &MBB,
+                          unordered_set<unsigned> &vregs);
+
+  // Similar as from TVMStackModel, but with unordered set
+  void gatherBlockLiveOuts(MachineBasicBlock &MBB,
+                            unordered_set<unsigned> &vregs);
+
+  // Gather information about input & output block data queue
+  void gatherBlockQueueInfo(
+      MachineBasicBlock &MBB,
+      unordered_map<unsigned, MachineInstr *> const &pseudoMap,
+      BlockQueueInfo &queueInfo);
+
+  MachineRegisterInfo *MRI;
+  LiveIntervals *LIS;
+  MachineDominatorTree *MDT;
+};
+} // end anonymous namespace
+
+char TVMLocalScheduler::ID = 0;
+INITIALIZE_PASS(TVMLocalScheduler, DEBUG_TYPE,
+                "Schedule instructions within a blocks", false, false)
+
+FunctionPass *llvm::createTVMLocalScheduler() {
+  return new TVMLocalScheduler();
+}
+
+bool TVMLocalScheduler::runOnMachineFunction(MachineFunction & MF) {
+  LLVM_DEBUG(dbgs() << "********** Local Scheduler **********\n"
+                        "********** Function: "
+                    << MF.getName() << '\n');
+
+  bool changed = false;
+
+  MRI = &MF.getRegInfo();
+  LIS = &getAnalysis<LiveIntervals>();
+  MDT = &getAnalysis<MachineDominatorTree>();
+
+  changed |= runOnBasicBlocks(MF);
+
+  return changed;
+}
+
+bool TVMLocalScheduler::runOnBasicBlocks(MachineFunction & MF) {
+  bool changed = false;
+
+  unordered_map<unsigned, MachineInstr *> pseudoMap;
+  gatherPseudoGlobal(MF, pseudoMap);
+  /*
+  dbgs() << "Pseudo Globals : ";
+  for (auto it = pseudoMap.begin(); it != pseudoMap.end(); it++) {
+    dbgs() << "%" << (it->first & 0x7FFF) << " ";
+        }
+  dbgs() << "\n";
+  */
+	
+	DJGraph djGraph(MF, *MDT);
+  djGraph.dump();
+
+	for (DJNode *node : djGraph) {
+    gatherBlockQueueInfo(node->getMBB(), pseudoMap, node->getBlockQueueInfo());
+	}
+
+	/*
+  auto &firstBB = MF.front();
+
+  using RPOTType = ReversePostOrderTraversal<MachineFunction *>;
+  RPOTType RPOT(&MF);
+
+  for (RPOTType::rpo_iterator I = RPOT.begin(), E = RPOT.end(); I != E;
+        ++I) {
+    MachineBasicBlock *MBB = *I;
+
+    createTreeGraph(*MBB);
+  }
+	*/
+  return changed;
+}
+
+/*
+void TVMLocalScheduler::createTreeGraph(MachineBasicBlock & MBB) {
+  int size = MBB.size();
+  if (size == 0)
+    return;
+  cout << "Block size = " << size << endl;
+
+  for (MachineInstr &MI : MBB) {
+
+    //			assert(!TVM::isArgument(MI));
+
+    if (MI.isDebugInstr() || MI.isLabel())
+      continue;
+
+    MI.dump();
+  }
+}
+*/
+
+void TVMLocalScheduler::gatherBlockLiveIns(
+    MachineBasicBlock & MBB, unordered_set<unsigned> & vregs) {
+  for (unsigned i = 0, e = MRI->getNumVirtRegs(); i != e; ++i) {
+    unsigned Reg = TargetRegisterInfo::index2VirtReg(i);
+    if (LIS->hasInterval(Reg)) {
+      if (LIS->isLiveInToMBB(LIS->getInterval(Reg), &MBB)) {
+        vregs.insert(Reg);
+      }
+    }
+  }
+}
+
+void TVMLocalScheduler::gatherBlockLiveOuts(
+    MachineBasicBlock & MBB, unordered_set<unsigned> & vregs) {
+  for (unsigned i = 0, e = MRI->getNumVirtRegs(); i != e; ++i) {
+    unsigned Reg = TargetRegisterInfo::index2VirtReg(i);
+    if (LIS->hasInterval(Reg)) {
+      if (LIS->isLiveOutOfMBB(LIS->getInterval(Reg), &MBB)) {
+        vregs.insert(Reg);
+      }
+    }
+  }
+}
+
+void TVMLocalScheduler::gatherBlockQueueInfo(
+    MachineBasicBlock & MBB,
+    unordered_map<unsigned, MachineInstr *> const &pseudoMap,
+    BlockQueueInfo &queueInfo) {
+  unordered_set<unsigned> liveIns;
+  gatherBlockLiveIns(MBB, liveIns);
+  unordered_set<unsigned> liveOuts;
+  gatherBlockLiveOuts(MBB, liveOuts);
+
+  for (MachineInstr &MI : MBB) {
+    for (const MachineOperand &op : MI.uses()) {
+      if (op.isReg()) {
+        unsigned reg = op.getReg();
+        unsigned numUses = 1;
+        auto search = queueInfo.numUses.find(reg);
+        if (search != queueInfo.numUses.end()) {
+          numUses = search->second + 1;
+          queueInfo.numUses.insert_or_assign(reg, numUses);
+        }
+
+        if (pseudoMap.find(reg) == pseudoMap.end() &&
+            liveIns.find(reg) != liveIns.end()) {
+          if (numUses == 1)
+            queueInfo.preferredInputQueue.push_back(reg);
+        }
+      }
+    }
+    for (const MachineOperand &op : MI.defs()) {
+      if (op.isReg()) {
+        unsigned reg = op.getReg();
+        if (liveOuts.find(reg) != liveOuts.end()) {
+          queueInfo.preferredOutputQueue.push_back(reg);
+        }
+      }
+    }
+  }
+}
+
+void TVMLocalScheduler::gatherPseudoGlobal(
+    MachineFunction & MF,
+    unordered_map<unsigned, MachineInstr *> & pseudoMap) {
+  unordered_set<unsigned> defined;
+  for (MachineBasicBlock &MBB : MF) {
+    for (MachineInstr &MI : MBB) {
+      //      MI.dump();
+      unsigned code = MI.getOpcode();
+      unsigned reg = 0;
+      switch (code) {
+      case TVM::ARGUMENT: {
+        const MachineOperand &result = MI.getOperand(0);
+        reg = result.getReg();
+      } break;
+      case TVM::PUSHCONT_MBB: {
+        const MachineOperand &result = MI.getOperand(0);
+        reg = result.getReg();
+      } break;
+      default:
+        break;
+      }
+      if (reg != 0) {
+        if (defined.find(reg) == defined.end()) {
+          // dbgs() << "Reg %" << (reg & 0x7FFF) << "\n";
+          pseudoMap.insert(pair<unsigned, MachineInstr *>(reg, &MI));
+        }
+      }
+      for (const MachineOperand &op : MI.defs()) {
+        if (op.isReg()) {
+          unsigned reg = op.getReg();
+          if (defined.find(reg) != defined.end()) {
+            pseudoMap.erase(reg);
+          }
+          defined.insert(reg);
+        }
+      }
+    }
+  }
+}
+
+void BlockQueueInfo::dump() {
+  dbgs() << "Preferred Input Queue: "
+          << regListToString(preferredInputQueue).c_str() << "\n"
+          << "Preferred Output Queue: "
+          << regListToString(preferredOutputQueue).c_str() << "\n"
+          << "Actual Input Queue: "
+          << regListToString(actualInputQueue).c_str() << "\n"
+          << "Actual Output Queue: "
+          << regListToString(actualInputQueue).c_str() << "\n"
+          << "Number Of Uses :" << regMapToString(numUses);
+
+  dbgs() << "\n";
+}
+
+// Suboptimal algorithm
+// Set register position using minimum weighted sum with some parameters:
+// k1 * length(queue)
+// k2 * abs(dist(queuePos, mergePos))
+// k3 - if there is no such register in queue
+void BlockQueueInfo::calculateOptimizedMerge(
+    vector<vector<unsigned>> const &queues,
+    vector<unsigned> const &queueWeights, vector<unsigned> merge) {
+  unsigned k1 = 2;
+  unsigned k2 = 2;
+  unsigned k3 = 1;
+  unordered_set<unsigned> allRegs;
+  for (vector<unsigned> const &it1 : queues) {
+    for (unsigned reg : it1) {
+      if (allRegs.find(reg) == allRegs.end())
+        allRegs.insert(reg);
+    }
+  }
+
+  while (allRegs.size() > 1) {
+    unsigned idx = merge.size();
+    unsigned optimalReg = 0;
+    unsigned minimumWeight = 0x7FFFFFFF;
+    for (unsigned reg : allRegs) {
+      for (unsigned qidx = 0; qidx < queues.size(); qidx++) {
+        vector<unsigned> const &queue = queues[qidx];
+        unsigned queueWeight = queueWeights[qidx];
+        unsigned queueIdx = indexOf(queue, reg);
+        unsigned weight = k1 * queue.size();
+        if (queueIdx < queue.size()) {
+          if (queueIdx > idx)
+            weight += k2 * (queueIdx - idx);
+          else
+            weight += k2 * (idx - queueIdx);
+        } else
+          queueWeight += k3;
+        weight *= queueWeight;
+        if (weight < minimumWeight) {
+          optimalReg = reg;
+          minimumWeight = weight;
+        }
+      }
+    }
+    merge.push_back(optimalReg);
+    allRegs.erase(optimalReg);
+  }
+  merge.push_back((unsigned)*allRegs.begin());
+}
+
+void BlockQueueInfo::calculateOptimizedMerge(
+    vector<vector<unsigned>> const &queues, vector<unsigned> merge) {
+  vector<unsigned> queueWeights;
+  for (unsigned i = 0; i < queues.size(); i++)
+    queueWeights.push_back(1);
+  calculateOptimizedMerge(queues, queueWeights, merge);
+}
+
+StackFixup BlockQueueInfo::calculateFixup(MachineFunction &MF,
+                                          vector<unsigned> const &dst,
+                                          vector<unsigned> const &src) {
+  unsigned size = max(src.size(), dst.size());
+  // We create two dummy stacks and than find a fixup using
+  // function from StackModel
+  Stack srcStack(MF, size);
+  Stack dstStack(MF, size);
+  for (unsigned i = 0; i < size; i++) {
+    if (i < src.size())
+      srcStack.set(i, StackVreg(src[i]));
+    else // fill with dummy registers
+      srcStack.set(i, StackVreg(0));
+  }
+  for (unsigned i = 0; i < size; i++) {
+    if (i < dst.size())
+      dstStack.set(i, StackVreg(dst[i]));
+    else // fill with dummy registers
+      dstStack.set(i, StackVreg(0));
+  }
+  return StackFixup::Diff(dstStack, srcStack);
+}

@@ -226,7 +226,6 @@ __always_inline std::tuple<persistent_data_header_t<Interface, ReplayAttackProte
     // __reflect_echo<print_chain_tuple<LinearTup>().c_str()>{};
     auto linear_tup = parse<LinearTup>(persist);
     DContract base = to_struct<DContract>(chain_fold_tup<data_tup_t>(linear_tup));
-    // DContract base = parse_chain<DContract, 1 + Est::max_bits, Est::max_refs>(persist);
     return { *data_hdr, base };
   } else {
     // Only 1 bit to skip
@@ -239,21 +238,30 @@ __always_inline std::tuple<persistent_data_header_t<Interface, ReplayAttackProte
   }
 }
 
-template<class MsgHeader, class Data, bool dyn_chain>
-__always_inline Data parse_smart(parser p, parser from_header) {
+// For parsing arguments from message body sequence
+// p - message body after header (and answer_id) already parsed
+template<bool Internal, class MsgHeader, class Data, bool dyn_chain>
+__always_inline Data parse_smart(parser p) {
   using namespace schema;
 
   if constexpr (dyn_chain) {
     return parse_chain_dynamic<Data>(p);
   } else {
-    using header_with_args = std::tuple<MsgHeader, Data>;
-    using est_t = estimate_element<std::tuple<MsgHeader, Data>>;
+    using header_tup = std::conditional_t<Internal,
+        std::tuple<MsgHeader>,
+        std::tuple<abiv2::external_signature, MsgHeader>
+        >;
+    using args_tup = to_std_tuple_t<Data>;
+    using header_with_args = decltype(std::tuple_cat(header_tup{}, args_tup{}));
+    using est_t = estimate_element<header_with_args>;
     if constexpr (est_t::max_bits > cell::max_bits || est_t::max_refs > cell::max_refs) {
-      using LinearTup = decltype(make_chain_tuple<0, 0>(header_with_args{}));
+      using est_hdr_t = estimate_element<header_tup>;
+      // calculating placement pattern with hdr offset
+      using LinearTup = decltype(make_chain_tuple<est_hdr_t::max_bits, est_hdr_t::max_refs>(args_tup{}));
       // uncomment to print in remark:
-      // __reflect_echo<print_chain_tuple<LinearTup>().c_str()>{};
-      auto linear_tup = parse<LinearTup>(from_header);
-      return std::get<1>(chain_fold_tup<header_with_args>(linear_tup));
+      //__reflect_echo<print_chain_tuple<LinearTup>().c_str()>{};
+      auto linear_tup = parse<LinearTup>(p);
+      return chain_fold<Data>(linear_tup);
     } else {
       return parse<Data>(p);
     }
@@ -388,7 +396,7 @@ struct smart_switcher_impl {
           temporary_data::setglob(global_id::answer_id, 0);
         }
         if constexpr (args_sz != 0) {
-          auto parsed_args = parse_smart<FixedHeader, Args, is_dyn_chain_parse>(body_p, parser(body_from_header));
+          auto parsed_args = parse_smart<Internal, FixedHeader, Args, is_dyn_chain_parse>(body_p);
           auto rv = std::apply_f<func>(std::tuple_cat(std::make_tuple(std::ref(c)),
                                                       to_std_tuple(parsed_args)));
           if constexpr (is_coroutine_v<func>) {
@@ -449,7 +457,7 @@ struct smart_switcher_impl {
 
         temporary_data::setglob(global_id::answer_id, 0);
         if constexpr (args_sz != 0) {
-          auto parsed_args = parse_smart<FixedHeader, Args, is_dyn_chain_parse>(body_p, parser(body_from_header));
+          auto parsed_args = parse_smart<Internal, FixedHeader, Args, is_dyn_chain_parse>(body_p);
           std::apply_f<func>(std::tuple_cat(std::make_tuple(std::ref(c)),
                                             to_std_tuple(parsed_args)));
         } else {

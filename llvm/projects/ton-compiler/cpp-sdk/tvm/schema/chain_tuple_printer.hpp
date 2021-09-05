@@ -38,7 +38,7 @@ struct chain_tuple_printer<std::tuple<>> {
 
 template<class T>
 struct element_printer {
-  static constexpr auto value = chain_tuple_printer<to_std_tuple_t<T>>::value;
+  static constexpr auto value = "non-atomic-struct"_s;
 };
 
 // "int"_s + to_string<10>(hana::integral_c<unsigned, _bitlen>);
@@ -52,6 +52,11 @@ struct element_printer<bitconst<_bitlen, _code>> {
 template<unsigned _bitlen>
 struct element_printer<bitfield<_bitlen>> {
   static constexpr auto value = make_uint<_bitlen>() + "b"_s;
+};
+
+template<>
+struct element_printer<addr_std_compact> {
+  static constexpr auto value = "addr_std_compact"_s;
 };
 
 // dynfield

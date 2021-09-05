@@ -66,6 +66,10 @@ template<unsigned _bitlen>
 struct get_bitsize<bitfield<_bitlen>> {
   static constexpr unsigned value = _bitlen;
 };
+template<>
+struct get_bitsize<addr_std_compact> {
+  static constexpr unsigned value = 2/*hdr*/ + 1/*optional()*/ + 8/*wid*/ + 256/*addr*/;
+};
 template<unsigned _bitlen, unsigned _code>
 struct get_bitsize<bitconst<_bitlen, _code>> {
   static constexpr unsigned value = _bitlen;

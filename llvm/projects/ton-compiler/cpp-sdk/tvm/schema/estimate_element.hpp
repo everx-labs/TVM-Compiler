@@ -111,6 +111,9 @@ struct estimate_element<MsgAddressSlice>
 template<unsigned _bitlen>
 struct estimate_element<bitfield<_bitlen>>
   : detail::exact_size<_bitlen> {};
+template<>
+struct estimate_element<addr_std_compact>
+  : detail::exact_size<2/*hdr*/ + 1/*optional()*/ + 8/*wid*/ + 256/*addr*/> {};
 template<unsigned _bitlen, unsigned _code>
 struct estimate_element<bitconst<_bitlen, _code>>
   : detail::exact_size<_bitlen> {};

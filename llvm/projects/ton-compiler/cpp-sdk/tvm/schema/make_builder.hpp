@@ -26,6 +26,14 @@ struct make_builder_impl<bitfield<_bitlen>> {
   }
 };
 
+template<>
+struct make_builder_impl<addr_std_compact> {
+  using value_type = addr_std_compact;
+  __always_inline static builder build(builder b, value_type v) {
+    return b.stu(0b100, 3).sti(v.workchain_id.get(), 8).stu(v.address.get(), 256);
+  }
+};
+
 template<unsigned _bitlen>
 struct make_builder_impl<uint_t<_bitlen>> {
   using value_type = uint_t<_bitlen>;

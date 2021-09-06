@@ -255,3 +255,29 @@ defm BLESS : I<(outs I257:$cont), (ins Slice:$sl),
                (outs), (ins),
                [(set I257:$cont, (int_tvm_bless Slice:$sl))],
                "BLESS\t$cont, $sl", "BLESS", 0xed1e>;
+
+let isBranch = 1, isTerminator = 1, hasCtrlDep = 1 in {
+// E6 - UNTIL (c - )
+defm UNTIL : I<(outs), (ins I257:$dst),
+            (outs), (ins),
+            [],
+            "UNTIL\t$dst", "UNTIL", 0xe6>;
+
+// E7 - UNTILEND ( - ), similar to UNTIL, but executes the current continuation cc in a loop
+defm UNTILEND : I<(outs), (ins),
+            (outs), (ins),
+            [],
+            "UNTILEND", "UNTILEND", 0xe7>;
+
+// E8 - WHILE (c0 c - )
+defm WHILE : I<(outs), (ins I257:$cond, I257:$dst),
+            (outs), (ins),
+            [],
+            "WHILE\t$cond,$dst", "WHILE", 0xe8>;
+
+// E9 - WHILEEND (c0 - ) similar to WHILE, but uses the current continuation cc as the loop body
+defm WHILEEND : I<(outs), (ins I257:$cond),
+            (outs), (ins),
+            [],
+            "WHILEEND\t$cond", "WHILEEND", 0xe9>;
+}

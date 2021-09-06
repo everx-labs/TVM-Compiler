@@ -41,6 +41,12 @@ def SDT_TVMJumpX        : SDTypeProfile<0, 1, [SDTCisVT<0, i257>]>;
 def SDT_TVMIfJmp        : SDTypeProfile<0, 2, [SDTCisVT<0, i257>,
                                                SDTCisVT<1, i257>]>;
 
+//def SDT_TVMUntil        : SDTypeProfile<0, 1, [SDTCisVT<0, i257>]>;
+//def SDT_TVMUntilend     : SDTypeProfile<0, 0, []>;
+//def SDT_TVMWhile        : SDTypeProfile<0, 2, [SDTCisVT<0, i257>, SDTCisVT<1, i257>]>;
+//def SDT_TVMWhileend     : SDTypeProfile<0, 1, [SDTCisVT<0, i257>]>;
+
+
 // We need additional i257 operand after OtherVT, because otherwise
 //  OtherVT (BasicBlock) operand will be considered as a chain
 def SDT_TVMBBWrapper    : SDTypeProfile<1, 2, [SDTCisVT<0, i257>,
@@ -94,6 +100,11 @@ def TVMjumpx    : SDNode<"TVMISD::JUMPX", SDT_TVMJumpX, [SDNPHasChain]>;
 def TVMifjmp    : SDNode<"TVMISD::IFJMP", SDT_TVMIfJmp, [SDNPHasChain]>;
 def TVMif       : SDNode<"TVMISD::IF", SDT_TVMIfJmp, [SDNPHasChain]>;
 def BBWrapper   : SDNode<"TVMISD::BBWrapper", SDT_TVMBBWrapper>;
+
+//def TVMuntil    : SDNode<"TVMISD::UNTIL", SDT_TVMUntil, [SDNPHasChain]>;
+//def TVMuntilend : SDNode<"TVMISD::UNTILEND", SDT_TVMUntilend, [SDNPHasChain]>;
+//def TVMwhile    : SDNode<"TVMISD::WHILE", SDT_TVMWhile, [SDNPHasChain]>;
+//def TVMwhileend : SDNode<"TVMISD::WHILEEND", SDT_TVMWhileend, [SDNPHasChain]>;
 
 def TVMmul       : SDNode<"TVMISD::MUL", SDT_TVMMul, []>;
 def TVMand       : SDNode<"TVMISD::AND", SDT_TVMAnd, []>;

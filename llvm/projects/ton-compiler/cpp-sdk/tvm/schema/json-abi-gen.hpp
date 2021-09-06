@@ -41,6 +41,7 @@ template<class T> struct is_tuple_type : std::true_type {};
 template<unsigned _bitlen> struct is_tuple_type<int_t<_bitlen>> : std::false_type {};
 template<unsigned _bitlen> struct is_tuple_type<uint_t<_bitlen>> : std::false_type {};
 template<> struct is_tuple_type<MsgAddress> : std::false_type {};
+template<> struct is_tuple_type<addr_std_compact> : std::false_type {};
 template<> struct is_tuple_type<MsgAddressInt> : std::false_type {};
 template<> struct is_tuple_type<MsgAddressExt> : std::false_type {};
 template<class Element> struct is_tuple_type<dict_array<Element, 32>> : std::false_type {};
@@ -102,6 +103,10 @@ struct make_simple_type_impl<MsgAddressInt> {
 };
 template<>
 struct make_simple_type_impl<MsgAddressExt> {
+  static constexpr auto value = "address"_s;
+};
+template<>
+struct make_simple_type_impl<addr_std_compact> {
   static constexpr auto value = "address"_s;
 };
 template<class Element, bool is_tuple>
@@ -309,6 +314,10 @@ struct make_struct_json<MsgAddressInt, Offset, ReturnName> {
 template<unsigned Offset, class ReturnName>
 struct make_struct_json<MsgAddressExt, Offset, ReturnName> {
   static constexpr auto value = make_field_impl<MsgAddressExt, 1, Offset>(make_return_name<ReturnName>());
+};
+template<unsigned Offset, class ReturnName>
+struct make_struct_json<addr_std_compact, Offset, ReturnName> {
+  static constexpr auto value = make_field_impl<addr_std_compact, 1, Offset>(make_return_name<ReturnName>());
 };
 template<unsigned Offset, class ReturnName, class Element>
 struct make_struct_json<dict_array<Element, 32>, Offset, ReturnName> {

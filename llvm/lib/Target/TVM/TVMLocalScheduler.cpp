@@ -261,6 +261,15 @@ void TreeGraph::findTopologicalSorts(vector<vector<TreeGraphNode *>> &topsorts,
 }
 */
 
+// Convert (virtual) register index to string
+string regToString(unsigned reg) {
+  char buf[8];
+  string str("%");
+  _itoa_s(reg & 0x7FFF, buf, 10);
+  str += buf;
+  return str;
+}
+
 // Convert Register list to string
 string regListToString(vector<unsigned> const &list) {
   string str = "[ ";
@@ -268,8 +277,7 @@ string regListToString(vector<unsigned> const &list) {
   for (unsigned reg : list) {
     if (!first)
       str += ", ";
-    str += "%";
-    str += (reg & 0x7FFF);
+    str += regToString(reg);
     first = false;
   }
   str += " ]";
@@ -283,8 +291,8 @@ string regSetToString(unordered_set<unsigned> const &set) {
   for (unsigned reg : set) {
     if (!first)
       str += ", ";
-    str += "%";
-    str += (reg & 0x7FFF);
+    str += regToString(reg);
+    ;
     first = false;
   }
   str += " ]";
@@ -298,8 +306,7 @@ string regMapToString(unordered_map<unsigned, unsigned> const &map) {
   for (std::pair<unsigned, unsigned> it : map) {
     if (!first)
       str += ", ";
-    str += "%";
-    str += (it.first & 0x7FFF);
+    regToString(it.first);
     str += " = ";
     str += (it.second);
     first = false;
@@ -329,6 +336,384 @@ static unsigned indexOf(vector<unsigned> const &list, unsigned reg) {
   return idx;
 }
 
+enum LayeredInstructionDAGNodeKind { LINSource, LINSink, LINInstruction };
+
+class LayeredInstructionDAGNode {
+  friend class LayeredInstructionDAG;
+
+  LayeredInstructionDAGNodeKind kind;
+  MachineInstr *instr;
+  unsigned reg;
+  vector<LayeredInstructionDAGNode *> Predecessors;
+  vector<LayeredInstructionDAGNode *> Successors;
+  unsigned level;
+  unsigned orderNum;
+
+private:
+  LayeredInstructionDAGNode(MachineInstr *insn)
+      : kind(LINInstruction), instr(insn), reg(0), Predecessors(), Successors(),
+        level(0) {}
+
+  LayeredInstructionDAGNode(LayeredInstructionDAGNodeKind kn, unsigned rg)
+      : kind(kn), instr(nullptr), reg(rg), Predecessors(), Successors(),
+        level(0) {}
+
+public:
+  LayeredInstructionDAGNodeKind getKind() { return kind; }
+
+  MachineInstr *getInstruction() { return instr; }
+
+  unsigned getReg() { return reg; }
+
+  unsigned getLevel() { return level; }
+
+  void setLevel(unsigned lvl) { level = lvl; }
+
+  // return order number of node in scheduling sequence
+  // the more the number - the later is the node instruction
+  unsigned getOrderNum() { return orderNum; }
+
+  void setOrderNum(unsigned num) { orderNum = num; }
+
+  // TODO
+  const TargetInstrInfo *getInstructionInfo() { return nullptr; }
+
+  string toString();
+
+  // Layered Instruction Graph iterators
+  using pred_iterator = vector<LayeredInstructionDAGNode *>::iterator;
+  using const_pred_iterator =
+      vector<LayeredInstructionDAGNode *>::const_iterator;
+  using succ_iterator = vector<LayeredInstructionDAGNode *>::iterator;
+  using const_succ_iterator =
+      vector<LayeredInstructionDAGNode *>::const_iterator;
+
+  pred_iterator pred_begin() { return Predecessors.begin(); }
+
+  const_pred_iterator pred_begin() const { return Predecessors.begin(); }
+
+  pred_iterator pred_end() { return Predecessors.end(); }
+
+  const_pred_iterator pred_end() const { return Predecessors.end(); }
+
+  unsigned pred_size() const { return (unsigned)Predecessors.size(); }
+
+  bool pred_empty() const { return Predecessors.empty(); }
+
+  succ_iterator succ_begin() { return Successors.begin(); }
+
+  const_succ_iterator succ_begin() const { return Successors.begin(); }
+
+  succ_iterator succ_end() { return Successors.end(); }
+
+  const_succ_iterator succ_end() const { return Successors.end(); }
+
+  unsigned succ_size() const { return (unsigned)Successors.size(); }
+
+  bool succ_empty() const { return Successors.empty(); }
+
+  inline iterator_range<pred_iterator> predecessors() {
+    return make_range(pred_begin(), pred_end());
+  }
+
+  inline iterator_range<const_pred_iterator> predecessors() const {
+    return make_range(pred_begin(), pred_end());
+  }
+
+  inline iterator_range<succ_iterator> successors() {
+    return make_range(succ_begin(), succ_end());
+  }
+
+  inline iterator_range<const_succ_iterator> successors() const {
+    return make_range(succ_begin(), succ_end());
+  }
+
+private:
+  void addPredecessor(LayeredInstructionDAGNode *node) {
+    Predecessors.push_back(node);
+  }
+
+  bool hasPredecessor(LayeredInstructionDAGNode *node) {
+    auto it = find(Predecessors.begin(), Predecessors.end(), node);
+    return it != Predecessors.end();
+  }
+
+  void addSuccessor(LayeredInstructionDAGNode *node) {
+    Successors.push_back(node);
+  }
+
+  bool hasSuccessor(LayeredInstructionDAGNode *node) {
+    auto it = find(Successors.begin(), Successors.end(), node);
+    return it != Successors.end();
+  }
+};
+
+string LayeredInstructionDAGNode::toString() {
+  string str;
+  char buf[8];
+  switch (kind) {
+  case LINSource:
+    str += "source(";
+    str += regToString(reg);
+    str += ")";
+    break;
+  case LINSink:
+    str += "sink(";
+    str += regToString(reg);
+    str += ")";
+    break;
+  case LINInstruction: {
+    raw_string_ostream OS(str);
+    MachineInstr *instr = getInstruction();
+    instr->print(OS, true, false, true, false, getInstructionInfo());
+  } break;
+  }
+  return str;
+}
+
+class LayeredInstructionDAG {
+  MachineBasicBlock *MBB;
+  vector<vector<LayeredInstructionDAGNode *>> levels;
+
+  // Pool-allocate DJGraph-lifetime
+  BumpPtrAllocator Allocator;
+
+  // Allocation management for DJ Nodes in graph
+  Recycler<LayeredInstructionDAGNode> LayeredInstructionDAGNodeRecycler;
+
+public:
+  LayeredInstructionDAG(MachineBasicBlock *mbb,
+                        unordered_set<unsigned> const &pseudoSet,
+                        unordered_set<unsigned> liveOut)
+      : MBB(mbb), levels() {
+    constructFromMBB(pseudoSet, liveOut);
+  }
+
+  MachineBasicBlock *getMBB() { return MBB; }
+
+  unsigned getNumLevels() { return levels.size(); }
+
+  vector<vector<LayeredInstructionDAGNode *>> const &getLevels() {
+    return levels;
+  }
+
+  // scheduling nodes computation order
+  void scheduleNodes(vector<LayeredInstructionDAGNode *> &order);
+
+  void dump();
+
+private:
+  LayeredInstructionDAGNode *createNode(MachineInstr *instr);
+
+  LayeredInstructionDAGNode *createNode(LayeredInstructionDAGNodeKind kind,
+                                        unsigned reg);
+
+  void LayeredInstructionDAG::addEdge(LayeredInstructionDAGNode *source,
+                                      LayeredInstructionDAGNode *target);
+
+  void constructFromMBB(unordered_set<unsigned> const &pseudoSet,
+                        unordered_set<unsigned> liveOut);
+};
+
+LayeredInstructionDAGNode *
+LayeredInstructionDAG::createNode(MachineInstr *instr) {
+  return new (
+      LayeredInstructionDAGNodeRecycler.Allocate<LayeredInstructionDAGNode>(
+          Allocator)) LayeredInstructionDAGNode(instr);
+}
+
+LayeredInstructionDAGNode *
+LayeredInstructionDAG::createNode(LayeredInstructionDAGNodeKind kind,
+                                  unsigned reg) {
+  return new (
+      LayeredInstructionDAGNodeRecycler.Allocate<LayeredInstructionDAGNode>(
+          Allocator)) LayeredInstructionDAGNode(kind, reg);
+}
+
+void LayeredInstructionDAG::addEdge(LayeredInstructionDAGNode *source,
+                                    LayeredInstructionDAGNode *target) {
+  source->addSuccessor(target);
+  target->addPredecessor(source);
+}
+
+void LayeredInstructionDAG::scheduleNodes(
+    vector<LayeredInstructionDAGNode *> &order) {
+  // simple algorithm used node levels order
+  // may be enhanced in future
+  unsigned orderNum = 0;
+  for (unsigned level = 0; level < levels.size(); level++) {
+    vector<LayeredInstructionDAGNode *> const &lv = levels[level];
+    for (unsigned pos = 0; pos < lv.size(); pos++) {
+      lv[pos]->setOrderNum(orderNum++);
+    }
+  }
+}
+
+void LayeredInstructionDAG::constructFromMBB(
+    unordered_set<unsigned> const &pseudoSet, unordered_set<unsigned> liveOut) {
+  unordered_map<unsigned, LayeredInstructionDAGNode *> defMap; // reg -> node
+  vector<pair<unsigned, LayeredInstructionDAGNode *>> sinkCandidates;
+  vector<LayeredInstructionDAGNode *> sources;
+  levels.push_back(sources);
+  levels.push_back(vector<LayeredInstructionDAGNode *>());
+  unsigned curLevel = 1;
+  for (MachineInstr &MI : *MBB) {
+    LayeredInstructionDAGNode *insnNode = createNode(&MI);
+    for (const MachineOperand &op : MI.uses()) {
+      if (op.isReg()) {
+        unsigned reg = op.getReg();
+        if (pseudoSet.find(reg) == pseudoSet.end())
+          continue;
+        LayeredInstructionDAGNode *def;
+        auto it = defMap.find(reg);
+        if (it == defMap.end()) {
+          def = createNode(LINSource, reg);
+          def->setLevel(0);
+          defMap.insert_or_assign(reg, def);
+        } else
+          def = it->second;
+        if (def->getLevel() == curLevel) {
+          levels.push_back(vector<LayeredInstructionDAGNode *>());
+          curLevel++;
+        }
+        addEdge(def, insnNode);
+      }
+    }
+    insnNode->setLevel(curLevel);
+    levels[curLevel].push_back(insnNode);
+
+    for (const MachineOperand &op : MI.defs()) {
+      if (op.isReg()) {
+        unsigned reg = op.getReg();
+        defMap.insert_or_assign(reg, insnNode);
+        if (liveOut.find(reg) != liveOut.end()) {
+          for (auto it = sinkCandidates.begin(); it != sinkCandidates.end();
+               it++) {
+            unsigned sinkReg = it->first;
+            LayeredInstructionDAGNode *sink = it->second;
+            if (sinkReg == reg) {
+              sinkCandidates.erase(it);
+              break;
+            }
+          }
+          sinkCandidates.push_back(make_pair(reg, insnNode));
+        }
+      }
+    }
+  }
+
+  vector<LayeredInstructionDAGNode *> sinks;
+  curLevel++;
+  for (auto it = sinkCandidates.begin(); it != sinkCandidates.end(); it++) {
+    unsigned sinkReg = it->first;
+    LayeredInstructionDAGNode *sinkInstr = it->second;
+    LayeredInstructionDAGNode *sink = createNode(LINSink, sinkReg);
+    addEdge(sinkInstr, sink);
+    sinks.push_back(sink);
+  }
+  levels.push_back(sinks);
+}
+
+void LayeredInstructionDAG::dump() {
+  dbgs() << "LayeredInstructionDAG: "
+         << "\n";
+  for (unsigned i = 0; i < getNumLevels(); i++) {
+    dbgs() << "Level " << i << ": ";
+    bool first = true;
+    for (LayeredInstructionDAGNode *node : levels[i]) {
+      assert(node->getLevel() == i);
+      if (!first)
+        dbgs() << ", ";
+      dbgs() << node->toString();
+      first = false;
+    }
+  }
+  dbgs() << "Edges:\n";
+  for (unsigned i = 0; i < getNumLevels(); i++) {
+    for (LayeredInstructionDAGNode *source : levels[i]) {
+      for (LayeredInstructionDAGNode *target : source->successors()) {
+        dbgs() << source->toString();
+        dbgs() << " -> ";
+        dbgs() << target->toString();
+        dbgs() << "\n";
+      }
+    }
+  }
+}
+
+struct OperandQueueSlot {
+  // Target Node
+  LayeredInstructionDAGNode *target;
+  // Number of input port in target node, corresponding to this slot
+  unsigned targetInPort;
+  // Number of uses of this slot data remained
+  // if useRemain > 1, we need to copy this slot for next use instructions
+  unsigned usesRemain;
+};
+
+// Model of Machine Block local stack by means of operand queue.
+// The head of queue corresponds to the top of stack
+class OperandQueue {
+  LayeredInstructionDAG *DAG;
+  vector<OperandQueueSlot> queue;
+
+public:
+  OperandQueue(LayeredInstructionDAG *dag) : DAG(dag), queue() {}
+
+  OperandQueueSlot const& getSlot(unsigned slotNum) { return queue[slotNum]; }
+
+  // Insert new slot into queue
+  // Return insertion position of slot in queue
+  unsigned enqueue(LayeredInstructionDAGNode *target, unsigned targetInPort,
+                   unsigned useRem = 1);
+
+  // Insert new slot into queue which corresponds to next instruction with the
+  // same definition
+  unsigned enqueueNext(OperandQueueSlot const &slot);
+
+	// Remove num elements from queue head
+	void dequeue(unsigned num);
+
+	void dump();
+
+private:
+	inline static unsigned order(LayeredInstructionDAGNode *target,
+		  unsigned targetInPort) {
+    return (target->getOrderNum() << 8) + targetInPort;
+	}
+};
+
+unsigned OperandQueue::enqueue(LayeredInstructionDAGNode *targ,
+                             unsigned targInPort,
+	  unsigned useRem) {
+  OperandQueueSlot slot;
+  slot.target = targ;
+  slot.targetInPort = targInPort;
+  slot.usesRemain = useRem;
+  unsigned ord = order(targ, targInPort);
+  unsigned pos;
+  for (pos = 0; pos < queue.size(); pos++) {
+    OperandQueueSlot const &posSlot = getSlot(pos);
+    if (order(posSlot.target, posSlot.targetInPort) > ord)
+      break;
+	}
+	// TODO
+	return pos;
+}
+
+unsigned OperandQueue::enqueueNext(OperandQueueSlot const &slot) {
+	// TODO
+	return 0; 
+}
+
+void OperandQueue::dequeue(unsigned num) {
+	// TODO
+}
+
+void OperandQueue::dump() {
+	// TODO
+}
+
 // Representing Machine Block as data queue to disguise an original stack model
 class BlockQueueInfo {
 public:
@@ -352,15 +737,15 @@ public:
 
   void dump();
 
-	// Calculate fixup on block input
+  // Calculate fixup on block input
   StackFixup calculateInputFixup(MachineFunction &MF) {
     return calculateFixup(MF, preferredInputQueue, actualInputQueue);
-	}
+  }
 
-	// Calculate fixup on block output
-	StackFixup calculateOutputFixup(MachineFunction &MF) {
+  // Calculate fixup on block output
+  StackFixup calculateOutputFixup(MachineFunction &MF) {
     return calculateFixup(MF, actualOutputQueue, preferredOutputQueue);
-	}
+  }
 
   // Calculate optimized queue from several different queues
   // Needs for fork/join queue fixups
@@ -371,9 +756,10 @@ public:
   static void calculateOptimizedMerge(vector<vector<unsigned>> const &queues,
                                       vector<unsigned> merge);
 
-	// Calculate fixup from different queue (stack) values
-  static StackFixup calculateFixup(MachineFunction &MF, vector<unsigned> const &dst,
-                            vector<unsigned> const &src);
+  // Calculate fixup from different queue (stack) values
+  static StackFixup calculateFixup(MachineFunction &MF,
+                                   vector<unsigned> const &dst,
+                                   vector<unsigned> const &src);
 };
 
 enum DJEdgeKind { Dominance, Join };
@@ -383,13 +769,13 @@ class DJNode {
 
   MachineBasicBlock *MBB;
   int level;
-  vector<pair<DJNode *, DJEdgeKind>> predecessors;
-  vector<pair<DJNode *, DJEdgeKind>> successors;
+  vector<pair<DJNode *, DJEdgeKind>> Predecessors;
+  vector<pair<DJNode *, DJEdgeKind>> Successors;
   BlockQueueInfo queueInfo;
 
 private:
   DJNode(MachineBasicBlock *mbb)
-      : MBB(mbb), level(-1), predecessors(), successors(), queueInfo() {}
+      : MBB(mbb), level(-1), Predecessors(), Successors(), queueInfo() {}
 
 public:
   MachineBasicBlock &getMBB() { return *MBB; }
@@ -404,13 +790,13 @@ public:
 
   bool hasSuccessor(DJNode *node, DJEdgeKind kind);
 
-	bool isImmediatelyDominates(DJNode *node) {
+  bool isImmediatelyDominates(DJNode *node) {
     return hasSuccessor(node, Dominance);
-	}
+  }
 
-	bool isDominates(DJNode *node);
+  bool isDominates(DJNode *node);
 
-	// Calculate fixup on block input
+  // Calculate fixup on block input
   StackFixup calculateInputFixup(MachineFunction &MF) {
     return getBlockQueueInfo().calculateInputFixup(MF);
   }
@@ -418,9 +804,9 @@ public:
   // Calculate fixup on block output
   StackFixup calculateOutputFixup(MachineFunction &MF) {
     return getBlockQueueInfo().calculateOutputFixup(MF);
-	}
+  }
 
-	string toString();
+  string toString();
 
   // Machine-DJ Graph iterators
   using pred_iterator = vector<pair<DJNode *, DJEdgeKind>>::iterator;
@@ -430,29 +816,29 @@ public:
   using const_succ_iterator =
       vector<pair<DJNode *, DJEdgeKind>>::const_iterator;
 
-  pred_iterator pred_begin() { return predecessors.begin(); }
+  pred_iterator pred_begin() { return Predecessors.begin(); }
 
-  const_pred_iterator pred_begin() const { return predecessors.begin(); }
+  const_pred_iterator pred_begin() const { return Predecessors.begin(); }
 
-  pred_iterator pred_end() { return predecessors.end(); }
+  pred_iterator pred_end() { return Predecessors.end(); }
 
-  const_pred_iterator pred_end() const { return predecessors.end(); }
+  const_pred_iterator pred_end() const { return Predecessors.end(); }
 
-  unsigned pred_size() const { return (unsigned)predecessors.size(); }
+  unsigned pred_size() const { return (unsigned)Predecessors.size(); }
 
-  bool pred_empty() const { return predecessors.empty(); }
+  bool pred_empty() const { return Predecessors.empty(); }
 
-  succ_iterator succ_begin() { return successors.begin(); }
+  succ_iterator succ_begin() { return Successors.begin(); }
 
-  const_succ_iterator succ_begin() const { return successors.begin(); }
+  const_succ_iterator succ_begin() const { return Successors.begin(); }
 
-  succ_iterator succ_end() { return successors.end(); }
+  succ_iterator succ_end() { return Successors.end(); }
 
-  const_succ_iterator succ_end() const { return successors.end(); }
+  const_succ_iterator succ_end() const { return Successors.end(); }
 
-  unsigned succ_size() const { return (unsigned)successors.size(); }
+  unsigned succ_size() const { return (unsigned)Successors.size(); }
 
-  bool succ_empty() const { return successors.empty(); }
+  bool succ_empty() const { return Successors.empty(); }
 
   inline iterator_range<pred_iterator> predecessors() {
     return make_range(pred_begin(), pred_end());
@@ -472,16 +858,16 @@ public:
 
 private:
   void addPredecessor(DJNode *pred, DJEdgeKind kind) {
-    predecessors.push_back(make_pair(pred, kind));
+    Predecessors.push_back(make_pair(pred, kind));
   }
 
   void addSuccessor(DJNode *pred, DJEdgeKind kind) {
-    successors.push_back(make_pair(pred, kind));
+    Successors.push_back(make_pair(pred, kind));
   }
 };
 
-bool DJNode::hasPredecessor(DJNode *node, DJEdgeKind kind) { 
-	for (pair<DJNode*, DJEdgeKind> pred : predecessors()) {
+bool DJNode::hasPredecessor(DJNode *node, DJEdgeKind kind) {
+  for (pair<DJNode *, DJEdgeKind> pred : predecessors()) {
     if (pred.first == this && pred.second == kind)
       return true;
   }
@@ -496,19 +882,19 @@ bool DJNode::hasSuccessor(DJNode *node, DJEdgeKind kind) {
   return false;
 }
 
-bool DJNode::isDominates(DJNode *node) { 
-	if (isImmediatelyDominates(node))
+bool DJNode::isDominates(DJNode *node) {
+  if (isImmediatelyDominates(node))
     return true;
   for (pair<DJNode *, DJEdgeKind> succ : successors()) {
-     if (succ.second == Dominance && succ.first->isDominates(node))
-       return true;
-	}
+    if (succ.second == Dominance && succ.first->isDominates(node))
+      return true;
+  }
   return false;
 }
 
-string DJNode::toString() { 
-	MCSymbol *sym = getMBB().getSymbol(); 
-	return sym->getName().str();
+string DJNode::toString() {
+  MCSymbol *sym = getMBB().getSymbol();
+  return sym->getName().str();
 }
 
 class DJGraph {
@@ -530,7 +916,7 @@ public:
 
   DJNode *getRoot() { return root; }
 
-	unsigned getNumLevels() { return levels.size();  }
+  unsigned getNumLevels() { return levels.size(); }
 
   vector<vector<DJNode *>> const &getLevels() { return levels; }
 
@@ -554,12 +940,13 @@ private:
 
   void addEdge(DJNode *source, DJNode *target, DJEdgeKind kind);
 
-  void walkDomTree(MachineDomTreeNode *domTreeNode, int level,
-                   unordered_map<MachineBasicBlock *, DJNode *> const &nodeMap);
+  void walkDomTree(
+      MachineDomTreeNode *domTreeNode, int level,
+      unordered_map<const MachineBasicBlock *, DJNode *> const &nodeMap);
 };
 
 void DJGraph::init(MachineFunction &MF, MachineDominatorTree &MDT) {
-  unordered_map<MachineBasicBlock *, DJNode *> nodeMap;
+  unordered_map<const MachineBasicBlock *, DJNode *> nodeMap;
   for (MachineBasicBlock &MBB : MF) {
     DJNode *djNode = createDJNode(&MBB);
     nodes.push_back(djNode);
@@ -577,33 +964,34 @@ void DJGraph::init(MachineFunction &MF, MachineDominatorTree &MDT) {
   }
 }
 
- DJNode *DJGraph::createDJNode(MachineBasicBlock * MBB) {
-   return new (DJNodeRecycler.Allocate<MachineBasicBlock>(Allocator)) DJNode(MBB);
- }
+DJNode *DJGraph::createDJNode(MachineBasicBlock *MBB) {
+  return new (DJNodeRecycler.Allocate<DJNode>(Allocator)) DJNode(MBB);
+}
 
 void DJGraph::walkDomTree(
-    MachineDomTreeNode * domTreeNode, int level,
-    unordered_map<MachineBasicBlock *, DJNode *> const &nodeMap) {
+    MachineDomTreeNode *domTreeNode, int level,
+    unordered_map<const MachineBasicBlock *, DJNode *> const &nodeMap) {
   if (levels.size() < level)
     levels.push_back(vector<DJNode *>());
-  MachineBasicBlock *MBB = domTreeNode->getBlock();
-  DJNode *node = nodeMap[MBB];
+  const MachineBasicBlock *MBB = domTreeNode->getBlock();
+  DJNode *node = nodeMap.find(MBB)->second;
   node->setLevel(level);
   levels[level].push_back(node);
   for (MachineDomTreeNode *child : domTreeNode->getChildren()) {
-    DJNode *target = nodeMap[child->getBlock()];
+    DJNode *target = nodeMap.find(child->getBlock())->second;
     addEdge(node, target, Dominance);
     walkDomTree(child, level + 1, nodeMap);
   }
 }
 
-void DJGraph::addEdge(DJNode * source, DJNode * target, DJEdgeKind kind) {
+void DJGraph::addEdge(DJNode *source, DJNode *target, DJEdgeKind kind) {
   source->addSuccessor(target, kind);
   target->addPredecessor(source, kind);
 }
 
-void DJGraph::dump() { 
-	dbgs() << "DJGraph: " << "\n";
+void DJGraph::dump() {
+  dbgs() << "DJGraph: "
+         << "\n";
   for (unsigned i = 0; i < getNumLevels(); i++) {
     dbgs() << "Level " << i << ": ";
     bool first = true;
@@ -613,8 +1001,8 @@ void DJGraph::dump() {
         dbgs() << ", ";
       dbgs() << node->toString();
       first = false;
-		}
-	}
+    }
+  }
   dbgs() << "Dominant Edges:\n";
   for (unsigned i = 0; i < getNumLevels(); i++) {
     for (DJNode *source : levels[i]) {
@@ -625,10 +1013,10 @@ void DJGraph::dump() {
           dbgs() << target.first->toString();
           dbgs() << "\n";
         }
-			}
+      }
     }
   }
-	dbgs() << "Join Edges:\n";
+  dbgs() << "Join Edges:\n";
   for (unsigned i = 0; i < getNumLevels(); i++) {
     for (DJNode *source : levels[i]) {
       for (pair<DJNode *, DJEdgeKind> target : source->successors()) {
@@ -666,16 +1054,15 @@ public:
 private:
   bool runOnBasicBlocks(MachineFunction &MF);
 
-//  void createTreeGraph(MachineBasicBlock &MBB);
+  //  void createTreeGraph(MachineBasicBlock &MBB);
 
   // Gather "pseodo-global" registers, i.e. such that can be reified
   // (pushed)
   //  from constant values (like block addresses) or fixed places on stack,
   //  like parameters
   // Other values will be received from block input "queue"
-  void
-  gatherPseudoGlobal(MachineFunction &MF,
-                      unordered_map<unsigned, MachineInstr *> &pseudoMap);
+  void gatherPseudoGlobal(MachineFunction &MF,
+                          unordered_map<unsigned, MachineInstr *> &pseudoMap);
 
   // Similar as from TVMStackModel, but with unordered set
   void gatherBlockLiveIns(MachineBasicBlock &MBB,
@@ -683,13 +1070,13 @@ private:
 
   // Similar as from TVMStackModel, but with unordered set
   void gatherBlockLiveOuts(MachineBasicBlock &MBB,
-                            unordered_set<unsigned> &vregs);
+                           unordered_set<unsigned> &vregs);
 
   // Gather information about input & output block data queue
-  void gatherBlockQueueInfo(
-      MachineBasicBlock &MBB,
-      unordered_map<unsigned, MachineInstr *> const &pseudoMap,
-      BlockQueueInfo &queueInfo);
+  void
+  gatherBlockQueueInfo(MachineBasicBlock &MBB,
+                       unordered_map<unsigned, MachineInstr *> const &pseudoMap,
+                       BlockQueueInfo &queueInfo);
 
   MachineRegisterInfo *MRI;
   LiveIntervals *LIS;
@@ -705,9 +1092,9 @@ FunctionPass *llvm::createTVMLocalScheduler() {
   return new TVMLocalScheduler();
 }
 
-bool TVMLocalScheduler::runOnMachineFunction(MachineFunction & MF) {
+bool TVMLocalScheduler::runOnMachineFunction(MachineFunction &MF) {
   LLVM_DEBUG(dbgs() << "********** Local Scheduler **********\n"
-                        "********** Function: "
+                       "********** Function: "
                     << MF.getName() << '\n');
 
   bool changed = false;
@@ -721,7 +1108,7 @@ bool TVMLocalScheduler::runOnMachineFunction(MachineFunction & MF) {
   return changed;
 }
 
-bool TVMLocalScheduler::runOnBasicBlocks(MachineFunction & MF) {
+bool TVMLocalScheduler::runOnBasicBlocks(MachineFunction &MF) {
   bool changed = false;
 
   unordered_map<unsigned, MachineInstr *> pseudoMap;
@@ -733,27 +1120,27 @@ bool TVMLocalScheduler::runOnBasicBlocks(MachineFunction & MF) {
         }
   dbgs() << "\n";
   */
-	
-	DJGraph djGraph(MF, *MDT);
+
+  DJGraph djGraph(MF, *MDT);
   djGraph.dump();
 
-	for (DJNode *node : djGraph) {
+  for (DJNode *node : djGraph) {
     gatherBlockQueueInfo(node->getMBB(), pseudoMap, node->getBlockQueueInfo());
-	}
-
-	/*
-  auto &firstBB = MF.front();
-
-  using RPOTType = ReversePostOrderTraversal<MachineFunction *>;
-  RPOTType RPOT(&MF);
-
-  for (RPOTType::rpo_iterator I = RPOT.begin(), E = RPOT.end(); I != E;
-        ++I) {
-    MachineBasicBlock *MBB = *I;
-
-    createTreeGraph(*MBB);
   }
-	*/
+
+  /*
+auto &firstBB = MF.front();
+
+using RPOTType = ReversePostOrderTraversal<MachineFunction *>;
+RPOTType RPOT(&MF);
+
+for (RPOTType::rpo_iterator I = RPOT.begin(), E = RPOT.end(); I != E;
+  ++I) {
+MachineBasicBlock *MBB = *I;
+
+createTreeGraph(*MBB);
+}
+  */
   return changed;
 }
 
@@ -776,8 +1163,8 @@ void TVMLocalScheduler::createTreeGraph(MachineBasicBlock & MBB) {
 }
 */
 
-void TVMLocalScheduler::gatherBlockLiveIns(
-    MachineBasicBlock & MBB, unordered_set<unsigned> & vregs) {
+void TVMLocalScheduler::gatherBlockLiveIns(MachineBasicBlock &MBB,
+                                           unordered_set<unsigned> &vregs) {
   for (unsigned i = 0, e = MRI->getNumVirtRegs(); i != e; ++i) {
     unsigned Reg = TargetRegisterInfo::index2VirtReg(i);
     if (LIS->hasInterval(Reg)) {
@@ -788,8 +1175,8 @@ void TVMLocalScheduler::gatherBlockLiveIns(
   }
 }
 
-void TVMLocalScheduler::gatherBlockLiveOuts(
-    MachineBasicBlock & MBB, unordered_set<unsigned> & vregs) {
+void TVMLocalScheduler::gatherBlockLiveOuts(MachineBasicBlock &MBB,
+                                            unordered_set<unsigned> &vregs) {
   for (unsigned i = 0, e = MRI->getNumVirtRegs(); i != e; ++i) {
     unsigned Reg = TargetRegisterInfo::index2VirtReg(i);
     if (LIS->hasInterval(Reg)) {
@@ -801,7 +1188,7 @@ void TVMLocalScheduler::gatherBlockLiveOuts(
 }
 
 void TVMLocalScheduler::gatherBlockQueueInfo(
-    MachineBasicBlock & MBB,
+    MachineBasicBlock &MBB,
     unordered_map<unsigned, MachineInstr *> const &pseudoMap,
     BlockQueueInfo &queueInfo) {
   unordered_set<unsigned> liveIns;
@@ -839,8 +1226,7 @@ void TVMLocalScheduler::gatherBlockQueueInfo(
 }
 
 void TVMLocalScheduler::gatherPseudoGlobal(
-    MachineFunction & MF,
-    unordered_map<unsigned, MachineInstr *> & pseudoMap) {
+    MachineFunction &MF, unordered_map<unsigned, MachineInstr *> &pseudoMap) {
   unordered_set<unsigned> defined;
   for (MachineBasicBlock &MBB : MF) {
     for (MachineInstr &MI : MBB) {
@@ -880,14 +1266,14 @@ void TVMLocalScheduler::gatherPseudoGlobal(
 
 void BlockQueueInfo::dump() {
   dbgs() << "Preferred Input Queue: "
-          << regListToString(preferredInputQueue).c_str() << "\n"
-          << "Preferred Output Queue: "
-          << regListToString(preferredOutputQueue).c_str() << "\n"
-          << "Actual Input Queue: "
-          << regListToString(actualInputQueue).c_str() << "\n"
-          << "Actual Output Queue: "
-          << regListToString(actualInputQueue).c_str() << "\n"
-          << "Number Of Uses :" << regMapToString(numUses);
+         << regListToString(preferredInputQueue).c_str() << "\n"
+         << "Preferred Output Queue: "
+         << regListToString(preferredOutputQueue).c_str() << "\n"
+         << "Actual Input Queue: " << regListToString(actualInputQueue).c_str()
+         << "\n"
+         << "Actual Output Queue: " << regListToString(actualInputQueue).c_str()
+         << "\n"
+         << "Number Of Uses :" << regMapToString(numUses);
 
   dbgs() << "\n";
 }

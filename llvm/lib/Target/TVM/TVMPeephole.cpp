@@ -162,8 +162,13 @@ bool TVMPeephole::runBlkPushCombine(MachineBasicBlock &MBB,
         unsigned R = PushIt->getOperand(0).getImm();
         if (R > BlkPushLimit)
           break;
-        if ((IsConstant || R != Reg + MaybeRemove.size()) &&
-            R >= MaybeRemove.size())
+        // If we perform constant sequence and new PUSH register points to one
+        //  of just pushed constants, then we may continue the sequence
+        if (IsConstant && R >= MaybeRemove.size())
+          break;
+        // It we perform push sequence, next register must be exactly
+        //  (Reg + size) to continue blkpush sequence
+        if (!IsConstant && R != Reg + MaybeRemove.size())
           break;
         MaybeRemove.push_back(&*PushIt);
       } else if (PushIt->getOpcode() == TVM::CONST_I257_S ||

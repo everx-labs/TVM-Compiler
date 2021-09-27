@@ -382,7 +382,7 @@ constexpr auto make_struct_components() {
 };
 
 constexpr auto make_abi_version() {
-  return "\"ABI version\": 2,\n  \"version\": \"2.1.0\""_s;
+  return "\"ABI version\": 2,\n  \"version\": \"2.2.0\""_s;
 }
 
 constexpr auto make_getters() {

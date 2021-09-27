@@ -31,6 +31,7 @@
 #include "llvm/Support/raw_ostream.h"
 
 #include <iostream>
+#include <unordered_map>
 #include <unordered_set>
 
 using namespace llvm;
@@ -933,6 +934,14 @@ public:
 
   const_iterator end() const { return nodes.end(); }
 
+	iterator level_begin(unsigned level) { return levels[level].begin(); }
+
+	const_iterator level_begin(unsigned level) const { return levels[level].begin(); }
+
+	iterator level_end(unsigned level) { return levels[level].end(); }
+
+  const_iterator level_end(unsigned level) const { return levels[level].end(); }
+
 private:
   void init(MachineFunction &MF, MachineDominatorTree &MDT);
 
@@ -1031,6 +1040,213 @@ void DJGraph::dump() {
   }
 }
 
+enum StackableRegionKind { SRSingleton, SRSequence, SRFork, SRSelfLoop, SRWhileLoop };
+
+// Class StackableRegion represents different elements of program's control structure.
+// Resembles regions of program structure analysis (if/else, while, etc.) but with 
+// concerning to stack calculations.
+class StackableRegion {
+	friend class StackableRegionStructure;
+
+  StackableRegionKind kind;
+	MachineBasicBlock *MBB;
+	vector<StackableRegion*> subregions;
+	BlockQueueInfo queueInfo;
+
+private:
+  StackableRegion(StackableRegionKind kind_): kind(kind_), subregions(), queueInfo() {
+	}
+
+ StackableRegion(StackableRegionKind kind_, MachineBasicBlock *MBB_)
+      : kind(kind_), MBB(MBB_), subregions(), queueInfo() {}
+
+  StackableRegion(StackableRegionKind kind_, StackableRegion* child1)
+      : kind(kind_), MBB(nullptr), subregions(), queueInfo() {
+    subregions.push_back(child1);
+	}
+
+  StackableRegion(StackableRegionKind kind_, StackableRegion *child1, StackableRegion *child2)
+      : kind(kind_), MBB(nullptr), subregions(), queueInfo() {
+    subregions.push_back(child1);
+    subregions.push_back(child2);
+  }
+
+  StackableRegion(StackableRegionKind kind_, vector<StackableRegion *> &children)
+      : kind(kind_), MBB(nullptr), subregions(children), queueInfo() {
+	}
+
+public:
+	StackableRegionKind getKind() { return kind; }
+
+	MachineBasicBlock *getMBB() { 
+		assert(kind == SRSingleton);
+		return MBB; 
+	}
+ 
+	BlockQueueInfo &getQueueInfo() { return queueInfo; }
+
+  // StackableRegion children iterator
+  using child_iterator = vector<StackableRegion *>::iterator;
+  using const_child_iterator = vector<StackableRegion *>::const_iterator;
+
+  child_iterator begin() { return subregions.begin(); }
+
+	const_child_iterator begin() const { return subregions.begin(); }
+
+  child_iterator end() { return subregions.end(); }
+
+  const_child_iterator end() const { return subregions.end(); }
+
+	static string toString(StackableRegionKind kind);
+
+	string toString();
+
+	void dump(string margin);
+};
+
+// Structure of Stackable Regions.
+// Contains region allocation and pointer to root region.
+class StackableRegionStructure {
+	DJGraph djGraph;
+	StackableRegion *root;
+
+  // Pool-allocate StackableRegionStructure-lifetime
+  BumpPtrAllocator Allocator;
+
+  // Allocation management for StackableRegion in graph
+  Recycler<StackableRegion> StackableRegionRecycler;
+
+ public: 
+	StackableRegionStructure(MachineFunction &MF, MachineDominatorTree &MDT) : djGraph(MF, MDT) {
+		init(MF);
+	}
+
+	StackableRegion &getRoot() { return *root; }
+
+	DJGraph &getDJGraph() { return djGraph; }
+
+  void dump();
+
+private:
+  StackableRegion *createSingleton(MachineBasicBlock* MBB) {
+    return new (StackableRegionRecycler.Allocate<StackableRegion>(Allocator))
+        StackableRegion(SRSingleton, MBB);
+  }
+
+	StackableRegion *createSequence(vector<StackableRegion *> &children) {
+    return new (StackableRegionRecycler.Allocate<StackableRegion>(Allocator)) StackableRegion(SRSequence, children);
+	}
+
+	StackableRegion *createFork() {
+    return new (StackableRegionRecycler.Allocate<StackableRegion>(Allocator)) StackableRegion(SRFork);
+  }
+
+	StackableRegion *createSelfLoop(StackableRegion *body) {
+    return new (StackableRegionRecycler.Allocate<StackableRegion>(Allocator)) StackableRegion(SRSelfLoop, body);
+  }
+
+	StackableRegion *createWhileLoop() {
+    return new (StackableRegionRecycler.Allocate<StackableRegion>(Allocator)) StackableRegion(SRWhileLoop);
+  }
+
+  void init(MachineFunction &MF);
+
+	void processNode(DJNode *node, map<MachineBasicBlock *, StackableRegion *> &blockMap);
+};
+
+void StackableRegionStructure::init(MachineFunction &MF) { 
+	map<MachineBasicBlock *, StackableRegion *> blockMap;
+	for (unsigned level = djGraph.getNumLevels() - 2; level >= 0; level--) {
+    for (auto it = djGraph.level_begin(level); it != djGraph.level_end(level); it++) {
+			DJNode* node = *it;
+      processNode(node, blockMap);
+    }
+	}
+}
+
+void StackableRegionStructure::processNode(DJNode *node, map<MachineBasicBlock *, StackableRegion *> &blockMap) {
+	// At first detect self-loops on level under node
+  for (auto it = node->succ_begin(); it != node->succ_end(); it++) {
+    pair<DJNode *, DJEdgeKind> p = *it;
+    if (p.second != Dominance)
+      continue;
+		DJNode* node2 = p.first;
+    for (auto it2 = node2->succ_begin(); it2 != node2->succ_end(); it2++) {
+      pair<DJNode *, DJEdgeKind> p2 = *it2;
+      if (p.first == node2) {
+        // Self-loop detected
+        MachineBasicBlock *MBB = &node2->getMBB();
+				StackableRegion *singleton = createSingleton(MBB);
+        StackableRegion *loop = createSelfLoop(singleton);
+        blockMap[MBB] = loop;
+			}
+		}
+  }
+
+	vector<DJNode *> list;
+
+	// Detect fork regions (if-then / if-then-else / switch)
+  for (auto it = node->succ_begin(); it != node->succ_end(); it++) {
+    pair<DJNode *, DJEdgeKind> p = *it;
+    if (p.second != Dominance)
+			continue;
+    list.clear();
+    DJNode *node2 = p.first;
+    for (auto it2 = node2->pred_begin(); it2 != node2->pred_end(); it2++) {
+      pair<DJNode *, DJEdgeKind> p2 = *it2;
+      if (p2.second != Join)
+				continue;
+			DJNode *node3 = p2.first;
+      if (node3 == node2 || node3->getLevel() != node2->getLevel()) {
+        list.clear();
+				break;
+      }
+      list.push_back(node3);
+    }
+    if (list.size() > 0) {
+			vector<StackableRegion *> children;
+      for (DJNode *forkNode : list) {
+        MachineBasicBlock *MBB = &forkNode->getMBB();
+        StackableRegion *singleton = createSingleton(MBB);        
+				children.push_back(singleton);
+        blockMap[MBB] = singleton;
+			}
+
+		}
+	}
+}
+
+void StackableRegionStructure::dump() { 
+	dbgs() << "Region Tree:\n";
+  getRoot().dump("");
+}
+
+string StackableRegion::toString(StackableRegionKind kind) {
+	const char* str;
+	switch (kind) { 
+  case SRSingleton: str = "Singleton"; break;
+	case SRSequence:  str = "Sequence"; break;
+  case SRFork:      str = "Fork"; break;
+  case SRSelfLoop:  str = "Self Loop"; break;
+  case SRWhileLoop: str = "While Loop"; break;
+  default:          str = "???";
+	}
+  return string(str);
+}
+
+string StackableRegion::toString() { 
+	string str = toString(getKind(); 
+
+	return str;
+}
+
+void StackableRegion::dump(string margin) { 
+	dbgs() << margin;
+  for (StackableRegion *child : *this) {
+    dump(margin + "  ");
+	}
+}
+
 namespace {
 class TVMLocalScheduler final : public MachineFunctionPass {
   StringRef getPassName() const override { return "TVM Local Scheduler"; }
@@ -1121,10 +1337,14 @@ bool TVMLocalScheduler::runOnBasicBlocks(MachineFunction &MF) {
   dbgs() << "\n";
   */
 
-  DJGraph djGraph(MF, *MDT);
-  djGraph.dump();
+//  DJGraph djGraph(MF, *MDT);
+//  djGraph.dump();
 
-  for (DJNode *node : djGraph) {
+	StackableRegionStructure SRS(MF, *MDT);
+  SRS.getDJGraph().dump();
+  SRS.dump();
+
+  for (DJNode *node : SRS.getDJGraph()) {
     gatherBlockQueueInfo(node->getMBB(), pseudoMap, node->getBlockQueueInfo());
   }
 

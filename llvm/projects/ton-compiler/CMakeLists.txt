@@ -90,7 +90,6 @@ else()
       PREFIX ${CMAKE_CURRENT_SOURCE_DIR}/tvm_linker
       BUILD_IN_SOURCE On
       GIT_REPOSITORY https://github.com/nilfoundation/tvm-lld/
-      GIT_TAG 1-vergrth16
       CONFIGURE_COMMAND cd tvm_linker && cargo update
       BUILD_COMMAND cd tvm_linker && cargo build --release
       INSTALL_COMMAND ROBOCOPY "tvm_linker/target/release" "${CMAKE_INSTALL_PREFIX}/bin" tvm_linker.exe || echo %ERRORLEVEL%
@@ -101,7 +100,6 @@ else()
       PREFIX ${CMAKE_CURRENT_SOURCE_DIR}/tvm_linker
       BUILD_IN_SOURCE On
       GIT_REPOSITORY https://github.com/nilfoundation/tvm-lld/
-      GIT_TAG 1-vergrth16
       CONFIGURE_COMMAND cd tvm_linker && cargo update
       BUILD_COMMAND cd tvm_linker && cargo build --release
       INSTALL_COMMAND cp "tvm_linker/target/release/tvm_linker" "${CMAKE_INSTALL_PREFIX}/bin"

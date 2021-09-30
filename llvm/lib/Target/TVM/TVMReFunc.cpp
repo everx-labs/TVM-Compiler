@@ -401,7 +401,9 @@ struct gen_func_visitor {
   }
   Value *operator()(binop v) {
     auto *ty = Type::getInt257Ty(C);
-    return B.CreateBinOp(v.Opcode, prc(v.left, ty), prc(v.right, ty));
+    Value *l = prc(v.left, ty);
+    Value *r = prc(v.right, ty);
+    return B.CreateBinOp(v.Opcode, l, r);
   }
   Value *operator()(builder b) {
     cur_b = make_call<tvm_newc>();

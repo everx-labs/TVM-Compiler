@@ -337,6 +337,224 @@ static unsigned indexOf(vector<unsigned> const &list, unsigned reg) {
   return idx;
 }
 
+static string blockToString(MachineBasicBlock *MBB) {
+  if (!MBB)
+    return string("null");
+  string str("bb.");
+  char buf[10];
+  itoa(MBB->getNumber(), buf, 10);
+  str += buf;
+  str += ".";
+  str += MBB->getName();
+  return str;
+}
+
+// Convert MachineBasicBlock list to string
+static string blockListToString(vector<MachineBasicBlock *> const &list) {
+  string str;
+  str += "[ ";
+  bool first = true;
+  for (MachineBasicBlock *MBB : list) {
+    if (!first)
+      str += ", ";
+    str += blockToString(MBB);
+    first = false;
+  }
+  str += " ]";
+  return str;
+}
+
+// Print edges of MachineFunction CFG
+static void printCFGEdges(MachineFunction &MF) {
+  dbgs() << "CFG Edges :\n";
+  using RPOTType = ReversePostOrderTraversal<MachineFunction *>;
+  RPOTType RPOT(&MF);
+  for (RPOTType::rpo_iterator I = RPOT.begin(), E = RPOT.end(); I != E; ++I) {
+    MachineBasicBlock *MBB = *I;
+    for (MachineBasicBlock *succ : MBB->successors()) {
+      dbgs() << blockToString(MBB) << " -> " << blockToString(succ) << "\n";
+    }
+  }
+  dbgs() << "------------------\n";
+}
+
+// Representing Machine Block as data queue to disguise an original stack model
+class BlockQueueInfo {
+public:
+  // Preferred Input Queue (without register repetitions, will be duplicated
+  // inside block if needed)
+  vector<unsigned> preferredInputQueue;
+  // Preferred Output Queue
+  vector<unsigned> preferredOutputQueue;
+  // Number of uses of register inside the block
+  unordered_map<unsigned, unsigned> numUses;
+  // Actual Input Queue, must be converted on the start of block to convenient
+  // for block calculations
+  vector<unsigned> actualInputQueue;
+  // Actual Output Queue, must be converted from Preferred Output Queue during
+  // queue fixup on join CFG or DJ-Graph edges
+  vector<unsigned> actualOutputQueue;
+
+  BlockQueueInfo()
+      : preferredInputQueue(), preferredOutputQueue(), numUses(),
+        actualInputQueue(), actualOutputQueue() {}
+
+  void dump();
+
+  // Calculate fixup on block input
+  StackFixup calculateInputFixup(MachineFunction &MF) {
+    return calculateFixup(MF, preferredInputQueue, actualInputQueue);
+  }
+
+  // Calculate fixup on block output
+  StackFixup calculateOutputFixup(MachineFunction &MF) {
+    return calculateFixup(MF, actualOutputQueue, preferredOutputQueue);
+  }
+
+  // Calculate optimized queue from several different queues
+  // Needs for fork/join queue fixups
+  static void calculateOptimizedMerge(vector<vector<unsigned>> const &queues,
+                                      vector<unsigned> const &queueWeights,
+                                      vector<unsigned> merge);
+
+  static void calculateOptimizedMerge(vector<vector<unsigned>> const &queues,
+                                      vector<unsigned> merge);
+
+  // Calculate fixup from different queue (stack) values
+  static StackFixup calculateFixup(MachineFunction &MF,
+                                   vector<unsigned> const &dst,
+                                   vector<unsigned> const &src);
+
+	// Calculate maximum length of each queue registers with coincident indexes.
+  // Use for simple fixup operations.
+  static unsigned calculateCommonTailLength(vector<vector<unsigned>> const &queues);
+};
+
+class SchedulerUtils {
+public:
+  // Gather "pseodo-global" registers, i.e. such that can be reified
+  // (pushed)
+  //  from constant values (like block addresses) or fixed places on stack,
+  //  like parameters
+  // Other values will be received from block input "queue"
+  static void gatherPseudoGlobal(MachineFunction &MF, unordered_map<unsigned, MachineInstr *> &pseudoMap);
+
+  // Similar as from TVMStackModel, but with different parameters
+  static void gatherBlockLiveIns(MachineBasicBlock &MBB, MachineRegisterInfo *MRI,
+                     LiveIntervals * LIS, unordered_set<unsigned> &vregs);
+
+  // Similar as from TVMStackModel, but with different parameters
+  static void gatherBlockLiveOuts(MachineBasicBlock &MBB,
+                     MachineRegisterInfo *MRI, LiveIntervals *LIS, unordered_set<unsigned> &vregs);
+
+  // Gather information about input & output block data queue
+  static void gatherBlockQueueInfo(MachineBasicBlock &MBB, MachineRegisterInfo *MRI,
+                    LiveIntervals *LIS, unordered_map<unsigned, MachineInstr *> const &pseudoMap,
+                    BlockQueueInfo &queueInfo);
+};
+
+void SchedulerUtils::gatherBlockLiveIns(MachineBasicBlock &MBB,
+    MachineRegisterInfo *MRI, LiveIntervals *LIS,
+          unordered_set<unsigned> &vregs) {
+  for (unsigned i = 0, e = MRI->getNumVirtRegs(); i != e; ++i) {
+    unsigned Reg = TargetRegisterInfo::index2VirtReg(i);
+    if (LIS->hasInterval(Reg)) {
+      if (LIS->isLiveInToMBB(LIS->getInterval(Reg), &MBB)) {
+        vregs.insert(Reg);
+      }
+    }
+  }
+}
+
+void SchedulerUtils::gatherBlockLiveOuts(MachineBasicBlock &MBB,
+   MachineRegisterInfo *MRI, LiveIntervals *LIS, unordered_set<unsigned> &vregs) {
+  for (unsigned i = 0, e = MRI->getNumVirtRegs(); i != e; ++i) {
+    unsigned Reg = TargetRegisterInfo::index2VirtReg(i);
+    if (LIS->hasInterval(Reg)) {
+      if (LIS->isLiveOutOfMBB(LIS->getInterval(Reg), &MBB)) {
+        vregs.insert(Reg);
+      }
+    }
+  }
+}
+
+void SchedulerUtils::gatherBlockQueueInfo(MachineBasicBlock &MBB, 
+	  MachineRegisterInfo *MRI, LiveIntervals *LIS,
+    unordered_map<unsigned, MachineInstr *> const &pseudoMap,
+    BlockQueueInfo &queueInfo) {
+  unordered_set<unsigned> liveIns;
+  gatherBlockLiveIns(MBB, MRI, LIS, liveIns);
+  unordered_set<unsigned> liveOuts;
+  gatherBlockLiveOuts(MBB, MRI, LIS, liveOuts);
+
+  for (MachineInstr &MI : MBB) {
+    for (const MachineOperand &op : MI.uses()) {
+      if (op.isReg()) {
+        unsigned reg = op.getReg();
+        unsigned numUses = 1;
+        auto search = queueInfo.numUses.find(reg);
+        if (search != queueInfo.numUses.end()) {
+          numUses = search->second + 1;
+          queueInfo.numUses.insert_or_assign(reg, numUses);
+        }
+
+        if (pseudoMap.find(reg) == pseudoMap.end() &&
+            liveIns.find(reg) != liveIns.end()) {
+          if (numUses == 1)
+            queueInfo.preferredInputQueue.push_back(reg);
+        }
+      }
+    }
+    for (const MachineOperand &op : MI.defs()) {
+      if (op.isReg()) {
+        unsigned reg = op.getReg();
+        if (liveOuts.find(reg) != liveOuts.end()) {
+          queueInfo.preferredOutputQueue.push_back(reg);
+        }
+      }
+    }
+  }
+}
+
+void SchedulerUtils::gatherPseudoGlobal(MachineFunction &MF, 
+    unordered_map<unsigned, MachineInstr *> &pseudoMap) {
+  unordered_set<unsigned> defined;
+  for (MachineBasicBlock &MBB : MF) {
+    for (MachineInstr &MI : MBB) {
+      //      MI.dump();
+      unsigned code = MI.getOpcode();
+      unsigned reg = 0;
+      switch (code) {
+      case TVM::ARGUMENT: {
+        const MachineOperand &result = MI.getOperand(0);
+        reg = result.getReg();
+      } break;
+      case TVM::PUSHCONT_MBB: {
+        const MachineOperand &result = MI.getOperand(0);
+        reg = result.getReg();
+      } break;
+      default:
+        break;
+      }
+      if (reg != 0) {
+        if (defined.find(reg) == defined.end()) {
+          // dbgs() << "Reg %" << (reg & 0x7FFF) << "\n";
+          pseudoMap.insert(pair<unsigned, MachineInstr *>(reg, &MI));
+        }
+      }
+      for (const MachineOperand &op : MI.defs()) {
+        if (op.isReg()) {
+          unsigned reg = op.getReg();
+          if (defined.find(reg) != defined.end()) {
+            pseudoMap.erase(reg);
+          }
+          defined.insert(reg);
+        }
+      }
+    }
+  }
+}
+
 enum LayeredInstructionDAGNodeKind { LINSource, LINSink, LINInstruction };
 
 class LayeredInstructionDAGNode {
@@ -661,7 +879,7 @@ class OperandQueue {
 public:
   OperandQueue(LayeredInstructionDAG *dag) : DAG(dag), queue() {}
 
-  OperandQueueSlot const& getSlot(unsigned slotNum) { return queue[slotNum]; }
+  OperandQueueSlot const &getSlot(unsigned slotNum) { return queue[slotNum]; }
 
   // Insert new slot into queue
   // Return insertion position of slot in queue
@@ -672,21 +890,20 @@ public:
   // same definition
   unsigned enqueueNext(OperandQueueSlot const &slot);
 
-	// Remove num elements from queue head
-	void dequeue(unsigned num);
+  // Remove num elements from queue head
+  void dequeue(unsigned num);
 
-	void dump();
+  void dump();
 
 private:
-	inline static unsigned order(LayeredInstructionDAGNode *target,
-		  unsigned targetInPort) {
+  inline static unsigned order(LayeredInstructionDAGNode *target,
+                               unsigned targetInPort) {
     return (target->getOrderNum() << 8) + targetInPort;
-	}
+  }
 };
 
 unsigned OperandQueue::enqueue(LayeredInstructionDAGNode *targ,
-                             unsigned targInPort,
-	  unsigned useRem) {
+                               unsigned targInPort, unsigned useRem) {
   OperandQueueSlot slot;
   slot.target = targ;
   slot.targetInPort = targInPort;
@@ -697,71 +914,23 @@ unsigned OperandQueue::enqueue(LayeredInstructionDAGNode *targ,
     OperandQueueSlot const &posSlot = getSlot(pos);
     if (order(posSlot.target, posSlot.targetInPort) > ord)
       break;
-	}
-	// TODO
-	return pos;
+  }
+  // TODO
+  return pos;
 }
 
 unsigned OperandQueue::enqueueNext(OperandQueueSlot const &slot) {
-	// TODO
-	return 0; 
+  // TODO
+  return 0;
 }
 
 void OperandQueue::dequeue(unsigned num) {
-	// TODO
+  // TODO
 }
 
 void OperandQueue::dump() {
-	// TODO
+  // TODO
 }
-
-// Representing Machine Block as data queue to disguise an original stack model
-class BlockQueueInfo {
-public:
-  // Preferred Input Queue (without register repetitions, will be duplicated
-  // inside block if needed)
-  vector<unsigned> preferredInputQueue;
-  // Preferred Output Queue
-  vector<unsigned> preferredOutputQueue;
-  // Number of uses of register inside the block
-  unordered_map<unsigned, unsigned> numUses;
-  // Actual Input Queue, must be converted on the start of block to convenient
-  // for block calculations
-  vector<unsigned> actualInputQueue;
-  // Actual Output Queue, must be converted from Preferred Output Queue during
-  // queue fixup on join CFG or DJ-Graph edges
-  vector<unsigned> actualOutputQueue;
-
-  BlockQueueInfo()
-      : preferredInputQueue(), preferredOutputQueue(), numUses(),
-        actualInputQueue(), actualOutputQueue() {}
-
-  void dump();
-
-  // Calculate fixup on block input
-  StackFixup calculateInputFixup(MachineFunction &MF) {
-    return calculateFixup(MF, preferredInputQueue, actualInputQueue);
-  }
-
-  // Calculate fixup on block output
-  StackFixup calculateOutputFixup(MachineFunction &MF) {
-    return calculateFixup(MF, actualOutputQueue, preferredOutputQueue);
-  }
-
-  // Calculate optimized queue from several different queues
-  // Needs for fork/join queue fixups
-  static void calculateOptimizedMerge(vector<vector<unsigned>> const &queues,
-                                      vector<unsigned> const &queueWeights,
-                                      vector<unsigned> merge);
-
-  static void calculateOptimizedMerge(vector<vector<unsigned>> const &queues,
-                                      vector<unsigned> merge);
-
-  // Calculate fixup from different queue (stack) values
-  static StackFixup calculateFixup(MachineFunction &MF,
-                                   vector<unsigned> const &dst,
-                                   vector<unsigned> const &src);
-};
 
 enum DJEdgeKind { Dominance, Join };
 
@@ -877,7 +1046,7 @@ bool DJNode::hasPredecessor(DJNode *node, DJEdgeKind kind) {
 
 bool DJNode::hasSuccessor(DJNode *node, DJEdgeKind kind) {
   for (pair<DJNode *, DJEdgeKind> succ : successors()) {
-    if (succ.first == this && succ.second == kind)
+    if (succ.first == node && succ.second == kind)
       return true;
   }
   return false;
@@ -894,13 +1063,15 @@ bool DJNode::isDominates(DJNode *node) {
 }
 
 string DJNode::toString() {
-  MCSymbol *sym = getMBB().getSymbol();
-  return sym->getName().str();
+  //  MCSymbol *sym = getMBB().getSymbol();
+  //  return sym->getName().str();
+  return blockToString(&getMBB());
 }
 
 class DJGraph {
   // Dominator levels
   vector<vector<DJNode *>> levels;
+  map<const MachineBasicBlock *, DJNode *> nodeMap;
   vector<DJNode *> nodes;
   DJNode *root;
 
@@ -921,6 +1092,14 @@ public:
 
   vector<vector<DJNode *>> const &getLevels() { return levels; }
 
+  // Lookup DJ Node corresponding to Machine Block MBB
+  DJNode *lookupNode(const MachineBasicBlock *MBB) {
+    auto it = nodeMap.find(MBB);
+    if (it == nodeMap.end())
+      return nullptr;
+    return it->second;
+  }
+
   void dump();
 
   using iterator = vector<DJNode *>::iterator;
@@ -934,11 +1113,13 @@ public:
 
   const_iterator end() const { return nodes.end(); }
 
-	iterator level_begin(unsigned level) { return levels[level].begin(); }
+  iterator level_begin(unsigned level) { return levels[level].begin(); }
 
-	const_iterator level_begin(unsigned level) const { return levels[level].begin(); }
+  const_iterator level_begin(unsigned level) const {
+    return levels[level].begin();
+  }
 
-	iterator level_end(unsigned level) { return levels[level].end(); }
+  iterator level_end(unsigned level) { return levels[level].end(); }
 
   const_iterator level_end(unsigned level) const { return levels[level].end(); }
 
@@ -949,23 +1130,23 @@ private:
 
   void addEdge(DJNode *source, DJNode *target, DJEdgeKind kind);
 
-  void walkDomTree(
-      MachineDomTreeNode *domTreeNode, int level,
-      unordered_map<const MachineBasicBlock *, DJNode *> const &nodeMap);
+  void walkDomTree(MachineDomTreeNode *domTreeNode, int level);
 };
 
 void DJGraph::init(MachineFunction &MF, MachineDominatorTree &MDT) {
-  unordered_map<const MachineBasicBlock *, DJNode *> nodeMap;
   for (MachineBasicBlock &MBB : MF) {
     DJNode *djNode = createDJNode(&MBB);
     nodes.push_back(djNode);
+    nodeMap[&MBB] = djNode;
   }
-  walkDomTree(MDT.getRootNode(), 0, nodeMap);
+  walkDomTree(MDT.getRootNode(), 0);
 
   for (MachineBasicBlock &source : MF) {
     for (MachineBasicBlock *target : source.successors()) {
       DJNode *sourceNode = nodeMap[&source];
       DJNode *targetNode = nodeMap[target];
+      //      dbgs() << sourceNode->toString() << " -> " <<
+      //      targetNode->toString() << "\n";
       if (sourceNode->isDominates(targetNode))
         continue;
       addEdge(sourceNode, targetNode, Join);
@@ -977,19 +1158,18 @@ DJNode *DJGraph::createDJNode(MachineBasicBlock *MBB) {
   return new (DJNodeRecycler.Allocate<DJNode>(Allocator)) DJNode(MBB);
 }
 
-void DJGraph::walkDomTree(
-    MachineDomTreeNode *domTreeNode, int level,
-    unordered_map<const MachineBasicBlock *, DJNode *> const &nodeMap) {
-  if (levels.size() < level)
+void DJGraph::walkDomTree(MachineDomTreeNode *domTreeNode, int level) {
+  if (levels.size() <= level)
     levels.push_back(vector<DJNode *>());
   const MachineBasicBlock *MBB = domTreeNode->getBlock();
-  DJNode *node = nodeMap.find(MBB)->second;
+  DJNode *node = lookupNode(MBB);
+  assert(node);
   node->setLevel(level);
   levels[level].push_back(node);
   for (MachineDomTreeNode *child : domTreeNode->getChildren()) {
     DJNode *target = nodeMap.find(child->getBlock())->second;
     addEdge(node, target, Dominance);
-    walkDomTree(child, level + 1, nodeMap);
+    walkDomTree(child, level + 1);
   }
 }
 
@@ -1011,6 +1191,7 @@ void DJGraph::dump() {
       dbgs() << node->toString();
       first = false;
     }
+    dbgs() << "\n";
   }
   dbgs() << "Dominant Edges:\n";
   for (unsigned i = 0; i < getNumLevels(); i++) {
@@ -1040,50 +1221,243 @@ void DJGraph::dump() {
   }
 }
 
-enum StackableRegionKind { SRSingleton, SRSequence, SRFork, SRSelfLoop, SRWhileLoop };
+class StackTreeNode {
+	friend class StackTree;
 
-// Class StackableRegion represents different elements of program's control structure.
-// Resembles regions of program structure analysis (if/else, while, etc.) but with 
-// concerning to stack calculations.
-class StackableRegion {
-	friend class StackableRegionStructure;
-
-  StackableRegionKind kind;
+	StackTreeNode *parent;
+	vector<StackTreeNode *> children;
+	vector<unsigned> registers;
 	MachineBasicBlock *MBB;
-	vector<StackableRegion*> subregions;
-	BlockQueueInfo queueInfo;
 
 private:
-  StackableRegion(StackableRegionKind kind_): kind(kind_), subregions(), queueInfo() {
+  StackTreeNode() : parent(nullptr), children() {}
+
+	void setParent(StackTreeNode *parent_) {
+		parent = parent;
+    parent->children.push_back(this);
 	}
 
- StackableRegion(StackableRegionKind kind_, MachineBasicBlock *MBB_)
-      : kind(kind_), MBB(MBB_), subregions(), queueInfo() {}
+public:
+  StackTreeNode *getParent() { return parent; }
 
-  StackableRegion(StackableRegionKind kind_, StackableRegion* child1)
-      : kind(kind_), MBB(nullptr), subregions(), queueInfo() {
+	MachineBasicBlock *getMBB() { return MBB; }
+
+	unsigned size() { 
+		unsigned sz = registers.size();
+    if (parent)
+      sz += parent->size();
+		return sz;
+	}
+
+	unsigned localSize() { return registers.size(); }
+
+	// Get path from root node to this node
+	void getPath(vector<StackTreeNode *> &path) { 
+		if (parent)
+      parent->getPath(path);
+    path.push_back(this);
+	}
+
+	// Get stack registers from root node to this node
+	void getContents(vector<unsigned> &regs) { 
+		if (parent)
+      parent->getContents(regs);
+    for (unsigned reg : registers) {
+       regs.push_back(reg);
+    }
+	}
+
+	// Lookup register in current node or parent (recursively).
+	// Return register offset from the top of stack or -1
+	// if register is not in stack
+	int lookupRegisterOffset(unsigned reg);
+
+	string toString();
+
+	void dump(string margin = "");
+
+  // StackTreeNode children iterator
+  using child_iterator = vector<StackTreeNode *>::iterator;
+  using const_child_iterator = vector<StackTreeNode *>::const_iterator;
+
+  child_iterator children_begin() { return children.begin(); }
+
+  const_child_iterator children_begin() const { return children.begin(); }
+
+  child_iterator children_end() { return children.end(); }
+
+	const_child_iterator children_end() const { return children.end(); }
+};
+
+int StackTreeNode::lookupRegisterOffset(unsigned reg) {
+  for (int index = registers.size() - 1; index >= 0; index--) {
+    if (registers[index] == reg)
+      return registers.size() - 1 - index;
+	}
+  if (!parent)
+		return -1;
+  int offset = parent->lookupRegisterOffset(reg);
+  if (offset >= 0)
+    return registers.size() + offset;
+  return -1; 
+}
+
+string StackTreeNode::toString() {
+	string str;
+  if (parent)
+    str += parent->toString();
+  for (unsigned reg : registers) {
+    str += regToString(reg);
+    str += " ";
+  }
+	return str;
+}
+
+void StackTreeNode::dump(string margin) { 
+	dbgs() << margin;
+  dbgs() << blockToString(getMBB()) << " : ";
+  dbgs() << "{ " << toString() << "}";
+  for (StackTreeNode *child : children) {
+    dump(margin + " ");
+  }
+}
+
+// Flexible Stack Model.
+// Stack Model structure corresponds to function's Region Structure.
+// Path from root to some node corresponds to this node's stack state.
+class StackTree {
+	StackTreeNode *root;
+	map<MachineBasicBlock *, StackTreeNode *> nodeMap;
+
+  // Pool-allocate StackableTreeNode-lifetime
+  BumpPtrAllocator Allocator;
+
+  // Allocation management for StackableRegion in graph
+  Recycler<StackTreeNode> StackTreeNodeRecycler;
+
+public:
+  StackTree() {}
+
+	StackTreeNode *getRoot() { return root; }
+
+	StackTreeNode *lookupNode(MachineBasicBlock *MBB) { return nodeMap[MBB]; }
+
+	void dump() {
+    if (getRoot())
+      getRoot()->dump();
+    else dbgs() << "null";
+  }
+
+	StackTreeNode *createNode() {
+    return new (StackTreeNodeRecycler.Allocate<StackTreeNode>(
+      Allocator)) StackTreeNode();
+	}
+};
+
+enum StackableRegionKind {
+  SRLeaf,        // Leaf region (contains single Machine Block)
+  SRSequence,    // Sequence of regions
+  SRIfThen,      // if (...) { ... }
+  SRIfThenElse,  // if (...)  { ... } else { ... }
+  SRSelfLoop,    // do { ... } while (...)
+  SRWhileLoop,   // while (...) { ... }
+  SRNaturalLoop, // TODO can't be generated by current backend passes (?)
+  SRProper,      // TODO can't be generated from structural C/C++ programs
+  SRImproper     // TODO can't be generated from structural C/C++ programs
+};
+
+// Constants used in approximation of region weights
+#define LOOP_REGION_WEIGHT 8
+#define LEVEL_REGION_WEIGHT 1
+
+// Class StackableRegion represents different elements of program's control
+// structure. Resembles regions of program structure analysis (if/else, while,
+// etc.) but with concerning to stack calculations.
+class StackableRegion {
+  friend class StackableRegionStructure;
+
+  StackableRegionKind kind;
+  MachineBasicBlock *MBB;
+  vector<StackableRegion *> subregions;
+  BlockQueueInfo queueInfo;
+	uint64_t weight;
+
+private:
+  StackableRegion(StackableRegionKind kind_)
+      : kind(kind_), subregions(), queueInfo(), weight(1) {}
+
+  StackableRegion(StackableRegionKind kind_, MachineBasicBlock *MBB_)
+      : kind(kind_), MBB(MBB_), subregions(), queueInfo(), weight(1) {}
+
+  StackableRegion(StackableRegionKind kind_, StackableRegion *child1)
+      : kind(kind_), MBB(nullptr), subregions(), queueInfo(), weight(1) {
     subregions.push_back(child1);
-	}
+  }
 
-  StackableRegion(StackableRegionKind kind_, StackableRegion *child1, StackableRegion *child2)
-      : kind(kind_), MBB(nullptr), subregions(), queueInfo() {
+  StackableRegion(StackableRegionKind kind_, StackableRegion *child1,
+                  StackableRegion *child2)
+      : kind(kind_), MBB(nullptr), subregions(), queueInfo(), weight(1) {
     subregions.push_back(child1);
     subregions.push_back(child2);
   }
 
-  StackableRegion(StackableRegionKind kind_, vector<StackableRegion *> &children)
-      : kind(kind_), MBB(nullptr), subregions(children), queueInfo() {
-	}
+  StackableRegion(StackableRegionKind kind_, StackableRegion *child1,
+                  StackableRegion *child2, StackableRegion *child3)
+      : kind(kind_), MBB(nullptr), subregions(), queueInfo(), weight(1) {
+    subregions.push_back(child1);
+    subregions.push_back(child2);
+    subregions.push_back(child3);
+  }
+
+  StackableRegion(StackableRegionKind kind_,
+                  vector<StackableRegion *> &children)
+      : kind(kind_), MBB(nullptr), subregions(children), queueInfo(),
+        weight(1) {}
 
 public:
-	StackableRegionKind getKind() { return kind; }
+  StackableRegionKind getKind() { return kind; }
 
-	MachineBasicBlock *getMBB() { 
-		assert(kind == SRSingleton);
-		return MBB; 
+	uint64_t getWeight() { return weight; }
+
+  MachineBasicBlock *getMBB() {
+    assert(kind == SRLeaf);
+    return MBB;
+  }
+
+	StackableRegion *getCondition() {
+		assert(kind == SRIfThen  ||  kind == SRIfThenElse || kind == SRWhileLoop || kind == SRNaturalLoop);
+    return subregions[0];
 	}
- 
-	BlockQueueInfo &getQueueInfo() { return queueInfo; }
+
+	StackableRegion *getThen() {
+    assert(kind == SRIfThen || kind == SRIfThenElse);
+    return subregions[1];
+  }
+
+  StackableRegion *getElse() {
+    assert(kind == SRIfThenElse);
+    return subregions[2];
+  }
+
+  StackableRegion *getBody() {
+    assert(kind == SRSelfLoop || kind == SRWhileLoop || kind == SRNaturalLoop);
+    if (kind == SRSelfLoop)
+      return subregions[0];
+    else return subregions[1];
+  }
+
+  BlockQueueInfo &getQueueInfo() { return queueInfo; }
+
+	bool isLoop() {
+		return kind == SRSelfLoop || kind == SRWhileLoop || kind == SRNaturalLoop;
+	}
+
+	// Returns head block - Machine Block on the entrance of region
+	MachineBasicBlock *getHeadBlock();
+
+	// Returns tail block - Machine Block on the exit of region.
+	// If there is no single tail block, returns nullptr
+	MachineBasicBlock *getTailBlock();
 
   // StackableRegion children iterator
   using child_iterator = vector<StackableRegion *>::iterator;
@@ -1091,24 +1465,32 @@ public:
 
   child_iterator begin() { return subregions.begin(); }
 
-	const_child_iterator begin() const { return subregions.begin(); }
+  const_child_iterator begin() const { return subregions.begin(); }
 
   child_iterator end() { return subregions.end(); }
 
   const_child_iterator end() const { return subregions.end(); }
 
-	static string toString(StackableRegionKind kind);
+  static string toString(StackableRegionKind kind);
 
-	string toString();
+  string toString();
 
-	void dump(string margin);
+  void dump(string margin);
+
+private:
+  // Recursively calculate (approximately) region and its children weights
+  void calculateWeights(uint64_t weight_ = 1);
+
+  // Recursively calculate region's BlockQueueInfo
+  void calculateQueueInfo(MachineRegisterInfo *MRI, LiveIntervals *LIS,
+                     unordered_map<unsigned, MachineInstr *> const &pseudoMap);
 };
 
 // Structure of Stackable Regions.
 // Contains region allocation and pointer to root region.
 class StackableRegionStructure {
-	DJGraph djGraph;
-	StackableRegion *root;
+  DJGraph djGraph;
+  StackableRegion *root;
 
   // Pool-allocate StackableRegionStructure-lifetime
   BumpPtrAllocator Allocator;
@@ -1116,135 +1498,445 @@ class StackableRegionStructure {
   // Allocation management for StackableRegion in graph
   Recycler<StackableRegion> StackableRegionRecycler;
 
- public: 
-	StackableRegionStructure(MachineFunction &MF, MachineDominatorTree &MDT) : djGraph(MF, MDT) {
-		init(MF);
-	}
+public:
+  StackableRegionStructure(MachineFunction &MF, MachineDominatorTree &MDT)
+      : djGraph(MF, MDT) {
+    init(MF);
+  }
 
-	StackableRegion &getRoot() { return *root; }
+  StackableRegion &getRoot() { return *root; }
 
-	DJGraph &getDJGraph() { return djGraph; }
+  DJGraph &getDJGraph() { return djGraph; }
+
+  // Recursively calculate region's BlockQueueInfo
+  void calculateQueueInfo(MachineRegisterInfo *MRI, LiveIntervals *LIS,
+                     unordered_map<unsigned, MachineInstr *> const &pseudoMap);
 
   void dump();
 
 private:
-  StackableRegion *createSingleton(MachineBasicBlock* MBB) {
+  StackableRegion *createLeaf(MachineBasicBlock *MBB) {
     return new (StackableRegionRecycler.Allocate<StackableRegion>(Allocator))
-        StackableRegion(SRSingleton, MBB);
+        StackableRegion(SRLeaf, MBB);
   }
 
-	StackableRegion *createSequence(vector<StackableRegion *> &children) {
-    return new (StackableRegionRecycler.Allocate<StackableRegion>(Allocator)) StackableRegion(SRSequence, children);
-	}
-
-	StackableRegion *createFork() {
-    return new (StackableRegionRecycler.Allocate<StackableRegion>(Allocator)) StackableRegion(SRFork);
+  StackableRegion *createSequence(vector<StackableRegion *> &children) {
+    return new (StackableRegionRecycler.Allocate<StackableRegion>(Allocator))
+        StackableRegion(SRSequence, children);
   }
 
-	StackableRegion *createSelfLoop(StackableRegion *body) {
-    return new (StackableRegionRecycler.Allocate<StackableRegion>(Allocator)) StackableRegion(SRSelfLoop, body);
+  StackableRegion *createSequence(StackableRegion *child1,
+                                  StackableRegion *child2);
+
+  StackableRegion *createIfThen(StackableRegion *condition,
+                                StackableRegion *ifRegion) {
+    return new (StackableRegionRecycler.Allocate<StackableRegion>(Allocator))
+        StackableRegion(SRIfThen, condition, ifRegion);
   }
 
-	StackableRegion *createWhileLoop() {
-    return new (StackableRegionRecycler.Allocate<StackableRegion>(Allocator)) StackableRegion(SRWhileLoop);
+  StackableRegion *createIfThenElse(StackableRegion *condition,
+                                    StackableRegion *ifRegion,
+                                    StackableRegion *elseRegion) {
+    return new (StackableRegionRecycler.Allocate<StackableRegion>(Allocator))
+        StackableRegion(SRIfThenElse, condition, ifRegion, elseRegion);
+  }
+
+  StackableRegion *createSelfLoop(StackableRegion *body) {
+    return new (StackableRegionRecycler.Allocate<StackableRegion>(Allocator))
+        StackableRegion(SRSelfLoop, body);
+  }
+
+  StackableRegion *createWhileLoop(StackableRegion *condition,
+                                   StackableRegion *body) {
+    return new (StackableRegionRecycler.Allocate<StackableRegion>(Allocator))
+        StackableRegion(SRWhileLoop, condition, body);
   }
 
   void init(MachineFunction &MF);
 
-	void processNode(DJNode *node, map<MachineBasicBlock *, StackableRegion *> &blockMap);
+  StackableRegion *processNode(DJNode *node,
+                               map<DJNode *, StackableRegion *> &nodeMap,
+                               map<DJNode *, vector<DJNode *>> &succJoins);
+
+  StackableRegion *matchSelfLoop(DJNode *node,
+                                 map<DJNode *, StackableRegion *> &nodeMap,
+                                 map<DJNode *, vector<DJNode *>> &succJoins);
+
+  StackableRegion *matchSequence(DJNode *node,
+                                 map<DJNode *, StackableRegion *> &nodeMap,
+                                 map<DJNode *, vector<DJNode *>> &succJoins);
+
+  void addJoinEdges(DJNode *node, map<DJNode *, vector<DJNode *>> &succJoins);
 };
 
-void StackableRegionStructure::init(MachineFunction &MF) { 
-	map<MachineBasicBlock *, StackableRegion *> blockMap;
-	for (unsigned level = djGraph.getNumLevels() - 2; level >= 0; level--) {
-    for (auto it = djGraph.level_begin(level); it != djGraph.level_end(level); it++) {
-			DJNode* node = *it;
-      processNode(node, blockMap);
-    }
-	}
+StackableRegion *StackableRegionStructure::createSequence(StackableRegion *child1,
+                                         StackableRegion *child2) {
+  if (child1->getKind() != SRSequence && child2->getKind() != SRSequence) {
+    return new (StackableRegionRecycler.Allocate<StackableRegion>(Allocator))
+        StackableRegion(SRSequence, child1, child2);
+  } else {
+    vector<StackableRegion *> children;
+    if (child1->getKind() == SRSequence) {
+      for (StackableRegion *child : *child1) {
+        children.push_back(child);
+      }
+    } else
+      children.push_back(child1);
+    if (child2->getKind() == SRSequence) {
+      for (StackableRegion *child : *child2) {
+        children.push_back(child);
+      }
+    } else
+      children.push_back(child1);
+    return new (StackableRegionRecycler.Allocate<StackableRegion>(Allocator))
+        StackableRegion(SRSequence, children);
+  }
 }
 
-void StackableRegionStructure::processNode(DJNode *node, map<MachineBasicBlock *, StackableRegion *> &blockMap) {
-	// At first detect self-loops on level under node
+void StackableRegionStructure::init(MachineFunction &MF) {
+  printCFGEdges(MF);
+  dbgs() << "\n";
+  djGraph.dump();
+  dbgs() << "\n";
+
+  map<DJNode *, StackableRegion *> nodeMap;
+  // Create Leaf regions and add them to nodeMap
+  for (DJNode *node : djGraph) {
+    StackableRegion *leaf = createLeaf(&node->getMBB());
+    nodeMap[node] = leaf;
+  }
+
+  // Create joint edges for initial leaf regions
+  map<DJNode *, vector<DJNode *>> succJoins;
+  for (DJNode *node : djGraph) {
+    vector<DJNode *> joinList;
+    for (auto it = node->succ_begin(); it != node->succ_end(); it++) {
+      pair<DJNode *, DJEdgeKind> p = *it;
+      if (p.second != Join)
+        continue;
+      DJNode *source = p.first;
+      joinList.push_back(source);
+    }
+    succJoins[node] = joinList;
+  }
+
+  for (int level = djGraph.getNumLevels() - 2; level >= 0; level--) {
+    for (auto it = djGraph.level_begin(level); it != djGraph.level_end(level);
+         it++) {
+      DJNode *node = *it;
+      processNode(node, nodeMap, succJoins);
+    }
+  }
+  root = nodeMap[*djGraph.level_begin(0)];
+}
+
+StackableRegion *StackableRegionStructure::processNode(
+    DJNode *node, map<DJNode *, StackableRegion *> &nodeMap,
+    map<DJNode *, vector<DJNode *>> &succJoins) {
+  dbgs() << "Node " << node->toString() << "\n";
+
+  // CFG Exit node
+  if (node->succ_begin() == node->succ_end())
+    return nullptr;
+
+  StackableRegion *newRegion = nullptr;
   for (auto it = node->succ_begin(); it != node->succ_end(); it++) {
     pair<DJNode *, DJEdgeKind> p = *it;
     if (p.second != Dominance)
       continue;
-		DJNode* node2 = p.first;
-    for (auto it2 = node2->succ_begin(); it2 != node2->succ_end(); it2++) {
-      pair<DJNode *, DJEdgeKind> p2 = *it2;
-      if (p.first == node2) {
-        // Self-loop detected
-        MachineBasicBlock *MBB = &node2->getMBB();
-				StackableRegion *singleton = createSingleton(MBB);
-        StackableRegion *loop = createSelfLoop(singleton);
-        blockMap[MBB] = loop;
-			}
-		}
+    DJNode *node2 = p.first;
+    matchSelfLoop(node2, nodeMap, succJoins);
   }
+  matchSelfLoop(node, nodeMap, succJoins);
 
-	vector<DJNode *> list;
+  newRegion = matchSequence(node, nodeMap, succJoins);
+  if (newRegion)
+    return newRegion;
 
-	// Detect fork regions (if-then / if-then-else / switch)
+  vector<DJNode *> joinSources;
+  DJNode *join = nullptr;
+
+  // Detect fork regions (if-then / if-then-else / switch)
   for (auto it = node->succ_begin(); it != node->succ_end(); it++) {
     pair<DJNode *, DJEdgeKind> p = *it;
     if (p.second != Dominance)
-			continue;
-    list.clear();
+      continue;
     DJNode *node2 = p.first;
-    for (auto it2 = node2->pred_begin(); it2 != node2->pred_end(); it2++) {
-      pair<DJNode *, DJEdgeKind> p2 = *it2;
-      if (p2.second != Join)
-				continue;
-			DJNode *node3 = p2.first;
-      if (node3 == node2 || node3->getLevel() != node2->getLevel()) {
-        list.clear();
-				break;
+    vector<DJNode *> &joinTargets = succJoins[node2];
+    int targNum = 0;
+    for (DJNode *target : joinTargets) {
+      //      dbgs() << node2->toString() << " -> " << target->toString() <<
+      //      "\n";
+      if (target == node2) {
+        joinSources.clear();
+        break;
       }
-      list.push_back(node3);
+      if (target->getLevel() > node2->getLevel())
+        continue;
+      if (++targNum > 1) {
+        joinSources.clear();
+        break;
+      }
+      joinSources.push_back(node2);
+      if (join && join != target) {
+        joinSources.clear();
+        break;
+      }
+      join = target;
     }
-    if (list.size() > 0) {
-			vector<StackableRegion *> children;
-      for (DJNode *forkNode : list) {
-        MachineBasicBlock *MBB = &forkNode->getMBB();
-        StackableRegion *singleton = createSingleton(MBB);        
-				children.push_back(singleton);
-        blockMap[MBB] = singleton;
-			}
+  }
+  if (joinSources.size() > 0) {
+    StackableRegion *condRegion = nullptr;
+    if (joinSources.size() == 1)
+      condRegion = createIfThen(nodeMap[node], nodeMap[joinSources[0]]);
+    else if (joinSources.size() == 2)
+      condRegion = createIfThenElse(nodeMap[node], nodeMap[joinSources[0]],
+                                    nodeMap[joinSources[1]]);
+    else {
+      // TODO create switch
+    }
+    assert(condRegion);
+    if (join->getLevel() > node->getLevel())
+      newRegion = createSequence(condRegion, nodeMap[join]);
+    else
+      newRegion = condRegion;
+  }
 
-		}
-	}
+  if (!newRegion) {
+  }
+
+  assert(newRegion);
+  nodeMap[node] = newRegion;
+  // Add join edges for new region
+  addJoinEdges(node, succJoins);
+  return newRegion;
 }
 
-void StackableRegionStructure::dump() { 
-	dbgs() << "Region Tree:\n";
+StackableRegion *StackableRegionStructure::matchSequence(
+    DJNode *node, map<DJNode *, StackableRegion *> &nodeMap,
+    map<DJNode *, vector<DJNode *>> &succJoins) {
+  // If node has one child without any join edges, create Sequence
+  DJNode *seqNode = nullptr;
+  for (auto it = node->succ_begin(); it != node->succ_end(); it++) {
+    pair<DJNode *, DJEdgeKind> p = *it;
+    if (p.second != Dominance)
+      continue;
+    if (seqNode)
+      return nullptr;
+    seqNode = p.first;
+    vector<DJNode *> &joinTargets = succJoins[seqNode];
+    for (DJNode *target : joinTargets) {
+      if (target->getLevel() < seqNode->getLevel())
+        return nullptr;
+    }
+  }
+  if (seqNode) {
+    StackableRegion *seq = createSequence(nodeMap[node], nodeMap[seqNode]);
+    nodeMap[node] = seq;
+    return seq;
+  }
+  return nullptr;
+}
+
+StackableRegion *StackableRegionStructure::matchSelfLoop(
+    DJNode *node, map<DJNode *, StackableRegion *> &nodeMap,
+    map<DJNode *, vector<DJNode *>> &succJoins) {
+  StackableRegion *region = nodeMap[node];
+  if (region->getKind() == SRSelfLoop)
+    return region;
+  // At first detect self-loops on level under node
+  bool selfLoop = false;
+  vector<DJNode *> &joins = succJoins[node];
+  for (DJNode *join : joins) {
+    if (join == node)
+      selfLoop = true;
+  }
+  if (selfLoop) {
+    StackableRegion *selfLoop = createSelfLoop(nodeMap[node]);
+    nodeMap[node] = selfLoop;
+    joins.erase(find(joins.begin(), joins.end(), node));
+    return selfLoop;
+  }
+  return nullptr;
+}
+
+void StackableRegionStructure::addJoinEdges(
+    DJNode *node, map<DJNode *, vector<DJNode *>> &succJoins) {
+  vector<DJNode *> &nodeJoins = succJoins[node];
+  for (auto it = node->succ_begin(); it != node->succ_end(); it++) {
+    pair<DJNode *, DJEdgeKind> p = *it;
+    if (p.second != Dominance)
+      continue;
+    DJNode *node2 = p.first;
+    vector<DJNode *> &joinTargets = succJoins[node2];
+    for (DJNode *target : joinTargets) {
+      if (target->getLevel() <= node->getLevel() &&
+          find(nodeJoins.begin(), nodeJoins.end(), target) == nodeJoins.end()) {
+        nodeJoins.push_back(target);
+      }
+    }
+  }
+}
+
+void StackableRegionStructure::calculateQueueInfo(MachineRegisterInfo *MRI, 
+	  LiveIntervals *LIS,  unordered_map<unsigned, MachineInstr *> const &pseudoMap) {
+  getRoot().calculateWeights();
+  getRoot().calculateQueueInfo(MRI, LIS, pseudoMap);
+}
+
+void StackableRegionStructure::dump() {
+  dbgs() << "Region Tree:\n";
   getRoot().dump("");
 }
 
-string StackableRegion::toString(StackableRegionKind kind) {
-	const char* str;
-	switch (kind) { 
-  case SRSingleton: str = "Singleton"; break;
-	case SRSequence:  str = "Sequence"; break;
-  case SRFork:      str = "Fork"; break;
-  case SRSelfLoop:  str = "Self Loop"; break;
-  case SRWhileLoop: str = "While Loop"; break;
-  default:          str = "???";
+MachineBasicBlock *StackableRegion::getHeadBlock() { 
+	if (kind == SRLeaf) 
+		return getMBB();
+  return subregions[0]->getHeadBlock();
+}
+
+MachineBasicBlock *StackableRegion::getTailBlock() { 
+	switch (kind) {
+  case SRLeaf:
+    return getMBB();
+  case SRSelfLoop:
+    return getBody()->getTailBlock();
+  case SRWhileLoop:
+    return getCondition()->getTailBlock();
+  default: return nullptr;
 	}
+}
+
+void StackableRegion::calculateWeights(uint64_t weight_) {
+  switch (kind) {
+  case SRLeaf:
+		weight = weight_;
+		break;
+  case SRSequence:
+		weight = weight_;
+    for (StackableRegion *child : *this) {
+      calculateWeights(weight);
+		}
+		break;
+  case SRIfThen:
+  case SRIfThenElse:
+    weight = weight_;
+    getCondition()->calculateWeights(weight);
+    getThen()->calculateWeights(weight * LEVEL_REGION_WEIGHT);
+    if (kind == SRIfThenElse)
+      getElse()->calculateWeights(weight * LEVEL_REGION_WEIGHT);
+		break;
+  case SRSelfLoop:
+  case SRWhileLoop:
+  case SRNaturalLoop:
+		weight = weight_ * LOOP_REGION_WEIGHT;
+    for (StackableRegion *child : *this) {
+      calculateWeights(weight);
+    }
+		break;
+  case SRProper:
+  case SRImproper:
+  default:
+    assert(false);
+	}
+}
+
+void StackableRegion::calculateQueueInfo(MachineRegisterInfo *MRI, LiveIntervals *LIS,
+	  unordered_map<unsigned, MachineInstr *> const &pseudoMap) {
+  for (StackableRegion *child : *this) {
+    child->calculateQueueInfo(MRI, LIS, pseudoMap);
+	}
+  switch (kind) {
+  case SRLeaf:
+    SchedulerUtils::gatherBlockQueueInfo(*getMBB(), MRI, LIS, pseudoMap, queueInfo);
+    break;
+  case SRSequence:
+ 
+		break;
+  case SRIfThen:
+
+		break;
+  case SRIfThenElse:
+
+    break;
+  case SRSelfLoop:
+
+		break;
+  case SRWhileLoop:
+
+		break;
+  case SRNaturalLoop:
+
+    break;
+  case SRProper:
+  case SRImproper:
+  default:
+    assert(false);
+  }
+}
+
+string StackableRegion::toString(StackableRegionKind kind) {
+  const char *str;
+  switch (kind) {
+  case SRLeaf:
+    str = "Leaf";
+    break;
+  case SRSequence:
+    str = "Sequence";
+    break;
+  case SRIfThen:
+    str = "If Then";
+    break;
+  case SRIfThenElse:
+    str = "If Then Else";
+    break;
+  case SRSelfLoop:
+    str = "Self Loop";
+    break;
+  case SRWhileLoop:
+    str = "While Loop";
+    break;
+  case SRNaturalLoop:
+    str = "Natural Loop";
+    break;
+  case SRProper:
+    str = "Proper";
+    break;
+  case SRImproper:
+    str = "Improper";
+    break;
+  default:
+    str = "???";
+  }
   return string(str);
 }
 
-string StackableRegion::toString() { 
-	string str = toString(getKind(); 
-
-	return str;
+string StackableRegion::toString() {
+  string str = toString(getKind());
+  switch (kind) {
+  case SRLeaf:
+    str += " ";
+    str += getMBB()->getName();
+    break;
+  case SRSequence:
+  case SRIfThen:
+  case SRIfThenElse:
+  case SRSelfLoop:
+  case SRWhileLoop:
+  case SRNaturalLoop:
+  case SRProper:
+  case SRImproper:
+  default:
+    break;
+  }
+  return str;
 }
 
-void StackableRegion::dump(string margin) { 
-	dbgs() << margin;
+void StackableRegion::dump(string margin) {
+  dbgs() << margin << toString() << "\n";
   for (StackableRegion *child : *this) {
-    dump(margin + "  ");
-	}
+    child->dump(margin + "  ");
+  }
 }
 
 namespace {
@@ -1271,28 +1963,6 @@ private:
   bool runOnBasicBlocks(MachineFunction &MF);
 
   //  void createTreeGraph(MachineBasicBlock &MBB);
-
-  // Gather "pseodo-global" registers, i.e. such that can be reified
-  // (pushed)
-  //  from constant values (like block addresses) or fixed places on stack,
-  //  like parameters
-  // Other values will be received from block input "queue"
-  void gatherPseudoGlobal(MachineFunction &MF,
-                          unordered_map<unsigned, MachineInstr *> &pseudoMap);
-
-  // Similar as from TVMStackModel, but with unordered set
-  void gatherBlockLiveIns(MachineBasicBlock &MBB,
-                          unordered_set<unsigned> &vregs);
-
-  // Similar as from TVMStackModel, but with unordered set
-  void gatherBlockLiveOuts(MachineBasicBlock &MBB,
-                           unordered_set<unsigned> &vregs);
-
-  // Gather information about input & output block data queue
-  void
-  gatherBlockQueueInfo(MachineBasicBlock &MBB,
-                       unordered_map<unsigned, MachineInstr *> const &pseudoMap,
-                       BlockQueueInfo &queueInfo);
 
   MachineRegisterInfo *MRI;
   LiveIntervals *LIS;
@@ -1328,7 +1998,7 @@ bool TVMLocalScheduler::runOnBasicBlocks(MachineFunction &MF) {
   bool changed = false;
 
   unordered_map<unsigned, MachineInstr *> pseudoMap;
-  gatherPseudoGlobal(MF, pseudoMap);
+  SchedulerUtils::gatherPseudoGlobal(MF, pseudoMap);
   /*
   dbgs() << "Pseudo Globals : ";
   for (auto it = pseudoMap.begin(); it != pseudoMap.end(); it++) {
@@ -1337,15 +2007,18 @@ bool TVMLocalScheduler::runOnBasicBlocks(MachineFunction &MF) {
   dbgs() << "\n";
   */
 
-//  DJGraph djGraph(MF, *MDT);
-//  djGraph.dump();
+  //  DJGraph djGraph(MF, *MDT);
+  //  djGraph.dump();
 
-	StackableRegionStructure SRS(MF, *MDT);
-  SRS.getDJGraph().dump();
+  StackableRegionStructure SRS(MF, *MDT);
+  // SRS.getDJGraph().dump();
+  // dbgs() << "\n";
   SRS.dump();
+  dbgs() << "\n";
 
   for (DJNode *node : SRS.getDJGraph()) {
-    gatherBlockQueueInfo(node->getMBB(), pseudoMap, node->getBlockQueueInfo());
+    SchedulerUtils::gatherBlockQueueInfo(node->getMBB(), MRI, LIS, pseudoMap,
+                                         node->getBlockQueueInfo());
   }
 
   /*
@@ -1382,107 +2055,6 @@ void TVMLocalScheduler::createTreeGraph(MachineBasicBlock & MBB) {
   }
 }
 */
-
-void TVMLocalScheduler::gatherBlockLiveIns(MachineBasicBlock &MBB,
-                                           unordered_set<unsigned> &vregs) {
-  for (unsigned i = 0, e = MRI->getNumVirtRegs(); i != e; ++i) {
-    unsigned Reg = TargetRegisterInfo::index2VirtReg(i);
-    if (LIS->hasInterval(Reg)) {
-      if (LIS->isLiveInToMBB(LIS->getInterval(Reg), &MBB)) {
-        vregs.insert(Reg);
-      }
-    }
-  }
-}
-
-void TVMLocalScheduler::gatherBlockLiveOuts(MachineBasicBlock &MBB,
-                                            unordered_set<unsigned> &vregs) {
-  for (unsigned i = 0, e = MRI->getNumVirtRegs(); i != e; ++i) {
-    unsigned Reg = TargetRegisterInfo::index2VirtReg(i);
-    if (LIS->hasInterval(Reg)) {
-      if (LIS->isLiveOutOfMBB(LIS->getInterval(Reg), &MBB)) {
-        vregs.insert(Reg);
-      }
-    }
-  }
-}
-
-void TVMLocalScheduler::gatherBlockQueueInfo(
-    MachineBasicBlock &MBB,
-    unordered_map<unsigned, MachineInstr *> const &pseudoMap,
-    BlockQueueInfo &queueInfo) {
-  unordered_set<unsigned> liveIns;
-  gatherBlockLiveIns(MBB, liveIns);
-  unordered_set<unsigned> liveOuts;
-  gatherBlockLiveOuts(MBB, liveOuts);
-
-  for (MachineInstr &MI : MBB) {
-    for (const MachineOperand &op : MI.uses()) {
-      if (op.isReg()) {
-        unsigned reg = op.getReg();
-        unsigned numUses = 1;
-        auto search = queueInfo.numUses.find(reg);
-        if (search != queueInfo.numUses.end()) {
-          numUses = search->second + 1;
-          queueInfo.numUses.insert_or_assign(reg, numUses);
-        }
-
-        if (pseudoMap.find(reg) == pseudoMap.end() &&
-            liveIns.find(reg) != liveIns.end()) {
-          if (numUses == 1)
-            queueInfo.preferredInputQueue.push_back(reg);
-        }
-      }
-    }
-    for (const MachineOperand &op : MI.defs()) {
-      if (op.isReg()) {
-        unsigned reg = op.getReg();
-        if (liveOuts.find(reg) != liveOuts.end()) {
-          queueInfo.preferredOutputQueue.push_back(reg);
-        }
-      }
-    }
-  }
-}
-
-void TVMLocalScheduler::gatherPseudoGlobal(
-    MachineFunction &MF, unordered_map<unsigned, MachineInstr *> &pseudoMap) {
-  unordered_set<unsigned> defined;
-  for (MachineBasicBlock &MBB : MF) {
-    for (MachineInstr &MI : MBB) {
-      //      MI.dump();
-      unsigned code = MI.getOpcode();
-      unsigned reg = 0;
-      switch (code) {
-      case TVM::ARGUMENT: {
-        const MachineOperand &result = MI.getOperand(0);
-        reg = result.getReg();
-      } break;
-      case TVM::PUSHCONT_MBB: {
-        const MachineOperand &result = MI.getOperand(0);
-        reg = result.getReg();
-      } break;
-      default:
-        break;
-      }
-      if (reg != 0) {
-        if (defined.find(reg) == defined.end()) {
-          // dbgs() << "Reg %" << (reg & 0x7FFF) << "\n";
-          pseudoMap.insert(pair<unsigned, MachineInstr *>(reg, &MI));
-        }
-      }
-      for (const MachineOperand &op : MI.defs()) {
-        if (op.isReg()) {
-          unsigned reg = op.getReg();
-          if (defined.find(reg) != defined.end()) {
-            pseudoMap.erase(reg);
-          }
-          defined.insert(reg);
-        }
-      }
-    }
-  }
-}
 
 void BlockQueueInfo::dump() {
   dbgs() << "Preferred Input Queue: "
@@ -1576,4 +2148,21 @@ StackFixup BlockQueueInfo::calculateFixup(MachineFunction &MF,
       dstStack.set(i, StackVreg(0));
   }
   return StackFixup::Diff(dstStack, srcStack);
+}
+
+unsigned BlockQueueInfo::calculateCommonTailLength(vector<vector<unsigned>> const &queues) {
+	unsigned cnt = 0;
+  for (;;) {
+    for (vector<unsigned> const  &queue : queues) {
+			unsigned val = (unsigned) -1;
+      if (queue.size() == cnt)
+				return cnt;
+      unsigned queueVal = queue[queue.size() - 1 - cnt];
+      if (val == (unsigned) -1)
+        val = queueVal;
+      else if (queueVal != val)
+				return cnt;
+    }
+	}
+	return cnt;
 }

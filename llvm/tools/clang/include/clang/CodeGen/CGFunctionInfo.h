@@ -539,6 +539,9 @@ class CGFunctionInfo final
   unsigned HasExtParameterInfos : 1;
 
   unsigned NumArgs;
+  // TVM local begin
+  unsigned NumReturns;
+  // TVM local end
 
   ArgInfo *getArgsBuffer() {
     return getTrailingObjects<ArgInfo>();
@@ -557,21 +560,25 @@ class CGFunctionInfo final
   CGFunctionInfo() : Required(RequiredArgs::All) {}
 
 public:
+  // TVM local begin
   static CGFunctionInfo *create(unsigned llvmCC,
                                 bool instanceMethod,
                                 bool chainCall,
                                 const FunctionType::ExtInfo &extInfo,
                                 ArrayRef<ExtParameterInfo> paramInfos,
-                                CanQualType resultType,
+                                ArrayRef<CanQualType> retTypes,
                                 ArrayRef<CanQualType> argTypes,
                                 RequiredArgs required);
+  // TVM local end
   void operator delete(void *p) { ::operator delete(p); }
 
   // Friending class TrailingObjects is apparently not good enough for MSVC,
   // so these have to be public.
   friend class TrailingObjects;
   size_t numTrailingObjects(OverloadToken<ArgInfo>) const {
-    return NumArgs + 1;
+    // TVM local begin
+    return NumArgs + NumReturns;
+    // TVM local end
   }
   size_t numTrailingObjects(OverloadToken<ExtParameterInfo>) const {
     return (HasExtParameterInfos ? NumArgs : 0);
@@ -588,10 +595,23 @@ public:
     return arg_const_range(arg_begin(), arg_end());
   }
 
-  const_arg_iterator arg_begin() const { return getArgsBuffer() + 1; }
-  const_arg_iterator arg_end() const { return getArgsBuffer() + 1 + NumArgs; }
-  arg_iterator arg_begin() { return getArgsBuffer() + 1; }
-  arg_iterator arg_end() { return getArgsBuffer() + 1 + NumArgs; }
+  // TVM local begin
+  const_arg_iterator arg_begin() const { return getArgsBuffer() + NumReturns; }
+  const_arg_iterator arg_end() const { return getArgsBuffer() + NumReturns + NumArgs; }
+  arg_iterator arg_begin() { return getArgsBuffer() + NumReturns; }
+  arg_iterator arg_end() { return getArgsBuffer() + NumReturns + NumArgs; }
+  const_arg_iterator returns_begin() const { return getArgsBuffer(); }
+  const_arg_iterator returns_end() const { return getArgsBuffer() + NumReturns; }
+  arg_iterator returns_begin() { return getArgsBuffer(); }
+  arg_iterator returns_end() { return getArgsBuffer() + NumReturns; }
+  arg_range returns() {
+    return arg_range(returns_begin(), returns_end());
+  }
+  arg_const_range returns() const {
+    return arg_const_range(returns_begin(), returns_end());
+  }
+  unsigned returns_size() const { return NumReturns; }
+  // TVM local end
 
   unsigned  arg_size() const { return NumArgs; }
 
@@ -645,10 +665,22 @@ public:
                                  isNoCallerSavedRegs(), isNoCfCheck());
   }
 
-  CanQualType getReturnType() const { return getArgsBuffer()[0].type; }
+  // TVM local begin
+  CanQualType getSingleReturnType() const {
+    assert(returns_size() == 1);
+    return getArgsBuffer()[0].type;
+  }
 
-  ABIArgInfo &getReturnInfo() { return getArgsBuffer()[0].info; }
-  const ABIArgInfo &getReturnInfo() const { return getArgsBuffer()[0].info; }
+  //ABIArgInfo &getReturnInfo() { return getArgsBuffer()[0].info; }
+  const ABIArgInfo &getSingleReturnInfo() const {
+    assert(returns_size() == 1);
+    return getArgsBuffer()[0].info;
+  }
+  ABIArgInfo &getSingleReturnInfo() {
+    assert(returns_size() == 1);
+    return getArgsBuffer()[0].info;
+  }
+  // TVM local end
 
   ArrayRef<ExtParameterInfo> getExtParameterInfos() const {
     if (!HasExtParameterInfos) return {};
@@ -689,7 +721,10 @@ public:
       for (auto paramInfo : getExtParameterInfos())
         ID.AddInteger(paramInfo.getOpaqueValue());
     }
-    getReturnType().Profile(ID);
+    // TVM local begin
+    for (const auto &I : returns())
+      I.type.Profile(ID);
+    // TVM local end
     for (const auto &I : arguments())
       I.type.Profile(ID);
   }
@@ -699,7 +734,7 @@ public:
                       const FunctionType::ExtInfo &info,
                       ArrayRef<ExtParameterInfo> paramInfos,
                       RequiredArgs required,
-                      CanQualType resultType,
+                      ArrayRef<CanQualType> resultTypes,
                       ArrayRef<CanQualType> argTypes) {
     ID.AddInteger(info.getCC());
     ID.AddBoolean(InstanceMethod);
@@ -716,7 +751,10 @@ public:
       for (auto paramInfo : paramInfos)
         ID.AddInteger(paramInfo.getOpaqueValue());
     }
-    resultType.Profile(ID);
+    for (ArrayRef<CanQualType>::iterator
+           i = resultTypes.begin(), e = resultTypes.end(); i != e; ++i) {
+      i->Profile(ID);
+    }
     for (ArrayRef<CanQualType>::iterator
            i = argTypes.begin(), e = argTypes.end(); i != e; ++i) {
       i->Profile(ID);

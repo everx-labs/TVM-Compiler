@@ -51,6 +51,12 @@ class Value;
 class CallSite;
 }
 
+// TVM local begin
+namespace {
+class ClangToLLVMArgMapping;
+}
+// TVM local end
+
 namespace clang {
 class ASTContext;
 class BlockDecl;
@@ -3556,7 +3562,8 @@ public:
   /// LLVM arguments and the types they were derived from.
   RValue EmitCall(const CGFunctionInfo &CallInfo, const CGCallee &Callee,
                   ReturnValueSlot ReturnValue, const CallArgList &Args,
-                  llvm::Instruction **callOrInvoke, SourceLocation Loc);
+                  llvm::Instruction **callOrInvoke, SourceLocation Loc,
+                  llvm::Value *This = nullptr);
   RValue EmitCall(const CGFunctionInfo &CallInfo, const CGCallee &Callee,
                   ReturnValueSlot ReturnValue, const CallArgList &Args,
                   llvm::Instruction **callOrInvoke = nullptr) {
@@ -3569,6 +3576,16 @@ public:
                       ReturnValueSlot ReturnValue = ReturnValueSlot());
   RValue EmitSimpleCallExpr(const CallExpr *E, ReturnValueSlot ReturnValue);
   CGCallee EmitCallee(const Expr *E);
+
+  // TVM local begin
+  RValue TVMProcessCallReturnValues(
+    const CGFunctionInfo &CallInfo,
+    const ClangToLLVMArgMapping &IRFunctionArgs,
+    llvm::Instruction *CI,
+    llvm::Value *ThisPtr,
+    ReturnValueSlot ReturnValue,
+    llvm::Type *FullRetTy);
+  // TVM local end
 
   void checkTargetFeatures(const CallExpr *E, const FunctionDecl *TargetDecl);
 

@@ -5881,6 +5881,9 @@ static void DefineImplicitSpecialMember(Sema &S, CXXMethodDecl *MD,
 /// registers, per C++ [class.temporary]p3.
 static bool canPassInRegisters(Sema &S, CXXRecordDecl *D,
                                TargetInfo::CallingConvKind CCK) {
+  // TVM local begin
+  return true;
+  // TVM local end
   if (D->isDependentType() || D->isInvalidDecl())
     return false;
 
@@ -7634,6 +7637,10 @@ bool Sema::SpecialMemberIsTrivial(CXXMethodDecl *MD, CXXSpecialMember CSM,
   // C++11 [class.ctor]p5, C++11 [class.copy]p12, C++11 [class.copy]p25:
   //   A [special member] for class X is trivial if [...]
   //    -- class X has no virtual functions and no virtual base classes
+  // TVM local begin
+  // In TVM non-devirtualized calls are not supported
+  return true;
+  // TVM local end
   if (CSM != CXXDestructor && MD->getParent()->isDynamicClass()) {
     if (!Diagnose)
       return false;

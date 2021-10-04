@@ -2028,7 +2028,9 @@ void CodeGenFunction::EmitCXXConstructorCall(const CXXConstructorDecl *D,
   CallArgList Args;
 
   // Push the this ptr.
-  Args.add(RValue::get(This.getPointer()), D->getThisType(getContext()));
+  // TVM local begin
+  //Args.add(RValue::get(This.getPointer()), D->getThisType(getContext()));
+  // TVM local end
 
   // If this is a trivial constructor, emit a memcpy now before we lose
   // the alignment information on the argument.
@@ -2821,10 +2823,12 @@ void CodeGenFunction::EmitForwardingCallToLambda(
     callOperator->getType()->castAs<FunctionProtoType>();
   QualType resultType = FPT->getReturnType();
   ReturnValueSlot returnSlot;
-  if (!resultType->isVoidType() &&
-      calleeFnInfo.getReturnInfo().getKind() == ABIArgInfo::Indirect &&
-      !hasScalarEvaluationKind(calleeFnInfo.getReturnType()))
-    returnSlot = ReturnValueSlot(ReturnValue, resultType.isVolatileQualified());
+  // TVM local begin
+  // if (!resultType->isVoidType() &&
+  //     calleeFnInfo.getReturnInfo().getKind() == ABIArgInfo::Indirect &&
+  //     !hasScalarEvaluationKind(calleeFnInfo.getReturnType()))
+  //   returnSlot = ReturnValueSlot(ReturnValue, resultType.isVolatileQualified());
+  // TVM local end
 
   // We don't need to separately arrange the call arguments because
   // the call can't be variadic anyway --- it's impossible to forward

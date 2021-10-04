@@ -1073,32 +1073,32 @@ bool MicrosoftCXXABI::hasMostDerivedReturn(GlobalDecl GD) const {
 }
 
 bool MicrosoftCXXABI::classifyReturnType(CGFunctionInfo &FI) const {
-  const CXXRecordDecl *RD = FI.getReturnType()->getAsCXXRecordDecl();
+  const CXXRecordDecl *RD = FI.getSingleReturnType()->getAsCXXRecordDecl();
   if (!RD)
     return false;
 
-  CharUnits Align = CGM.getContext().getTypeAlignInChars(FI.getReturnType());
+  CharUnits Align = CGM.getContext().getTypeAlignInChars(FI.getSingleReturnType());
   if (FI.isInstanceMethod()) {
     // If it's an instance method, aggregates are always returned indirectly via
     // the second parameter.
-    FI.getReturnInfo() = ABIArgInfo::getIndirect(Align, /*ByVal=*/false);
-    FI.getReturnInfo().setSRetAfterThis(FI.isInstanceMethod());
+    FI.getSingleReturnInfo() = ABIArgInfo::getIndirect(Align, /*ByVal=*/false);
+    FI.getSingleReturnInfo().setSRetAfterThis(FI.isInstanceMethod());
 
     // aarch64-windows requires that instance methods use X1 for the return
     // address. So for aarch64-windows we do not mark the
     // return as SRet.
-    FI.getReturnInfo().setSuppressSRet(CGM.getTarget().getTriple().getArch() ==
-                                       llvm::Triple::aarch64);
+    FI.getSingleReturnInfo().setSuppressSRet(CGM.getTarget().getTriple().getArch() ==
+                                             llvm::Triple::aarch64);
     return true;
   } else if (!RD->isPOD()) {
     // If it's a free function, non-POD types are returned indirectly.
-    FI.getReturnInfo() = ABIArgInfo::getIndirect(Align, /*ByVal=*/false);
+    FI.getSingleReturnInfo() = ABIArgInfo::getIndirect(Align, /*ByVal=*/false);
 
     // aarch64-windows requires that non-POD, non-instance returns use X0 for
     // the return address. So for aarch64-windows we do not mark the return as
     // SRet.
-    FI.getReturnInfo().setSuppressSRet(CGM.getTarget().getTriple().getArch() ==
-                                       llvm::Triple::aarch64);
+    FI.getSingleReturnInfo().setSuppressSRet(CGM.getTarget().getTriple().getArch() ==
+                                             llvm::Triple::aarch64);
     return true;
   }
 
@@ -2006,7 +2006,7 @@ MicrosoftCXXABI::EmitVirtualMemPtrThunk(const CXXMethodDecl *MD,
   buildThisParam(CGF, FunctionArgs);
 
   // Start defining the function.
-  CGF.StartFunction(GlobalDecl(), FnInfo.getReturnType(), ThunkFn, FnInfo,
+  CGF.StartFunction(GlobalDecl(), FnInfo.getSingleReturnType(), ThunkFn, FnInfo,
                     FunctionArgs, MD->getLocation(), SourceLocation());
   setCXXABIThisValue(CGF, loadIncomingCXXThis(CGF));
 
@@ -3946,7 +3946,7 @@ MicrosoftCXXABI::getAddrOfCXXCtorClosure(const CXXConstructorDecl *CD,
 
   // Start defining the function.
   auto NL = ApplyDebugLocation::CreateEmpty(CGF);
-  CGF.StartFunction(GlobalDecl(), FnInfo.getReturnType(), ThunkFn, FnInfo,
+  CGF.StartFunction(GlobalDecl(), FnInfo.getSingleReturnType(), ThunkFn, FnInfo,
                     FunctionArgs, CD->getLocation(), SourceLocation());
   // Create a scope with an artificial location for the body of this function.
   auto AL = ApplyDebugLocation::CreateArtificial(CGF);

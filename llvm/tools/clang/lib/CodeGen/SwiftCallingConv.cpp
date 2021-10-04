@@ -820,8 +820,8 @@ ABIArgInfo swiftcall::classifyArgumentType(CodeGenModule &CGM,
 }
 
 void swiftcall::computeABIInfo(CodeGenModule &CGM, CGFunctionInfo &FI) {
-  auto &retInfo = FI.getReturnInfo();
-  retInfo = classifyReturnType(CGM, FI.getReturnType());
+  auto &retInfo = FI.getSingleReturnInfo();
+  retInfo = classifyReturnType(CGM, FI.getSingleReturnType());
 
   for (unsigned i = 0, e = FI.arg_size(); i != e; ++i) {
     auto &argInfo = FI.arg_begin()[i];

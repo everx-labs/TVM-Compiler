@@ -309,7 +309,8 @@ public:
                                                   unsigned ExtraSuffixArgs,
                                                   bool PassProtoArgs = true);
 
-  const CGFunctionInfo &arrangeCXXMethodCall(const CallArgList &args,
+  const CGFunctionInfo &arrangeCXXMethodCall(const CXXMethodDecl *MD,
+                                             const CallArgList &args,
                                              const FunctionProtoType *type,
                                              RequiredArgs required,
                                              unsigned numPrefixArgs);
@@ -327,13 +328,15 @@ public:
   /// this.
   ///
   /// \param argTypes - must all actually be canonical as params
-  const CGFunctionInfo &arrangeLLVMFunctionInfo(CanQualType returnType,
+  // TVM local begin
+  const CGFunctionInfo &arrangeLLVMFunctionInfo(ArrayRef<CanQualType> retTypes,
                                                 bool instanceMethod,
                                                 bool chainCall,
                                                 ArrayRef<CanQualType> argTypes,
                                                 FunctionType::ExtInfo info,
                     ArrayRef<FunctionProtoType::ExtParameterInfo> paramInfos,
                                                 RequiredArgs args);
+  // TVM local end
 
   /// Compute a new LLVM record layout object for the given record.
   CGRecordLayout *ComputeRecordLayout(const RecordDecl *D,

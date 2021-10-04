@@ -130,12 +130,34 @@ void CGCXXABI::buildThisParam(CodeGenFunction &CGF, FunctionArgList &params) {
 
   // FIXME: I'm not entirely sure I like using a fake decl just for code
   // generation. Maybe we can come up with a better way?
-  auto *ThisDecl = ImplicitParamDecl::Create(
-      CGM.getContext(), nullptr, MD->getLocation(),
-      &CGM.getContext().Idents.get("this"), MD->getThisType(CGM.getContext()),
-      ImplicitParamDecl::CXXThis);
-  params.push_back(ThisDecl);
-  CGF.CXXABIThisDecl = ThisDecl;
+
+  // TVM local begin
+  bool isTuple = MD->hasAttr<NoInlineAttr>();//MD->getParent()->hasAttr<TVMTupleStructAttr>();
+  if (!isa<CXXConstructorDecl>(MD)) {
+    if (isTuple) {
+      llvm::dbgs() << "Tuple\n";
+      // ThisDecl->dump();
+      llvm::dbgs() << "Type:\n";
+      MD->getThisType(CGM.getContext())->dump();
+      llvm::dbgs() << "Pointee Type:\n";
+      MD->getThisType(CGM.getContext())->getPointeeType()->dump();
+      auto rec = MD->getThisType(CGM.getContext())->getPointeeType();
+      auto *ThisDecl = ImplicitParamDecl::Create(
+          CGM.getContext(), nullptr, MD->getLocation(),
+          &CGM.getContext().Idents.get("this"), rec,
+          ImplicitParamDecl::CXXThis);
+      params.push_back(ThisDecl);
+      CGF.CXXABIThisDecl = ThisDecl;
+    } else {
+      auto *ThisDecl = ImplicitParamDecl::Create(
+          CGM.getContext(), nullptr, MD->getLocation(),
+          &CGM.getContext().Idents.get("this"), MD->getThisType(CGM.getContext()),
+          ImplicitParamDecl::CXXThis);
+      params.push_back(ThisDecl);
+      CGF.CXXABIThisDecl = ThisDecl;
+    }
+  }
+  // TVM local end
 
   // Compute the presumed alignment of 'this', which basically comes
   // down to whether we know it's a complete object or not.
@@ -149,14 +171,19 @@ void CGCXXABI::buildThisParam(CodeGenFunction &CGF, FunctionArgList &params) {
   }
 }
 
+// TVM local begin
 llvm::Value *CGCXXABI::loadIncomingCXXThis(CodeGenFunction &CGF) {
-  return CGF.Builder.CreateLoad(CGF.GetAddrOfLocalVar(getThisDecl(CGF)),
-                                "this");
+  const CXXMethodDecl *MD = cast<CXXMethodDecl>(CGF.CurGD.getDecl());
+  auto *alloc = CGF.Builder.CreateAlloca(
+    CGF.ConvertTypeForMem(MD->getThisType(CGM.getContext())->getPointeeType())
+    );
+  return alloc;
 }
+// TVM local end
 
 void CGCXXABI::setCXXABIThisValue(CodeGenFunction &CGF, llvm::Value *ThisPtr) {
   /// Initialize the 'this' slot.
-  assert(getThisDecl(CGF) && "no 'this' variable for function");
+  //assert(getThisDecl(CGF) && "no 'this' variable for function");
   CGF.CXXABIThisValue = ThisPtr;
 }
 

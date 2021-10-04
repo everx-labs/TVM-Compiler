@@ -1100,14 +1100,14 @@ ItaniumCXXABI::EmitMemberPointerIsNotNull(CodeGenFunction &CGF,
 }
 
 bool ItaniumCXXABI::classifyReturnType(CGFunctionInfo &FI) const {
-  const CXXRecordDecl *RD = FI.getReturnType()->getAsCXXRecordDecl();
+  const CXXRecordDecl *RD = FI.getSingleReturnType()->getAsCXXRecordDecl();
   if (!RD)
     return false;
 
   // If C++ prohibits us from making a copy, return by address.
   if (passClassIndirect(RD)) {
-    auto Align = CGM.getContext().getTypeAlignInChars(FI.getReturnType());
-    FI.getReturnInfo() = ABIArgInfo::getIndirect(Align, /*ByVal=*/false);
+    auto Align = CGM.getContext().getTypeAlignInChars(FI.getSingleReturnType());
+    FI.getSingleReturnInfo() = ABIArgInfo::getIndirect(Align, /*ByVal=*/false);
     return true;
   }
   return false;

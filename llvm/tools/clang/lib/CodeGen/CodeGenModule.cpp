@@ -1528,14 +1528,17 @@ void CodeGenModule::SetFunctionAttributes(GlobalDecl GD, llvm::Function *F,
   // Add the Returned attribute for "this", except for iOS 5 and earlier
   // where substantial code, including the libstdc++ dylib, was compiled with
   // GCC and does not actually return "this".
+  // TVM local begin
   if (!IsThunk && getCXXABI().HasThisReturn(GD) &&
-      !(getTriple().isiOS() && getTriple().isOSVersionLT(6))) {
+      !(getTriple().isiOS() && getTriple().isOSVersionLT(6)) &&
+      !getTriple().isTVM()) {
     assert(!F->arg_empty() &&
            F->arg_begin()->getType()
              ->canLosslesslyBitCastTo(F->getReturnType()) &&
            "unexpected this return");
     F->addAttribute(1, llvm::Attribute::Returned);
   }
+  // TVM local end
 
   // Only a few attributes are set on declarations; these may later be
   // overridden by a definition.

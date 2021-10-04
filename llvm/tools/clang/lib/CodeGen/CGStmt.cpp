@@ -2017,7 +2017,7 @@ void CodeGenFunction::EmitAsmStmt(const AsmStmt &S) {
   // If this is a Microsoft-style asm blob, store the return registers (EAX:EDX)
   // to the return value slot. Only do this when returning in registers.
   if (isa<MSAsmStmt>(&S)) {
-    const ABIArgInfo &RetAI = CurFnInfo->getReturnInfo();
+    const ABIArgInfo &RetAI = CurFnInfo->getSingleReturnInfo();
     if (RetAI.isDirect() || RetAI.isExtend()) {
       // Make a fake lvalue for the return value slot.
       LValue ReturnSlot = MakeAddrLValue(ReturnValue, FnRetTy);

@@ -158,12 +158,12 @@ static CGCXXABI::RecordArgABI getRecordArgABI(QualType T,
 
 static bool classifyReturnType(const CGCXXABI &CXXABI, CGFunctionInfo &FI,
                                const ABIInfo &Info) {
-  QualType Ty = FI.getReturnType();
+  QualType Ty = FI.getSingleReturnType();
 
   if (const auto *RT = Ty->getAs<RecordType>())
     if (!isa<CXXRecordDecl>(RT->getDecl()) &&
         !RT->getDecl()->canPassInRegisters()) {
-      FI.getReturnInfo() = Info.getNaturalAlignIndirect(Ty);
+      FI.getSingleReturnInfo() = Info.getNaturalAlignIndirect(Ty);
       return true;
     }
 
@@ -664,7 +664,7 @@ public:
 
   void computeInfo(CGFunctionInfo &FI) const override {
     if (!getCXXABI().classifyReturnType(FI))
-      FI.getReturnInfo() = classifyReturnType(FI.getReturnType());
+      FI.getSingleReturnInfo() = classifyReturnType(FI.getSingleReturnType());
     for (auto &I : FI.arguments())
       I.info = classifyArgumentType(I.type);
   }
@@ -736,7 +736,7 @@ private:
   // overload them.
   void computeInfo(CGFunctionInfo &FI) const override {
     if (!getCXXABI().classifyReturnType(FI))
-      FI.getReturnInfo() = classifyReturnType(FI.getReturnType());
+      FI.getSingleReturnInfo() = classifyReturnType(FI.getSingleReturnType());
     for (auto &Arg : FI.arguments())
       Arg.info = classifyArgumentType(Arg.type);
   }
@@ -841,8 +841,8 @@ private:
   // DefaultABIInfo's classifyReturnType and classifyArgumentType are
   // non-virtual, but computeInfo is virtual, so we overload it.
   void computeInfo(CGFunctionInfo &FI) const override {
-    if (!getCXXABI().classifyReturnType(FI))
-      FI.getReturnInfo() = classifyReturnType(FI.getReturnType());
+    for (auto &Ret : FI.returns())
+      Ret.info = classifyReturnType(Ret.type);
     for (auto &Arg : FI.arguments())
       Arg.info = classifyArgumentType(Arg.type);
   }
@@ -871,6 +871,7 @@ ABIArgInfo TVMABIInfo::classifyArgumentType(QualType Ty) const {
   if (isAggregateTypeForABI(Ty)) {
     // Records with non-trivial destructors/copy-constructors should not be
     // passed by value.
+    assert(!getRecordArgABI(Ty, getCXXABI()));
     if (auto RAA = getRecordArgABI(Ty, getCXXABI()))
       return getNaturalAlignIndirect(Ty, RAA == CGCXXABI::RAA_DirectInMemory);
     // Ignore empty structs/unions.
@@ -887,17 +888,18 @@ ABIArgInfo TVMABIInfo::classifyArgumentType(QualType Ty) const {
 }
 
 ABIArgInfo TVMABIInfo::classifyReturnType(QualType RetTy) const {
+  RetTy = getSplatI257IfTransparentUnion(getContext(), RetTy);
   if (isAggregateTypeForABI(RetTy)) {
     // Records with non-trivial destructors/copy-constructors should not be
     // returned by value.
-    if (!getRecordArgABI(RetTy, getCXXABI())) {
-      // Ignore empty structs/unions.
-      if (isEmptyRecord(getContext(), RetTy, true))
-        return ABIArgInfo::getIgnore();
-      if (const Type *SeltTy = isSingleElementStruct(RetTy, getContext()))
+    assert(!getRecordArgABI(RetTy, getCXXABI()));
+    // Ignore empty structs/unions.
+    if (isEmptyRecord(getContext(), RetTy, true))
+      return ABIArgInfo::getIgnore();
+    if (const Type *SeltTy = isSingleElementStruct(RetTy, getContext()))
+      if (!isAggregateTypeForABI(QualType(SeltTy, 0)))
         return ABIArgInfo::getDirect(CGT.ConvertType(QualType(SeltTy, 0)));
-      return ABIArgInfo::getDirect(CGT.ConvertType(RetTy));
-    }
+    return ABIArgInfo::getExpand();
   }
 
   // Otherwise just do the default thing.
@@ -931,7 +933,7 @@ class PNaClTargetCodeGenInfo : public TargetCodeGenInfo {
 
 void PNaClABIInfo::computeInfo(CGFunctionInfo &FI) const {
   if (!getCXXABI().classifyReturnType(FI))
-    FI.getReturnInfo() = classifyReturnType(FI.getReturnType());
+    FI.getSingleReturnInfo() = classifyReturnType(FI.getSingleReturnType());
 
   for (auto &I : FI.arguments())
     I.info = classifyArgumentType(I.type);
@@ -1871,14 +1873,14 @@ void X86_32ABIInfo::computeInfo(CGFunctionInfo &FI) const {
     State.FreeRegs = DefaultNumRegisterParameters;
 
   if (!::classifyReturnType(getCXXABI(), FI, *this)) {
-    FI.getReturnInfo() = classifyReturnType(FI.getReturnType(), State);
-  } else if (FI.getReturnInfo().isIndirect()) {
+    FI.getSingleReturnInfo() = classifyReturnType(FI.getSingleReturnType(), State);
+  } else if (FI.getSingleReturnInfo().isIndirect()) {
     // The C++ ABI is not aware of register usage, so we have to check if the
     // return value was sret and put it in a register ourselves if appropriate.
     if (State.FreeRegs) {
       --State.FreeRegs;  // The sret parameter consumes a register.
       if (!IsMCUABI)
-        FI.getReturnInfo().setInReg(true);
+        FI.getSingleReturnInfo().setInReg(true);
     }
   }
 
@@ -1965,7 +1967,7 @@ void X86_32ABIInfo::rewriteWithInAlloca(CGFunctionInfo &FI) const {
   // Put 'this' into the struct before 'sret', if necessary.
   bool IsThisCall =
       FI.getCallingConvention() == llvm::CallingConv::X86_ThisCall;
-  ABIArgInfo &Ret = FI.getReturnInfo();
+  ABIArgInfo &Ret = FI.getSingleReturnInfo();
   if (Ret.isIndirect() && Ret.isSRetAfterThis() && !IsThisCall &&
       isArgInAlloca(I->info)) {
     addFieldToArgStruct(FrameFields, StackOffset, I->info, I->type);
@@ -1974,7 +1976,7 @@ void X86_32ABIInfo::rewriteWithInAlloca(CGFunctionInfo &FI) const {
 
   // Put the sret parameter into the inalloca struct if it's in memory.
   if (Ret.isIndirect() && !Ret.getInReg()) {
-    CanQualType PtrTy = getContext().getPointerType(FI.getReturnType());
+    CanQualType PtrTy = getContext().getPointerType(FI.getSingleReturnType());
     addFieldToArgStruct(FrameFields, StackOffset, Ret, PtrTy);
     // On Windows, the hidden sret parameter is always returned in eax.
     Ret.setInAllocaSRet(IsWin32StructABI);
@@ -3652,30 +3654,30 @@ void X86_64ABIInfo::computeInfo(CGFunctionInfo &FI) const {
   unsigned NeededInt, NeededSSE;
 
   if (!::classifyReturnType(getCXXABI(), FI, *this)) {
-    if (IsRegCall && FI.getReturnType()->getTypePtr()->isRecordType() &&
-        !FI.getReturnType()->getTypePtr()->isUnionType()) {
-      FI.getReturnInfo() =
-          classifyRegCallStructType(FI.getReturnType(), NeededInt, NeededSSE);
+    if (IsRegCall && FI.getSingleReturnType()->getTypePtr()->isRecordType() &&
+        !FI.getSingleReturnType()->getTypePtr()->isUnionType()) {
+      FI.getSingleReturnInfo() =
+          classifyRegCallStructType(FI.getSingleReturnType(), NeededInt, NeededSSE);
       if (FreeIntRegs >= NeededInt && FreeSSERegs >= NeededSSE) {
         FreeIntRegs -= NeededInt;
         FreeSSERegs -= NeededSSE;
       } else {
-        FI.getReturnInfo() = getIndirectReturnResult(FI.getReturnType());
+        FI.getSingleReturnInfo() = getIndirectReturnResult(FI.getSingleReturnType());
       }
-    } else if (IsRegCall && FI.getReturnType()->getAs<ComplexType>()) {
+    } else if (IsRegCall && FI.getSingleReturnType()->getAs<ComplexType>()) {
       // Complex Long Double Type is passed in Memory when Regcall
       // calling convention is used.
-      const ComplexType *CT = FI.getReturnType()->getAs<ComplexType>();
+      const ComplexType *CT = FI.getSingleReturnType()->getAs<ComplexType>();
       if (getContext().getCanonicalType(CT->getElementType()) ==
           getContext().LongDoubleTy)
-        FI.getReturnInfo() = getIndirectReturnResult(FI.getReturnType());
+        FI.getSingleReturnInfo() = getIndirectReturnResult(FI.getSingleReturnType());
     } else
-      FI.getReturnInfo() = classifyReturnType(FI.getReturnType());
+      FI.getSingleReturnInfo() = classifyReturnType(FI.getSingleReturnType());
   }
 
   // If the return value is indirect, then the hidden argument is consuming one
   // integer register.
-  if (FI.getReturnInfo().isIndirect())
+  if (FI.getSingleReturnInfo().isIndirect())
     --FreeIntRegs;
 
   // The chain argument effectively gives us another free register.
@@ -4096,8 +4098,8 @@ void WinX86_64ABIInfo::computeInfo(CGFunctionInfo &FI) const {
   }
 
   if (!getCXXABI().classifyReturnType(FI))
-    FI.getReturnInfo() = classify(FI.getReturnType(), FreeSSERegs, true,
-                                  IsVectorCall, IsRegCall);
+    FI.getSingleReturnInfo() = classify(FI.getSingleReturnType(), FreeSSERegs,
+                                        true, IsVectorCall, IsRegCall);
 
   if (IsVectorCall) {
     // We can use up to 6 SSE register parameters with vectorcall.
@@ -4456,7 +4458,7 @@ public:
   // when lowering the parameters in the caller and args in the callee.
   void computeInfo(CGFunctionInfo &FI) const override {
     if (!getCXXABI().classifyReturnType(FI))
-      FI.getReturnInfo() = classifyReturnType(FI.getReturnType());
+      FI.getSingleReturnInfo() = classifyReturnType(FI.getSingleReturnType());
     for (auto &I : FI.arguments()) {
       // We rely on the default argument classification for the most part.
       // One exception:  An aggregate containing a single floating-point
@@ -5016,7 +5018,7 @@ private:
 
   void computeInfo(CGFunctionInfo &FI) const override {
     if (!::classifyReturnType(getCXXABI(), FI, *this))
-      FI.getReturnInfo() = classifyReturnType(FI.getReturnType());
+      FI.getSingleReturnInfo() = classifyReturnType(FI.getSingleReturnType());
 
     for (auto &it : FI.arguments())
       it.info = classifyArgumentType(it.type);
@@ -5755,8 +5757,8 @@ void WindowsARMTargetCodeGenInfo::setTargetAttributes(
 
 void ARMABIInfo::computeInfo(CGFunctionInfo &FI) const {
   if (!::classifyReturnType(getCXXABI(), FI, *this))
-    FI.getReturnInfo() =
-        classifyReturnType(FI.getReturnType(), FI.isVariadic());
+    FI.getSingleReturnInfo() =
+        classifyReturnType(FI.getSingleReturnType(), FI.isVariadic());
 
   for (auto &I : FI.arguments())
     I.info = classifyArgumentType(I.type, FI.isVariadic());
@@ -6307,7 +6309,7 @@ ABIArgInfo NVPTXABIInfo::classifyArgumentType(QualType Ty) const {
 
 void NVPTXABIInfo::computeInfo(CGFunctionInfo &FI) const {
   if (!getCXXABI().classifyReturnType(FI))
-    FI.getReturnInfo() = classifyReturnType(FI.getReturnType());
+    FI.getSingleReturnInfo() = classifyReturnType(FI.getSingleReturnType());
   for (auto &I : FI.arguments())
     I.info = classifyArgumentType(I.type);
 
@@ -6420,7 +6422,7 @@ public:
 
   void computeInfo(CGFunctionInfo &FI) const override {
     if (!getCXXABI().classifyReturnType(FI))
-      FI.getReturnInfo() = classifyReturnType(FI.getReturnType());
+      FI.getSingleReturnInfo() = classifyReturnType(FI.getSingleReturnType());
     for (auto &I : FI.arguments())
       I.info = classifyArgumentType(I.type);
   }
@@ -7102,9 +7104,9 @@ ABIArgInfo MipsABIInfo::classifyReturnType(QualType RetTy) const {
 }
 
 void MipsABIInfo::computeInfo(CGFunctionInfo &FI) const {
-  ABIArgInfo &RetInfo = FI.getReturnInfo();
+  ABIArgInfo &RetInfo = FI.getSingleReturnInfo();
   if (!getCXXABI().classifyReturnType(FI))
-    RetInfo = classifyReturnType(FI.getReturnType());
+    RetInfo = classifyReturnType(FI.getSingleReturnType());
 
   // Check if a pointer to an aggregate is passed as a hidden argument.
   uint64_t Offset = RetInfo.isIndirect() ? MinABIStackAlignInBytes : 0;
@@ -7330,7 +7332,7 @@ public:
 
 void HexagonABIInfo::computeInfo(CGFunctionInfo &FI) const {
   if (!getCXXABI().classifyReturnType(FI))
-    FI.getReturnInfo() = classifyReturnType(FI.getReturnType());
+    FI.getSingleReturnInfo() = classifyReturnType(FI.getSingleReturnType());
   for (auto &I : FI.arguments())
     I.info = classifyArgumentType(I.type);
 }
@@ -7434,7 +7436,7 @@ public:
     }
 
     if (!getCXXABI().classifyReturnType(FI))
-      FI.getReturnInfo() = classifyReturnType(FI.getReturnType());
+      FI.getSingleReturnInfo() = classifyReturnType(FI.getSingleReturnType());
     for (auto &I : FI.arguments())
       I.info = classifyArgumentType(I.type, State);
   }
@@ -7614,7 +7616,7 @@ void AMDGPUABIInfo::computeInfo(CGFunctionInfo &FI) const {
   llvm::CallingConv::ID CC = FI.getCallingConvention();
 
   if (!getCXXABI().classifyReturnType(FI))
-    FI.getReturnInfo() = classifyReturnType(FI.getReturnType());
+    FI.getSingleReturnInfo() = classifyReturnType(FI.getSingleReturnType());
 
   unsigned NumRegsLeft = MaxNumRegsForArgsRet;
   for (auto &Arg : FI.arguments()) {
@@ -7944,7 +7946,7 @@ SparcV8ABIInfo::classifyReturnType(QualType Ty) const {
 
 void SparcV8ABIInfo::computeInfo(CGFunctionInfo &FI) const {
 
-  FI.getReturnInfo() = classifyReturnType(FI.getReturnType());
+  FI.getSingleReturnInfo() = classifyReturnType(FI.getSingleReturnType());
   for (auto &Arg : FI.arguments())
     Arg.info = classifyArgumentType(Arg.type);
 }
@@ -8207,7 +8209,7 @@ Address SparcV9ABIInfo::EmitVAArg(CodeGenFunction &CGF, Address VAListAddr,
 }
 
 void SparcV9ABIInfo::computeInfo(CGFunctionInfo &FI) const {
-  FI.getReturnInfo() = classifyType(FI.getReturnType(), 32 * 8);
+  FI.getSingleReturnInfo() = classifyType(FI.getSingleReturnType(), 32 * 8);
   for (auto &I : FI.arguments())
     I.info = classifyType(I.type, 16 * 8);
 }
@@ -8939,15 +8941,15 @@ public:
 } // end anonymous namespace
 
 void RISCVABIInfo::computeInfo(CGFunctionInfo &FI) const {
-  QualType RetTy = FI.getReturnType();
+  QualType RetTy = FI.getSingleReturnType();
   if (!getCXXABI().classifyReturnType(FI))
-    FI.getReturnInfo() = classifyReturnType(RetTy);
+    FI.getSingleReturnInfo() = classifyReturnType(RetTy);
 
   // IsRetIndirect is true if classifyArgumentType indicated the value should
   // be passed indirect or if the type size is greater than 2*xlen. e.g. fp128
   // is passed direct in LLVM IR, relying on the backend lowering code to
   // rewrite the argument list and pass indirectly on RV32.
-  bool IsRetIndirect = FI.getReturnInfo().getKind() == ABIArgInfo::Indirect ||
+  bool IsRetIndirect = FI.getSingleReturnInfo().getKind() == ABIArgInfo::Indirect ||
                        getContext().getTypeSize(RetTy) > (2 * XLen);
 
   // We must track the number of GPRs used in order to conform to the RISC-V

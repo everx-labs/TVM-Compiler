@@ -1050,6 +1050,7 @@ void CodeGenFunction::StartFunction(GlobalDecl GD,
     }
   }
 
+  // TVM local begin
   if (RetTy->isVoidType()) {
     // Void type; nothing to return.
     ReturnValue = Address::invalid();
@@ -1057,34 +1058,10 @@ void CodeGenFunction::StartFunction(GlobalDecl GD,
     // Count the implicit return.
     if (!endsWithReturn(D))
       ++NumReturnExprs;
-  } else if (CurFnInfo->getReturnInfo().getKind() == ABIArgInfo::Indirect &&
-             !hasScalarEvaluationKind(CurFnInfo->getReturnType())) {
-    // Indirect aggregate return; emit returned value directly into sret slot.
-    // This reduces code size, and affects correctness in C++.
-    auto AI = CurFn->arg_begin();
-    if (CurFnInfo->getReturnInfo().isSRetAfterThis())
-      ++AI;
-    ReturnValue = Address(&*AI, CurFnInfo->getReturnInfo().getIndirectAlign());
-  } else if (CurFnInfo->getReturnInfo().getKind() == ABIArgInfo::InAlloca &&
-             !hasScalarEvaluationKind(CurFnInfo->getReturnType())) {
-    // Load the sret pointer from the argument struct and return into that.
-    unsigned Idx = CurFnInfo->getReturnInfo().getInAllocaFieldIndex();
-    llvm::Function::arg_iterator EI = CurFn->arg_end();
-    --EI;
-    llvm::Value *Addr = Builder.CreateStructGEP(nullptr, &*EI, Idx);
-    Addr = Builder.CreateAlignedLoad(Addr, getPointerAlign(), "agg.result");
-    ReturnValue = Address(Addr, getNaturalTypeAlignment(RetTy));
   } else {
     ReturnValue = CreateIRTemp(RetTy, "retval");
-
-    // Tell the epilog emitter to autorelease the result.  We do this
-    // now so that various specialized functions can suppress it
-    // during their IR-generation.
-    if (getLangOpts().ObjCAutoRefCount &&
-        !CurFnInfo->isReturnsRetained() &&
-        RetTy->isObjCRetainableType())
-      AutoreleaseResult = true;
   }
+  // TVM local end
 
   EmitStartEHSpec(CurCodeDecl);
 

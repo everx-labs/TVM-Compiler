@@ -45,10 +45,15 @@ commonEmitCXXMemberOrOperatorCall(CodeGenFunction &CGF, const CXXMethodDecl *MD,
   ASTContext &C = CGF.getContext();
 
   // Push the this ptr.
+  // TVM local begin
   const CXXRecordDecl *RD =
       CGF.CGM.getCXXABI().getThisArgumentTypeForMethod(MD);
-  Args.add(RValue::get(This),
-           RD ? C.getPointerType(C.getTypeDeclType(RD)) : C.VoidPtrTy);
+  assert(RD);
+  Args.add(RValue::getAggregate(Address(This, CharUnits::One())),
+           C.getTypeDeclType(RD));
+  //Args.add(RValue::get(This),
+  //         RD ? C.getPointerType(C.getTypeDeclType(RD)) : C.VoidPtrTy);
+  // TVM local end
 
   // If there is an implicit parameter (e.g. VTT), emit it.
   if (ImplicitParam) {
@@ -87,10 +92,12 @@ RValue CodeGenFunction::EmitCXXMemberOrOperatorCall(
   CallArgList Args;
   MemberCallInfo CallInfo = commonEmitCXXMemberOrOperatorCall(
       *this, MD, This, ImplicitParam, ImplicitParamTy, CE, Args, RtlArgs);
+  // TVM local begin
   auto &FnInfo = CGM.getTypes().arrangeCXXMethodCall(
-      Args, FPT, CallInfo.ReqArgs, CallInfo.PrefixSize);
+      MD, Args, FPT, CallInfo.ReqArgs, CallInfo.PrefixSize);
+  // TVM local end
   return EmitCall(FnInfo, Callee, ReturnValue, Args, nullptr,
-                  CE ? CE->getExprLoc() : SourceLocation());
+                  CE ? CE->getExprLoc() : SourceLocation(), This);
 }
 
 RValue CodeGenFunction::EmitCXXDestructorCall(
@@ -302,7 +309,19 @@ RValue CodeGenFunction::EmitCXXMemberOrOperatorMemberCallExpr(
   else
     FInfo = &CGM.getTypes().arrangeCXXMethodDeclaration(CalleeDecl);
 
+  // TVM local begin
+  if (CalleeDecl->hasAttr<NoInlineAttr>()) {
+    llvm::dbgs() << "calling0\n";
+  }
+  // TVM local end
   llvm::FunctionType *Ty = CGM.getTypes().GetFunctionType(*FInfo);
+
+  // TVM local begin
+  if (CalleeDecl->hasAttr<NoInlineAttr>()) {
+    llvm::dbgs() << "calling\n";
+    Ty->print(llvm::dbgs());
+  }
+  // TVM local end
 
   // C++11 [class.mfct.non-static]p2:
   //   If a non-static member function of a class X is called for an object that
@@ -492,7 +511,8 @@ CodeGenFunction::EmitCXXMemberPointerCallExpr(const CXXMemberCallExpr *E,
 
   // And the rest of the call args
   EmitCallArgs(Args, FPT, E->arguments());
-  return EmitCall(CGM.getTypes().arrangeCXXMethodCall(Args, FPT, required,
+  return EmitCall(CGM.getTypes().arrangeCXXMethodCall(nullptr, Args, FPT,
+                                                      required,
                                                       /*PrefixSize=*/0),
                   Callee, ReturnValue, Args, nullptr, E->getExprLoc());
 }

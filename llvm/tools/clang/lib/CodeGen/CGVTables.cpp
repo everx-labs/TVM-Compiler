@@ -326,14 +326,16 @@ void CodeGenFunction::EmitCallAndReturnForThunk(llvm::Constant *CalleePtr,
   const FunctionProtoType *FPT = MD->getType()->getAs<FunctionProtoType>();
 
 #ifndef NDEBUG
+  // TVM local begin
   const CGFunctionInfo &CallFnInfo = CGM.getTypes().arrangeCXXMethodCall(
-      CallArgs, FPT, RequiredArgs::forPrototypePlus(FPT, 1, MD), PrefixArgs);
+      nullptr, CallArgs, FPT, RequiredArgs::forPrototypePlus(FPT, 1, MD), PrefixArgs);
   assert(CallFnInfo.getRegParm() == CurFnInfo->getRegParm() &&
          CallFnInfo.isNoReturn() == CurFnInfo->isNoReturn() &&
          CallFnInfo.getCallingConvention() == CurFnInfo->getCallingConvention());
   assert(isa<CXXDestructorDecl>(MD) || // ignore dtor return types
-         similar(CallFnInfo.getReturnInfo(), CallFnInfo.getReturnType(),
-                 CurFnInfo->getReturnInfo(), CurFnInfo->getReturnType()));
+         similar(CallFnInfo.getSingleReturnInfo(), CallFnInfo.getSingleReturnType(),
+                 CurFnInfo->getSingleReturnInfo(), CurFnInfo->getSingleReturnType()));
+  // TVM local end
   assert(CallFnInfo.arg_size() == CurFnInfo->arg_size());
   for (unsigned i = 0, e = CurFnInfo->arg_size(); i != e; ++i)
     assert(similar(CallFnInfo.arg_begin()[i].info,
@@ -350,8 +352,8 @@ void CodeGenFunction::EmitCallAndReturnForThunk(llvm::Constant *CalleePtr,
                                   : FPT->getReturnType();
   ReturnValueSlot Slot;
   if (!ResultType->isVoidType() &&
-      CurFnInfo->getReturnInfo().getKind() == ABIArgInfo::Indirect &&
-      !hasScalarEvaluationKind(CurFnInfo->getReturnType()))
+      CurFnInfo->getSingleReturnInfo().getKind() == ABIArgInfo::Indirect &&
+      !hasScalarEvaluationKind(CurFnInfo->getSingleReturnType()))
     Slot = ReturnValueSlot(ReturnValue, ResultType.isVolatileQualified());
 
   // Now emit our call.
@@ -389,7 +391,7 @@ void CodeGenFunction::EmitMustTailThunk(const CXXMethodDecl *MD,
   // Set the adjusted 'this' pointer.
   const ABIArgInfo &ThisAI = CurFnInfo->arg_begin()->info;
   if (ThisAI.isDirect()) {
-    const ABIArgInfo &RetAI = CurFnInfo->getReturnInfo();
+    const ABIArgInfo &RetAI = CurFnInfo->getSingleReturnInfo();
     int ThisArgNo = RetAI.isIndirect() && !RetAI.isSRetAfterThis() ? 1 : 0;
     llvm::Type *ThisType = Args[ThisArgNo]->getType();
     if (ThisType != AdjustedThisPtr->getType())

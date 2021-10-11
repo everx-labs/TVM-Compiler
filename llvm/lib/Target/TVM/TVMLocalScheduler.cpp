@@ -17,6 +17,7 @@
 #include "TVMStack.h"
 #include "TVMStackFixup.h"
 #include "TVMSubtarget.h"
+#include "TVMUtilities.h"
 #include "llvm/ADT/PostOrderIterator.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/Analysis/AliasAnalysis.h"
@@ -316,6 +317,13 @@ string regMapToString(unordered_map<unsigned, unsigned> const &map) {
   return str;
 }
 
+// Simple vector copy
+static void copyList(const vector<unsigned> &src, vector<unsigned> dst) {
+  //  std::copy(src.begin(), src.end(), dst.begin());
+  for (unsigned i = 0; i < src.size(); i++)
+    dst.push_back(src[i]);
+}
+
 // Simple test if vector contains the register or other value
 static bool contains(vector<unsigned> const &list, unsigned reg) {
   //  return std::find(list.begin(), list.end(), value) != list.end();
@@ -399,7 +407,12 @@ public:
       : preferredInputQueue(), preferredOutputQueue(), numUses(),
         actualInputQueue(), actualOutputQueue() {}
 
-  void dump();
+  bool isEmpty() {
+    return preferredInputQueue.empty() && preferredOutputQueue.empty() &&
+           actualInputQueue.empty() && actualOutputQueue.empty();
+  }
+
+  void dump(string margin = "");
 
   // Calculate fixup on block input
   StackFixup calculateInputFixup(MachineFunction &MF) {
@@ -410,6 +423,14 @@ public:
   StackFixup calculateOutputFixup(MachineFunction &MF) {
     return calculateFixup(MF, actualOutputQueue, preferredOutputQueue);
   }
+
+  // Calculate common chain of two queues with maximum length.
+  // Result contains values with order changes relatively to input queues
+  // no more than maxPermutations.
+  static void calculateMaximumCommonChain(vector<unsigned> const &queue1,
+                                          vector<unsigned> const &queue2,
+                                          vector<unsigned> &result,
+                                          unsigned maxPermutations = 0xFFFF);
 
   // Calculate optimized queue from several different queues
   // Needs for fork/join queue fixups
@@ -425,9 +446,13 @@ public:
                                    vector<unsigned> const &dst,
                                    vector<unsigned> const &src);
 
-	// Calculate maximum length of each queue registers with coincident indexes.
+  // Calculate maximum length of each queue registers with coincident indexes.
   // Use for simple fixup operations.
-  static unsigned calculateCommonTailLength(vector<vector<unsigned>> const &queues);
+  static unsigned
+  calculateCommonTailLength(vector<vector<unsigned>> const &queues);
+
+  // Some test for BlockQueue functions
+  static bool test(MachineFunction &MF);
 };
 
 class SchedulerUtils {
@@ -437,25 +462,32 @@ public:
   //  from constant values (like block addresses) or fixed places on stack,
   //  like parameters
   // Other values will be received from block input "queue"
-  static void gatherPseudoGlobal(MachineFunction &MF, unordered_map<unsigned, MachineInstr *> &pseudoMap);
+  static void
+  gatherPseudoGlobal(MachineFunction &MF,
+                     unordered_map<unsigned, MachineInstr *> &pseudoMap);
 
   // Similar as from TVMStackModel, but with different parameters
-  static void gatherBlockLiveIns(MachineBasicBlock &MBB, MachineRegisterInfo *MRI,
-                     LiveIntervals * LIS, unordered_set<unsigned> &vregs);
+  static void gatherBlockLiveIns(MachineBasicBlock &MBB,
+                                 MachineRegisterInfo *MRI, LiveIntervals *LIS,
+                                 unordered_set<unsigned> &vregs);
 
   // Similar as from TVMStackModel, but with different parameters
   static void gatherBlockLiveOuts(MachineBasicBlock &MBB,
-                     MachineRegisterInfo *MRI, LiveIntervals *LIS, unordered_set<unsigned> &vregs);
+                                  MachineRegisterInfo *MRI, LiveIntervals *LIS,
+                                  unordered_set<unsigned> &vregs);
 
   // Gather information about input & output block data queue
-  static void gatherBlockQueueInfo(MachineBasicBlock &MBB, MachineRegisterInfo *MRI,
-                    LiveIntervals *LIS, unordered_map<unsigned, MachineInstr *> const &pseudoMap,
-                    BlockQueueInfo &queueInfo);
+  static void
+  gatherBlockQueueInfo(MachineBasicBlock &MBB, MachineRegisterInfo *MRI,
+                       LiveIntervals *LIS,
+                       unordered_map<unsigned, MachineInstr *> const &pseudoMap,
+                       BlockQueueInfo &queueInfo);
 };
 
 void SchedulerUtils::gatherBlockLiveIns(MachineBasicBlock &MBB,
-    MachineRegisterInfo *MRI, LiveIntervals *LIS,
-          unordered_set<unsigned> &vregs) {
+                                        MachineRegisterInfo *MRI,
+                                        LiveIntervals *LIS,
+                                        unordered_set<unsigned> &vregs) {
   for (unsigned i = 0, e = MRI->getNumVirtRegs(); i != e; ++i) {
     unsigned Reg = TargetRegisterInfo::index2VirtReg(i);
     if (LIS->hasInterval(Reg)) {
@@ -467,7 +499,9 @@ void SchedulerUtils::gatherBlockLiveIns(MachineBasicBlock &MBB,
 }
 
 void SchedulerUtils::gatherBlockLiveOuts(MachineBasicBlock &MBB,
-   MachineRegisterInfo *MRI, LiveIntervals *LIS, unordered_set<unsigned> &vregs) {
+                                         MachineRegisterInfo *MRI,
+                                         LiveIntervals *LIS,
+                                         unordered_set<unsigned> &vregs) {
   for (unsigned i = 0, e = MRI->getNumVirtRegs(); i != e; ++i) {
     unsigned Reg = TargetRegisterInfo::index2VirtReg(i);
     if (LIS->hasInterval(Reg)) {
@@ -478,8 +512,8 @@ void SchedulerUtils::gatherBlockLiveOuts(MachineBasicBlock &MBB,
   }
 }
 
-void SchedulerUtils::gatherBlockQueueInfo(MachineBasicBlock &MBB, 
-	  MachineRegisterInfo *MRI, LiveIntervals *LIS,
+void SchedulerUtils::gatherBlockQueueInfo(
+    MachineBasicBlock &MBB, MachineRegisterInfo *MRI, LiveIntervals *LIS,
     unordered_map<unsigned, MachineInstr *> const &pseudoMap,
     BlockQueueInfo &queueInfo) {
   unordered_set<unsigned> liveIns;
@@ -516,8 +550,8 @@ void SchedulerUtils::gatherBlockQueueInfo(MachineBasicBlock &MBB,
   }
 }
 
-void SchedulerUtils::gatherPseudoGlobal(MachineFunction &MF, 
-    unordered_map<unsigned, MachineInstr *> &pseudoMap) {
+void SchedulerUtils::gatherPseudoGlobal(
+    MachineFunction &MF, unordered_map<unsigned, MachineInstr *> &pseudoMap) {
   unordered_set<unsigned> defined;
   for (MachineBasicBlock &MBB : MF) {
     for (MachineInstr &MI : MBB) {
@@ -1222,59 +1256,72 @@ void DJGraph::dump() {
 }
 
 class StackTreeNode {
-	friend class StackTree;
+  friend class StackTree;
 
-	StackTreeNode *parent;
-	vector<StackTreeNode *> children;
-	vector<unsigned> registers;
-	MachineBasicBlock *MBB;
+	StackTree* tree;
+  StackTreeNode *parent;
+  vector<StackTreeNode *> children;
+  vector<unsigned> registers;
+  MachineBasicBlock *MBB;
 
 private:
-  StackTreeNode() : parent(nullptr), children() {}
+  StackTreeNode(StackTree *tree_, StackTreeNode *parent_ = nullptr) : tree(tree_), children(), registers() {
+		setParent(parent_);
+	}
+
+	StackTreeNode(StackTree *tree_, const vector<unsigned> &registers_, StackTreeNode *parent_ = nullptr)
+      : tree(tree_), children(), registers(registers_) {
+    setParent(parent_);
+	}
 
 	void setParent(StackTreeNode *parent_) {
-		parent = parent;
-    parent->children.push_back(this);
-	}
+    parent = parent_;
+    if (parent)
+      parent->children.push_back(this);
+  }
+
+  void setMBB(MachineBasicBlock *MBB_) { MBB = MBB_; }
 
 public:
+  StackTree *getTree() { return tree; }
+
   StackTreeNode *getParent() { return parent; }
 
-	MachineBasicBlock *getMBB() { return MBB; }
+  MachineBasicBlock *getMBB() { return MBB; }
 
-	unsigned size() { 
-		unsigned sz = registers.size();
+	unsigned size() {
+    unsigned sz = registers.size();
     if (parent)
       sz += parent->size();
-		return sz;
-	}
+    return sz;
+  }
 
-	unsigned localSize() { return registers.size(); }
+  unsigned localSize() { return registers.size(); }
 
-	// Get path from root node to this node
-	void getPath(vector<StackTreeNode *> &path) { 
-		if (parent)
+  // Get path from root node to this node
+  void getPath(vector<StackTreeNode *> &path) {
+    if (parent)
       parent->getPath(path);
     path.push_back(this);
-	}
+  }
 
-	// Get stack registers from root node to this node
-	void getContents(vector<unsigned> &regs) { 
-		if (parent)
+  // Get stack registers from root node to this node
+  void getContents(vector<unsigned> &regs) {
+    if (parent)
       parent->getContents(regs);
     for (unsigned reg : registers) {
-       regs.push_back(reg);
+      regs.push_back(reg);
     }
-	}
+  }
 
-	// Lookup register in current node or parent (recursively).
-	// Return register offset from the top of stack or -1
-	// if register is not in stack
-	int lookupRegisterOffset(unsigned reg);
+  // Lookup register in current node or parent (recursively).
+  // Return register offset from the top of stack or -1
+  // if register is not in stack
+  int lookupRegisterOffset(unsigned reg);
 
-	string toString();
+  string toString();
 
-	void dump(string margin = "");
+  void dump(string margin = "");
 
   // StackTreeNode children iterator
   using child_iterator = vector<StackTreeNode *>::iterator;
@@ -1286,36 +1333,38 @@ public:
 
   child_iterator children_end() { return children.end(); }
 
-	const_child_iterator children_end() const { return children.end(); }
+  const_child_iterator children_end() const { return children.end(); }
 };
 
 int StackTreeNode::lookupRegisterOffset(unsigned reg) {
   for (int index = registers.size() - 1; index >= 0; index--) {
     if (registers[index] == reg)
       return registers.size() - 1 - index;
-	}
+  }
   if (!parent)
-		return -1;
+    return -1;
   int offset = parent->lookupRegisterOffset(reg);
   if (offset >= 0)
     return registers.size() + offset;
-  return -1; 
+  return -1;
 }
 
 string StackTreeNode::toString() {
-	string str;
+  string str;
   if (parent)
     str += parent->toString();
   for (unsigned reg : registers) {
     str += regToString(reg);
     str += " ";
   }
-	return str;
+  return str;
 }
 
-void StackTreeNode::dump(string margin) { 
-	dbgs() << margin;
-  dbgs() << blockToString(getMBB()) << " : ";
+void StackTreeNode::dump(string margin) {
+  dbgs() << margin;
+  if (getMBB())
+    dbgs() << blockToString(getMBB()) << " : ";
+  else dbgs() << "Intermediate ";
   dbgs() << "{ " << toString() << "}";
   for (StackTreeNode *child : children) {
     dump(margin + " ");
@@ -1326,8 +1375,8 @@ void StackTreeNode::dump(string margin) {
 // Stack Model structure corresponds to function's Region Structure.
 // Path from root to some node corresponds to this node's stack state.
 class StackTree {
-	StackTreeNode *root;
-	map<MachineBasicBlock *, StackTreeNode *> nodeMap;
+  StackTreeNode *root;
+  map<MachineBasicBlock *, StackTreeNode *> nodeMap;
 
   // Pool-allocate StackableTreeNode-lifetime
   BumpPtrAllocator Allocator;
@@ -1338,20 +1387,30 @@ class StackTree {
 public:
   StackTree() {}
 
-	StackTreeNode *getRoot() { return root; }
+  StackTreeNode *getRoot() { return root; }
 
-	StackTreeNode *lookupNode(MachineBasicBlock *MBB) { return nodeMap[MBB]; }
+  void setRoot(StackTreeNode *root_) { root = root_; }
 
-	void dump() {
+	void addNodeMap(MachineBasicBlock *MBB, StackTreeNode *stack) { nodeMap[MBB] = stack;  }
+
+  StackTreeNode *lookupNode(MachineBasicBlock *MBB) { return nodeMap[MBB]; }
+
+  void dump() {
     if (getRoot())
       getRoot()->dump();
-    else dbgs() << "null";
+    else
+      dbgs() << "null";
   }
 
-	StackTreeNode *createNode() {
-    return new (StackTreeNodeRecycler.Allocate<StackTreeNode>(
-      Allocator)) StackTreeNode();
-	}
+  StackTreeNode *createNode(StackTreeNode *parent = nullptr) {
+    return new (StackTreeNodeRecycler.Allocate<StackTreeNode>(Allocator))
+        StackTreeNode(this, parent);
+  }
+
+  StackTreeNode *createNode(const vector<unsigned> &registers, StackTreeNode *parent = nullptr) {
+    return new (StackTreeNodeRecycler.Allocate<StackTreeNode>(Allocator))
+        StackTreeNode(this, registers, parent);
+  }
 };
 
 enum StackableRegionKind {
@@ -1359,6 +1418,7 @@ enum StackableRegionKind {
   SRSequence,    // Sequence of regions
   SRIfThen,      // if (...) { ... }
   SRIfThenElse,  // if (...)  { ... } else { ... }
+  SRSwitch,      // switch (...) { ... }
   SRSelfLoop,    // do { ... } while (...)
   SRWhileLoop,   // while (...) { ... }
   SRNaturalLoop, // TODO can't be generated by current backend passes (?)
@@ -1380,7 +1440,23 @@ class StackableRegion {
   MachineBasicBlock *MBB;
   vector<StackableRegion *> subregions;
   BlockQueueInfo queueInfo;
-	uint64_t weight;
+  uint64_t weight;
+  bool hasDeflt;
+
+  // Registers defined in region
+  unordered_set<unsigned> defs;
+
+  // Registers used in region
+  unordered_set<unsigned> uses;
+
+  // Live variables (registers) on the inputs of region
+  unordered_set<unsigned> liveIns;
+
+  // Live variables (registers) on the output of region
+  unordered_set<unsigned> liveOuts;
+
+  // Local stack variables (registers)
+  vector<unsigned> localStack;
 
 private:
   StackableRegion(StackableRegionKind kind_)
@@ -1417,19 +1493,20 @@ private:
 public:
   StackableRegionKind getKind() { return kind; }
 
-	uint64_t getWeight() { return weight; }
+  uint64_t getWeight() { return weight; }
 
   MachineBasicBlock *getMBB() {
     assert(kind == SRLeaf);
     return MBB;
   }
 
-	StackableRegion *getCondition() {
-		assert(kind == SRIfThen  ||  kind == SRIfThenElse || kind == SRWhileLoop || kind == SRNaturalLoop);
+  StackableRegion *getCondition() {
+    assert(kind == SRIfThen || kind == SRIfThenElse || kind == SRSwitch ||
+           kind == SRWhileLoop || kind == SRNaturalLoop);
     return subregions[0];
-	}
+  }
 
-	StackableRegion *getThen() {
+  StackableRegion *getThen() {
     assert(kind == SRIfThen || kind == SRIfThenElse);
     return subregions[1];
   }
@@ -1439,25 +1516,71 @@ public:
     return subregions[2];
   }
 
+  bool hasDefault() const {
+    assert(kind == SRSwitch);
+    return hasDeflt;
+  }
+
+  unsigned getSwitchSize() const {
+    hasDefault() ? subregions.size() - 2 : subregions.size() - 1;
+  }
+
+  StackableRegion *getDefault() const {
+    assert(kind == SRSwitch);
+    return hasDefault() ? subregions[subregions.size() - 1] : nullptr;
+  }
+
+  StackableRegion *getFirst() const {
+    assert(kind == SRSequence);
+    return subregions[0];
+  }
+
+  StackableRegion *getLast() const {
+    assert(kind == SRSequence);
+    return subregions[subregions.size() - 1];
+  }
+
   StackableRegion *getBody() {
     assert(kind == SRSelfLoop || kind == SRWhileLoop || kind == SRNaturalLoop);
     if (kind == SRSelfLoop)
       return subregions[0];
-    else return subregions[1];
+    else
+      return subregions[1];
   }
 
   BlockQueueInfo &getQueueInfo() { return queueInfo; }
 
-	bool isLoop() {
-		return kind == SRSelfLoop || kind == SRWhileLoop || kind == SRNaturalLoop;
-	}
+  bool isLoop() {
+    return kind == SRSelfLoop || kind == SRWhileLoop || kind == SRNaturalLoop;
+  }
 
-	// Returns head block - Machine Block on the entrance of region
-	MachineBasicBlock *getHeadBlock();
+  // Returns head region - child region on entrance of this region
+  StackableRegion *getHeadRegion();
 
-	// Returns tail block - Machine Block on the exit of region.
-	// If there is no single tail block, returns nullptr
-	MachineBasicBlock *getTailBlock();
+  // Calculate the list of tail regions - child regions on the exit of this
+  // region.
+  void getTailRegions(vector<StackableRegion *> &tails);
+
+  // Returns head block - Machine Block on the entrance of region
+  MachineBasicBlock *getHeadBlock();
+
+  // Returns tail block - Machine Block on the exit of region.
+  // If there are multiple tail blocks, returns nullptr
+  MachineBasicBlock *getTailBlock();
+
+  // Calculate the list of tail blocks - Machine Block on the exit of region.
+  // If there is no single tail block, returns nullptr
+  void getTailBlocks(vector<MachineBasicBlock *> &blocks);
+
+  const unordered_set<unsigned> &getDefs() const { return defs; }
+
+  const unordered_set<unsigned> &getUses() const { return uses; }
+
+  const unordered_set<unsigned> &getLiveIns() const { return liveIns; }
+
+  const unordered_set<unsigned> &getLiveOuts() const { return liveOuts; }
+
+  const vector<unsigned> &getLocalStack() const { return localStack; }
 
   // StackableRegion children iterator
   using child_iterator = vector<StackableRegion *>::iterator;
@@ -1471,24 +1594,50 @@ public:
 
   const_child_iterator end() const { return subregions.end(); }
 
+  child_iterator case_begin() { return ++subregions.begin(); }
+
+  const_child_iterator case_begin() const { return ++subregions.begin(); }
+
+  child_iterator case_end() {
+    return hasDefault() ? --subregions.end() : subregions.end();
+  }
+
+  const_child_iterator case_end() const {
+    return hasDefault() ? --subregions.end() : subregions.end();
+  }
+
   static string toString(StackableRegionKind kind);
 
   string toString();
 
   void dump(string margin);
 
+  void dumpVariables(string margin);
+
 private:
+  // Recursively calculate different region variable (register) sets - defs,
+  // uses, liveIns, liveOuts, ...
+  void calculateVariables(MachineRegisterInfo *MRI, LiveIntervals *LIS);
+
   // Recursively calculate (approximately) region and its children weights
   void calculateWeights(uint64_t weight_ = 1);
 
   // Recursively calculate region's BlockQueueInfo
-  void calculateQueueInfo(MachineRegisterInfo *MRI, LiveIntervals *LIS,
+  void
+  calculateQueueInfo(MachineRegisterInfo *MRI, LiveIntervals *LIS,
                      unordered_map<unsigned, MachineInstr *> const &pseudoMap);
+
+  // Calculate stack & active out for conditional regions (ifs & switches)
+  void calculateConditionStack();
+
+  // Create StackTree structure components
+  void createStackTree(StackTreeNode &stack);
 };
 
 // Structure of Stackable Regions.
 // Contains region allocation and pointer to root region.
 class StackableRegionStructure {
+  MachineFunction &MF;
   DJGraph djGraph;
   StackableRegion *root;
 
@@ -1499,18 +1648,30 @@ class StackableRegionStructure {
   Recycler<StackableRegion> StackableRegionRecycler;
 
 public:
-  StackableRegionStructure(MachineFunction &MF, MachineDominatorTree &MDT)
-      : djGraph(MF, MDT) {
-    init(MF);
+  StackableRegionStructure(MachineFunction &MF_, MachineDominatorTree &MDT)
+      : MF(MF_), djGraph(MF_, MDT) {
+    init(MF_);
   }
 
   StackableRegion &getRoot() { return *root; }
 
   DJGraph &getDJGraph() { return djGraph; }
 
+  MachineFunction &getMF() { return MF; }
+
+  // Calculate different region variable (register) sets - defs, uses, liveIns,
+  // liveOuts, ...
+  void calculateVariables(MachineRegisterInfo *MRI, LiveIntervals *LIS) {
+    getRoot().calculateVariables(MRI, LIS);
+  }
+
   // Recursively calculate region's BlockQueueInfo
-  void calculateQueueInfo(MachineRegisterInfo *MRI, LiveIntervals *LIS,
+  void
+  calculateQueueInfo(MachineRegisterInfo *MRI, LiveIntervals *LIS,
                      unordered_map<unsigned, MachineInstr *> const &pseudoMap);
+
+  // Create StackTree structure components
+  void createStackTree(StackTree &tree);
 
   void dump();
 
@@ -1630,6 +1791,37 @@ void StackableRegionStructure::init(MachineFunction &MF) {
   root = nodeMap[*djGraph.level_begin(0)];
 }
 
+void StackableRegion::calculateVariables(MachineRegisterInfo *MRI,
+                                         LiveIntervals *LIS) {
+  for (StackableRegion *child : *this) {
+    child->calculateVariables(MRI, LIS);
+    defs.insert(child->defs.begin(), child->defs.end());
+    uses.insert(child->uses.begin(), child->uses.end());
+  }
+  if (kind == SRLeaf) {
+    for (MachineInstr &MI : *getMBB()) {
+      for (MachineOperand &MO : MI.defs()) {
+        if (MO.isReg())
+          defs.insert(MO.getReg());
+      }
+      for (MachineOperand &MO : MI.uses()) {
+        if (MO.isReg())
+          uses.insert(MO.getReg());
+      }
+    }
+    SchedulerUtils::gatherBlockLiveIns(*getMBB(), MRI, LIS, liveIns);
+    SchedulerUtils::gatherBlockLiveOuts(*getMBB(), MRI, LIS, liveOuts);
+  } else {
+    StackableRegion *head = getHeadRegion();
+    liveIns.insert(head->liveIns.begin(), head->liveIns.end());
+    vector<StackableRegion *> tails;
+    getTailRegions(tails);
+    for (StackableRegion *tail : tails) {
+      liveOuts.insert(tail->liveOuts.begin(), tail->liveOuts.end());
+    }
+  }
+}
+
 StackableRegion *StackableRegionStructure::processNode(
     DJNode *node, map<DJNode *, StackableRegion *> &nodeMap,
     map<DJNode *, vector<DJNode *>> &succJoins) {
@@ -1703,6 +1895,8 @@ StackableRegion *StackableRegionStructure::processNode(
   }
 
   if (!newRegion) {
+    // TODO improper regions ??
+    assert(false);
   }
 
   assert(newRegion);
@@ -1778,10 +1972,77 @@ void StackableRegionStructure::addJoinEdges(
   }
 }
 
-void StackableRegionStructure::calculateQueueInfo(MachineRegisterInfo *MRI, 
-	  LiveIntervals *LIS,  unordered_map<unsigned, MachineInstr *> const &pseudoMap) {
-  getRoot().calculateWeights();
+void StackableRegionStructure::calculateQueueInfo(
+    MachineRegisterInfo *MRI, LiveIntervals *LIS,
+    unordered_map<unsigned, MachineInstr *> const &pseudoMap) {
+  // TODO  getRoot().calculateWeights();
   getRoot().calculateQueueInfo(MRI, LIS, pseudoMap);
+}
+
+void StackableRegionStructure::createStackTree(StackTree &tree) {
+  MachineFunction &MF = getMF();
+  TVMFunctionInfo *MFI = MF.getInfo<TVMFunctionInfo>();
+  MachineBasicBlock &firstMBB = MF.front();
+  if (!firstMBB.empty()) {
+    MachineInstr &instr = firstMBB.front();
+    if (TVM::isArgumentNum(instr)) {
+      int args = instr.getOperand(0).getImm();
+      for (int i = 0; i < args; i++)
+        MFI->addParam(MVT::i64);
+      // TODO  instr.eraseFromParent();
+    }
+  }
+
+  unsigned numParams = MFI->numParams();
+  vector<unsigned> params(numParams);
+
+  // Fill initial stack position with arguments.
+  for (MachineInstr &MI : firstMBB) {
+    if (!TVM::isArgument(MI))
+      break;
+    unsigned reg = MI.getOperand(0).getReg();
+    assert(!MFI->isVRegStackified(reg));
+    unsigned argNo = numParams - MI.getOperand(1).getCImm()->getZExtValue() - 1;
+    params[argNo] = reg;
+    // TODO MI.eraseFromParent();
+  }
+
+  StackTreeNode *root = tree.createNode(params);
+  tree.setRoot(root);
+  tree.addNodeMap(&firstMBB, root);
+  getRoot().createStackTree(*root);
+}
+
+void StackableRegion::createStackTree(StackTreeNode &stack) {
+  switch (kind) {
+  case SRLeaf:
+    stack.getTree()->addNodeMap(getMBB(), &stack);
+		break;
+  case SRIfThen:
+    getCondition()->createStackTree(*stack.getTree()->createNode(&stack));
+    getThen()->createStackTree(*stack.getTree()->createNode(getLocalStack(), &stack));
+		break;
+  case SRIfThenElse:
+    getCondition()->createStackTree(*stack.getTree()->createNode(&stack));
+    getThen()->createStackTree(*stack.getTree()->createNode(getLocalStack(), &stack));
+    getElse()->createStackTree(*stack.getTree()->createNode(getLocalStack(), &stack));
+		break;
+  case SRSwitch:
+    getCondition()->createStackTree(*stack.getTree()->createNode(&stack));
+    for (auto it = case_begin(); it != case_end(); it++) {
+			StackableRegion *caseRegion = *it;
+      caseRegion->createStackTree(*stack.getTree()->createNode(getLocalStack(), &stack));
+    }
+		if (hasDefault())
+      getDefault()->createStackTree(*stack.getTree()->createNode(getLocalStack(), &stack));
+		break;
+  case SRSequence:
+		break;
+  case SRSelfLoop:
+  case SRNaturalLoop:
+  case SRWhileLoop:
+  default: break;
+  }
 }
 
 void StackableRegionStructure::dump() {
@@ -1789,35 +2050,133 @@ void StackableRegionStructure::dump() {
   getRoot().dump("");
 }
 
-MachineBasicBlock *StackableRegion::getHeadBlock() { 
-	if (kind == SRLeaf) 
-		return getMBB();
+StackableRegion *StackableRegion::getHeadRegion() {
+  switch (kind) {
+  case SRLeaf:
+    return this;
+  case SRIfThen:
+  case SRIfThenElse:
+  case SRSwitch:
+    return getCondition();
+  case SRSequence:
+    return getFirst();
+  case SRSelfLoop:
+    return getBody();
+  case SRNaturalLoop:
+  case SRWhileLoop:
+    return getCondition();
+  default:
+    return nullptr;
+  }
+}
+
+void StackableRegion::getTailRegions(vector<StackableRegion *> &tails) {
+  switch (kind) {
+  case SRLeaf:
+    tails.push_back(this);
+    break;
+  case SRIfThen:
+    getThen()->getTailRegions(tails);
+    break;
+  case SRIfThenElse:
+    getThen()->getTailRegions(tails);
+    getElse()->getTailRegions(tails);
+    break;
+  case SRSwitch:
+    for (auto it = case_begin(); it != case_end(); it++) {
+      StackableRegion *caseRegion = *it;
+      caseRegion->getTailRegions(tails);
+    }
+    if (hasDefault())
+      getDefault()->getTailRegions(tails);
+    break;
+  case SRSequence:
+    getLast()->getTailRegions(tails);
+    break;
+  case SRSelfLoop:
+    getBody()->getTailRegions(tails);
+    break;
+  case SRWhileLoop:
+    getCondition()->getTailRegions(tails);
+    break;
+  case SRNaturalLoop:
+    getCondition()->getTailRegions(tails);
+    getBody()->getTailRegions(tails);
+    break;
+  default:
+    break;
+  }
+}
+
+MachineBasicBlock *StackableRegion::getHeadBlock() {
+  if (kind == SRLeaf)
+    return getMBB();
   return subregions[0]->getHeadBlock();
 }
 
-MachineBasicBlock *StackableRegion::getTailBlock() { 
-	switch (kind) {
+MachineBasicBlock *StackableRegion::getTailBlock() {
+  switch (kind) {
   case SRLeaf:
     return getMBB();
+  case SRSequence:
+    return getLast()->getTailBlock();
   case SRSelfLoop:
     return getBody()->getTailBlock();
   case SRWhileLoop:
     return getCondition()->getTailBlock();
-  default: return nullptr;
-	}
+  default:
+    return nullptr;
+  }
 }
 
+void StackableRegion::getTailBlocks(vector<MachineBasicBlock *> &blocks) {
+  switch (kind) {
+  case SRLeaf:
+    blocks.push_back(getMBB());
+    break;
+  case SRIfThen:
+    getThen()->getTailBlocks(blocks);
+    break;
+  case SRIfThenElse:
+    getThen()->getTailBlocks(blocks);
+    getElse()->getTailBlocks(blocks);
+    break;
+  case SRSwitch:
+    for (auto it = case_begin(); it != case_end(); it++) {
+      StackableRegion *caseRegion = *it;
+      caseRegion->getTailBlocks(blocks);
+    }
+    if (hasDefault())
+      getDefault()->getTailBlocks(blocks);
+    break;
+  case SRSequence:
+    getLast()->getTailBlocks(blocks);
+    break;
+  case SRSelfLoop:
+    getBody()->getTailBlocks(blocks);
+    break;
+  case SRWhileLoop:
+    getCondition()->getTailBlocks(blocks);
+    break;
+  default:
+    // TODO
+    assert(false);
+    return;
+  }
+}
+
+// TODO maybe we also can use weights from MachineBlockFrequencyInfo
 void StackableRegion::calculateWeights(uint64_t weight_) {
   switch (kind) {
   case SRLeaf:
-		weight = weight_;
-		break;
+    weight = weight_;
+    break;
   case SRSequence:
-		weight = weight_;
+    weight = weight_;
     for (StackableRegion *child : *this) {
       calculateWeights(weight);
-		}
-		break;
+    }
+    break;
   case SRIfThen:
   case SRIfThenElse:
     weight = weight_;
@@ -1825,46 +2184,82 @@ void StackableRegion::calculateWeights(uint64_t weight_) {
     getThen()->calculateWeights(weight * LEVEL_REGION_WEIGHT);
     if (kind == SRIfThenElse)
       getElse()->calculateWeights(weight * LEVEL_REGION_WEIGHT);
-		break;
+    break;
+  case SRSwitch:
+    weight = weight_;
+    getCondition()->calculateWeights(weight);
+    for (auto it = case_begin(); it != case_end(); it++) {
+      StackableRegion *caseRegion = *it;
+      caseRegion->calculateWeights(weight * LEVEL_REGION_WEIGHT);
+      if (hasDefault())
+        getDefault()->calculateWeights(weight * LEVEL_REGION_WEIGHT);
+    }
+    break;
   case SRSelfLoop:
   case SRWhileLoop:
   case SRNaturalLoop:
-		weight = weight_ * LOOP_REGION_WEIGHT;
+    weight = weight_ * LOOP_REGION_WEIGHT;
     for (StackableRegion *child : *this) {
       calculateWeights(weight);
     }
-		break;
+    break;
   case SRProper:
   case SRImproper:
   default:
     assert(false);
-	}
+  }
 }
 
-void StackableRegion::calculateQueueInfo(MachineRegisterInfo *MRI, LiveIntervals *LIS,
-	  unordered_map<unsigned, MachineInstr *> const &pseudoMap) {
+void StackableRegion::calculateConditionStack() {
+  StackableRegion *cond = getCondition();
+  for (unsigned idx = 0; idx < cond->queueInfo.preferredOutputQueue.size();
+       idx++) {
+    unsigned reg = cond->queueInfo.preferredOutputQueue[idx];
+    if (find(liveIns.begin(), liveIns.end(), reg) == liveIns.end() &&
+        find(liveOuts.begin(), liveOuts.end(), reg) != liveOuts.end()) {
+      localStack.push_back(reg);
+      queueInfo.actualOutputQueue.push_back(reg);
+    } else
+      cond->queueInfo.actualOutputQueue.push_back(reg);
+  }
+}
+
+void StackableRegion::calculateQueueInfo(
+    MachineRegisterInfo *MRI, LiveIntervals *LIS,
+    unordered_map<unsigned, MachineInstr *> const &pseudoMap) {
   for (StackableRegion *child : *this) {
     child->calculateQueueInfo(MRI, LIS, pseudoMap);
-	}
+  }
   switch (kind) {
   case SRLeaf:
-    SchedulerUtils::gatherBlockQueueInfo(*getMBB(), MRI, LIS, pseudoMap, queueInfo);
+    SchedulerUtils::gatherBlockQueueInfo(*getMBB(), MRI, LIS, pseudoMap,
+                                         queueInfo);
     break;
   case SRSequence:
- 
-		break;
-  case SRIfThen:
 
-		break;
+    break;
+  case SRIfThen:
+    calculateConditionStack();
+    copyList(getCondition()->queueInfo.actualOutputQueue,
+             getThen()->queueInfo.actualInputQueue);
+    break;
   case SRIfThenElse:
+    calculateConditionStack();
+    copyList(getCondition()->queueInfo.actualOutputQueue,
+             getThen()->queueInfo.actualInputQueue);
+    copyList(getCondition()->queueInfo.actualOutputQueue,
+             getElse()->queueInfo.actualInputQueue);
+    break;
+  case SRSwitch:
+    calculateConditionStack();
 
     break;
   case SRSelfLoop:
 
-		break;
+    break;
   case SRWhileLoop:
 
-		break;
+    break;
   case SRNaturalLoop:
 
     break;
@@ -1889,6 +2284,9 @@ string StackableRegion::toString(StackableRegionKind kind) {
     break;
   case SRIfThenElse:
     str = "If Then Else";
+    break;
+  case SRSwitch:
+    str = "Switch";
     break;
   case SRSelfLoop:
     str = "Self Loop";
@@ -1921,6 +2319,7 @@ string StackableRegion::toString() {
   case SRSequence:
   case SRIfThen:
   case SRIfThenElse:
+  case SRSwitch:
   case SRSelfLoop:
   case SRWhileLoop:
   case SRNaturalLoop:
@@ -1934,9 +2333,22 @@ string StackableRegion::toString() {
 
 void StackableRegion::dump(string margin) {
   dbgs() << margin << toString() << "\n";
+  dumpVariables(margin + "  ");
+  if (!getQueueInfo().isEmpty())
+    getQueueInfo().dump(margin + "  ");
   for (StackableRegion *child : *this) {
     child->dump(margin + "  ");
   }
+}
+
+void StackableRegion::dumpVariables(string margin) {
+  dbgs() << margin << "Defs : " << regSetToString(getDefs()) << "\n";
+  dbgs() << margin << "Uses : " << regSetToString(getUses()) << "\n";
+  dbgs() << margin << "Live Ins : " << regSetToString(getLiveIns()) << "\n";
+  dbgs() << margin << "Live Outs : " << regSetToString(getLiveOuts()) << "\n";
+  if (!getLocalStack().empty())
+    dbgs() << margin << "Local Stack : " << regListToString(getLocalStack())
+           << "\n";
 }
 
 namespace {
@@ -1997,8 +2409,11 @@ bool TVMLocalScheduler::runOnMachineFunction(MachineFunction &MF) {
 bool TVMLocalScheduler::runOnBasicBlocks(MachineFunction &MF) {
   bool changed = false;
 
+  //  BlockQueueInfo::test(MF);
+
   unordered_map<unsigned, MachineInstr *> pseudoMap;
-  SchedulerUtils::gatherPseudoGlobal(MF, pseudoMap);
+  //  SchedulerUtils::gatherPseudoGlobal(MF, pseudoMap);
+
   /*
   dbgs() << "Pseudo Globals : ";
   for (auto it = pseudoMap.begin(); it != pseudoMap.end(); it++) {
@@ -2013,13 +2428,20 @@ bool TVMLocalScheduler::runOnBasicBlocks(MachineFunction &MF) {
   StackableRegionStructure SRS(MF, *MDT);
   // SRS.getDJGraph().dump();
   // dbgs() << "\n";
+  SRS.calculateVariables(MRI, LIS);
+  SRS.calculateQueueInfo(MRI, LIS, pseudoMap);
   SRS.dump();
   dbgs() << "\n";
 
-  for (DJNode *node : SRS.getDJGraph()) {
-    SchedulerUtils::gatherBlockQueueInfo(node->getMBB(), MRI, LIS, pseudoMap,
-                                         node->getBlockQueueInfo());
-  }
+	StackTree stackTree;
+  SRS.createStackTree(stackTree);
+  stackTree.dump();
+
+  //  for (DJNode *node : SRS.getDJGraph()) {
+  //    SchedulerUtils::gatherBlockQueueInfo(node->getMBB(), MRI, LIS,
+  //    pseudoMap,
+  //                                         node->getBlockQueueInfo());
+  //  }
 
   /*
 auto &firstBB = MF.front();
@@ -2056,17 +2478,17 @@ void TVMLocalScheduler::createTreeGraph(MachineBasicBlock & MBB) {
 }
 */
 
-void BlockQueueInfo::dump() {
-  dbgs() << "Preferred Input Queue: "
+void BlockQueueInfo::dump(string margin) {
+  dbgs() << margin << "Preferred Input Queue : "
          << regListToString(preferredInputQueue).c_str() << "\n"
-         << "Preferred Output Queue: "
+         << margin << "Preferred Output Queue : "
          << regListToString(preferredOutputQueue).c_str() << "\n"
-         << "Actual Input Queue: " << regListToString(actualInputQueue).c_str()
+         << margin
+         << "Actual Input Queue : " << regListToString(actualInputQueue).c_str()
          << "\n"
-         << "Actual Output Queue: " << regListToString(actualInputQueue).c_str()
-         << "\n"
-         << "Number Of Uses :" << regMapToString(numUses);
-
+         << margin << "Actual Output Queue : "
+         << regListToString(actualInputQueue).c_str() << "\n"
+         << margin << "Number Of Uses : " << regMapToString(numUses);
   dbgs() << "\n";
 }
 
@@ -2133,6 +2555,7 @@ StackFixup BlockQueueInfo::calculateFixup(MachineFunction &MF,
   unsigned size = max(src.size(), dst.size());
   // We create two dummy stacks and than find a fixup using
   // function from StackModel
+#if 0
   Stack srcStack(MF, size);
   Stack dstStack(MF, size);
   for (unsigned i = 0; i < size; i++) {
@@ -2147,22 +2570,153 @@ StackFixup BlockQueueInfo::calculateFixup(MachineFunction &MF,
     else // fill with dummy registers
       dstStack.set(i, StackVreg(0));
   }
+	return StackFixup::Diff(dstStack, srcStack);
+#else
+  Stack srcStack(MF, src.size());
+  Stack dstStack(MF, dst.size());
+  for (unsigned i = 0; i < src.size(); i++) {
+    srcStack.set(i, StackVreg(src[i]));
+  }
+  for (unsigned i = 0; i < dst.size(); i++) {
+    dstStack.set(i, StackVreg(dst[i]));
+  }
   return StackFixup::Diff(dstStack, srcStack);
+#endif
 }
 
-unsigned BlockQueueInfo::calculateCommonTailLength(vector<vector<unsigned>> const &queues) {
-	unsigned cnt = 0;
+static unsigned
+calculatePermutations(vector<pair<unsigned, int>> const &disorder,
+                      int startIndex) {
+  int permutCnt = 0;
+  for (unsigned idx = startIndex; idx < disorder.size(); idx++) {
+    permutCnt += disorder[idx].second;
+  }
+  return permutCnt / 2;
+}
+
+void BlockQueueInfo::calculateMaximumCommonChain(vector<unsigned> const &queue1,
+                                                 vector<unsigned> const &queue2,
+                                                 vector<unsigned> &result,
+                                                 unsigned maxPermutations) {
+  vector<unsigned> commons;
+  vector<int> commonIndexes2;
+  for (unsigned idx1 = 0; idx1 < queue1.size(); idx1++) {
+    unsigned val1 = queue1[idx1];
+    for (unsigned idx2 = 0; idx2 < queue2.size(); idx2++) {
+      if (queue2[idx2] == val1) {
+        commons.push_back(val1);
+        commonIndexes2.push_back(idx2);
+        break;
+      }
+    }
+  }
+  unsigned permutCnt = 0;
+  vector<pair<unsigned, int>> disorder;
+  vector<vector<unsigned>> conflictList;
+  for (int idx = 0; idx < commons.size(); idx++) {
+    vector<unsigned> conflicts;
+    unsigned val = commons[idx];
+    int disorderCnt = 0;
+    int comIdx = commonIndexes2[idx];
+    for (int idx2 = 0; idx2 < commons.size(); idx2++) {
+      if (idx == idx2)
+        continue;
+      unsigned val2 = commons[idx2];
+      int comIdx2 = commonIndexes2[idx2];
+      if ((idx < idx2) != (comIdx < comIdx2)) {
+        disorderCnt++;
+        conflicts.push_back(val2);
+      }
+    }
+    if (disorderCnt)
+      permutCnt++;
+    disorder.push_back(make_pair(val, disorderCnt));
+    conflictList.push_back(conflicts);
+  }
+  if (permutCnt == 0) {
+    copyList(commons, result);
+    return;
+  }
+  std::sort(disorder.begin(), disorder.end(),
+            [](pair<unsigned, int> a, pair<unsigned, int> b) {
+              return a.second > b.second;
+            });
+  unsigned startIndex = 0;
   for (;;) {
-    for (vector<unsigned> const  &queue : queues) {
-			unsigned val = (unsigned) -1;
+    permutCnt = calculatePermutations(disorder, startIndex);
+    if (permutCnt == 0)
+      break;
+    vector<unsigned> &conflicts = conflictList[disorder[startIndex].first];
+    for (unsigned idx = startIndex + 1; idx < disorder.size(); idx++) {
+      unsigned val = disorder[idx].first;
+      if (find(conflicts.begin(), conflicts.end(), val) != conflicts.end()) {
+        disorder[idx].second--;
+        disorder[startIndex].second--;
+      }
+    }
+    assert(disorder[startIndex].second == 0);
+    startIndex++;
+  }
+  for (unsigned idx = startIndex; idx < disorder.size(); idx++)
+    result.push_back(disorder[idx].first);
+}
+
+unsigned BlockQueueInfo::calculateCommonTailLength(
+    vector<vector<unsigned>> const &queues) {
+  unsigned cnt = 0;
+  for (;;) {
+    for (vector<unsigned> const &queue : queues) {
+      unsigned val = (unsigned)-1;
       if (queue.size() == cnt)
-				return cnt;
+        return cnt;
       unsigned queueVal = queue[queue.size() - 1 - cnt];
-      if (val == (unsigned) -1)
+      if (val == (unsigned)-1)
         val = queueVal;
       else if (queueVal != val)
-				return cnt;
+        return cnt;
     }
-	}
-	return cnt;
+  }
+  return cnt;
+}
+
+bool BlockQueueInfo::test(MachineFunction &MF) {
+  vector<unsigned> queue1{0, 1, 2, 3};
+  vector<unsigned> queue2{1, 0, 2, 3};
+  vector<unsigned> queue3{5, 3, 0, 1, 2, 4};
+  vector<unsigned> result;
+  BlockQueueInfo::calculateMaximumCommonChain(queue1, queue2, result, 1);
+  dbgs() << "Result : " << regListToString(result) << "\n";
+
+  result.clear();
+  BlockQueueInfo::calculateMaximumCommonChain(queue1, queue3, result, 1);
+  dbgs() << "Result : " << regListToString(result) << "\n";
+
+  vector<unsigned> fqueue1{0, 1, 2, 3};
+  vector<unsigned> fqueue2{3, 1, 2, 0};
+  vector<unsigned> fqueue3{3, 2, 1, 0};
+  vector<unsigned> fqueue4{2, 3, 1, 0};
+  vector<unsigned> fqueue5{6, 5, 4, 3, 2, 1, 0};
+  vector<unsigned> fqueue6{0};
+
+  StackFixup fixup1 = BlockQueueInfo::calculateFixup(MF, fqueue1, fqueue2);
+  dbgs() << "\n";
+  fixup1.dump();
+  dbgs() << "\n";
+
+  StackFixup fixup2 = BlockQueueInfo::calculateFixup(MF, fqueue1, fqueue3);
+  dbgs() << "\n";
+  fixup2.dump();
+  dbgs() << "\n";
+
+  StackFixup fixup3 = BlockQueueInfo::calculateFixup(MF, fqueue1, fqueue4);
+  dbgs() << "\n";
+  fixup3.dump();
+  dbgs() << "\n";
+
+  StackFixup fixup4 = BlockQueueInfo::calculateFixup(MF, fqueue6, fqueue5);
+  dbgs() << "\n";
+  fixup4.dump();
+  dbgs() << "\n";
+
+  return true;
 }

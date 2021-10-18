@@ -31,6 +31,13 @@
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/raw_ostream.h"
 
+//#include "TVMInstMappingInfo.inc"
+namespace llvm {
+namespace TVM {
+extern int RegForm2SForm[]; // defined in StackModel.cpp
+} // end namespace TVM
+} // namespace llvm
+
 #include <iostream>
 #include <unordered_map>
 #include <unordered_set>
@@ -482,6 +489,12 @@ public:
                        LiveIntervals *LIS,
                        unordered_map<unsigned, MachineInstr *> const &pseudoMap,
                        BlockQueueInfo &queueInfo);
+
+  // Convert an instruction in Reg-form to S-form.
+  // Similar to function from StackModel, adapted to this
+  // flexible stack tree model.
+  static MachineInstr *convertToSForm(const MachineInstr &MI,
+                                      const TargetInstrInfo *TII);
 };
 
 void SchedulerUtils::gatherBlockLiveIns(MachineBasicBlock &MBB,
@@ -594,52 +607,108 @@ enum LayeredInstructionDAGNodeKind { LINSource, LINSink, LINInstruction };
 class LayeredInstructionDAGNode {
   friend class LayeredInstructionDAG;
 
+public:
+  class Edge {
+    LayeredInstructionDAGNode *node;
+    unsigned outPortIndex;
+    unsigned inPortIndex;
+    unsigned reg;
+
+  public:
+    explicit Edge(LayeredInstructionDAGNode *node_, unsigned outPortIndex_,
+                  unsigned inPortIndex_, unsigned reg_)
+        : node(node_), outPortIndex(outPortIndex_), inPortIndex(inPortIndex_),
+          reg(reg_) {}
+
+    LayeredInstructionDAGNode *getNode() const { return node; }
+
+    unsigned getOutPortIndex() const { return outPortIndex; }
+
+    unsigned getInPortIndex() const { return inPortIndex; }
+
+    unsigned getReg() const { return reg; }
+  };
+
+private:
+  LayeredInstructionDAG &DAG;
   LayeredInstructionDAGNodeKind kind;
   MachineInstr *instr;
   unsigned reg;
-  vector<LayeredInstructionDAGNode *> Predecessors;
-  vector<LayeredInstructionDAGNode *> Successors;
+  vector<Edge> Predecessors;
+  vector<Edge> Successors;
   unsigned level;
   unsigned orderNum;
 
 private:
-  LayeredInstructionDAGNode(MachineInstr *insn)
-      : kind(LINInstruction), instr(insn), reg(0), Predecessors(), Successors(),
-        level(0) {}
+  LayeredInstructionDAGNode(LayeredInstructionDAG &DAG_, MachineInstr *insn)
+      : DAG(DAG_), kind(LINInstruction), instr(insn), reg(0), Predecessors(),
+        Successors(), level(0) {}
 
-  LayeredInstructionDAGNode(LayeredInstructionDAGNodeKind kn, unsigned rg)
-      : kind(kn), instr(nullptr), reg(rg), Predecessors(), Successors(),
-        level(0) {}
+  LayeredInstructionDAGNode(LayeredInstructionDAG &DAG_,
+                            LayeredInstructionDAGNodeKind kn, unsigned rg)
+      : DAG(DAG_), kind(kn), instr(nullptr), reg(rg), Predecessors(),
+        Successors(), level(0) {}
 
 public:
-  LayeredInstructionDAGNodeKind getKind() { return kind; }
+  LayeredInstructionDAGNodeKind getKind() const { return kind; }
 
-  MachineInstr *getInstruction() { return instr; }
+  LayeredInstructionDAG &getDAG() const { return DAG; }
 
-  unsigned getReg() { return reg; }
+  MachineInstr *getInstruction() const { return instr; }
 
-  unsigned getLevel() { return level; }
+  unsigned getReg() const { return reg; }
+
+  unsigned getLevel() const { return level; }
 
   void setLevel(unsigned lvl) { level = lvl; }
 
   // return order number of node in scheduling sequence
   // the more the number - the later is the node instruction
-  unsigned getOrderNum() { return orderNum; }
+  unsigned getOrderNum() const { return orderNum; }
 
   void setOrderNum(unsigned num) { orderNum = num; }
 
-  // TODO
-  const TargetInstrInfo *getInstructionInfo() { return nullptr; }
+  const TargetInstrInfo *getInstructionInfo();
+
+  // Return number of successors for register reg
+  unsigned getNumSuccessors(unsigned reg) const {
+    unsigned num = 0;
+    for (Edge edge : successors()) {
+      if (edge.getReg() == reg)
+        num++;
+    }
+    return num;
+  }
+
+  // Get all succesors of this node using register reg
+  void getSuccessors(unsigned reg,
+                     vector<LayeredInstructionDAGNode *> result) const {
+    for (Edge edge : successors()) {
+      if (edge.getReg() == reg)
+        result.push_back(edge.getNode());
+    }
+  }
+
+  // Returns output port index for register reg.
+  // If there is no such port, returns -1.
+  int getOutPortIndex(unsigned reg) {
+    const MachineInstr &instr = *getInstruction();
+    int num = 0;
+    for (const MachineOperand &op : instr.defs()) {
+      if (op.isReg() && op.getReg() == reg)
+        return num;
+      num++;
+    }
+    return -1;
+  }
 
   string toString();
 
   // Layered Instruction Graph iterators
-  using pred_iterator = vector<LayeredInstructionDAGNode *>::iterator;
-  using const_pred_iterator =
-      vector<LayeredInstructionDAGNode *>::const_iterator;
-  using succ_iterator = vector<LayeredInstructionDAGNode *>::iterator;
-  using const_succ_iterator =
-      vector<LayeredInstructionDAGNode *>::const_iterator;
+  using pred_iterator = vector<Edge>::iterator;
+  using const_pred_iterator = vector<Edge>::const_iterator;
+  using succ_iterator = vector<Edge>::iterator;
+  using const_succ_iterator = vector<Edge>::const_iterator;
 
   pred_iterator pred_begin() { return Predecessors.begin(); }
 
@@ -682,22 +751,30 @@ public:
   }
 
 private:
-  void addPredecessor(LayeredInstructionDAGNode *node) {
-    Predecessors.push_back(node);
+  void addPredecessor(LayeredInstructionDAGNode *node, unsigned outPortIndex,
+                      unsigned inPortIndex, unsigned reg) {
+    Predecessors.push_back(Edge(node, outPortIndex, inPortIndex, reg));
   }
 
   bool hasPredecessor(LayeredInstructionDAGNode *node) {
-    auto it = find(Predecessors.begin(), Predecessors.end(), node);
-    return it != Predecessors.end();
+    for (Edge edge : predecessors()) {
+      if (edge.getNode() == node)
+        return true;
+    }
+    return false;
   }
 
-  void addSuccessor(LayeredInstructionDAGNode *node) {
-    Successors.push_back(node);
+  void addSuccessor(LayeredInstructionDAGNode *node, unsigned outPortIndex,
+                    unsigned inPortIndex, unsigned reg) {
+    Successors.push_back(Edge(node, outPortIndex, inPortIndex, reg));
   }
 
   bool hasSuccessor(LayeredInstructionDAGNode *node) {
-    auto it = find(Successors.begin(), Successors.end(), node);
-    return it != Successors.end();
+    for (Edge edge : successors()) {
+      if (edge.getNode() == node)
+        return true;
+    }
+    return false;
   }
 };
 
@@ -735,16 +812,20 @@ class LayeredInstructionDAG {
   Recycler<LayeredInstructionDAGNode> LayeredInstructionDAGNodeRecycler;
 
 public:
-  LayeredInstructionDAG(MachineBasicBlock *mbb,
+  LayeredInstructionDAG(MachineBasicBlock *MBB_,
                         unordered_set<unsigned> const &pseudoSet,
                         unordered_set<unsigned> liveOut)
-      : MBB(mbb), levels() {
+      : MBB(MBB_), levels() {
     constructFromMBB(pseudoSet, liveOut);
   }
 
-  MachineBasicBlock *getMBB() { return MBB; }
+  MachineBasicBlock *getMBB() const { return MBB; }
 
-  unsigned getNumLevels() { return levels.size(); }
+  const TargetInstrInfo *getInstructionInfo() {
+    return getMBB()->getParent()->getSubtarget<TVMSubtarget>().getInstrInfo();
+  }
+
+  unsigned getNumLevels() const { return levels.size(); }
 
   vector<vector<LayeredInstructionDAGNode *>> const &getLevels() {
     return levels;
@@ -762,7 +843,9 @@ private:
                                         unsigned reg);
 
   void LayeredInstructionDAG::addEdge(LayeredInstructionDAGNode *source,
-                                      LayeredInstructionDAGNode *target);
+                                      LayeredInstructionDAGNode *target,
+                                      unsigned outPortIndex,
+                                      unsigned inPortIndex, unsigned reg);
 
   void constructFromMBB(unordered_set<unsigned> const &pseudoSet,
                         unordered_set<unsigned> liveOut);
@@ -772,7 +855,7 @@ LayeredInstructionDAGNode *
 LayeredInstructionDAG::createNode(MachineInstr *instr) {
   return new (
       LayeredInstructionDAGNodeRecycler.Allocate<LayeredInstructionDAGNode>(
-          Allocator)) LayeredInstructionDAGNode(instr);
+          Allocator)) LayeredInstructionDAGNode(*this, instr);
 }
 
 LayeredInstructionDAGNode *
@@ -780,13 +863,19 @@ LayeredInstructionDAG::createNode(LayeredInstructionDAGNodeKind kind,
                                   unsigned reg) {
   return new (
       LayeredInstructionDAGNodeRecycler.Allocate<LayeredInstructionDAGNode>(
-          Allocator)) LayeredInstructionDAGNode(kind, reg);
+          Allocator)) LayeredInstructionDAGNode(*this, kind, reg);
+}
+
+const TargetInstrInfo *LayeredInstructionDAGNode::getInstructionInfo() {
+  return getDAG().getInstructionInfo();
 }
 
 void LayeredInstructionDAG::addEdge(LayeredInstructionDAGNode *source,
-                                    LayeredInstructionDAGNode *target) {
-  source->addSuccessor(target);
-  target->addPredecessor(source);
+                                    LayeredInstructionDAGNode *target,
+                                    unsigned outPortIndex, unsigned inPortIndex,
+                                    unsigned reg) {
+  source->addSuccessor(target, outPortIndex, inPortIndex, reg);
+  target->addPredecessor(source, outPortIndex, inPortIndex, reg);
 }
 
 void LayeredInstructionDAG::scheduleNodes(
@@ -797,7 +886,9 @@ void LayeredInstructionDAG::scheduleNodes(
   for (unsigned level = 0; level < levels.size(); level++) {
     vector<LayeredInstructionDAGNode *> const &lv = levels[level];
     for (unsigned pos = 0; pos < lv.size(); pos++) {
-      lv[pos]->setOrderNum(orderNum++);
+      LayeredInstructionDAGNode *node = lv[pos];
+      node->setOrderNum(orderNum++);
+      order.push_back(node);
     }
   }
 }
@@ -811,25 +902,35 @@ void LayeredInstructionDAG::constructFromMBB(
   levels.push_back(vector<LayeredInstructionDAGNode *>());
   unsigned curLevel = 1;
   for (MachineInstr &MI : *MBB) {
+    // MI.dump();
+    if (MI.getOpcode() == TVM::ARGUMENT &&
+        pseudoSet.find(MI.getOperand(0).getReg()) != pseudoSet.end())
+      continue;
     LayeredInstructionDAGNode *insnNode = createNode(&MI);
+    unsigned inPortIndex = 0;
     for (const MachineOperand &op : MI.uses()) {
       if (op.isReg()) {
         unsigned reg = op.getReg();
-        if (pseudoSet.find(reg) == pseudoSet.end())
+        if (pseudoSet.find(reg) != pseudoSet.end())
           continue;
+        unsigned outPortIndex = 0;
         LayeredInstructionDAGNode *def;
         auto it = defMap.find(reg);
         if (it == defMap.end()) {
           def = createNode(LINSource, reg);
           def->setLevel(0);
           defMap.insert_or_assign(reg, def);
-        } else
+        } else {
           def = it->second;
+          int idx = def->getOutPortIndex(reg);
+          assert(idx >= 0);
+          outPortIndex = idx;
+        }
         if (def->getLevel() == curLevel) {
           levels.push_back(vector<LayeredInstructionDAGNode *>());
           curLevel++;
         }
-        addEdge(def, insnNode);
+        addEdge(def, insnNode, outPortIndex, inPortIndex, reg);
       }
     }
     insnNode->setLevel(curLevel);
@@ -861,7 +962,9 @@ void LayeredInstructionDAG::constructFromMBB(
     unsigned sinkReg = it->first;
     LayeredInstructionDAGNode *sinkInstr = it->second;
     LayeredInstructionDAGNode *sink = createNode(LINSink, sinkReg);
-    addEdge(sinkInstr, sink);
+    int outPortIndex = sinkInstr->getOutPortIndex(sinkReg);
+    assert(outPortIndex >= 0);
+    addEdge(sinkInstr, sink, outPortIndex, 0, sinkReg);
     sinks.push_back(sink);
   }
   levels.push_back(sinks);
@@ -880,52 +983,88 @@ void LayeredInstructionDAG::dump() {
       dbgs() << node->toString();
       first = false;
     }
+    dbgs() << "\n";
   }
   dbgs() << "Edges:\n";
   for (unsigned i = 0; i < getNumLevels(); i++) {
     for (LayeredInstructionDAGNode *source : levels[i]) {
-      for (LayeredInstructionDAGNode *target : source->successors()) {
+      for (LayeredInstructionDAGNode::Edge target : source->successors()) {
+        dbgs() << "[" << regToString(target.getReg()) << "] ";
         dbgs() << source->toString();
         dbgs() << " -> ";
-        dbgs() << target->toString();
+        dbgs() << target.getNode()->toString();
         dbgs() << "\n";
       }
     }
+    dbgs() << "\n";
   }
 }
-
-struct OperandQueueSlot {
-  // Target Node
-  LayeredInstructionDAGNode *target;
-  // Number of input port in target node, corresponding to this slot
-  unsigned targetInPort;
-  // Number of uses of this slot data remained
-  // if useRemain > 1, we need to copy this slot for next use instructions
-  unsigned usesRemain;
-};
 
 // Model of Machine Block local stack by means of operand queue.
 // The head of queue corresponds to the top of stack
 class OperandQueue {
+public:
+  class Slot {
+    // Target Node
+    LayeredInstructionDAGNode *target;
+    // Number of input port in target node, corresponding to this slot
+    unsigned targetInPortIndex;
+    // Number of uses of this slot data remained
+    // if useRemain > 1, we need to copy this slot for next use instructions
+    unsigned usesRemain;
+    // Register used by this slot
+    unsigned reg;
+
+  public:
+    explicit Slot(LayeredInstructionDAGNode *target_, unsigned targetInPortIndex_,
+                  unsigned reg_, unsigned usesRemain_ = 1)
+        : target(target_), targetInPortIndex(targetInPortIndex_), reg(reg_),
+          usesRemain(usesRemain_) {}
+
+    LayeredInstructionDAGNode *getTarget() const { return target; }
+
+		unsigned getInPortIndex() const { return targetInPortIndex; }
+
+		unsigned getReg() const { return reg; }
+
+		unsigned getRemainUses() const { return usesRemain; }
+
+		string toString();
+  };
+
+private:
   LayeredInstructionDAG *DAG;
-  vector<OperandQueueSlot> queue;
+  vector<Slot> queue;
 
 public:
   OperandQueue(LayeredInstructionDAG *dag) : DAG(dag), queue() {}
 
-  OperandQueueSlot const &getSlot(unsigned slotNum) { return queue[slotNum]; }
+  unsigned size() const { return queue.size(); }
+
+	// Return slot for index slotIndex.
+	// Index 0 - head of the queue, index (size() -1) - tail of the queue.
+  Slot const &getSlot(unsigned slotIndex) { return queue[queue.size() - 1 - slotIndex]; }
 
   // Insert new slot into queue
   // Return insertion position of slot in queue
   unsigned enqueue(LayeredInstructionDAGNode *target, unsigned targetInPort,
-                   unsigned useRem = 1);
+                   unsigned reg, unsigned useRem = 1);
 
   // Insert new slot into queue which corresponds to next instruction with the
   // same definition
-  unsigned enqueueNext(OperandQueueSlot const &slot);
+  unsigned enqueueNext(Slot const &slot);
 
   // Remove num elements from queue head
-  void dequeue(unsigned num);
+  void dequeue(unsigned num = 1);
+
+	// Return true if this queue contains register reg, false otherwise.
+	bool contains(unsigned reg) const { return lookupIndex(reg) >= 0; }
+
+	// Lookup slot index contains register reg.
+	// If there is no such slot, returns -1.
+	int lookupIndex(unsigned reg) const;
+
+	string toString();
 
   void dump();
 
@@ -936,34 +1075,77 @@ private:
   }
 };
 
+int OperandQueue::lookupIndex(unsigned reg) const { 
+	for (int idx = 0; idx < queue.size(); idx++) {
+    if (queue[idx].getReg() == reg)
+			return idx;
+	}
+	return -1;
+}
+
 unsigned OperandQueue::enqueue(LayeredInstructionDAGNode *targ,
-                               unsigned targInPort, unsigned useRem) {
-  OperandQueueSlot slot;
-  slot.target = targ;
-  slot.targetInPort = targInPort;
-  slot.usesRemain = useRem;
-  unsigned ord = order(targ, targInPort);
-  unsigned pos;
-  for (pos = 0; pos < queue.size(); pos++) {
-    OperandQueueSlot const &posSlot = getSlot(pos);
-    if (order(posSlot.target, posSlot.targetInPort) > ord)
+           unsigned targInPortIndex, unsigned reg, unsigned usesRemain) {
+  Slot slot(targ, targInPortIndex, reg, usesRemain);
+  unsigned ord = order(targ, targInPortIndex);
+  unsigned pos = 0;
+  for (pos = 0; pos < size(); pos++) {
+    Slot const &posSlot = getSlot(pos);
+    if (order(posSlot.getTarget(), posSlot.getInPortIndex()) > ord)
       break;
   }
-  // TODO
+  if (pos != 0) {
+    auto it = queue.begin();
+    for (int i = 0; i < size() - 1- pos; i++) it++;
+    queue.insert(it, slot);
+	} 
+	else queue.push_back(slot);
   return pos;
 }
 
-unsigned OperandQueue::enqueueNext(OperandQueueSlot const &slot) {
+unsigned OperandQueue::enqueueNext(Slot const &slot) {
   // TODO
   return 0;
 }
 
-void OperandQueue::dequeue(unsigned num) {
-  // TODO
+void OperandQueue::dequeue(unsigned num) { 
+	assert(num <= size());
+	while (num > 0) {
+    queue.pop_back();
+    num--;
+	}
 }
 
-void OperandQueue::dump() {
-  // TODO
+string OperandQueue::Slot::toString() {
+	string str;
+  str += "Reg : ";
+  str += regToString(getReg());
+  str += ", Target : ";
+  str += getTarget() ? getTarget()->toString() : "none";
+  str += ", InPortIndex : ";
+  char buf[8];
+  _itoa_s(getInPortIndex(), buf, 10);
+  str += buf;
+  str += "Uses remain : ";
+  _itoa_s(getRemainUses(), buf, 10);
+	str += buf;
+	return str;
+}
+
+string OperandQueue::toString() {
+	string str;
+  for (int i = 0; i < size(); i++) {
+    if (i != 0)
+      str += " ";
+    str += regToString(queue[i].getReg());
+  }
+	return str;
+}
+
+void OperandQueue::dump() { 
+	dbgs() << "Operand Queue : ";
+  for (int i = 0; i < size(); i++) {
+     dbgs() << "  "  << (size() - 1 - i) << " : " << queue[i].toString() << "\n";
+  }
 }
 
 enum DJEdgeKind { Dominance, Join };
@@ -1258,23 +1440,25 @@ void DJGraph::dump() {
 class StackTreeNode {
   friend class StackTree;
 
-	StackTree* tree;
+  StackTree *tree;
   StackTreeNode *parent;
   vector<StackTreeNode *> children;
   vector<unsigned> registers;
   MachineBasicBlock *MBB;
 
 private:
-  StackTreeNode(StackTree *tree_, StackTreeNode *parent_ = nullptr) : tree(tree_), children(), registers() {
-		setParent(parent_);
-	}
-
-	StackTreeNode(StackTree *tree_, const vector<unsigned> &registers_, StackTreeNode *parent_ = nullptr)
-      : tree(tree_), children(), registers(registers_) {
+  StackTreeNode(StackTree *tree_, StackTreeNode *parent_ = nullptr)
+      : tree(tree_), children(), registers(), MBB(nullptr) {
     setParent(parent_);
-	}
+  }
 
-	void setParent(StackTreeNode *parent_) {
+  StackTreeNode(StackTree *tree_, const vector<unsigned> &registers_,
+                StackTreeNode *parent_ = nullptr)
+      : tree(tree_), children(), registers(registers_), MBB(nullptr) {
+    setParent(parent_);
+  }
+
+  void setParent(StackTreeNode *parent_) {
     parent = parent_;
     if (parent)
       parent->children.push_back(this);
@@ -1283,13 +1467,13 @@ private:
   void setMBB(MachineBasicBlock *MBB_) { MBB = MBB_; }
 
 public:
-  StackTree *getTree() { return tree; }
+  StackTree *getTree() const { return tree; }
 
-  StackTreeNode *getParent() { return parent; }
+  StackTreeNode *getParent() const { return parent; }
 
-  MachineBasicBlock *getMBB() { return MBB; }
+  MachineBasicBlock *getMBB() const { return MBB; }
 
-	unsigned size() {
+  unsigned size() {
     unsigned sz = registers.size();
     if (parent)
       sz += parent->size();
@@ -1314,12 +1498,30 @@ public:
     }
   }
 
+  // Get stack registers from root node to this node
+  void getContents(unordered_set<unsigned> &regs) {
+    if (parent)
+      parent->getContents(regs);
+    for (unsigned reg : registers) {
+      regs.insert(reg);
+    }
+  }
+
   // Lookup register in current node or parent (recursively).
   // Return register offset from the top of stack or -1
   // if register is not in stack
   int lookupRegisterOffset(unsigned reg);
 
+  // Return true if stack contains register reg
+  bool contains(unsigned reg) { return lookupRegisterOffset(reg) >= 0; }
+
+  // Replace register reg to register replaceReg
+  void replaceReg(unsigned reg, unsigned replaceReg);
+
   string toString();
+
+  // Similar to function from Stack/StackModel, adapted
+  void filterByDeadDefs(MachineInstr &MI);
 
   void dump(string margin = "");
 
@@ -1349,6 +1551,23 @@ int StackTreeNode::lookupRegisterOffset(unsigned reg) {
   return -1;
 }
 
+void StackTreeNode::replaceReg(unsigned reg, unsigned replaceReg) {
+  for (unsigned idx = 0; idx < registers.size(); idx++) {
+    if (registers[idx] == reg)
+      registers[idx] = replaceReg;
+  }
+  if (parent)
+    parent->replaceReg(reg, replaceReg);
+}
+
+void StackTreeNode::filterByDeadDefs(MachineInstr &MI) {
+  for (const MachineOperand &MO : MI.defs()) {
+    if (MO.isReg() && MO.isDead()) {
+      replaceReg(MO.getReg(), TVMFunctionInfo::UnusedReg);
+    }
+  }
+}
+
 string StackTreeNode::toString() {
   string str;
   if (parent)
@@ -1364,7 +1583,8 @@ void StackTreeNode::dump(string margin) {
   dbgs() << margin;
   if (getMBB())
     dbgs() << blockToString(getMBB()) << " : ";
-  else dbgs() << "Intermediate ";
+  else
+    dbgs() << "Intermediate ";
   dbgs() << "{ " << toString() << "}";
   for (StackTreeNode *child : children) {
     dump(margin + " ");
@@ -1377,6 +1597,11 @@ void StackTreeNode::dump(string margin) {
 class StackTree {
   StackTreeNode *root;
   map<MachineBasicBlock *, StackTreeNode *> nodeMap;
+  MachineFunction &MF;
+  TVMFunctionInfo *MFI;
+  const TargetInstrInfo *TII;
+  // Map from register index to possible local variable
+  unordered_map<unsigned, const DILocalVariable *> debugMap;
 
   // Pool-allocate StackableTreeNode-lifetime
   BumpPtrAllocator Allocator;
@@ -1385,15 +1610,27 @@ class StackTree {
   Recycler<StackTreeNode> StackTreeNodeRecycler;
 
 public:
-  StackTree() {}
+  StackTree(MachineFunction &MF_) : MF(MF_) {
+    MFI = MF.getInfo<TVMFunctionInfo>();
+    TII = MF.getSubtarget<TVMSubtarget>().getInstrInfo();
+    gatherDebugInfo();
+  }
 
   StackTreeNode *getRoot() { return root; }
 
   void setRoot(StackTreeNode *root_) { root = root_; }
 
-	void addNodeMap(MachineBasicBlock *MBB, StackTreeNode *stack) { nodeMap[MBB] = stack;  }
+  void addNodeMap(MachineBasicBlock *MBB, StackTreeNode *stack) {
+    stack->setMBB(MBB);
+    nodeMap[MBB] = stack;
+  }
 
   StackTreeNode *lookupNode(MachineBasicBlock *MBB) { return nodeMap[MBB]; }
+
+  // Lookup local variable debug info for register reg
+  const DILocalVariable *lookupLocalVariable(unsigned reg) {
+    return debugMap[reg];
+  }
 
   void dump() {
     if (getRoot())
@@ -1407,11 +1644,62 @@ public:
         StackTreeNode(this, parent);
   }
 
-  StackTreeNode *createNode(const vector<unsigned> &registers, StackTreeNode *parent = nullptr) {
+  StackTreeNode *createNode(const vector<unsigned> &registers,
+                            StackTreeNode *parent = nullptr) {
     return new (StackTreeNodeRecycler.Allocate<StackTreeNode>(Allocator))
         StackTreeNode(this, registers, parent);
   }
+
+  // Rewrite all instrtuction from machine function to S-Form
+  void rewriteToSForm();
+
+private:
+  // Rewrite an instruction from Reg-form to S-form.
+  // Similar to function from StackModel, adapted to this
+  // flexible stack tree model
+  void rewriteToSForm(MachineInstr &MI, StackTreeNode &stack);
+
+  // Gather debug information for registers in machine function
+  void gatherDebugInfo();
 };
+
+void StackTree::gatherDebugInfo() {
+  for (MachineBasicBlock &MBB : MF) {
+    for (MachineInstr &MI : MBB) {
+      if (MI.isDebugValue() && MI.getOperand(0).isReg())
+        debugMap[MI.getOperand(0).getReg()] = MI.getDebugVariable();
+    }
+  }
+}
+
+void StackTree::rewriteToSForm() {
+  for (MachineBasicBlock &MBB : MF) {
+    StackTreeNode *stack = lookupNode(&MBB);
+    assert(stack);
+    for (MachineInstr &MI : MBB) {
+      rewriteToSForm(MI, *stack);
+    }
+  }
+}
+
+void StackTree::rewriteToSForm(MachineInstr &MI, StackTreeNode &stack) {
+  MachineInstr *SMI = SchedulerUtils::convertToSForm(MI, TII);
+  if (SMI) {
+    MI.getParent()->insertAfter(MachineBasicBlock::instr_iterator(MI), &MI);
+    std::vector<unsigned> SourceRegs;
+    for (unsigned I = 0; I < MI.getNumOperands(); I++) {
+      const auto &Op = MI.getOperand(I);
+      if (Op.isReg()) {
+        SourceRegs.push_back(Op.getReg());
+      }
+    }
+    MFI->setStackModelSourceRegs(SMI, SourceRegs);
+
+    // TODO Maybe don't needed in this model, as opposed to StackModel
+    // stack.filterByDeadDefs(MI);
+  }
+  MI.removeFromParent();
+}
 
 enum StackableRegionKind {
   SRLeaf,        // Leaf region (contains single Machine Block)
@@ -1640,6 +1928,7 @@ class StackableRegionStructure {
   MachineFunction &MF;
   DJGraph djGraph;
   StackableRegion *root;
+  unordered_map<MachineBasicBlock *, StackableRegion *> leafMap;
 
   // Pool-allocate StackableRegionStructure-lifetime
   BumpPtrAllocator Allocator;
@@ -1653,11 +1942,18 @@ public:
     init(MF_);
   }
 
-  StackableRegion &getRoot() { return *root; }
+  StackableRegion &getRoot() const { return *root; }
 
-  DJGraph &getDJGraph() { return djGraph; }
+  const DJGraph &getDJGraph() const { return djGraph; }
 
-  MachineFunction &getMF() { return MF; }
+  MachineFunction &getMF() const { return MF; }
+
+  StackableRegion *lookupLeafRegion(MachineBasicBlock *MBB) const {
+    auto search = leafMap.find(MBB);
+    if (search != leafMap.end())
+      return search->second;
+    return nullptr;
+  }
 
   // Calculate different region variable (register) sets - defs, uses, liveIns,
   // liveOuts, ...
@@ -1677,8 +1973,11 @@ public:
 
 private:
   StackableRegion *createLeaf(MachineBasicBlock *MBB) {
-    return new (StackableRegionRecycler.Allocate<StackableRegion>(Allocator))
-        StackableRegion(SRLeaf, MBB);
+    StackableRegion *rgn =
+        new (StackableRegionRecycler.Allocate<StackableRegion>(Allocator))
+            StackableRegion(SRLeaf, MBB);
+    leafMap[MBB] = rgn;
+    return rgn;
   }
 
   StackableRegion *createSequence(vector<StackableRegion *> &children) {
@@ -2017,31 +2316,37 @@ void StackableRegion::createStackTree(StackTreeNode &stack) {
   switch (kind) {
   case SRLeaf:
     stack.getTree()->addNodeMap(getMBB(), &stack);
-		break;
+    break;
   case SRIfThen:
     getCondition()->createStackTree(*stack.getTree()->createNode(&stack));
-    getThen()->createStackTree(*stack.getTree()->createNode(getLocalStack(), &stack));
-		break;
+    getThen()->createStackTree(
+        *stack.getTree()->createNode(getLocalStack(), &stack));
+    break;
   case SRIfThenElse:
     getCondition()->createStackTree(*stack.getTree()->createNode(&stack));
-    getThen()->createStackTree(*stack.getTree()->createNode(getLocalStack(), &stack));
-    getElse()->createStackTree(*stack.getTree()->createNode(getLocalStack(), &stack));
-		break;
+    getThen()->createStackTree(
+        *stack.getTree()->createNode(getLocalStack(), &stack));
+    getElse()->createStackTree(
+        *stack.getTree()->createNode(getLocalStack(), &stack));
+    break;
   case SRSwitch:
     getCondition()->createStackTree(*stack.getTree()->createNode(&stack));
     for (auto it = case_begin(); it != case_end(); it++) {
-			StackableRegion *caseRegion = *it;
-      caseRegion->createStackTree(*stack.getTree()->createNode(getLocalStack(), &stack));
+      StackableRegion *caseRegion = *it;
+      caseRegion->createStackTree(
+          *stack.getTree()->createNode(getLocalStack(), &stack));
     }
-		if (hasDefault())
-      getDefault()->createStackTree(*stack.getTree()->createNode(getLocalStack(), &stack));
-		break;
+    if (hasDefault())
+      getDefault()->createStackTree(
+          *stack.getTree()->createNode(getLocalStack(), &stack));
+    break;
   case SRSequence:
-		break;
+    break;
   case SRSelfLoop:
   case SRNaturalLoop:
   case SRWhileLoop:
-  default: break;
+  default:
+    break;
   }
 }
 
@@ -2376,9 +2681,30 @@ private:
 
   //  void createTreeGraph(MachineBasicBlock &MBB);
 
+  // Main code emit function
+  void emitScheduledCode(const StackableRegionStructure &SRS,
+                         StackTree &stackTree);
+
+  // Queue instruction scheduler
+  // Input - list of prescheduled instructions in Reg-Form nodes,
+  //   Stack stack.
+  // Output - list of scheduled instructions in S-Form
+  void schedule(const vector<LayeredInstructionDAGNode *> nodes,
+                StackTreeNode &stack, MachineBasicBlock &outMBB);
+
+  void insertInputOperands(const LayeredInstructionDAGNode &node,
+                           StackTreeNode &stack, OperandQueue &queue,
+                           MachineBasicBlock &outMBB);
+
+  void distributeOutputResults(const LayeredInstructionDAGNode &node,
+                               StackTreeNode &stack, OperandQueue &queue,
+                               MachineBasicBlock &outMBB);
+
   MachineRegisterInfo *MRI;
   LiveIntervals *LIS;
   MachineDominatorTree *MDT;
+  const TargetInstrInfo *TII;
+  TVMFunctionInfo *MFI;
 };
 } // end anonymous namespace
 
@@ -2400,6 +2726,8 @@ bool TVMLocalScheduler::runOnMachineFunction(MachineFunction &MF) {
   MRI = &MF.getRegInfo();
   LIS = &getAnalysis<LiveIntervals>();
   MDT = &getAnalysis<MachineDominatorTree>();
+  TII = MF.getSubtarget<TVMSubtarget>().getInstrInfo();
+  MFI = MF.getInfo<TVMFunctionInfo>();
 
   changed |= runOnBasicBlocks(MF);
 
@@ -2433,9 +2761,14 @@ bool TVMLocalScheduler::runOnBasicBlocks(MachineFunction &MF) {
   SRS.dump();
   dbgs() << "\n";
 
-	StackTree stackTree;
+  StackTree stackTree(MF);
   SRS.createStackTree(stackTree);
   stackTree.dump();
+  dbgs() << "\n";
+
+  emitScheduledCode(SRS, stackTree);
+
+  changed = true;
 
   //  for (DJNode *node : SRS.getDJGraph()) {
   //    SchedulerUtils::gatherBlockQueueInfo(node->getMBB(), MRI, LIS,
@@ -2446,17 +2779,40 @@ bool TVMLocalScheduler::runOnBasicBlocks(MachineFunction &MF) {
   /*
 auto &firstBB = MF.front();
 
-using RPOTType = ReversePostOrderTraversal<MachineFunction *>;
-RPOTType RPOT(&MF);
 
-for (RPOTType::rpo_iterator I = RPOT.begin(), E = RPOT.end(); I != E;
-  ++I) {
-MachineBasicBlock *MBB = *I;
-
-createTreeGraph(*MBB);
-}
   */
   return changed;
+}
+
+void TVMLocalScheduler::emitScheduledCode(const StackableRegionStructure &SRS,
+                                          StackTree &stackTree) {
+  MachineFunction &MF = SRS.getMF();
+  using RPOTType = ReversePostOrderTraversal<MachineFunction *>;
+  RPOTType RPOT(&MF);
+
+  for (RPOTType::rpo_iterator I = RPOT.begin(), E = RPOT.end(); I != E; ++I) {
+    MachineBasicBlock *MBB = *I;
+    StackableRegion *leaf = SRS.lookupLeafRegion(MBB);
+    assert(leaf);
+    StackTreeNode *stack = stackTree.lookupNode(MBB);
+    assert(stack);
+    unordered_set<unsigned> stackSet;
+    stack->getContents(stackSet);
+    //    dbgs() << "Live Outs : " << regSetToString(leaf->getLiveOuts()) <<
+    //    "\n"; dbgs() << "Stack Set : " << regSetToString(stackSet) << "\n";
+    LayeredInstructionDAG DAG(MBB, stackSet, leaf->getLiveOuts());
+    DAG.dump();
+    vector<LayeredInstructionDAGNode *> order;
+    DAG.scheduleNodes(order);
+    dbgs() << "Instruction DAG order : \n";
+    for (LayeredInstructionDAGNode *node : order) {
+      dbgs() << node->toString() << "\n";
+    }
+    dbgs() << "\n";
+    MachineBasicBlock *newMBB = MF.CreateMachineBasicBlock();
+    schedule(order, *stack, *newMBB);
+    newMBB->dump();
+  }
 }
 
 /*
@@ -2477,6 +2833,158 @@ void TVMLocalScheduler::createTreeGraph(MachineBasicBlock & MBB) {
   }
 }
 */
+
+void TVMLocalScheduler::insertInputOperands(
+    const LayeredInstructionDAGNode &node, StackTreeNode &stack,
+    OperandQueue &queue, MachineBasicBlock &outMBB) {
+  MachineInstr *MI = node.getInstruction();
+  assert(MI);
+  const DebugLoc &DL = MI->getDebugLoc();
+  MachineFunction &MF = *MI->getParent()->getParent();
+  vector<unsigned> params;
+  vector<unsigned> stackArgs;
+  vector<unsigned> queueArgs;
+  for (const MachineOperand &op : MI->uses()) {
+    if (op.isReg()) {
+      unsigned reg = op.getReg();
+      params.insert(params.begin(), reg);
+      if (queue.contains(reg)) {
+        // Operand register is in queue, already in place
+        queueArgs.insert(queueArgs.begin(), reg);           
+			} 
+			else {
+        // Operand register is in stack tree, use PUSH instruction
+        int stackOffset = stack.lookupRegisterOffset(reg);
+        assert(stackOffset >= 0);
+        MachineInstr *push = MF.CreateMachineInstr(TII->get(TVM::PUSH), DL);
+        push->addOperand(MF, MachineOperand::CreateImm(stackOffset + queue.size()));
+        outMBB.push_back(push);
+        stackArgs.insert(stackArgs.begin(), reg);
+      }
+    }
+  }
+  /*
+  for (unsigned idx = 0; idx < queueArgs.size(); idx++) {
+    const OperandQueueSlot &slot = queue.getSlot(idx);
+    assert(queueArgs[idx] == slot.reg);
+    stackArgs.insert(stackArgs.begin(), queueArgs[idx]);
+        }
+  queue.dequeue(queueArgs.size());
+  if (params != stackArgs) {
+    // We need sun fixup to adjust mix of stack and queue arguments
+    StackFixup fixup = BlockQueueInfo::calculateFixup(MF, params, stackArgs);
+    StackFixup::InstructionGenerator instrGen(TII, MFI, &outMBB,
+  outMBB.instr_back()); instrGen(fixup);
+        }
+        */
+}
+
+void TVMLocalScheduler::distributeOutputResults(
+    const LayeredInstructionDAGNode &node, StackTreeNode &stack,
+    OperandQueue &queue, MachineBasicBlock &outMBB) {
+  MachineInstr *MI = node.getInstruction();
+  assert(MI);
+  StackFixup fixup;
+  for (const MachineOperand &op : MI->defs()) {
+    assert(op.isReg());
+    unsigned reg = op.getReg();
+    unsigned succNum = node.getNumSuccessors(reg);
+    if (succNum > 0) {
+      // Duplicate result if there are several consumers
+      for (unsigned i = 1; i < succNum; i++) {
+        fixup(StackFixup::pushI(0)); // DUP
+      }
+      for (LayeredInstructionDAGNode::Edge edge : node.successors()) {
+        if (edge.getReg() == reg) {
+        }
+      }
+    } else {
+      // There are no consumers for this result, drop it
+      fixup(StackFixup::pop(0)); // DROP
+      queue.dequeue();
+    }
+  }
+
+  StackFixup::InstructionGenerator instrGen(TII, MFI, &outMBB, outMBB.instr_back());
+  instrGen(fixup);
+}
+
+void TVMLocalScheduler::schedule(
+    const vector<LayeredInstructionDAGNode *> nodes, StackTreeNode &stack,
+    MachineBasicBlock &outMBB) {
+  if (nodes.empty())
+    return;
+  OperandQueue queue(&nodes[0]->getDAG());
+  for (LayeredInstructionDAGNode *node : nodes) {
+    MachineInstr *MI = node->getInstruction();
+    //   MI->dump();
+    MachineInstr *SMI = SchedulerUtils::convertToSForm(*MI, TII);
+    if (SMI) {
+      insertInputOperands(*node, stack, queue, outMBB);
+      outMBB.push_back(SMI);
+      distributeOutputResults(*node, stack, queue, outMBB);
+    }
+  }
+}
+
+MachineInstr *SchedulerUtils::convertToSForm(const MachineInstr &MI,
+                                             const TargetInstrInfo *TII) {
+  size_t NumDefs = MI.getNumDefs();
+  size_t NumOperands = MI.getNumOperands();
+  int NewOpcode = TVM::RegForm2SForm[MI.getOpcode()];
+
+  size_t NumGlobals = llvm::count_if(MI.uses(), [](const MachineOperand &MO) {
+    return MO.isGlobal() || MO.isSymbol();
+  });
+  size_t NumImms = llvm::count_if(MI.uses(), [](const MachineOperand &MO) {
+    return MO.isImm() || MO.isCImm();
+  });
+
+  MachineFunction &MF = *(MachineFunction *)MI.getParent()->getParent();
+  const DebugLoc &DL = MI.getDebugLoc();
+  MachineInstr *SMI = nullptr;
+
+  if (NewOpcode >= 0) {
+    for (unsigned I = 0; I < NumGlobals; I++) {
+      const auto &Op = MI.getOperand(NumDefs + I);
+      assert((Op.isGlobal() || Op.isSymbol()) &&
+             "Expected GlobalAddress/ExternalSymbol");
+      if (NewOpcode == TVM::PUSH_GLOBAL_ADDRESS_S) {
+        if (Op.isGlobal()) {
+          SMI = MF.CreateMachineInstr(TII->get(TVM::PUSHCONT_LABEL), DL);
+          SMI->addOperand(
+              MF, MachineOperand::CreateGA(Op.getGlobal(), Op.getOffset()));
+        } else {
+          SMI = MF.CreateMachineInstr(TII->get(TVM::PUSHCONT_LABEL), DL);
+          SMI->addOperand(MF, MachineOperand::CreateES(Op.getSymbolName()));
+        }
+      }
+    }
+
+    SMI = MF.CreateMachineInstr(TII->get(NewOpcode), DL);
+
+    if (NewOpcode != TVM::PUSH_GLOBAL_ADDRESS_S) {
+      for (unsigned I = 0; I < NumGlobals; I++) {
+        const auto &Op = MI.getOperand(NumDefs + I);
+        SMI->addOperand(Op);
+      }
+    }
+
+    if (MI.getOpcode() == TVM::PUSHCONT_MBB) {
+      SMI->addOperand(MI.getOperand(1));
+    } else {
+      for (unsigned I = 0; I < NumImms; I++) {
+        const auto &Op = MI.getOperand(NumOperands - NumImms + I);
+        assert(Op.isImm() || Op.isCImm() && "Expected Imm or CImm");
+        if (Op.isImm())
+          SMI->addOperand(MF, MachineOperand::CreateImm(Op.getImm()));
+        else
+          SMI->addOperand(MF, MachineOperand::CreateImm(Op.getImm()));
+      }
+    }
+  }
+  return SMI;
+}
 
 void BlockQueueInfo::dump(string margin) {
   dbgs() << margin << "Preferred Input Queue : "

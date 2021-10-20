@@ -737,6 +737,9 @@ static bool LookupBuiltin(Sema &S, LookupResult &R) {
         } else if (II == S.getASTContext().getReflectMethodDynChainParseName()) {
           R.addDecl(S.getASTContext().getReflectMethodDynChainParseDecl());
           return true;
+        } else if (II == S.getASTContext().getReflectMethodDeployName()) {
+          R.addDecl(S.getASTContext().getReflectMethodDeployDecl());
+          return true;
         } else if (II == S.getASTContext().getReflectMethodNoReadPersistentName()) {
           R.addDecl(S.getASTContext().getReflectMethodNoReadPersistentDecl());
           return true;

@@ -179,6 +179,8 @@ BUILTIN(__builtin_tvm_dictdelget, "{TcTsWi}TsTcWi", "nc")
 BUILTIN(__builtin_tvm_dictdelgetref, "{TcTcWi}TsTcWi", "nc")
 BUILTIN(__builtin_tvm_dictudel, "{TcWi}WiTcWi", "nc")
 BUILTIN(__builtin_tvm_dictdel, "{TcWi}TsTcWi", "nc")
+BUILTIN(__builtin_tvm_dictudelget, "{TcTsWi}WiTcWi", "nc")
+BUILTIN(__builtin_tvm_dictudelgetref, "{TcTcWi}WiTcWi", "nc")
 
 BUILTIN(__builtin_tvm_lddict, "{TcTs}Ts", "nc")
 BUILTIN(__builtin_tvm_plddict, "TcTs", "nc")

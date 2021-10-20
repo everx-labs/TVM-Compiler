@@ -1,5 +1,6 @@
 #pragma once
 
+#include <tvm/reflection.hpp>
 #include <boost/hana/string.hpp>
 #include <boost/hana/value.hpp>
 #include <boost/hana/power.hpp>
@@ -8,6 +9,7 @@
 namespace tvm {
 
 namespace hana = boost::hana;
+using namespace hana::literals;
 
 template<unsigned radix>
 constexpr size_t get_magnitude(size_t num) {

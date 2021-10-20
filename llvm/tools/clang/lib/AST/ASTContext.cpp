@@ -1173,6 +1173,14 @@ ASTContext::getReflectMethodDynChainParseDecl() const {
 }
 
 BuiltinTemplateDecl *
+ASTContext::getReflectMethodDeployDecl() const {
+  if (!ReflectMethodDeployDecl)
+    ReflectMethodDeployDecl = buildBuiltinTemplateDecl(
+        BTK__reflect_method_deploy, getReflectMethodDeployName());
+  return ReflectMethodDeployDecl;
+}
+
+BuiltinTemplateDecl *
 ASTContext::getReflectMethodNoReadPersistentDecl() const {
   if (!ReflectMethodNoReadPersistentDecl)
     ReflectMethodNoReadPersistentDecl = buildBuiltinTemplateDecl(

@@ -493,8 +493,15 @@ public:
   // Convert an instruction in Reg-form to S-form.
   // Similar to function from StackModel, adapted to this
   // flexible stack tree model.
+  // If reverse = true, generate reverse instruction (a.k.a SUBR_S instedad of
+  // SUB_S).
   static MachineInstr *convertToSForm(const MachineInstr &MI,
-                                      const TargetInstrInfo *TII);
+                                      const TargetInstrInfo *TII,
+                                      bool reverse = false);
+
+  // Return operation code for reverse instruction.
+  // If ther is no reverse instruction, returns -1.
+  static int getReverseOpcode(unsigned opcode);
 };
 
 void SchedulerUtils::gatherBlockLiveIns(MachineBasicBlock &MBB,
@@ -599,6 +606,53 @@ void SchedulerUtils::gatherPseudoGlobal(
         }
       }
     }
+  }
+}
+
+int SchedulerUtils::getReverseOpcode(unsigned opcode) {
+  switch (opcode) {
+  case TVM::SUB:
+    return TVM::SUBR;
+  case TVM::SUB_S:
+    return TVM::SUBR_S;
+  case TVM::DIV:
+    return TVM::DIV;
+  case TVM::DIV_S:
+    return TVM::DIV_S;
+  case TVM::STI:
+    return TVM::STIR;
+  case TVM::STI_S:
+    return TVM::STIR_S;
+  case TVM::STU:
+    return TVM::STUR;
+  case TVM::STU_S:
+    return TVM::STUR_S;
+  case TVM::STIX:
+    return TVM::STIXR;
+  case TVM::STIX_S:
+    return TVM::STIXR_S;
+  case TVM::STUX:
+    return TVM::STUXR;
+  case TVM::STUX_S:
+    return TVM::STUXR_S;
+  case TVM::SGT:
+    return TVM::SLT;
+  case TVM::SGT_S:
+    return TVM::SLT_S;
+  case TVM::SGE:
+    return TVM::SLE;
+  case TVM::SGE_S:
+    return TVM::SLE_S;
+  case TVM::SLT:
+    return TVM::SGT;
+  case TVM::SLT_S:
+    return TVM::SGT_S;
+  case TVM::SLE:
+    return TVM::SGE;
+  case TVM::SLE_S:
+    return TVM::SGE_S;
+  default:
+    return -1;
   }
 }
 
@@ -1016,20 +1070,26 @@ public:
     unsigned reg;
 
   public:
-    explicit Slot(LayeredInstructionDAGNode *target_, unsigned targetInPortIndex_,
-                  unsigned reg_, unsigned usesRemain_ = 1)
+    explicit Slot(LayeredInstructionDAGNode *target_,
+                  unsigned targetInPortIndex_, unsigned reg_,
+                  unsigned usesRemain_ = 1)
         : target(target_), targetInPortIndex(targetInPortIndex_), reg(reg_),
           usesRemain(usesRemain_) {}
 
     LayeredInstructionDAGNode *getTarget() const { return target; }
 
-		unsigned getInPortIndex() const { return targetInPortIndex; }
+    unsigned getInPortIndex() const { return targetInPortIndex; }
 
-		unsigned getReg() const { return reg; }
+    unsigned getReg() const { return reg; }
 
-		unsigned getRemainUses() const { return usesRemain; }
+    unsigned getRemainUses() const { return usesRemain; }
 
-		string toString();
+    unsigned decrementUses() {
+      assert(usesRemain > 0);
+      return --usesRemain;
+    }
+
+    string toString();
   };
 
 private:
@@ -1041,50 +1101,62 @@ public:
 
   unsigned size() const { return queue.size(); }
 
-	// Return slot for index slotIndex.
-	// Index 0 - head of the queue, index (size() -1) - tail of the queue.
-  Slot const &getSlot(unsigned slotIndex) { return queue[queue.size() - 1 - slotIndex]; }
+  // Return slot for index slotIndex.
+  // Index 0 - head of the queue, index (size() -1) - tail of the queue.
+  Slot &getSlot(unsigned slotIndex) {
+    return queue[queue.size() - 1 - slotIndex];
+  }
+
+  const Slot &getSlot(unsigned slotIndex) const {
+    return queue[queue.size() - 1 - slotIndex];
+  }
 
   // Insert new slot into queue
   // Return insertion position of slot in queue
   unsigned enqueue(LayeredInstructionDAGNode *target, unsigned targetInPort,
                    unsigned reg, unsigned useRem = 1);
 
-  // Insert new slot into queue which corresponds to next instruction with the
-  // same definition
-  unsigned enqueueNext(Slot const &slot);
+  // Insert auxiliary slot into queue (uses for instruction arguments & results)
+  unsigned enqueue(unsigned reg);
 
   // Remove num elements from queue head
   void dequeue(unsigned num = 1);
 
-	// Return true if this queue contains register reg, false otherwise.
-	bool contains(unsigned reg) const { return lookupIndex(reg) >= 0; }
+  // Return true if this queue contains register reg, false otherwise.
+  bool contains(unsigned reg) const { return lookupIndex(reg) >= 0; }
 
-	// Lookup slot index contains register reg.
-	// If there is no such slot, returns -1.
-	int lookupIndex(unsigned reg) const;
+  // Lookup slot index contains register reg.
+  // If there is no such slot, returns -1.
+  int lookupIndex(unsigned reg) const;
 
-	string toString();
+  string toString();
 
   void dump();
 
-private:
-  inline static unsigned order(LayeredInstructionDAGNode *target,
+  inline static unsigned order(const LayeredInstructionDAGNode *target,
                                unsigned targetInPort) {
-    return (target->getOrderNum() << 8) + targetInPort;
+    return ((target ? target->getOrderNum() : 0) << 8) + targetInPort;
+  }
+
+  inline static unsigned order(const LayeredInstructionDAGNode::Edge &edge) {
+    return order(edge.getNode(), edge.getInPortIndex());
   }
 };
 
-int OperandQueue::lookupIndex(unsigned reg) const { 
-	for (int idx = 0; idx < queue.size(); idx++) {
-    if (queue[idx].getReg() == reg)
-			return idx;
-	}
-	return -1;
+int OperandQueue::lookupIndex(unsigned reg) const {
+  for (int idx = 0; idx < queue.size(); idx++) {
+    const OperandQueue::Slot &slot = getSlot(idx);
+    if (!slot.getTarget())
+      continue;
+    if (getSlot(idx).getReg() == reg)
+      return idx;
+  }
+  return -1;
 }
 
 unsigned OperandQueue::enqueue(LayeredInstructionDAGNode *targ,
-           unsigned targInPortIndex, unsigned reg, unsigned usesRemain) {
+                               unsigned targInPortIndex, unsigned reg,
+                               unsigned usesRemain) {
   Slot slot(targ, targInPortIndex, reg, usesRemain);
   unsigned ord = order(targ, targInPortIndex);
   unsigned pos = 0;
@@ -1094,29 +1166,29 @@ unsigned OperandQueue::enqueue(LayeredInstructionDAGNode *targ,
       break;
   }
   if (pos != 0) {
-    auto it = queue.begin();
-    for (int i = 0; i < size() - 1- pos; i++) it++;
+    auto it = queue.begin() + (queue.size() - pos);
     queue.insert(it, slot);
-	} 
-	else queue.push_back(slot);
+  } else
+    queue.push_back(slot);
   return pos;
 }
 
-unsigned OperandQueue::enqueueNext(Slot const &slot) {
-  // TODO
-  return 0;
+unsigned OperandQueue::enqueue(unsigned reg) {
+  Slot slot(nullptr, 0, reg, 1);
+  queue.push_back(slot);
+  return queue.size() - 1;
 }
 
-void OperandQueue::dequeue(unsigned num) { 
-	assert(num <= size());
-	while (num > 0) {
+void OperandQueue::dequeue(unsigned num) {
+  assert(num <= size());
+  while (num > 0) {
     queue.pop_back();
     num--;
-	}
+  }
 }
 
 string OperandQueue::Slot::toString() {
-	string str;
+  string str;
   str += "Reg : ";
   str += regToString(getReg());
   str += ", Target : ";
@@ -1125,26 +1197,26 @@ string OperandQueue::Slot::toString() {
   char buf[8];
   _itoa_s(getInPortIndex(), buf, 10);
   str += buf;
-  str += "Uses remain : ";
+  str += ", Uses remain : ";
   _itoa_s(getRemainUses(), buf, 10);
-	str += buf;
-	return str;
+  str += buf;
+  return str;
 }
 
 string OperandQueue::toString() {
-	string str;
+  string str;
   for (int i = 0; i < size(); i++) {
     if (i != 0)
       str += " ";
     str += regToString(queue[i].getReg());
   }
-	return str;
+  return str;
 }
 
-void OperandQueue::dump() { 
-	dbgs() << "Operand Queue : ";
+void OperandQueue::dump() {
+  dbgs() << "Operand Queue : \n";
   for (int i = 0; i < size(); i++) {
-     dbgs() << "  "  << (size() - 1 - i) << " : " << queue[i].toString() << "\n";
+    dbgs() << "  " << (size() - 1 - i) << " : " << queue[i].toString() << "\n";
   }
 }
 
@@ -2029,7 +2101,8 @@ private:
   void addJoinEdges(DJNode *node, map<DJNode *, vector<DJNode *>> &succJoins);
 };
 
-StackableRegion *StackableRegionStructure::createSequence(StackableRegion *child1,
+StackableRegion *
+StackableRegionStructure::createSequence(StackableRegion *child1,
                                          StackableRegion *child2) {
   if (child1->getKind() != SRSequence && child2->getKind() != SRSequence) {
     return new (StackableRegionRecycler.Allocate<StackableRegion>(Allocator))
@@ -2299,9 +2372,10 @@ void StackableRegionStructure::createStackTree(StackTree &tree) {
   for (MachineInstr &MI : firstMBB) {
     if (!TVM::isArgument(MI))
       break;
+    MI.dump();
     unsigned reg = MI.getOperand(0).getReg();
     assert(!MFI->isVRegStackified(reg));
-    unsigned argNo = numParams - MI.getOperand(1).getCImm()->getZExtValue() - 1;
+    unsigned argNo = MI.getOperand(1).getCImm()->getZExtValue(); // numParams - MI.getOperand(1).getCImm()->getZExtValue() - 1;
     params[argNo] = reg;
     // TODO MI.eraseFromParent();
   }
@@ -2809,9 +2883,20 @@ void TVMLocalScheduler::emitScheduledCode(const StackableRegionStructure &SRS,
       dbgs() << node->toString() << "\n";
     }
     dbgs() << "\n";
+    // This is temporary Machine Block, container for new instructions
     MachineBasicBlock *newMBB = MF.CreateMachineBasicBlock();
     schedule(order, *stack, *newMBB);
     newMBB->dump();
+    // Transfer new instructions to old Machine Basic Block
+    MBB->clear();
+    vector<MachineInstr *> instrs;
+    for (MachineInstr &MI : *newMBB) {
+      instrs.push_back(&MI);
+    }
+    for (MachineInstr *MI : instrs) {
+      MI->removeFromParent();
+      MBB->push_back(MI);
+    }
   }
 }
 
@@ -2839,44 +2924,109 @@ void TVMLocalScheduler::insertInputOperands(
     OperandQueue &queue, MachineBasicBlock &outMBB) {
   MachineInstr *MI = node.getInstruction();
   assert(MI);
+#if 1
+	dbgs() << "Stack : " << stack.toString() << "\n";
+  dbgs() << "Queue :\n";
+  queue.dump();
+  dbgs() << "\n";
+#endif
   const DebugLoc &DL = MI->getDebugLoc();
   MachineFunction &MF = *MI->getParent()->getParent();
   vector<unsigned> params;
   vector<unsigned> stackArgs;
+	vector<unsigned> stackSlots;
   vector<unsigned> queueArgs;
+
   for (const MachineOperand &op : MI->uses()) {
     if (op.isReg()) {
       unsigned reg = op.getReg();
       params.insert(params.begin(), reg);
-      if (queue.contains(reg)) {
-        // Operand register is in queue, already in place
-        queueArgs.insert(queueArgs.begin(), reg);           
-			} 
-			else {
+      int queueSlotIndex = queue.lookupIndex(reg);
+      if (queueSlotIndex >= 0) {
+        OperandQueue::Slot &slot = queue.getSlot(queueSlotIndex);
+        if (slot.getRemainUses() > 1) {
+          slot.decrementUses();
+          stackArgs.insert(stackArgs.begin(), reg);
+          stackSlots.push_back(queueSlotIndex);
+          queue.enqueue(reg);
+        } else {
+          // Operand register is in queue, already in place
+          queueArgs.insert(queueArgs.begin(), reg);
+        }
+      } else {
         // Operand register is in stack tree, use PUSH instruction
         int stackOffset = stack.lookupRegisterOffset(reg);
         assert(stackOffset >= 0);
-        MachineInstr *push = MF.CreateMachineInstr(TII->get(TVM::PUSH), DL);
-        push->addOperand(MF, MachineOperand::CreateImm(stackOffset + queue.size()));
-        outMBB.push_back(push);
+        stackSlots.push_back(stackOffset + queue.size());
         stackArgs.insert(stackArgs.begin(), reg);
+        queue.enqueue(reg);
       }
     }
   }
-  /*
+
+#if 1
+  dbgs() << "Stack args: " << regListToString(stackArgs) << "\n";
+  dbgs() << "Queue args: " << regListToString(queueArgs) << "\n";
+  dbgs() << "Queue :\n";
+  queue.dump();
+  dbgs() << "\n";
+#endif
+
+  for (int idx = 0; idx < stackSlots.size(); idx++) {
+    unsigned i = stackSlots[idx];
+    unsigned j = idx + 1 < stackSlots.size() ? stackSlots[idx + 1] : 0;
+    unsigned k = idx + 2 < stackSlots.size() ? stackSlots[idx + 2] : 0;
+    if (idx + 2 < stackSlots.size()  &&  i <= 15  &&  j <= 15  &&  k <= 15) {
+      MachineInstr *push3 = MF.CreateMachineInstr(TII->get(TVM::PUSH3), DL);
+      push3->addOperand(MF, MachineOperand::CreateImm(i));
+      push3->addOperand(MF, MachineOperand::CreateImm(j - 1));
+      push3->addOperand(MF, MachineOperand::CreateImm(k - 2));
+      outMBB.push_back(push3);
+			idx += 2;
+    } 
+		else if (idx + 1 < stackSlots.size()  &&  i <= 15  &&  j <= 15) {
+      MachineInstr *push2 = MF.CreateMachineInstr(TII->get(TVM::PUSH2), DL);
+      push2->addOperand(MF, MachineOperand::CreateImm(i));
+      push2->addOperand(MF, MachineOperand::CreateImm(j - 1));
+      outMBB.push_back(push2);
+			idx++;
+    } 
+		else {
+      MachineInstr *push = MF.CreateMachineInstr(TII->get(TVM::PUSH), DL);
+      push->addOperand(MF, MachineOperand::CreateImm(i));
+      outMBB.push_back(push);
+    }
+	}
+
   for (unsigned idx = 0; idx < queueArgs.size(); idx++) {
-    const OperandQueueSlot &slot = queue.getSlot(idx);
-    assert(queueArgs[idx] == slot.reg);
+    const OperandQueue::Slot &slot = queue.getSlot(idx);
+    //   assert(queueArgs[idx] == slot.getReg());
     stackArgs.insert(stackArgs.begin(), queueArgs[idx]);
-        }
-  queue.dequeue(queueArgs.size());
-  if (params != stackArgs) {
+  }
+  //  queue.dequeue(queueArgs.size());
+
+  bool skip = false;
+  if (params.size() == 2 && params[0] == stackArgs[1] &&
+      params[1] == stackArgs[0]) {
+    // Try to optimize commutative instructions
+    if (MI->isCommutable())
+      skip = true;
+  }
+
+  if (!skip && params != stackArgs) {
     // We need sun fixup to adjust mix of stack and queue arguments
     StackFixup fixup = BlockQueueInfo::calculateFixup(MF, params, stackArgs);
-    StackFixup::InstructionGenerator instrGen(TII, MFI, &outMBB,
-  outMBB.instr_back()); instrGen(fixup);
-        }
-        */
+    StackFixup::InstructionGenerator instrGen(TII, MFI, &outMBB, outMBB.end());
+    instrGen(fixup);
+#if 1
+    dbgs() << "Parameters: " << regListToString(params) << "\n";
+    dbgs() << "Stack args: " << regListToString(stackArgs) << "\n";
+    dbgs() << "Args Fixup : ";
+    fixup.dump();
+    dbgs() << "\n\n";
+#endif
+  }
+  outMBB.dump();
 }
 
 void TVMLocalScheduler::distributeOutputResults(
@@ -2889,24 +3039,51 @@ void TVMLocalScheduler::distributeOutputResults(
     assert(op.isReg());
     unsigned reg = op.getReg();
     unsigned succNum = node.getNumSuccessors(reg);
+    queue.dequeue();
     if (succNum > 0) {
+      /*
       // Duplicate result if there are several consumers
       for (unsigned i = 1; i < succNum; i++) {
         fixup(StackFixup::pushI(0)); // DUP
       }
+                        */
+      LayeredInstructionDAGNode *target = nullptr;
+      unsigned targetPortIndex;
+      unsigned maxOrder = 0;
+      // Find the most distant (in time scale) target node
       for (LayeredInstructionDAGNode::Edge edge : node.successors()) {
+        unsigned edgeOrder = OperandQueue::order(edge);
         if (edge.getReg() == reg) {
+          if (!target || edgeOrder > maxOrder) {
+            target = edge.getNode();
+            targetPortIndex = edge.getInPortIndex();
+            maxOrder = edgeOrder;
+          }
         }
       }
+      unsigned slot = queue.enqueue(target, targetPortIndex, reg, succNum);
+      if (slot > 0)
+        fixup(StackFixup::makeRoll(slot));
     } else {
       // There are no consumers for this result, drop it
       fixup(StackFixup::pop(0)); // DROP
-      queue.dequeue();
     }
   }
 
-  StackFixup::InstructionGenerator instrGen(TII, MFI, &outMBB, outMBB.instr_back());
-  instrGen(fixup);
+  if (fixup.getChanges().size() > 0) {
+    StackFixup::InstructionGenerator instrGen(TII, MFI, &outMBB, outMBB.end());
+    instrGen(fixup);
+  }
+
+#if 1
+  dbgs() << "Result Fixups :\n";
+  fixup.dump();
+  dbgs() << "\n";
+  dbgs() << "Result Queue : \n";
+  queue.dump();
+  dbgs() << "\n";
+  outMBB.dump();
+#endif
 }
 
 void TVMLocalScheduler::schedule(
@@ -2921,17 +3098,63 @@ void TVMLocalScheduler::schedule(
     MachineInstr *SMI = SchedulerUtils::convertToSForm(*MI, TII);
     if (SMI) {
       insertInputOperands(*node, stack, queue, outMBB);
+      if (!outMBB.empty()) {
+        auto it = --outMBB.end();
+        // Check if we can omit SWAP instruction for arguments by using reverse
+        // instruction
+        bool swap = false;
+        MachineInstr &lastMI = *it;
+        if (lastMI.getOpcode() == TVM::XCHG_TOP) {
+          if (lastMI.getOperand(0).getImm() == 1)
+            swap = true;
+        }
+        if (swap && it != outMBB.begin()) {
+          // Check if we have to consecutive SWAP at the end of Machine Block
+          MachineInstr &preLastMI = *(--it);
+          if (preLastMI.getOpcode() == TVM::XCHG_TOP) {
+            if (preLastMI.getOperand(0).getImm() == 1) {
+              lastMI.removeFromParent();
+              preLastMI.removeFromParent();
+              swap = false;
+            }
+          }
+        }
+
+        // Maybe we can optimize this place not to generate to versions of SMI
+        if (swap && SchedulerUtils::getReverseOpcode(SMI->getOpcode()) >= 0) {
+          outMBB.dump();
+          lastMI.removeFromParent();
+          SMI = SchedulerUtils::convertToSForm(*MI, TII, true);
+          outMBB.dump();
+        }
+      }
       outMBB.push_back(SMI);
+      //  dbgs() << "Queue before instruction execution :  " << queue.toString()
+      //  << "\n";
+      for (MachineOperand &MO : MI->uses()) {
+        queue.dequeue();
+      }
+      for (MachineOperand &MO : MI->defs()) {
+        if (MO.isReg())
+          queue.enqueue(MO.getReg());
+      }
+      //  dbgs() << "Queue after instruction execution :  " << queue.toString()
+      //  << "\n";
       distributeOutputResults(*node, stack, queue, outMBB);
     }
   }
 }
 
 MachineInstr *SchedulerUtils::convertToSForm(const MachineInstr &MI,
-                                             const TargetInstrInfo *TII) {
+                                             const TargetInstrInfo *TII,
+                                             bool reverse) {
   size_t NumDefs = MI.getNumDefs();
   size_t NumOperands = MI.getNumOperands();
   int NewOpcode = TVM::RegForm2SForm[MI.getOpcode()];
+  if (reverse) {
+    NewOpcode = SchedulerUtils::getReverseOpcode(NewOpcode);
+    assert(NewOpcode >= 0);
+  }
 
   size_t NumGlobals = llvm::count_if(MI.uses(), [](const MachineOperand &MO) {
     return MO.isGlobal() || MO.isSymbol();
@@ -3205,6 +3428,9 @@ bool BlockQueueInfo::test(MachineFunction &MF) {
   vector<unsigned> fqueue4{2, 3, 1, 0};
   vector<unsigned> fqueue5{6, 5, 4, 3, 2, 1, 0};
   vector<unsigned> fqueue6{0};
+  vector<unsigned> fqueue7{4, 5, 6};
+  vector<unsigned> fqueue8{4, 5, 6, 4, 5};
+  vector<unsigned> fqueue9{4, 5, 6, 4, 5, 6};
 
   StackFixup fixup1 = BlockQueueInfo::calculateFixup(MF, fqueue1, fqueue2);
   dbgs() << "\n";
@@ -3224,6 +3450,16 @@ bool BlockQueueInfo::test(MachineFunction &MF) {
   StackFixup fixup4 = BlockQueueInfo::calculateFixup(MF, fqueue6, fqueue5);
   dbgs() << "\n";
   fixup4.dump();
+  dbgs() << "\n";
+
+  StackFixup fixup5 = BlockQueueInfo::calculateFixup(MF, fqueue8, fqueue7);
+  dbgs() << "\n";
+  fixup5.dump();
+  dbgs() << "\n";
+
+  StackFixup fixup6 = BlockQueueInfo::calculateFixup(MF, fqueue9, fqueue7);
+  dbgs() << "\n";
+  fixup6.dump();
   dbgs() << "\n";
 
   return true;

@@ -3343,6 +3343,9 @@ checkBuiltinTemplateIdType(Sema &SemaRef, BuiltinTemplateDecl *BTD,
   case BTK__reflect_method_dyn_chain_parse:
     return processFlagAttribute<TVMDynChainParseFuncAttr>(
       SemaRef, Converted, TemplateLoc, TemplateArgs);
+  case BTK__reflect_method_deploy:
+    return processFlagAttribute<TVMDeployFuncAttr>(
+      SemaRef, Converted, TemplateLoc, TemplateArgs);
   case BTK__reflect_method_no_read_persistent:
     return processFlagAttribute<TVMNoReadPersistentFuncAttr>(
       SemaRef, Converted, TemplateLoc, TemplateArgs);

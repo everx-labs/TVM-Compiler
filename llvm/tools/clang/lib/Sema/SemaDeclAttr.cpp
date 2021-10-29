@@ -6428,6 +6428,9 @@ static void ProcessDeclAttribute(Sema &S, Scope *scope, Decl *D,
   case ParsedAttr::AT_TVMDynChainParseFunc:
     handleSimpleAttribute<TVMDynChainParseFuncAttr>(S, D, AL);
     break;
+  case ParsedAttr::AT_TVMDeployFunc:
+    handleSimpleAttribute<TVMDeployFuncAttr>(S, D, AL);
+    break;
   case ParsedAttr::AT_TVMReturnNameFunc:
     handleReturnNameAttr(S, D, AL);
     break;

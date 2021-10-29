@@ -1592,6 +1592,13 @@ static TemplateParameterList *
 createReflectMethodDynChainParseParameterList(const ASTContext &C, DeclContext *DC) {
   return createReflectMethodIntegralConstantParameterList(C, DC);
 }
+// __reflect_method_deploy<T, IntType, Interface, Index> -
+//   'deploy' attribute of the Interface method number #Index,
+//   provided into T<IntType, isInternal>
+static TemplateParameterList *
+createReflectMethodDeployParameterList(const ASTContext &C, DeclContext *DC) {
+  return createReflectMethodIntegralConstantParameterList(C, DC);
+}
 // __reflect_method_no_read_persistent<T, IntType, Interface, Index> -
 //   'no_read_persistent' attribute of the Interface method number #Index,
 //   provided into T<IntType, isInternal>
@@ -1974,6 +1981,8 @@ static TemplateParameterList *createBuiltinTemplateParameterList(
     return createReflectMethodImplicitFuncIdParameterList(C, DC);
   case BTK__reflect_method_dyn_chain_parse:
     return createReflectMethodDynChainParseParameterList(C, DC);
+  case BTK__reflect_method_deploy:
+    return createReflectMethodDeployParameterList(C, DC);
   case BTK__reflect_method_no_read_persistent:
     return createReflectMethodNoReadPersistentParameterList(C, DC);
   case BTK__reflect_method_no_write_persistent:

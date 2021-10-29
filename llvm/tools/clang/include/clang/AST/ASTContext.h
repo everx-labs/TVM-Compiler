@@ -366,6 +366,8 @@ class ASTContext : public RefCountedBase<ASTContext> {
   mutable IdentifierInfo *ReflectMethodImplicitFuncIdName = nullptr;
   /// The identifier '__reflect_method_dyn_chain_parse'.
   mutable IdentifierInfo *ReflectMethodDynChainParseName = nullptr;
+  /// The identifier '__reflect_method_deploy'.
+  mutable IdentifierInfo *ReflectMethodDeployName = nullptr;
   /// The identifier '__reflect_method_no_read_persistent'.
   mutable IdentifierInfo *ReflectMethodNoReadPersistentName = nullptr;
   /// The identifier '__reflect_method_no_write_persistent'.
@@ -594,6 +596,7 @@ private:
   mutable BuiltinTemplateDecl *ReflectMethodNoAcceptDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectMethodImplicitFuncIdDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectMethodDynChainParseDecl = nullptr;
+  mutable BuiltinTemplateDecl *ReflectMethodDeployDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectMethodNoReadPersistentDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectMethodNoWritePersistentDecl = nullptr;
   mutable BuiltinTemplateDecl *ReflectMethodPtrFuncIdDecl = nullptr;
@@ -1129,6 +1132,7 @@ public:
   BuiltinTemplateDecl *getReflectMethodNoAcceptDecl() const;
   BuiltinTemplateDecl *getReflectMethodImplicitFuncIdDecl() const;
   BuiltinTemplateDecl *getReflectMethodDynChainParseDecl() const;
+  BuiltinTemplateDecl *getReflectMethodDeployDecl() const;
   BuiltinTemplateDecl *getReflectMethodNoReadPersistentDecl() const;
   BuiltinTemplateDecl *getReflectMethodNoWritePersistentDecl() const;
   BuiltinTemplateDecl *getReflectMethodPtrFuncIdDecl() const;
@@ -1996,6 +2000,12 @@ public:
     if (!ReflectMethodDynChainParseName)
       ReflectMethodDynChainParseName = &Idents.get("__reflect_method_dyn_chain_parse");
     return ReflectMethodDynChainParseName;
+  }
+
+  IdentifierInfo *getReflectMethodDeployName() const {
+    if (!ReflectMethodDeployName)
+      ReflectMethodDeployName = &Idents.get("__reflect_method_deploy");
+    return ReflectMethodDeployName;
   }
 
   IdentifierInfo *getReflectMethodNoReadPersistentName() const {

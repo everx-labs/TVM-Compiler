@@ -1545,24 +1545,24 @@ public:
 
   MachineBasicBlock *getMBB() const { return MBB; }
 
-  unsigned size() {
+  unsigned size() const {
     unsigned sz = registers.size();
     if (parent)
       sz += parent->size();
     return sz;
   }
 
-  unsigned localSize() { return registers.size(); }
+  unsigned localSize() const { return registers.size(); }
 
   // Get path from root node to this node
-  void getPath(vector<StackTreeNode *> &path) {
+  void getPath(vector<StackTreeNode *> &path) const {
     if (parent)
       parent->getPath(path);
-    path.push_back(this);
+    path.push_back((StackTreeNode *) this);
   }
 
   // Get stack registers from root node to this node
-  void getContents(vector<unsigned> &regs) {
+  void getContents(vector<unsigned> &regs) const {
     if (parent)
       parent->getContents(regs);
     for (unsigned reg : registers) {
@@ -1571,7 +1571,7 @@ public:
   }
 
   // Get stack registers from root node to this node
-  void getContents(unordered_set<unsigned> &regs) {
+  void getContents(unordered_set<unsigned> &regs) const {
     if (parent)
       parent->getContents(regs);
     for (unsigned reg : registers) {
@@ -1582,10 +1582,10 @@ public:
   // Lookup register in current node or parent (recursively).
   // Return register offset from the top of stack or -1
   // if register is not in stack
-  int lookupRegisterOffset(unsigned reg);
+  int lookupRegisterOffset(unsigned reg) const;
 
   // Return true if stack contains register reg
-  bool contains(unsigned reg) { return lookupRegisterOffset(reg) >= 0; }
+  bool contains(unsigned reg) const { return lookupRegisterOffset(reg) >= 0; }
 
   // Replace register reg to register replaceReg
   void replaceReg(unsigned reg, unsigned replaceReg);
@@ -1610,7 +1610,7 @@ public:
   const_child_iterator children_end() const { return children.end(); }
 };
 
-int StackTreeNode::lookupRegisterOffset(unsigned reg) {
+int StackTreeNode::lookupRegisterOffset(unsigned reg) const {
   for (int index = registers.size() - 1; index >= 0; index--) {
     if (registers[index] == reg)
       return registers.size() - 1 - index;
@@ -1798,13 +1798,18 @@ class StackableRegion {
 
   StackableRegionKind kind;
   MachineBasicBlock *MBB;
+	StackableRegion *parent;
   vector<StackableRegion *> subregions;
   BlockQueueInfo queueInfo;
   uint64_t weight;
   bool hasDeflt;
+  StackTreeNode *stack;
 
   // Registers defined in region
   unordered_set<unsigned> defs;
+
+	// Registers defined in region, in definition order
+	vector<unsigned> defList;
 
   // Registers used in region
   unordered_set<unsigned> uses;
@@ -1820,58 +1825,76 @@ class StackableRegion {
 
 private:
   StackableRegion(StackableRegionKind kind_)
-      : kind(kind_), subregions(), queueInfo(), weight(1) {}
+      : kind(kind_), parent(nullptr), stack(nullptr), subregions(), queueInfo(), weight(1) {}
 
   StackableRegion(StackableRegionKind kind_, MachineBasicBlock *MBB_)
-      : kind(kind_), MBB(MBB_), subregions(), queueInfo(), weight(1) {}
+      : kind(kind_), parent(nullptr), stack(nullptr), MBB(MBB_), subregions(),
+        queueInfo(), weight(1) {}
 
   StackableRegion(StackableRegionKind kind_, StackableRegion *child1)
-      : kind(kind_), MBB(nullptr), subregions(), queueInfo(), weight(1) {
+      : kind(kind_), parent(nullptr), stack(nullptr), MBB(nullptr), subregions(), queueInfo(),
+        weight(1) {
     subregions.push_back(child1);
   }
 
   StackableRegion(StackableRegionKind kind_, StackableRegion *child1,
                   StackableRegion *child2)
-      : kind(kind_), MBB(nullptr), subregions(), queueInfo(), weight(1) {
+      : kind(kind_), stack(nullptr), MBB(nullptr), subregions(), queueInfo(),
+        weight(1) {
+		child1->parent = this;
     subregions.push_back(child1);
+		child2->parent = this;
     subregions.push_back(child2);
   }
 
   StackableRegion(StackableRegionKind kind_, StackableRegion *child1,
                   StackableRegion *child2, StackableRegion *child3)
-      : kind(kind_), MBB(nullptr), subregions(), queueInfo(), weight(1) {
+      : kind(kind_), stack(nullptr), MBB(nullptr), subregions(), queueInfo(),
+        weight(1) {
+    child1->parent = this;
     subregions.push_back(child1);
+    child2->parent = this;
     subregions.push_back(child2);
+    child3->parent = this;
     subregions.push_back(child3);
   }
 
   StackableRegion(StackableRegionKind kind_,
                   vector<StackableRegion *> &children)
-      : kind(kind_), MBB(nullptr), subregions(children), queueInfo(),
-        weight(1) {}
+      : kind(kind_), stack(nullptr), MBB(nullptr), subregions(children),
+        queueInfo(),
+        weight(1) {
+    for (StackableRegion *child : children) {
+			child->parent = this;
+    }
+	}
 
 public:
-  StackableRegionKind getKind() { return kind; }
+  StackableRegionKind getKind() const { return kind; }
 
-  uint64_t getWeight() { return weight; }
+	const StackableRegion *getParent() const { return parent; }
 
-  MachineBasicBlock *getMBB() {
+	unsigned size() const { return subregions.size(); }
+
+  uint64_t getWeight() const { return weight; }
+
+  MachineBasicBlock *getMBB() const {
     assert(kind == SRLeaf);
     return MBB;
   }
 
-  StackableRegion *getCondition() {
+  StackableRegion *getCondition() const {
     assert(kind == SRIfThen || kind == SRIfThenElse || kind == SRSwitch ||
            kind == SRWhileLoop || kind == SRNaturalLoop);
     return subregions[0];
   }
 
-  StackableRegion *getThen() {
+  StackableRegion *getThen() const {
     assert(kind == SRIfThen || kind == SRIfThenElse);
     return subregions[1];
   }
 
-  StackableRegion *getElse() {
+  StackableRegion *getElse() const {
     assert(kind == SRIfThenElse);
     return subregions[2];
   }
@@ -1900,7 +1923,12 @@ public:
     return subregions[subregions.size() - 1];
   }
 
-  StackableRegion *getBody() {
+	StackableRegion *getElement(unsigned index) const {
+    assert(kind == SRSequence);
+    return subregions[index];
+  }
+
+  StackableRegion *getBody() const {
     assert(kind == SRSelfLoop || kind == SRWhileLoop || kind == SRNaturalLoop);
     if (kind == SRSelfLoop)
       return subregions[0];
@@ -1910,35 +1938,61 @@ public:
 
   BlockQueueInfo &getQueueInfo() { return queueInfo; }
 
-  bool isLoop() {
+	StackTreeNode *getStack() const { return stack;  }
+
+	void setStack(StackTreeNode *stack_) { stack = stack_; }
+
+  bool isLoop() const {
     return kind == SRSelfLoop || kind == SRWhileLoop || kind == SRNaturalLoop;
   }
 
   // Returns head region - child region on entrance of this region
-  StackableRegion *getHeadRegion();
+  const StackableRegion *getHeadRegion() const;
 
   // Calculate the list of tail regions - child regions on the exit of this
   // region.
-  void getTailRegions(vector<StackableRegion *> &tails);
+  void getTailRegions(vector<StackableRegion *> &tails) const;
 
   // Returns head block - Machine Block on the entrance of region
-  MachineBasicBlock *getHeadBlock();
+  const MachineBasicBlock *getHeadBlock() const;
 
   // Returns tail block - Machine Block on the exit of region.
   // If there are multiple tail blocks, returns nullptr
-  MachineBasicBlock *getTailBlock();
+  const MachineBasicBlock *getTailBlock() const;
 
   // Calculate the list of tail blocks - Machine Block on the exit of region.
   // If there is no single tail block, returns nullptr
-  void getTailBlocks(vector<MachineBasicBlock *> &blocks);
+  void getTailBlocks(vector<MachineBasicBlock *> &blocks) const;
+
+// Test if argument region is a tail block of this region
+  bool isHeadRegion(const StackableRegion *region) const {
+    return getHeadRegion() == region;
+	}
+
+	// Test if argument region is a tail block of this region
+	bool isTailRegion(const StackableRegion* region) const;
+
+	// Get parent region for which this region is a head region,
+  // but for it's parent this region isn't a haed region
+  const StackableRegion *getMaximumHeadScopeRegion() const;
+
+	// Get parent region for which this region is a tail region, 
+	// but for it's parent this region isn't a tail region
+	const StackableRegion *getMaximumTailScopeRegion() const;
 
   const unordered_set<unsigned> &getDefs() const { return defs; }
+
+	const vector<unsigned> &getDefList() const { return defList; }
 
   const unordered_set<unsigned> &getUses() const { return uses; }
 
   const unordered_set<unsigned> &getLiveIns() const { return liveIns; }
 
   const unordered_set<unsigned> &getLiveOuts() const { return liveOuts; }
+
+	// Calculate variables, generated in this region, i.e., defined in this region
+	// and not live on the entrance of region and live on the exit
+	void getGenerated(vector<unsigned> &gen) const;
 
   const vector<unsigned> &getLocalStack() const { return localStack; }
 
@@ -1983,9 +2037,12 @@ private:
   void calculateWeights(uint64_t weight_ = 1);
 
   // Recursively calculate region's BlockQueueInfo
-  void
-  calculateQueueInfo(MachineRegisterInfo *MRI, LiveIntervals *LIS,
+  void calculateQueueInfo(MachineRegisterInfo *MRI, LiveIntervals *LIS,
                      unordered_map<unsigned, MachineInstr *> const &pseudoMap);
+
+	// Calculate stack contents on the exit of region.
+	// liveNext - set of variables live on the entrance of next-of-the-next region.
+	void calculateStackOnExit(const unordered_set<unsigned> liveNext, vector<unsigned> &stack) const;
 
   // Calculate stack & active out for conditional regions (ifs & switches)
   void calculateConditionStack();
@@ -2001,7 +2058,7 @@ class StackableRegionStructure {
   DJGraph djGraph;
   StackableRegion *root;
   unordered_map<MachineBasicBlock *, StackableRegion *> leafMap;
-
+	
   // Pool-allocate StackableRegionStructure-lifetime
   BumpPtrAllocator Allocator;
 
@@ -2167,14 +2224,25 @@ void StackableRegion::calculateVariables(MachineRegisterInfo *MRI,
                                          LiveIntervals *LIS) {
   for (StackableRegion *child : *this) {
     child->calculateVariables(MRI, LIS);
-    defs.insert(child->defs.begin(), child->defs.end());
+    for (unsigned reg : child->defList) {
+      if (defs.find(reg) == defs.end()) {
+        defs.insert(reg);
+        defList.push_back(reg);
+      }
+    }
+
     uses.insert(child->uses.begin(), child->uses.end());
   }
   if (kind == SRLeaf) {
     for (MachineInstr &MI : *getMBB()) {
       for (MachineOperand &MO : MI.defs()) {
-        if (MO.isReg())
-          defs.insert(MO.getReg());
+        if (MO.isReg()) {
+          unsigned reg = MO.getReg();
+          if (defs.find(reg) == defs.end()) {
+            defs.insert(reg);
+            defList.push_back(reg);
+          }						   
+        }
       }
       for (MachineOperand &MO : MI.uses()) {
         if (MO.isReg())
@@ -2183,8 +2251,9 @@ void StackableRegion::calculateVariables(MachineRegisterInfo *MRI,
     }
     SchedulerUtils::gatherBlockLiveIns(*getMBB(), MRI, LIS, liveIns);
     SchedulerUtils::gatherBlockLiveOuts(*getMBB(), MRI, LIS, liveOuts);
-  } else {
-    StackableRegion *head = getHeadRegion();
+  } 
+	else {
+    const StackableRegion *head = getHeadRegion();
     liveIns.insert(head->liveIns.begin(), head->liveIns.end());
     vector<StackableRegion *> tails;
     getTailRegions(tails);
@@ -2386,17 +2455,72 @@ void StackableRegionStructure::createStackTree(StackTree &tree) {
   getRoot().createStackTree(*root);
 }
 
+void StackableRegion::getGenerated(vector<unsigned> &gen) const {
+  for (unsigned reg : defList) {
+    if (liveIns.find(reg) != liveIns.end())
+			continue;
+    if (liveOuts.find(reg) == liveOuts.end())
+			continue;
+    gen.push_back(reg);
+	}
+}
+
+void StackableRegion::calculateStackOnExit(const unordered_set<unsigned> liveNext,
+	  vector<unsigned> &stack) const {
+	vector<unsigned> gen;
+  getGenerated(gen);
+  for (unsigned reg : gen) {
+    if (liveNext.find(reg) != liveNext.end())
+      stack.push_back(reg);
+  }
+}
+
+bool StackableRegion::isTailRegion(const StackableRegion *region) const {
+	vector<StackableRegion *> tails;
+  getTailRegions(tails);
+  return std::find(tails.begin(), tails.end(), region) != tails.end();
+}
+
+const StackableRegion *StackableRegion::getMaximumHeadScopeRegion() const {
+  const StackableRegion *parent = getParent();
+  const StackableRegion *scope = nullptr;
+  for (;;) {
+    if (!parent)
+      return scope;
+    if (!parent->isHeadRegion(this))
+      return scope;
+    scope = parent;
+    parent = scope->getParent();
+  }
+}
+
+const StackableRegion *StackableRegion::getMaximumTailScopeRegion() const {
+  const StackableRegion *parent = getParent();
+	const StackableRegion *scope = nullptr;
+  for (;;) {
+    if (!parent)
+		  return scope;
+    if (!parent->isTailRegion(this))
+      return scope;
+		scope = parent;
+    parent = scope->getParent();
+  }
+}
+
 void StackableRegion::createStackTree(StackTreeNode &stack) {
-  switch (kind) {
+  setStack(&stack);
+	switch (kind) {
   case SRLeaf:
     stack.getTree()->addNodeMap(getMBB(), &stack);
     break;
   case SRIfThen:
+    calculateStackOnExit(getLiveOuts(), localStack);
     getCondition()->createStackTree(*stack.getTree()->createNode(&stack));
     getThen()->createStackTree(
         *stack.getTree()->createNode(getLocalStack(), &stack));
     break;
   case SRIfThenElse:
+    calculateStackOnExit(getLiveOuts(), localStack);
     getCondition()->createStackTree(*stack.getTree()->createNode(&stack));
     getThen()->createStackTree(
         *stack.getTree()->createNode(getLocalStack(), &stack));
@@ -2404,6 +2528,7 @@ void StackableRegion::createStackTree(StackTreeNode &stack) {
         *stack.getTree()->createNode(getLocalStack(), &stack));
     break;
   case SRSwitch:
+    calculateStackOnExit(getLiveOuts(), localStack);
     getCondition()->createStackTree(*stack.getTree()->createNode(&stack));
     for (auto it = case_begin(); it != case_end(); it++) {
       StackableRegion *caseRegion = *it;
@@ -2414,7 +2539,15 @@ void StackableRegion::createStackTree(StackTreeNode &stack) {
       getDefault()->createStackTree(
           *stack.getTree()->createNode(getLocalStack(), &stack));
     break;
-  case SRSequence:
+  case SRSequence: {
+      for (unsigned index = 0; index < size(); index++) {
+        StackableRegion *elem = getElement(index);
+        elem->createStackTree(
+            *stack.getTree()->createNode(getLocalStack(), &stack));
+        if (index < size() - 1)
+          calculateStackOnExit(elem->getLiveOuts(), localStack);
+		  }
+	  }
     break;
   case SRSelfLoop:
   case SRNaturalLoop:
@@ -2429,30 +2562,30 @@ void StackableRegionStructure::dump() {
   getRoot().dump("");
 }
 
-StackableRegion *StackableRegion::getHeadRegion() {
+const StackableRegion *StackableRegion::getHeadRegion() const {
   switch (kind) {
   case SRLeaf:
     return this;
   case SRIfThen:
   case SRIfThenElse:
   case SRSwitch:
-    return getCondition();
+    return getCondition()->getHeadRegion();
   case SRSequence:
-    return getFirst();
+    return getFirst()->getHeadRegion();
   case SRSelfLoop:
-    return getBody();
+    return getBody()->getHeadRegion();
   case SRNaturalLoop:
   case SRWhileLoop:
-    return getCondition();
+    return getCondition()->getHeadRegion();
   default:
     return nullptr;
   }
 }
 
-void StackableRegion::getTailRegions(vector<StackableRegion *> &tails) {
+void StackableRegion::getTailRegions(vector<StackableRegion *> &tails) const {
   switch (kind) {
   case SRLeaf:
-    tails.push_back(this);
+    tails.push_back((StackableRegion *) this);
     break;
   case SRIfThen:
     getThen()->getTailRegions(tails);
@@ -2487,13 +2620,13 @@ void StackableRegion::getTailRegions(vector<StackableRegion *> &tails) {
   }
 }
 
-MachineBasicBlock *StackableRegion::getHeadBlock() {
+const MachineBasicBlock *StackableRegion::getHeadBlock() const {
   if (kind == SRLeaf)
     return getMBB();
   return subregions[0]->getHeadBlock();
 }
 
-MachineBasicBlock *StackableRegion::getTailBlock() {
+const MachineBasicBlock *StackableRegion::getTailBlock() const {
   switch (kind) {
   case SRLeaf:
     return getMBB();
@@ -2508,7 +2641,7 @@ MachineBasicBlock *StackableRegion::getTailBlock() {
   }
 }
 
-void StackableRegion::getTailBlocks(vector<MachineBasicBlock *> &blocks) {
+void StackableRegion::getTailBlocks(vector<MachineBasicBlock *> &blocks) const {
   switch (kind) {
   case SRLeaf:
     blocks.push_back(getMBB());
@@ -2598,8 +2731,8 @@ void StackableRegion::calculateConditionStack() {
         find(liveOuts.begin(), liveOuts.end(), reg) != liveOuts.end()) {
       localStack.push_back(reg);
       queueInfo.actualOutputQueue.push_back(reg);
-    } else
-      cond->queueInfo.actualOutputQueue.push_back(reg);
+    } 
+		else cond->queueInfo.actualOutputQueue.push_back(reg);
   }
 }
 

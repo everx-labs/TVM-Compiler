@@ -49,6 +49,10 @@ template<class Interface, unsigned Index>
 using get_interface_method_no_read_persistent =
   __reflect_method_no_read_persistent<std::integral_constant, bool, Interface, Index>;
 template<class Interface, unsigned Index>
+using get_interface_method_deploy =
+  __reflect_method_deploy<std::integral_constant, bool, Interface, Index>;
+
+template<class Interface, unsigned Index>
 using get_interface_method_no_write_persistent =
   __reflect_method_no_write_persistent<std::integral_constant, bool, Interface, Index>;
 template<class Interface, unsigned Index>

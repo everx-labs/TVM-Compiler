@@ -20,9 +20,17 @@
 namespace tvm {
 
 template<typename T>
+using checked_deploy_t = decltype(T::_checked_deploy);
+template<typename T>
+constexpr bool checked_deploy_enabled_v = std::experimental::is_detected_v<checked_deploy_t, T>;
+template<typename T>
 using fallback_t = decltype(T::_fallback(cell{}, slice{}));
 template<typename T>
 constexpr bool supports_fallback_v = std::experimental::is_detected_v<fallback_t, T>;
+template<typename T>
+using receive_t = decltype(T::_receive(cell{}, slice{}));
+template<typename T>
+constexpr bool supports_receive_v = std::experimental::is_detected_v<receive_t, T>;
 template<typename T>
 using on_bounced_t = decltype(T::_on_bounced(cell{}, slice{}));
 template<typename T>
@@ -304,7 +312,7 @@ struct smart_switcher_impl {
 
   __always_inline
   static int execute(Contract& c, std::optional<schema::bitfield<512>> signature,
-      MsgHeader hdr, cell msg, slice msg_body, slice body_from_header) {
+      MsgHeader hdr, cell msg, slice msg_body, slice body_from_header, bool checked_deploy) {
     constexpr bool is_getter = get_interface_method_getter<IContract, Index>::value;
     constexpr bool is_noaccept = get_interface_method_noaccept<IContract, Index>::value;
     constexpr bool is_implicit_id = is_implicit_func_id<IContract, Index>();
@@ -317,6 +325,9 @@ struct smart_switcher_impl {
     using namespace schema;
     if constexpr (valid)
     if (hdr.function_id() == my_method_id) {
+      require(!checked_deploy || get_interface_method_deploy<IContract, Index>::value,
+              error_code::method_not_for_deploy);
+
       // We need to parse persistent data for contract, parse arguments for method,
       // call method, build return value and send message, build updated persistent data and store
       using ISmart = typename Contract::base;
@@ -478,8 +489,10 @@ struct smart_switcher_impl {
       }
       return my_method_id;
     }
-    return smart_switcher_impl<Internal, Contract, MsgHeader, IContract, DContract, ReplayAttackProtection,
-                               Index + 1, RestMethods - 1>::execute(c, signature, hdr, msg, msg_body, body_from_header);
+    using next_impl = smart_switcher_impl<
+      Internal, Contract, MsgHeader, IContract, DContract, ReplayAttackProtection, Index + 1, RestMethods - 1
+      >;
+    return next_impl::execute(c, signature, hdr, msg, msg_body, body_from_header, checked_deploy);
   }
 };
 template<bool Internal, class Contract, class MsgHeader, class IContract, class DContract, class ReplayAttackProtection,
@@ -487,11 +500,13 @@ template<bool Internal, class Contract, class MsgHeader, class IContract, class 
 struct smart_switcher_impl<Internal, Contract, MsgHeader, IContract, DContract, ReplayAttackProtection, Index, 0> {
   __always_inline
   static int execute(Contract& c, std::optional<schema::bitfield<512>> signature,
-      MsgHeader hdr, cell msg, slice msg_body, slice body_from_header) {
-    if constexpr (Internal && supports_fallback_v<Contract>)
+      MsgHeader hdr, cell msg, slice msg_body, slice body_from_header, bool checked_deploy) {
+    if constexpr (Internal && supports_fallback_v<Contract>) {
+      require(!checked_deploy, error_code::method_not_for_deploy);
       return Contract::_fallback(msg, msg_body);
-    else
+    } else {
       tvm_throw(error_code::wrong_public_call);
+    }
     return 0;
   }
 };
@@ -501,9 +516,9 @@ struct smart_switcher {
   static const unsigned methods_count = get_interface_methods_count<IContract>::value;
   __always_inline
   static int execute(Contract& c, std::optional<schema::bitfield<512>> signature,
-      MsgHeader hdr, cell msg, slice msg_body, slice body_from_header) {
+      MsgHeader hdr, cell msg, slice msg_body, slice body_from_header, bool checked_deploy) {
     return smart_switcher_impl<Internal, Contract, MsgHeader, IContract, DContract, ReplayAttackProtection,
-                               0, methods_count>::execute(c, signature, hdr, msg, msg_body, body_from_header);
+                               0, methods_count>::execute(c, signature, hdr, msg, msg_body, body_from_header, checked_deploy);
   }
 };
 
@@ -658,10 +673,24 @@ int smart_switch(cell msg, slice msg_body) {
       set_msg(msg);
   }
 
+  bool checked_deploy = false;
+  if constexpr (checked_deploy_enabled_v<Contract>) {
+    if constexpr (Contract::_checked_deploy) {
+      auto parsed_msg = parse<message<anyval>>(c.msg_slice());
+      checked_deploy = !!parsed_msg.init;
+    }
+  }
+
   parser msg_parser(msg_body);
   using namespace schema;
   if constexpr (Internal) {
     unsigned func_id;
+    if constexpr (supports_receive_v<Contract>) {
+      if (msg_body.empty() && msg_body.srempty()) {
+        require(!checked_deploy, error_code::method_not_for_deploy);
+        return Contract::_receive(msg, msg_body);
+      }
+    }
     if constexpr (supports_fallback_v<Contract>) {
       if (auto opt_val = msg_parser.lduq(32))
         func_id = *opt_val;
@@ -670,17 +699,23 @@ int smart_switch(cell msg, slice msg_body) {
     } else {
       func_id = msg_parser.ldu(32);
     }
-    if constexpr (supports_fallback_v<Contract>) {
+    if constexpr (supports_receive_v<Contract> || supports_fallback_v<Contract>) {
       // TODO: the next line is required to prevent compiler from combining conditions into:
       //  `lduq.success != 0 or lduq.value != 0`.
       // Because lduq.value is null in case of lduq.success == 0 (null is generated by NULLROTRIFNOT).
       // We need ZEROROTRIFNOT / ZEROSWAPIFNOT instructions or disable such optimizations in compiler
       require(msg_body.sbits(), error_code::bad_incoming_msg);
-      if (func_id == 0)
-        return Contract::_fallback(msg, msg_body);
+      if (func_id == 0) {
+        require(!checked_deploy, error_code::method_not_for_deploy);
+        if constexpr (supports_receive_v<Contract>)
+          return Contract::_receive(msg, msg_body);
+        if constexpr (supports_fallback_v<Contract>)
+          return Contract::_fallback(msg, msg_body);
+      }
     }
     if constexpr (interface_has_coroutines_v<IContract>) {
       if (abiv2::is_answer_id(func_id)) {
+        require(!checked_deploy, error_code::method_not_for_deploy);
         using MsgHeaderT = abiv2::internal_msg_header;
         parser body_p(msg_body);
         auto [in_hdr, =body_p] = parse_continue<MsgHeaderT>(body_p);
@@ -694,7 +729,7 @@ int smart_switch(cell msg, slice msg_body) {
     auto [in_hdr, =body_p] = parse_continue<MsgHeaderT>(body_p);
     tvm_assert(!!in_hdr, error_code::bad_arguments);
     return smart_switcher<Internal, Contract, MsgHeaderT, IContract, DContract, ReplayAttackProtection>
-      ::execute(c, {}, *in_hdr, msg, body_p.sl(), msg_body);
+      ::execute(c, {}, *in_hdr, msg, body_p.sl(), msg_body, checked_deploy);
   } else {
     static constexpr bool has_pubkey = get_interface_has_pubkey<IContract>::value;
     using MsgHeaderT = abiv2::external_inbound_msg_header<has_pubkey>;
@@ -706,7 +741,7 @@ int smart_switch(cell msg, slice msg_body) {
     auto [in_hdr, =body_p] = parse_continue<MsgHeaderT>(body_p);
     tvm_assert(!!in_hdr, error_code::bad_arguments);
     return smart_switcher<Internal, Contract, MsgHeaderT, IContract, DContract, ReplayAttackProtection>
-      ::execute(c, sign->signature, *in_hdr, msg, body_p.sl(), body_from_header);
+      ::execute(c, sign->signature, *in_hdr, msg, body_p.sl(), body_from_header, checked_deploy);
   }
 }
 

@@ -3,13 +3,13 @@
 #include "MultiBallot.hpp"
 #include <tvm/contract_handle.hpp>
 
-namespace tvm { namespace schema {
+namespace tvm { inline namespace schema {
 
 struct ProposalInfo {
   uint256 id;
   uint32 start;
   uint32 end;
-  bytes desc;
+  string desc;
   bool_t finished;
   bool_t approved;
   bool_t resultsSent;
@@ -96,7 +96,7 @@ struct DProposalRoot {
   uint256 id_;
   uint32 start_;
   uint32 end_;
-  bytes desc_;
+  string desc_;
   VotesType totalVotes_;
   VotesType yesVotes_;
   VotesType noVotes_;

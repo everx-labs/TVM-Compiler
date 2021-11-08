@@ -16,7 +16,7 @@
 #include <boost/hana/take_back.hpp>
 #include <boost/hana/ext/std/tuple.hpp>
 
-namespace tvm { namespace schema {
+namespace tvm { inline namespace schema {
 
 namespace hana = boost::hana;
 
@@ -44,107 +44,6 @@ template<class T>
 struct is_optional : std::false_type {};
 template<class T>
 struct is_optional<std::optional<T>> : std::true_type {};
-
-template<class... Elems>
-static __always_inline builder build_chain(std::tuple<Elems...> tup) {
-  if constexpr (sizeof...(Elems) == 0) {
-    return {};
-  } else {
-    static constexpr unsigned fit_count = extract_fit<cell::max_bits, cell::max_refs - 1, 0, Elems...>::value;
-    if constexpr (fit_count == 0) {
-      // expanding first element
-      auto first_elem = std::get<0>(tup);
-      using first_elem_t = decltype(first_elem);
-      static_assert(is_expandable<first_elem_t>::value,
-                    "Can't place even 1 sequence element into cell");
-      builder b;
-      if constexpr (is_optional<first_elem_t>::value) {
-        if (first_elem)
-          b = build_chain(std::tuple_cat(std::make_tuple(bool_t(true)), to_std_tuple(*first_elem)));
-        else
-          b.stu(0, 1);
-      } else {
-        b = build_chain(to_std_tuple(std::get<0>(tup)));
-      }
-      if constexpr (sizeof...(Elems) > 1) {
-        auto next_subtup = hana::take_back_c<sizeof...(Elems) - 1>(tup);
-        b.stref(build_chain(next_subtup).make_cell());
-      }
-      return b;
-    } else {
-      auto cur_subtup = hana::take_front_c<fit_count>(tup);
-      builder b = build(cur_subtup);
-      if constexpr (sizeof...(Elems) > fit_count) {
-        auto next_subtup = hana::take_back_c<sizeof...(Elems) - fit_count>(tup);
-        b.stref(build_chain(next_subtup).make_cell());
-      }
-      return b;
-    }
-  }
-}
-
-template<class Tup, unsigned Offset, unsigned RefsOffset>
-struct chain_parser_impl {};
-template<class... Elems, unsigned Offset, unsigned RefsOffset>
-struct chain_parser_impl<std::tuple<Elems...>, Offset, RefsOffset> {
-  using Tup = std::tuple<Elems...>;
-  static __always_inline std::pair<Tup, parser> parse(parser p) {
-    if constexpr (sizeof...(Elems) == 0) {
-      return { Tup{}, p };
-    } else {
-      static constexpr unsigned fit_count =
-        extract_fit<cell::max_bits - Offset, cell::max_refs - 1 - RefsOffset, 0, Elems...>::value;
-      if constexpr (fit_count == 0) {
-        // expanding first element
-        using first_elem_t = typename std::tuple_element<0, Tup>::type;
-        static_assert(is_expandable<first_elem_t>::value,
-                      "Can't place even 1 sequence element into cell");
-        first_elem_t elem;
-        if constexpr (is_optional<first_elem_t>::value) {
-          if (p.ldu(1)) {
-            using SubElem = typename std::decay<decltype(*elem)>::type;
-            using ExpandedTup = to_std_tuple_t<SubElem>;
-            auto [elem_tup, =p] = chain_parser_impl<ExpandedTup, 1, 0>::parse(p);
-            elem = to_struct<SubElem>(elem_tup);
-          } else {
-            elem = {};
-          }
-        } else {
-          using ExpandedTup = to_std_tuple_t<first_elem_t>;
-          auto [elem_tup, =p] = chain_parser_impl<ExpandedTup, Offset, RefsOffset>::parse(p);
-          elem = to_struct<first_elem_t>(elem_tup);
-        }
-        if constexpr (sizeof...(Elems) > 1) {
-          using NextT = decltype(hana::take_back_c<sizeof...(Elems) - 1>(Tup{}));
-          parser next_p(p.ldrefrtos());
-          auto [next_tup, =next_p] = chain_parser_impl<NextT, 0, 0>::parse(next_p);
-          return { std::tuple_cat(std::make_tuple(elem), next_tup), p };
-        } else {
-          return { std::make_tuple(elem), p };
-        }
-      } else {
-        using FrontT = decltype(hana::take_front_c<fit_count>(Tup{}));
-        auto [front_tup, =p] = parse_continue<FrontT>(p);
-        require(!!front_tup, error_code::custom_data_parse_error);
-        if constexpr (sizeof...(Elems) > fit_count) {
-          using NextT = decltype(hana::take_back_c<sizeof...(Elems) - fit_count>(Tup{}));
-          parser next_p(p.ldrefrtos());
-          auto [next_tup, =next_p] = chain_parser_impl<NextT, 0, 0>::parse(next_p);
-          return { std::tuple_cat(*front_tup, next_tup), p };
-        } else {
-          return { *front_tup, p };
-        }
-      }
-    }
-  }
-};
-
-template<class Data, unsigned Offset, unsigned RefsOffset>
-static __always_inline Data parse_chain(parser p) {
-  using Tup = to_std_tuple_t<Data>;
-  auto [rv_tup, =p] = chain_parser_impl<Tup, Offset, RefsOffset>::parse(p);
-  return to_struct<Data>(rv_tup);
-}
 
 // If element with such estimation Est is for sure parsable ({bits, refs} >= estimation max)
 template<class Est>

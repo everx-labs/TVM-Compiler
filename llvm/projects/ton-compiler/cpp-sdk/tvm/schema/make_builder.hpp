@@ -8,7 +8,7 @@
 #include <tvm/schema/message.hpp>
 #include <experimental/type_traits>
 
-namespace tvm { namespace schema {
+namespace tvm { inline namespace schema {
 
 template<unsigned _bitlen, unsigned _code>
 struct make_builder_impl<bitconst<_bitlen, _code>> {
@@ -23,6 +23,14 @@ struct make_builder_impl<bitfield<_bitlen>> {
   using value_type = bitfield<_bitlen>;
   __always_inline static builder build(builder b, value_type v) {
     return b.stslice(v.sl_);
+  }
+};
+
+template<>
+struct make_builder_impl<addr_std_compact> {
+  using value_type = addr_std_compact;
+  __always_inline static builder build(builder b, value_type v) {
+    return b.stu(0b100, 3).sti(v.workchain_id.get(), 8).stu(v.address.get(), 256);
   }
 };
 

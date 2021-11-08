@@ -1325,50 +1325,53 @@ namespace serialization {
       /// The internal '__reflect_method_dyn_chain_parse' template.
       PREDEF_DECL_REFLECT_METHOD_DYN_CHAIN_PARSE_ID = 32,
 
+      /// The internal '__reflect_method_deploy' template.
+      PREDEF_DECL_REFLECT_METHOD_DEPLOY_ID = 33,
+
       /// The internal '__reflect_method_no_read_persistent' template.
-      PREDEF_DECL_REFLECT_METHOD_NO_READ_PERSISTENT_ID = 33,
+      PREDEF_DECL_REFLECT_METHOD_NO_READ_PERSISTENT_ID = 34,
 
       /// The internal '__reflect_method_no_write_persistent' template.
-      PREDEF_DECL_REFLECT_METHOD_NO_WRITE_PERSISTENT_ID = 34,
+      PREDEF_DECL_REFLECT_METHOD_NO_WRITE_PERSISTENT_ID = 35,
 
       /// The internal '__reflect_method_ptr_func_id' template.
-      PREDEF_DECL_REFLECT_METHOD_PTR_FUNC_ID_ID = 35,
+      PREDEF_DECL_REFLECT_METHOD_PTR_FUNC_ID_ID = 36,
 
       /// The internal '__reflect_method_rv' template.
-      PREDEF_DECL_REFLECT_METHOD_RV_ID = 36,
+      PREDEF_DECL_REFLECT_METHOD_RV_ID = 37,
 
       /// The internal '__reflect_method_ptr_rv' template.
-      PREDEF_DECL_REFLECT_METHOD_PTR_RV_ID = 37,
+      PREDEF_DECL_REFLECT_METHOD_PTR_RV_ID = 38,
 
       /// The internal '__reflect_method_arg_struct' template.
-      PREDEF_DECL_REFLECT_METHOD_ARG_STRUCT_ID = 38,
+      PREDEF_DECL_REFLECT_METHOD_ARG_STRUCT_ID = 39,
 
       /// The internal '__reflect_method_ptr_arg_struct' template.
-      PREDEF_DECL_REFLECT_METHOD_PTR_ARG_STRUCT_ID = 39,
+      PREDEF_DECL_REFLECT_METHOD_PTR_ARG_STRUCT_ID = 40,
 
       /// The internal '__reflect_smart_interface' template.
-      PREDEF_DECL_REFLECT_SMART_INTERFACE_ID = 40,
+      PREDEF_DECL_REFLECT_SMART_INTERFACE_ID = 41,
 
       /// The internal '__reflect_proxy' template.
-      PREDEF_DECL_REFLECT_PROXY_ID = 41,
+      PREDEF_DECL_REFLECT_PROXY_ID = 42,
 
       /// The internal '__reflect_method_ptr' template.
-      PREDEF_DECL_REFLECT_METHOD_PTR_ID = 42,
+      PREDEF_DECL_REFLECT_METHOD_PTR_ID = 43,
 
       /// The internal '__reflect_interface_has_pubkey' template.
-      PREDEF_DECL_REFLECT_INTERFACE_HAS_PUBKEY_ID = 43,
+      PREDEF_DECL_REFLECT_INTERFACE_HAS_PUBKEY_ID = 44,
 
       /// The internal '__reflect_interface_has_timestamp' template.
-      PREDEF_DECL_REFLECT_INTERFACE_HAS_TIMESTAMP_ID = 44,
+      PREDEF_DECL_REFLECT_INTERFACE_HAS_TIMESTAMP_ID = 45,
 
       /// The internal '__reflect_interface_has_expire' template.
-      PREDEF_DECL_REFLECT_INTERFACE_HAS_EXPIRE_ID = 45,
+      PREDEF_DECL_REFLECT_INTERFACE_HAS_EXPIRE_ID = 46,
 
       /// The internal '__reflect_signature_func_id' template.
-      PREDEF_DECL_REFLECT_SIGNATURE_FUNC_ID_ID = 46,
+      PREDEF_DECL_REFLECT_SIGNATURE_FUNC_ID_ID = 47,
 
       /// The internal '__reflect_echo' template.
-      PREDEF_DECL_REFLECT_ECHO_ID = 47
+      PREDEF_DECL_REFLECT_ECHO_ID = 48
       // TVM local end
     };
 
@@ -1377,7 +1380,7 @@ namespace serialization {
     /// For more information about predefined declarations, see the
     /// \c PredefinedDeclIDs type and the PREDEF_DECL_*_ID constants.
     // TVM local begin
-    const unsigned int NUM_PREDEF_DECL_IDS = 47;
+    const unsigned int NUM_PREDEF_DECL_IDS = 48;
     // TVM local end
 
     /// Record of updates for a declaration that was modified after

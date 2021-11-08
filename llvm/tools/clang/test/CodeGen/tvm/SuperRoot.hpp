@@ -6,7 +6,7 @@
 
 #include <tvm/contract_handle.hpp>
 
-namespace tvm { namespace schema {
+namespace tvm { inline namespace schema {
 
 struct Proposal {
   address root;
@@ -27,7 +27,7 @@ __interface ISuperRoot {
   //  calculates it address and deploys it
   [[internal, noaccept, dyn_chain_parse, answer_id]]
   bool_t createProposal(uint256 id, VotesType totalVotes,
-                        uint32 startime, uint32 endtime, bytes desc,
+                        uint32 startime, uint32 endtime, string desc,
                         bool_t superMajority, DepositType votePrice,
                         bool_t finalMsgEnabled,
                         cell finalMsg, uint256 finalMsgValue, uint256 finalMsgRequestValue,

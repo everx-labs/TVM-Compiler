@@ -2,13 +2,14 @@
 
 #include <tvm/error_code.hpp>
 #include <tvm/parser.hpp>
+#include <tvm/assert.hpp>
 #include <tvm/schema/basics.hpp>
 #include <tvm/schema/message.hpp>
 #include <tvm/schema/parser/struct_parser.hpp>
 #include <tvm/schema/parser/variant_parser.hpp>
 #include <tvm/schema/parser/dynamic_field_parser.hpp>
 
-namespace tvm { namespace schema {
+namespace tvm { inline namespace schema {
 
 template<unsigned _bitlen, unsigned _code>
 struct make_parser_impl<bitconst<_bitlen, _code>> {
@@ -27,6 +28,24 @@ struct make_parser_impl<bitfield<_bitlen>> {
   template<class _Ctx>
   __always_inline static std::tuple<optional<value_type>, parser, _Ctx> parse(parser p, _Ctx ctx) {
     auto rv = value_type{ p.ldslice(_bitlen) };
+    return std::tuple(rv, p, ctx);
+  }
+};
+
+template<>
+struct make_parser_impl<addr_std_compact> {
+  using value_type = addr_std_compact;
+  template<class _Ctx>
+  __always_inline static std::tuple<optional<value_type>, parser, _Ctx> parse(parser p, _Ctx ctx) {
+    auto parsed_sl = p.ldmsgaddr();
+    auto parsed_tup = __builtin_tvm_parsemsgaddr(parsed_sl);
+    require(msg_address::msg_addr_kind(__builtin_tvm_index(parsed_tup, 0)) == msg_address::msg_addr_kind::kind_std,
+      error_code::custom_data_parse_error);
+    tvm::tuple<msg_address::addr_std> tup(parsed_tup);
+    auto unpacked = tup.unpack();
+    // Anycast must be null
+    require(__builtin_tvm_isnull(__builtin_tvm_cast_from_slice(unpacked.rewrite_pfx())), error_code::custom_data_parse_error);
+    addr_std_compact rv(int8(unpacked.workchain_id()), uint256(parser(unpacked.address()).ldu(256)));
     return std::tuple(rv, p, ctx);
   }
 };

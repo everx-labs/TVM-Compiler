@@ -105,7 +105,7 @@ struct small_dict_map {
   }
 
   __always_inline
-  std::optional<Element> extract(Key key) const {
+  std::optional<Element> extract(Key key) {
     auto [sl, succ] = dict_.dictdelget(schema::build(key).make_slice(), KeyLen::value);
     if (succ) {
       --size_;

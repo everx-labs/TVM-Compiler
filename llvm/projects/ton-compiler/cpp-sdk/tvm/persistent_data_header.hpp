@@ -1,5 +1,7 @@
 #pragma once
 
+#include <tvm/awaiting_responses_map.hpp>
+
 namespace tvm {
 
 template<typename T>

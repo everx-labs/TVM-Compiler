@@ -2,7 +2,7 @@
 
 #include <tvm/schema/is_expandable.hpp>
 
-namespace tvm { namespace schema {
+namespace tvm { inline namespace schema {
 
 template<class T>
 struct tuple_pop_front_type {};

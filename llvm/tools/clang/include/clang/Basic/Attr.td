@@ -1719,6 +1719,13 @@ def TVMDynChainParseFunc : InheritableAttr {
   let Documentation = [Undocumented];
   let Subjects = SubjectList<[Function]>;
 }
+def TVMDeployFunc : InheritableAttr {
+  let Spellings = [GCC<"deploy">,
+                   CXX11<"", "deploy", 201309>,
+                   C2x<"", "deploy">];
+  let Documentation = [Undocumented];
+  let Subjects = SubjectList<[Function]>;
+}
 def TVMReturnNameFunc : InheritableAttr {
   let Spellings = [GCC<"return_name">, CXX11<"", "return_name", 201309>,
                    C2x<"", "return_name">];

@@ -323,6 +323,22 @@ let mayStore = 1 in {
         (int_tvm_dictdelgetref Slice:$key, Cell:$dict, I257:$precision))],
       "DICTDELGETREF\t$newdict, $result, $status, $key, $dict, $precision",
       "DICTDELGETREF NULLSWAPIFNOT", 0xf463>;
+  defm DICTUDELGET :
+    I<(outs Cell:$newdict, Slice:$result, I257:$status),
+      (ins I257:$key, Cell:$dict, I257:$precision),
+      (outs), (ins),
+      [(set Cell:$newdict, Slice:$result, I257:$status,
+        (int_tvm_dictudelget I257:$key, Cell:$dict, I257:$precision))],
+      "DICTUDELGET\t$newdict, $result, $status, $key, $dict, $precision",
+      "DICTUDELGET NULLSWAPIFNOT", 0xf466>;
+  defm DICTUDELGETREF :
+    I<(outs Cell:$newdict, Cell:$result, I257:$status),
+      (ins I257:$key, Cell:$dict, I257:$precision),
+      (outs), (ins),
+      [(set Cell:$newdict, Cell:$result, I257:$status,
+        (int_tvm_dictudelgetref I257:$key, Cell:$dict, I257:$precision))],
+      "DICTUDELGETREF\t$newdict, $result, $status, $key, $dict, $precision",
+      "DICTUDELGETREF NULLSWAPIFNOT", 0xf467>;
   defm DICTUDEL :
     I<(outs Cell:$newdict, I257:$modified),
       (ins I257:$key, Cell:$dict, I257:$w), (outs), (ins),

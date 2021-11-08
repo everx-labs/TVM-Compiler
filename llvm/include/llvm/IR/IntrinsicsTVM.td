@@ -358,6 +358,14 @@ let TargetPrefix = "tvm" in {
     GCCBuiltin<"__builtin_tvm_dictdelgetref">,
     Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_TVMCell_ty, llvm_i257_ty],
               [llvm_TVMSlice_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+  def int_tvm_dictudelget :
+    GCCBuiltin<"__builtin_tvm_dictudelget">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_TVMSlice_ty, llvm_i257_ty],
+              [llvm_i257_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
+  def int_tvm_dictudelgetref :
+    GCCBuiltin<"__builtin_tvm_dictudelgetref">,
+    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_TVMCell_ty, llvm_i257_ty],
+              [llvm_i257_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
   def int_tvm_dictudel :
     GCCBuiltin<"__builtin_tvm_dictudel">,
     Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_i257_ty],

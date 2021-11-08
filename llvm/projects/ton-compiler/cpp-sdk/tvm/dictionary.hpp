@@ -158,6 +158,18 @@ public:
     return std::tuple(cell(cl), succ);
   }
 
+  std::tuple<slice, bool> dictudelget(unsigned key, unsigned key_len) {
+    auto [dict, sl, succ] = __builtin_tvm_dictudelget(key, get(), key_len);
+    dict_ = dict;
+    return std::tuple(slice(sl), succ);
+  }
+
+  std::tuple<cell, bool> dictudelgetref(unsigned key, unsigned key_len) {
+    auto [dict, cl, succ] = __builtin_tvm_dictudelgetref(key, get(), key_len);
+    dict_ = dict;
+    return std::tuple(cell(cl), succ);
+  }
+
   bool dictudel(unsigned key, unsigned key_len) {
     auto [dict, succ] = __builtin_tvm_dictudel(key, get(), key_len);
     dict_ = dict;

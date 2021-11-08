@@ -2,7 +2,7 @@
 
 #include <tvm/schema/basics.hpp>
 
-namespace tvm { namespace schema {
+namespace tvm { inline namespace schema {
 
 template<auto _Field>
 struct make_builder_impl<dynamic_bitfield<_Field>> {

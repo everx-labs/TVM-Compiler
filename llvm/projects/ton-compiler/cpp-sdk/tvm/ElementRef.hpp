@@ -43,7 +43,7 @@ void swap(SmallElementRef<Element, KeyLen> ref1, SmallElementRef<Element, KeyLen
 template<class Element, unsigned KeyLen>
 struct BigElementRef {
   __always_inline BigElementRef& operator=(Element elem) {
-    auto [cl, succ] = dict_.dictusetgetref(build_chain(to_std_tuple(elem)).make_cell(), idx_, KeyLen);
+    auto [cl, succ] = dict_.dictusetgetref(build_chain_static(elem), idx_, KeyLen);
     if (!succ)
       ++size_;
     return *this;
@@ -51,7 +51,7 @@ struct BigElementRef {
   __always_inline operator Element() const {
     auto [cl, succ] = dict_.dictugetref(idx_, KeyLen);
     require(succ, error_code::iterator_overflow);
-    return parse_chain<Element,0,0>(parser(cl));
+    return parse_chain_static<Element>(parser(cl));
   }
 
   __always_inline void swap(BigElementRef v) const {

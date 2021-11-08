@@ -20,7 +20,7 @@
 #include <tvm/schema/chain_builder.hpp>
 #include <tvm/schema/chain_tuple_printer.hpp>
 
-namespace tvm { namespace schema {
+namespace tvm { inline namespace schema {
 
 namespace hana = boost::hana;
 
@@ -73,7 +73,11 @@ auto make_expanded_tuple(std::tuple<Elems...> tup) {
         return std::tuple_cat(make_expanded_tuple(elem_tup), make_expanded_tuple(next_subtup));
       }
     } else {
-      return elem_tup;
+      if constexpr (!tuple_has_expandable_elem<decltype(elem_tup)>::value) {
+        return elem_tup;
+      } else {
+        return make_expanded_tuple(elem_tup);
+      }
     }
   } else {
     return tup;
@@ -91,17 +95,12 @@ auto make_chain_tuple_impl(std::tuple<Elems...> tup) {
   auto cur_subtup = hana::take_front_c<fit_count>(tup);
 
   if constexpr (fit_count == 0 && sizeof...(Elems) != 0) {
-    // expanding first element
-    auto first_elem = std::get<0>(tup);
-    using first_elem_t = decltype(first_elem);
-    static_assert(schema::is_expandable<first_elem_t>::value,
-                  "Can't place even 1 sequence element into cell");
-    auto split_tup = make_chain_tuple_impl(to_std_tuple(first_elem));
-    if constexpr (sizeof...(Elems) > 1) {
-      auto next_subtup = hana::take_back_c<sizeof...(Elems) - 1>(tup);
-      return std::tuple_cat(split_tup, make_chain_tuple_impl(next_subtup));
+    if constexpr (Offset || RefsOffset) {
+      auto cont_tup = make_chain_tuple_impl(tup);
+      return std::make_tuple(schema::ref<decltype(cont_tup)>{cont_tup});
     } else {
-      return split_tup;
+      static_assert(Offset || RefsOffset, "Can't place even 1 sequence element into cell");
+      return std::tuple<>();
     }
   } else {
     if constexpr (sizeof...(Elems) > fit_count) {
@@ -114,6 +113,8 @@ auto make_chain_tuple_impl(std::tuple<Elems...> tup) {
   }
 }
 
+// Make tuple of expanded atomic elements, splitted into cells with
+// carry-over by refs {u256, u256, u256, u256, point3d<u32>{}} => {u256, u256, u256, ref<u256, u32, u32, u32>}
 template<unsigned Offset = 0, unsigned RefsOffset = 0, class... Elems>
 __always_inline
 auto make_chain_tuple(std::tuple<Elems...> tup_in) {

@@ -2,7 +2,7 @@
 
 #include <tvm/schema/basics.hpp>
 
-namespace tvm { namespace schema {
+namespace tvm { inline namespace schema {
 
 // Calculates static bitsize for format element or returns 0 if it can't be calculated compile-time
 template<class _Tp>
@@ -65,6 +65,10 @@ struct get_bitsize<MsgAddressSlice> {
 template<unsigned _bitlen>
 struct get_bitsize<bitfield<_bitlen>> {
   static constexpr unsigned value = _bitlen;
+};
+template<>
+struct get_bitsize<addr_std_compact> {
+  static constexpr unsigned value = 2/*hdr*/ + 1/*optional()*/ + 8/*wid*/ + 256/*addr*/;
 };
 template<unsigned _bitlen, unsigned _code>
 struct get_bitsize<bitconst<_bitlen, _code>> {

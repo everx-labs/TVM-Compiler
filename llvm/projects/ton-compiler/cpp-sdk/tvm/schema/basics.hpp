@@ -11,71 +11,71 @@
 
 #include <tvm/to_std_tuple.hpp>
 
-namespace tvm { namespace schema {
+namespace tvm { inline namespace schema {
 
 // TODO: Merge with upstream to have default comparison operators
 #ifdef DEFAULT_EQUAL
 #error Overriding DEFAULT_EQUAL macros
 #endif
 #define DEFAULT_EQUAL(T)                             \
-  bool operator==(const T& v) const {                \
+  constexpr bool operator==(const T& v) const {      \
     return to_std_tuple(*this) == to_std_tuple(v);   \
   }                                                  \
-  bool operator!=(const T& v) const {                \
+  constexpr bool operator!=(const T& v) const {      \
     return to_std_tuple(*this) != to_std_tuple(v);   \
   }
 
 #ifdef DEFAULT_PROXY_OPERATORS
 #error Overriding DEFAULT_PROXY_OPERATORS macros
 #endif
-#define DEFAULT_PROXY_OPERATORS(T, V)                                                       \
-  bool operator<(T x) const { return val_ < x.val_; }                                       \
-  bool operator<(V x) const { return val_ < x; }                                            \
-  template<unsigned _len> bool operator<(T<_len> x) const { return val_ < x.val_; }         \
-  bool operator<=(T x) const { return val_ <= x.val_; }                                     \
-  bool operator<=(V x) const { return val_ <= x; }                                          \
-  template<unsigned _len> bool operator<=(T<_len> x) const { return val_ <= x.val_; }       \
-  bool operator>(T x) const { return val_ > x.val_; }                                       \
-  bool operator>(V x) const { return val_ > x; }                                            \
-  template<unsigned _len> bool operator>(T<_len> x) const { return val_ > x.val_; }         \
-  bool operator>=(T x) const { return val_ >= x.val_; }                                     \
-  bool operator>=(V x) const { return val_ >= x; }                                          \
-  template<unsigned _len> bool operator>=(T<_len> x) const { return val_ >= x.val_; }       \
-  bool operator==(T x) const { return val_ == x.val_; }                                     \
-  bool operator==(V x) const { return val_ == x; }                                          \
-  template<unsigned _len> bool operator==(T<_len> x) const { return val_ == x.val_; }       \
-  bool operator!=(T x) const { return val_ != x.val_; }                                     \
-  bool operator!=(V x) const { return val_ != x; }                                          \
-  template<unsigned _len> bool operator!=(T<_len> x) const { return val_ != x.val_; }       \
-  T& operator+=(T x) { val_ += x.val_; return *this; }                                      \
-  T& operator+=(V x) { val_ += x; return *this; }                                           \
-  template<unsigned _len> T& operator+=(T<_len> x) { val_ += x.val_; return *this; }        \
-  T& operator-=(T x) { val_ -= x.val_; return *this; }                                      \
-  T& operator-=(V x) { val_ -= x; return *this; }                                           \
-  template<unsigned _len> T& operator-=(T<_len> x) { val_ -= x.val_; return *this; }        \
-  T& operator*=(T x) { val_ *= x.val_; return *this; }                                      \
-  T& operator*=(V x) { val_ *= x; return *this; }                                           \
-  template<unsigned _len> T& operator*=(T<_len> x) { val_ *= x.val_; return *this; }        \
-  T& operator/=(T x) { val_ /= x.val_; return *this; }                                      \
-  T& operator/=(V x) { val_ /= x; return *this; }                                           \
-  template<unsigned _len> T& operator/=(T<_len> x) { val_ /= x.val_; return *this; }        \
-  T& operator%=(T x) { val_ %= x.val_; return *this; }                                      \
-  T& operator%=(V x) { val_ %= x; return *this; }                                           \
-  template<unsigned _len> T& operator%=(T<_len> x) { val_ %= x.val_; return *this; }        \
-  T& operator|=(T x) { val_ |= x.val_; return *this; }                                      \
-  T& operator|=(V x) { val_ |= x; return *this; }                                           \
-  template<unsigned _len> T& operator|=(T<_len> x) { val_ |= x.val_; return *this; }        \
-  T& operator&=(T x) { val_ &= x.val_; return *this; }                                      \
-  T& operator&=(V x) { val_ &= x; return *this; }                                           \
-  template<unsigned _len> T& operator&=(T<_len> x) { val_ &= x.val_; return *this; }        \
-  T& operator^=(T x) { val_ ^= x.val_; return *this; }                                      \
-  T& operator^=(V x) { val_ ^= x; return *this; }                                           \
-  template<unsigned _len> T& operator^=(T<_len> x) { val_ ^= x.val_; return *this; }        \
-  T& operator++() { ++val_; return *this; }                                                 \
-  T& operator--() { --val_; return *this; }                                                 \
-  T operator++(int) { T old(*this); ++val_; return old; }                                   \
-  T operator--(int) { T old(*this); --val_; return old; }                                   \
-  T operator~() const { return T(~val_); }
+#define DEFAULT_PROXY_OPERATORS(T, V)                                                            \
+  constexpr bool operator<(T x) const { return val_ < x.val_; }                                  \
+  constexpr bool operator<(V x) const { return val_ < x; }                                       \
+  template<unsigned _len> constexpr bool operator<(T<_len> x) const { return val_ < x.val_; }    \
+  constexpr bool operator<=(T x) const { return val_ <= x.val_; }                                \
+  constexpr bool operator<=(V x) const { return val_ <= x; }                                     \
+  template<unsigned _len> constexpr bool operator<=(T<_len> x) const { return val_ <= x.val_; }  \
+  constexpr bool operator>(T x) const { return val_ > x.val_; }                                  \
+  constexpr bool operator>(V x) const { return val_ > x; }                                       \
+  template<unsigned _len> constexpr bool operator>(T<_len> x) const { return val_ > x.val_; }    \
+  constexpr bool operator>=(T x) const { return val_ >= x.val_; }                                \
+  constexpr bool operator>=(V x) const { return val_ >= x; }                                     \
+  template<unsigned _len> constexpr bool operator>=(T<_len> x) const { return val_ >= x.val_; }  \
+  constexpr bool operator==(T x) const { return val_ == x.val_; }                                \
+  constexpr bool operator==(V x) const { return val_ == x; }                                     \
+  template<unsigned _len> constexpr bool operator==(T<_len> x) const { return val_ == x.val_; }  \
+  constexpr bool operator!=(T x) const { return val_ != x.val_; }                                \
+  constexpr bool operator!=(V x) const { return val_ != x; }                                     \
+  template<unsigned _len> constexpr bool operator!=(T<_len> x) const { return val_ != x.val_; }  \
+  constexpr T& operator+=(T x) { val_ += x.val_; return *this; }                                 \
+  constexpr T& operator+=(V x) { val_ += x; return *this; }                                      \
+  template<unsigned _len> constexpr T& operator+=(T<_len> x) { val_ += x.val_; return *this; }   \
+  constexpr T& operator-=(T x) { val_ -= x.val_; return *this; }                                 \
+  constexpr T& operator-=(V x) { val_ -= x; return *this; }                                      \
+  template<unsigned _len> constexpr T& operator-=(T<_len> x) { val_ -= x.val_; return *this; }   \
+  constexpr T& operator*=(T x) { val_ *= x.val_; return *this; }                                 \
+  constexpr T& operator*=(V x) { val_ *= x; return *this; }                                      \
+  template<unsigned _len> constexpr T& operator*=(T<_len> x) { val_ *= x.val_; return *this; }   \
+  constexpr T& operator/=(T x) { val_ /= x.val_; return *this; }                                 \
+  constexpr T& operator/=(V x) { val_ /= x; return *this; }                                      \
+  template<unsigned _len> constexpr T& operator/=(T<_len> x) { val_ /= x.val_; return *this; }   \
+  constexpr T& operator%=(T x) { val_ %= x.val_; return *this; }                                 \
+  constexpr T& operator%=(V x) { val_ %= x; return *this; }                                      \
+  template<unsigned _len> constexpr T& operator%=(T<_len> x) { val_ %= x.val_; return *this; }   \
+  constexpr T& operator|=(T x) { val_ |= x.val_; return *this; }                                 \
+  constexpr T& operator|=(V x) { val_ |= x; return *this; }                                      \
+  template<unsigned _len> constexpr T& operator|=(T<_len> x) { val_ |= x.val_; return *this; }   \
+  constexpr T& operator&=(T x) { val_ &= x.val_; return *this; }                                 \
+  constexpr T& operator&=(V x) { val_ &= x; return *this; }                                      \
+  template<unsigned _len> constexpr T& operator&=(T<_len> x) { val_ &= x.val_; return *this; }   \
+  constexpr T& operator^=(T x) { val_ ^= x.val_; return *this; }                                 \
+  constexpr T& operator^=(V x) { val_ ^= x; return *this; }                                      \
+  template<unsigned _len> constexpr T& operator^=(T<_len> x) { val_ ^= x.val_; return *this; }   \
+  constexpr T& operator++() { ++val_; return *this; }                                            \
+  constexpr T& operator--() { --val_; return *this; }                                            \
+  constexpr T operator++(int) { T old(*this); ++val_; return old; }                              \
+  constexpr T operator--(int) { T old(*this); --val_; return old; }                              \
+  constexpr T operator~() const { return T(~val_); }
 
 template<unsigned _bitlen, unsigned _code>
 struct bitconst {
@@ -113,176 +113,176 @@ struct int_t {
 };
 
 template<unsigned _left_len, unsigned _right_len>
-__always_inline auto operator+(int_t<_left_len> l, int_t<_right_len> r) {
+__always_inline constexpr auto operator+(int_t<_left_len> l, int_t<_right_len> r) {
   return int_t<std::max(_left_len, _right_len)>(l.val_ + r.val_);
 }
 template<unsigned _len>
-__always_inline auto operator+(int_t<_len> l, unsigned r) {
+__always_inline constexpr auto operator+(int_t<_len> l, unsigned r) {
   return int_t<_len>(l.val_ + r);
 }
 template<unsigned _len>
-__always_inline auto operator+(unsigned l, int_t<_len> r) {
+__always_inline constexpr auto operator+(unsigned l, int_t<_len> r) {
   return int_t<_len>(l + r.val_);
 }
 template<unsigned _left_len, unsigned _right_len>
-__always_inline auto operator-(int_t<_left_len> l, int_t<_right_len> r) {
+__always_inline constexpr auto operator-(int_t<_left_len> l, int_t<_right_len> r) {
   return int_t<std::max(_left_len, _right_len)>(l.val_ - r.val_);
 }
 template<unsigned _len>
-__always_inline auto operator-(int_t<_len> l, unsigned r) {
+__always_inline constexpr auto operator-(int_t<_len> l, unsigned r) {
   return int_t<_len>(l.val_ - r);
 }
 template<unsigned _len>
-__always_inline auto operator-(unsigned l, int_t<_len> r) {
+__always_inline constexpr auto operator-(unsigned l, int_t<_len> r) {
   return int_t<_len>(l - r.val_);
 }
 template<unsigned _left_len, unsigned _right_len>
-__always_inline auto operator*(int_t<_left_len> l, int_t<_right_len> r) {
+__always_inline constexpr auto operator*(int_t<_left_len> l, int_t<_right_len> r) {
   return int_t<std::max(_left_len, _right_len)>(l.val_ * r.val_);
 }
-__always_inline auto operator*(int_t<8> l, int_t<8> r) { return int_t<8>{l.val_ * r.val_}; }
-__always_inline auto operator*(int_t<16> l, int_t<16> r) { return int_t<16>{l.val_ * r.val_}; }
-__always_inline auto operator*(int_t<32> l, int_t<32> r) { return int_t<32>{l.val_ * r.val_}; }
-__always_inline auto operator*(int_t<64> l, int_t<64> r) { return int_t<64>{l.val_ * r.val_}; }
-__always_inline auto operator*(int_t<128> l, int_t<128> r) { return int_t<128>{l.val_ * r.val_}; }
+__always_inline constexpr auto operator*(int_t<8> l, int_t<8> r) { return int_t<8>{l.val_ * r.val_}; }
+__always_inline constexpr auto operator*(int_t<16> l, int_t<16> r) { return int_t<16>{l.val_ * r.val_}; }
+__always_inline constexpr auto operator*(int_t<32> l, int_t<32> r) { return int_t<32>{l.val_ * r.val_}; }
+__always_inline constexpr auto operator*(int_t<64> l, int_t<64> r) { return int_t<64>{l.val_ * r.val_}; }
+__always_inline constexpr auto operator*(int_t<128> l, int_t<128> r) { return int_t<128>{l.val_ * r.val_}; }
 template<unsigned _len>
-__always_inline auto operator*(int_t<_len> l, unsigned r) {
+__always_inline constexpr auto operator*(int_t<_len> l, unsigned r) {
   return int_t<_len>(l.val_ * r);
 }
 template<unsigned _len>
-__always_inline auto operator*(unsigned l, int_t<_len> r) {
+__always_inline constexpr auto operator*(unsigned l, int_t<_len> r) {
   return int_t<_len>(l * r.val_);
 }
 template<unsigned _left_len, unsigned _right_len>
-__always_inline auto operator/(int_t<_left_len> l, int_t<_right_len> r) {
+__always_inline constexpr auto operator/(int_t<_left_len> l, int_t<_right_len> r) {
   return int_t<std::max(_left_len, _right_len)>(l.val_ / r.val_);
 }
 template<unsigned _len>
-__always_inline auto operator/(int_t<_len> l, unsigned r) {
+__always_inline constexpr auto operator/(int_t<_len> l, unsigned r) {
   return int_t<_len>(l.val_ / r);
 }
 template<unsigned _len>
-__always_inline auto operator/(unsigned l, int_t<_len> r) {
+__always_inline constexpr auto operator/(unsigned l, int_t<_len> r) {
   return int_t<_len>(l / r.val_);
 }
 template<unsigned _left_len, unsigned _right_len>
-__always_inline auto operator%(int_t<_left_len> l, int_t<_right_len> r) {
+__always_inline constexpr auto operator%(int_t<_left_len> l, int_t<_right_len> r) {
   return int_t<std::max(_left_len, _right_len)>(l.val_ % r.val_);
 }
 template<unsigned _len>
-__always_inline auto operator%(int_t<_len> l, unsigned r) {
+__always_inline constexpr auto operator%(int_t<_len> l, unsigned r) {
   return int_t<_len>(l.val_ % r);
 }
 template<unsigned _len>
-__always_inline auto operator%(unsigned l, int_t<_len> r) {
+__always_inline constexpr auto operator%(unsigned l, int_t<_len> r) {
   return int_t<_len>(l % r.val_);
 }
 template<unsigned _left_len, unsigned _right_len>
-__always_inline auto operator|(int_t<_left_len> l, int_t<_right_len> r) {
+__always_inline constexpr auto operator|(int_t<_left_len> l, int_t<_right_len> r) {
   return int_t<std::max(_left_len, _right_len)>(l.val_ | r.val_);
 }
 template<unsigned _len>
-__always_inline auto operator|(int_t<_len> l, unsigned r) {
+__always_inline constexpr auto operator|(int_t<_len> l, unsigned r) {
   return int_t<_len>(l.val_ | r);
 }
 template<unsigned _len>
-__always_inline auto operator|(unsigned l, int_t<_len> r) {
+__always_inline constexpr auto operator|(unsigned l, int_t<_len> r) {
   return int_t<_len>(l | r.val_);
 }
 template<unsigned _left_len, unsigned _right_len>
-__always_inline auto operator&(int_t<_left_len> l, int_t<_right_len> r) {
+__always_inline constexpr auto operator&(int_t<_left_len> l, int_t<_right_len> r) {
   return int_t<std::max(_left_len, _right_len)>(l.val_ & r.val_);
 }
 template<unsigned _len>
-__always_inline auto operator&(int_t<_len> l, unsigned r) {
+__always_inline constexpr auto operator&(int_t<_len> l, unsigned r) {
   return int_t<_len>(l.val_ & r);
 }
 template<unsigned _len>
-__always_inline auto operator&(unsigned l, int_t<_len> r) {
+__always_inline constexpr auto operator&(unsigned l, int_t<_len> r) {
   return int_t<_len>(l & r.val_);
 }
 template<unsigned _left_len, unsigned _right_len>
-__always_inline auto operator^(int_t<_left_len> l, int_t<_right_len> r) {
+__always_inline constexpr auto operator^(int_t<_left_len> l, int_t<_right_len> r) {
   return int_t<std::max(_left_len, _right_len)>(l.val_ ^ r.val_);
 }
 template<unsigned _len>
-__always_inline auto operator^(int_t<_len> l, unsigned r) {
+__always_inline constexpr auto operator^(int_t<_len> l, unsigned r) {
   return int_t<_len>(l.val_ ^ r);
 }
 template<unsigned _len>
-__always_inline auto operator^(unsigned l, int_t<_len> r) {
+__always_inline constexpr auto operator^(unsigned l, int_t<_len> r) {
   return int_t<_len>(l ^ r.val_);
 }
 template<unsigned _left_len, unsigned _right_len>
-__always_inline auto operator<<(int_t<_left_len> l, int_t<_right_len> r) {
+__always_inline constexpr auto operator<<(int_t<_left_len> l, int_t<_right_len> r) {
   return int_t<std::max(_left_len, _right_len)>(l.val_ << r.val_);
 }
 template<unsigned _len>
-__always_inline auto operator<<(int_t<_len> l, unsigned r) {
+__always_inline constexpr auto operator<<(int_t<_len> l, unsigned r) {
   return int_t<_len>(l.val_ << r);
 }
 template<unsigned _len>
-__always_inline auto operator<<(unsigned l, int_t<_len> r) {
+__always_inline constexpr auto operator<<(unsigned l, int_t<_len> r) {
   return int_t<_len>(l << r.val_);
 }
 template<unsigned _left_len, unsigned _right_len>
-__always_inline auto operator>>(int_t<_left_len> l, int_t<_right_len> r) {
+__always_inline constexpr auto operator>>(int_t<_left_len> l, int_t<_right_len> r) {
   return int_t<std::max(_left_len, _right_len)>(l.val_ >> r.val_);
 }
 template<unsigned _len>
-__always_inline auto operator>>(int_t<_len> l, unsigned r) {
+__always_inline constexpr auto operator>>(int_t<_len> l, unsigned r) {
   return int_t<_len>(l.val_ >> r);
 }
 template<unsigned _len>
-__always_inline auto operator>>(unsigned l, int_t<_len> r) {
+__always_inline constexpr auto operator>>(unsigned l, int_t<_len> r) {
   return int_t<_len>(l >> r.val_);
 }
 template<unsigned _left_len, unsigned _right_len>
-__always_inline bool operator==(int_t<_left_len> l, int_t<_right_len> r) {
+__always_inline constexpr bool operator==(int_t<_left_len> l, int_t<_right_len> r) {
   return l.val_ == r.val_;
 }
 template<unsigned _len>
-__always_inline bool operator==(unsigned l, int_t<_len> r) {
+__always_inline constexpr bool operator==(unsigned l, int_t<_len> r) {
   return l == r.val_;
 }
 template<unsigned _left_len, unsigned _right_len>
-__always_inline bool operator!=(int_t<_left_len> l, int_t<_right_len> r) {
+__always_inline constexpr bool operator!=(int_t<_left_len> l, int_t<_right_len> r) {
   return l.val_ != r.val_;
 }
 template<unsigned _len>
-__always_inline bool operator!=(unsigned l, int_t<_len> r) {
+__always_inline constexpr bool operator!=(unsigned l, int_t<_len> r) {
   return l != r.val_;
 }
 template<unsigned _left_len, unsigned _right_len>
-__always_inline bool operator<(int_t<_left_len> l, int_t<_right_len> r) {
+__always_inline constexpr bool operator<(int_t<_left_len> l, int_t<_right_len> r) {
   return l.val_ < r.val_;
 }
 template<unsigned _len>
-__always_inline bool operator<(unsigned l, int_t<_len> r) {
+__always_inline constexpr bool operator<(unsigned l, int_t<_len> r) {
   return l < r.val_;
 }
 template<unsigned _left_len, unsigned _right_len>
-__always_inline bool operator<=(int_t<_left_len> l, int_t<_right_len> r) {
+__always_inline constexpr bool operator<=(int_t<_left_len> l, int_t<_right_len> r) {
   return l.val_ <= r.val_;
 }
 template<unsigned _len>
-__always_inline bool operator<=(unsigned l, int_t<_len> r) {
+__always_inline constexpr bool operator<=(unsigned l, int_t<_len> r) {
   return l <= r.val_;
 }
 template<unsigned _left_len, unsigned _right_len>
-__always_inline bool operator>(int_t<_left_len> l, int_t<_right_len> r) {
+__always_inline constexpr bool operator>(int_t<_left_len> l, int_t<_right_len> r) {
   return l.val_ > r.val_;
 }
 template<unsigned _len>
-__always_inline bool operator>(unsigned l, int_t<_len> r) {
+__always_inline constexpr bool operator>(unsigned l, int_t<_len> r) {
   return l > r.val_;
 }
 template<unsigned _left_len, unsigned _right_len>
-__always_inline bool operator>=(int_t<_left_len> l, int_t<_right_len> r) {
+__always_inline constexpr bool operator>=(int_t<_left_len> l, int_t<_right_len> r) {
   return l.val_ >= r.val_;
 }
 template<unsigned _len>
-__always_inline bool operator>=(unsigned l, int_t<_len> r) {
+__always_inline constexpr bool operator>=(unsigned l, int_t<_len> r) {
   return l >= r.val_;
 }
 
@@ -551,8 +551,8 @@ struct dynamic_int {
 
 template<unsigned _bitlen>
 struct varuint : boost::operators<varuint<_bitlen>> {
-  varuint() : val_(0) {}
-  varuint(unsigned val) : val_(val) {}
+  constexpr varuint() : val_(0) {}
+  constexpr varuint(unsigned val) : val_(val) {}
   unsigned operator()() const { return val_; }
   unsigned get() const { return val_; }
   void operator()(unsigned val) { val_ = val; }

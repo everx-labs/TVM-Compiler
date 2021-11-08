@@ -1,7 +1,7 @@
 // RUN: %clang -O3 -S -c -emit-llvm -target tvm %s --sysroot=%S/../../../../../projects/ton-compiler/cpp-sdk/ -o -
 // REQUIRES: tvm-registered-target
 
-#include <tvm/chain_builder.hpp>
+#include <tvm/schema/chain_builder.hpp>
 #include <tvm/assert.hpp>
 #include <tvm/schema/json-abi-gen.hpp>
 

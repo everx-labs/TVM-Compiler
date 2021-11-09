@@ -1923,10 +1923,6 @@ def int_tvm_plddictq :
    
 // DICTUDELGET (i D n - D0x -1 or D 0), a variant of primitive DICTDELGET with unsigned n-bit integer i as a key
 // (uint slice nbits - (slice value -1) | (slice 0))
-// def int_tvm_dictudelget :
-//    GCCBuiltin<"__builtin_tvm_dictudelget">,
-//    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_TVMSlice_ty, llvm_i257_ty],
-//              [llvm_i257_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
 
 // DICTUDELGETREF (i D n - D0 c -1 or D 0), a variant of primitive DICTUDELGET returning a Cell instead of a Slice
 // (uint slice nbits - (slice cell -1) | (slice 0))

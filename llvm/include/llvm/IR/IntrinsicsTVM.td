@@ -1926,10 +1926,6 @@ def int_tvm_plddictq :
 
 // DICTUDELGETREF (i D n - D0 c -1 or D 0), a variant of primitive DICTUDELGET returning a Cell instead of a Slice
 // (uint slice nbits - (slice cell -1) | (slice 0))
- def int_tvm_dictudelgetref :
-    GCCBuiltin<"__builtin_tvm_dictudelgetref">,
-    Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_TVMCell_ty, llvm_i257_ty],
-              [llvm_i257_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
 
 // ******************************************* 
 //

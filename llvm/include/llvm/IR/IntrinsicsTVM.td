@@ -1920,7 +1920,7 @@ def int_tvm_plddictq :
     GCCBuiltin<"__builtin_tvm_dictidelgetref">,
     Intrinsic<[llvm_TVMCell_ty /* Dict */, llvm_TVMCell_ty, llvm_i257_ty],
               [llvm_i257_ty, llvm_TVMCell_ty /* Dict */, llvm_i257_ty]>;
-
+   
 // DICTUDELGET (i D n - D0x -1 or D 0), a variant of primitive DICTDELGET with unsigned n-bit integer i as a key
 // (uint slice nbits - (slice value -1) | (slice 0))
 // def int_tvm_dictudelget :

@@ -1249,3 +1249,4 @@ let mayLoad = 1 in
         (int_tvm_subdicturpget I257:$prefix, I257:$lbits, Cell:$idict, I257:$precision))],
       "SUBDICTURPGET\t$odict, $prefix, $lbits, $idict, $precision",
       "SUBDICTURPGET", 0xf4b7>;
+ 

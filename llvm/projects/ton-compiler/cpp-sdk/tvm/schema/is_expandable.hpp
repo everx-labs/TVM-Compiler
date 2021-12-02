@@ -24,6 +24,9 @@ struct is_expandable<addr_std_compact> : std::false_type {};
 template<unsigned _bitlen>
 struct is_expandable<uint_t<_bitlen>> : std::false_type {};
 
+template<>
+struct is_expandable<bool> : std::false_type {};
+
 template<unsigned _bitlen>
 struct is_expandable<int_t<_bitlen>> : std::false_type {};
 

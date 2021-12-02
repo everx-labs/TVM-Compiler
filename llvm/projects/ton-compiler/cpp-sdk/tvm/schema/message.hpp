@@ -199,5 +199,6 @@ struct addr_std_compact {
 namespace tvm {
 using address = schema::lazy<schema::MsgAddressInt>;
 using address_ext = schema::lazy<schema::MsgAddressExt>;
+using address_opt = std::optional<address>;
 }
 

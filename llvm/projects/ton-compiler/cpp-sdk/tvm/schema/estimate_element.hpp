@@ -120,6 +120,9 @@ struct estimate_element<bitconst<_bitlen, _code>>
 template<unsigned _bitlen>
 struct estimate_element<uint_t<_bitlen>>
   : detail::exact_size<_bitlen> {};
+template<>
+struct estimate_element<bool>
+  : detail::exact_size<1> {};
 template<unsigned _bitlen>
 struct estimate_element<int_t<_bitlen>>
   : detail::exact_size<_bitlen> {};

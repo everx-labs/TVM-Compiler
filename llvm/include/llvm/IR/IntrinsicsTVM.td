@@ -1609,7 +1609,7 @@ let TargetPrefix = "tvm" in {
   //  otherwise x is one plus the maximum of depths of cells referred to from c
   def int_tvm_cdepth :
     GCCBuiltin<"__builtin_tvm_cdepth">,
-    Intrinsic<[llvm_i257_ty], [llvm_TVMCell_ty]>;
+    Intrinsic<[llvm_i257_ty], [llvm_TVMCell_ty], [IntrNoMem]>;
 
 // ******************************************* 
 //

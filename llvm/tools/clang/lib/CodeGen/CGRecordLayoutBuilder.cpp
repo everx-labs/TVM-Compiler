@@ -120,8 +120,13 @@ struct CGRecordLowering {
 
   /// Wraps llvm::Type::getIntNTy with some implicit arguments.
   llvm::Type *getIntNType(uint64_t NumBits) {
-    return llvm::Type::getIntNTy(Types.getLLVMContext(),
-                                 (unsigned)llvm::alignTo(NumBits, 8));
+//    return llvm::Type::getIntNTy(Types.getLLVMContext(),
+//                                 (unsigned)llvm::alignTo(NumBits, 8));
+
+		// TVM local begin
+		return llvm::Type::getIntNTy(Types.getLLVMContext(),
+			(unsigned)llvm::alignTo(NumBits, ByteSizeInBits));
+    // TVM local end
   }
   /// Gets an llvm type of size NumBytes and alignment 1.
   llvm::Type *getByteArrayType(CharUnits NumBytes) {

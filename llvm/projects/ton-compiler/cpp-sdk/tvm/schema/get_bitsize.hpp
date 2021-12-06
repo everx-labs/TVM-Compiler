@@ -78,6 +78,10 @@ template<unsigned _bitlen>
 struct get_bitsize<uint_t<_bitlen>> {
   static constexpr unsigned value = _bitlen;
 };
+template<>
+struct get_bitsize<bool> {
+  static constexpr unsigned value = 1;
+};
 template<unsigned _bitlen>
 struct get_bitsize<int_t<_bitlen>> {
   static constexpr unsigned value = _bitlen;

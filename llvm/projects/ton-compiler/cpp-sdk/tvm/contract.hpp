@@ -63,13 +63,38 @@ inline unsigned tvm_hash(cell cl) {
 inline unsigned tvm_hash(slice sl) {
   return __builtin_tvm_hashsu(sl);
 }
+inline unsigned tvm_sha256(slice sl) {
+  return __builtin_tvm_sha256u(sl);
+}
 inline unsigned tvm_trans_lt() {
   return __builtin_tvm_ltime();
 }
 
+template<class T>
+using opt = std::optional<T>;
+
 inline void tvm_sendmsg(cell msg, unsigned flags) {
   __builtin_tvm_sendrawmsg(msg.get(), flags);
 }
+
+/// Calculating StateInit hash using code_hash and data_hash
+__always_inline
+uint256 tvm_state_init_hash(uint256 code_hash, uint256 data_hash, uint16 code_depth, uint16 data_depth) {
+  builder b;
+  b.stu(2, 8) // amount of refs - code + data = 2
+   .stu(1, 8) // data bitlen descriptor = ((bitlen / 8) << 1) + ((bitlen % 8) ? 1 : 0)
+   // data bits: optional<..> split_depth, optional<..> special,
+   // optional<ref> code, optional<ref> data,
+   // optional<..> library ==> b00110
+   .stu(0b00110, 5)
+   .stu(0b100, 3) // completion tag b100
+   .stu(code_depth.get(), 16)
+   .stu(data_depth.get(), 16)
+   .stu(code_hash.get(), 256)
+   .stu(data_hash.get(), 256);
+  return uint256(tvm_sha256(b.make_slice()));
+}
+
 template<class T, class V>
 inline static bool isa(V v) {
   return std::holds_alternative<T>(v);

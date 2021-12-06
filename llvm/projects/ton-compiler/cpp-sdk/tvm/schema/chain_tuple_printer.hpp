@@ -83,6 +83,12 @@ struct element_printer<uint_t<_bitlen>> {
   static constexpr auto value = "u"_s + make_uint<_bitlen>();
 };
 
+// bool
+template<>
+struct element_printer<bool> {
+  static constexpr auto value = "bool"_s;
+};
+
 // int256
 template<unsigned _bitlen>
 struct element_printer<int_t<_bitlen>> {

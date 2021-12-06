@@ -50,6 +50,16 @@ struct make_parser_impl<addr_std_compact> {
   }
 };
 
+template<>
+struct make_parser_impl<bool> {
+  using value_type = bool;
+  template<class _Ctx>
+  __always_inline static std::tuple<optional<value_type>, parser, _Ctx> parse(parser p, _Ctx ctx) {
+    value_type rv = (p.ldu(1) != 0);
+    return std::tuple(rv, p, ctx);
+  }
+};
+
 template<unsigned _bitlen>
 struct make_parser_impl<uint_t<_bitlen>> {
   using value_type = uint_t<_bitlen>;

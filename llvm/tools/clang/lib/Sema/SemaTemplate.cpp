@@ -3489,23 +3489,25 @@ checkBuiltinTemplateIdType(Sema &SemaRef, BuiltinTemplateDecl *BTD,
         continue;
       auto Rv = ApplySingleMetafunc(BuiltValueT, Meth->getReturnType());
       SmallVector<QualType, 8> Args;
+      SmallVector<IdentifierInfo*, 8> Names;
       for (auto *Arg : Meth->parameters()) {
         auto ArgT = ApplySingleMetafunc(ParsedValueT, Arg->getType());
         Args.push_back(ArgT);
+        Names.push_back(Arg->getIdentifier());
       }
 
       auto MethodType = Context.getFunctionType(Rv, Args,
                                                 FunctionProtoType::ExtProtoInfo());
       auto *NewMeth = CXXMethodDecl::Create(Context, NewRec, SourceLocation(),
-                            Meth->getNameInfo(), MethodType, /*TInfo=*/nullptr,
-                            SC_None, true, false, SourceLocation());
+                      Meth->getNameInfo(), MethodType, /*TInfo=*/nullptr,
+                      SC_None, true, false, SourceLocation());
       NewMeth->setVirtualAsWritten(true);
 
       SmallVector<ParmVarDecl*, 8> Params;
       for (unsigned i = 0, e = NewMeth->getNumParams(); i != e; ++i) {
         ParmVarDecl *parm =
             ParmVarDecl::Create(Context, NewMeth, SourceLocation(), SourceLocation(),
-                                nullptr, Args[i], /*TInfo=*/nullptr,
+                                Names[i], Args[i], /*TInfo=*/nullptr,
                                 SC_None, nullptr);
         parm->setScopeInfo(0, i);
         Params.push_back(parm);

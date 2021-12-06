@@ -42,6 +42,14 @@ struct make_builder_impl<uint_t<_bitlen>> {
   }
 };
 
+template<>
+struct make_builder_impl<bool> {
+  using value_type = bool;
+  __always_inline static builder build(builder b, bool v) {
+    return b.stu(v, 1);
+  }
+};
+
 template<unsigned _bitlen>
 struct make_builder_impl<int_t<_bitlen>> {
   using value_type = int_t<_bitlen>;

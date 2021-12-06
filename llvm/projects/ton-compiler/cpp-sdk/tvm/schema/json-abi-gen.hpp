@@ -51,6 +51,7 @@ template<class T> struct is_tuple_type<std::optional<T>> : std::false_type {};
 template<> struct is_tuple_type<sequence<uint_t<8>>> : std::false_type {};
 template<> struct is_tuple_type<string> : std::false_type {};
 template<> struct is_tuple_type<cell> : std::false_type {};
+template<> struct is_tuple_type<optcell> : std::false_type {};
 template<> struct is_tuple_type<bool> : std::false_type {};
 template<> struct is_tuple_type<varuint16> : std::false_type {};
 template<> struct is_tuple_type<varuint32> : std::false_type {};
@@ -161,6 +162,10 @@ struct make_simple_type_impl<string> {
 template<>
 struct make_simple_type_impl<cell> {
   static constexpr auto value = "cell"_s;
+};
+template<>
+struct make_simple_type_impl<optcell> {
+  static constexpr auto value = "optional(cell)"_s;
 };
 template<>
 struct make_simple_type_impl<bool> {
@@ -346,6 +351,10 @@ struct make_struct_json<string, Offset, ReturnName> {
 template<unsigned Offset, class ReturnName>
 struct make_struct_json<cell, Offset, ReturnName> {
   static constexpr auto value = make_field_impl<cell, 1, Offset>(make_return_name<ReturnName>());
+};
+template<unsigned Offset, class ReturnName>
+struct make_struct_json<optcell, Offset, ReturnName> {
+  static constexpr auto value = make_field_impl<optcell, 1, Offset>(make_return_name<ReturnName>());
 };
 template<unsigned Offset, class ReturnName>
 struct make_struct_json<bool, Offset, ReturnName> {

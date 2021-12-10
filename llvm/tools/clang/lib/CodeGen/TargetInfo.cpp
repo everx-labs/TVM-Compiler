@@ -868,6 +868,9 @@ public:
 ABIArgInfo TVMABIInfo::classifyArgumentType(QualType Ty) const {
   Ty = getSplatI257IfTransparentUnion(getContext(), Ty);
 
+  uint64_t Size = getContext().getTypeSize(Ty);
+  uint64_t NeededAlign = getContext().getTypeAlign(Ty);
+
   if (isAggregateTypeForABI(Ty)) {
     // Records with non-trivial destructors/copy-constructors should not be
     // passed by value.
@@ -879,6 +882,17 @@ ABIArgInfo TVMABIInfo::classifyArgumentType(QualType Ty) const {
     if (const Type *SeltTy = isSingleElementStruct(Ty, getContext()))
       if (!isAggregateTypeForABI(QualType(SeltTy, 0)))
         return ABIArgInfo::getDirect(CGT.ConvertType(QualType(SeltTy, 0)));
+
+    // Special case for structs with bit fields, direct promotim to I257.
+    // TODO (if needed) complex cases with combination of bit fields & int fields
+    // or bit field structures with size more than one word
+    if (!isSingleElementStruct(Ty, getContext())  &&  Size <= 257) {
+      ABIArgInfo ArgInfo =
+        ABIArgInfo::getDirect(llvm::IntegerType::get(getVMContext(), 257));
+      ArgInfo.setInReg(true);
+      return ArgInfo;
+    }
+
     return ABIArgInfo::getExpand();
   }
 

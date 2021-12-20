@@ -157,7 +157,7 @@ struct IHelloWorld {
   // Handle external messages only
   __attribute__((external))
   void constructor() = 1;
-/
+#  
   // Handle external messages only
   __attribute__((external))
   uint_t<8> hello_world() = 2;

@@ -334,7 +334,7 @@ Here we use `--decode-c6` option (please refer to `tvm_tools -help` for a comple
 
 Testing in the network is somewhat similar to testing locally, but instead of the linker `tonos-cli` needs to be used and argument passing is a bit different. The deploying workflow is described in [README](https://github.com/tonlabs/samples/tree/master/cpp#contract-deployment) but we will repeat it once again here. First, we need to recompile the contract since we used for linker tests. Then copy newly generated tvc file (and rename it to `HelloWorld.tvc` for simplicity) and abi file to `tonos-cli/target/<debug or release>/` After all the preparations, we can execute the following script
 ```
-cd tonos-cli/target/&lt;debug or release&gt;/
+cd tonos-cli/target/<debug or release>/
 cargo run genaddr HelloWorld.tvc HelloWorld.abi --genkey hw.key
 ```
 
@@ -346,13 +346,15 @@ cargo run deploy --abi HelloWorld.abi HelloWorld.tvc '{}' --sign hw.key
 And finally test `hello_world` method:
 
 ```
-cargo run call -abi HelloWorld.abi "&lt;raw address&gt;" hello_world "{}" --sign hw.key
+cargo run call –abi HelloWorld.abi "<raw address>" hello_world "{}" --sign hw.key
 ```
 
 The command is supposed to output the message ending with
 
+```
 Succeded.
 Result = {"output":{"value0":"0x2a"}}
+```
 
 ## Authorization
 

@@ -1,97 +1,87 @@
-C++ Tutorial
-============
-
+# C++ Tutorial
   
 
 > **Note**: this tutorial is a work in progress. It updates once C++ for TVM gets a juicy new feature, so we recommend to return to it from time to time.
 
-Prerequisites
--------------
+## Prerequisites
 
 To reproduce the tutorial, you need to get [TON-Compiler sources](https://github.com/tonlabs/TON-Compiler), [TONOS-CLI](https://github.com/tonlabs/tonos-cli), [TVM-linker sources](https://github.com/tonlabs/TVM-linker) and build `clang++`, `tvm_linker` and `tonos-cli`. Please follow `README` files from the corresponding repositories.
 
-Installation sequence
----------------------
+## Installation sequence
 
-Install Rust and Cargo
-----------------------
+## Install Rust and Cargo
 
 First of all you must install Cargo for working with different Rust source files from TVM-linker and TONOS-cli.
 
 The easiest way to get Cargo is to install the current stable release of Rust by using rustup. Installing Rust using rustup will also install cargo. On Linux and macOS systems, this is done as follows:
 
+```
 curl https://sh.rustup.rs -sSf | sh
+```
 
-Install or udpate gcc compiler
-------------------------------
+## Install or udpate gcc compiler
 
 LLVM uses C++ 2017. You need to install gcc version 7.4 or higher (> 8.0 preferred). For Windows you can use Microsoft Visual Studio 2017 or higher.
 If gcc already installed, check current gcc version by means of command
 
+```
 gcc --version
+```
 
 Or you can try to compile some simple C++ file with option -std=c++17. If you receive a warning or error, than you gcc version is incorrect for LLVM compilation.
 
 If current version too low, you can upgrade it, for example for Ubuntu it will be a command sequence:
 
+```
 sudo apt-get update 
-
 sudo apt-get install build-essential software-properties-common -y
-
 sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
-
 sudo apt-get update
-
 sudo apt-get install gcc-snapshot -y
-
 sudo apt-get update
-
 sudo apt-get install gcc-8 g++-8 
-
 sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 80 --slave /usr/bin/g++ g++ /usr/bin/g++-8
+```
 
 This sequence will update gcc to version 8.0, if you prefer a newer version, replace "8" and "80" in command lines to desirable version number.
 
-Install cmake and Python
-------------------------
+## Install cmake and Python
 
 Install Python version 2.7 and cmake version 3.6 or higher.
 
-Install zlib
-------------
+## Install zlib
 
 You need zlib version 1.2.3.4 or higher
 
-Build and Install C/C++ compiler for TVM and TVM-linker
--------------------------------------------------------
+## Build and Install C/C++ compiler for TVM and TVM-linker
 
 To build C++ compiler from sources, use command sequence (for Linux):
-
+```
 git clone https://github.com/tonlabs/TON-Compiler.git –-branch master --single-branch TON-Compiler
 cd TON-compiler
 mkdir build
 cd build
 cmake -DCMAKE_INSTALL_PREFIX=../../install -C ../cmake/Cache/ton-compiler.cmake ../llvm
 cmake --build . --target install
+```
 
 This command sequence also builds and installs a TVM-linker.
 You can change -DCMAKE_INSTALL_PREFIX if you want to install C++ to other directory.
 Sometimes there is a conflict during installation between "build" directory and "build" temporary file name. To eliminate such conflict, you can beforehand create a "build" subdirectory in your "install" directory. 
 
 For Window users you can use Microsoft Visual Studio 2017 or newer and generate *.sln Solution with command sequence:
-
+```
 git clone https://github.com/tonlabs/TON-Compiler.git –-branch master --single-branch TON-Compiler
 cd TON-compiler
 mkdir build
 cd build
 cmake -G "Visual Studio 15" -DLLVM_TARGETS_TO_BUILD="TVM" -C /path/to/TON-Compiler/cmake/Cache/ton-compiler-alone.cmake ../llvm
-
+```
 Than you can compiler "clang" Solution subproject to generate Clang compiler for TVM.
 
-The toolchain description
--------------------------
+## The toolchain description
 
- ![Toolchain scheme](/Images/Toolchain.png)
+ ![Toolchain scheme](./Images/Toolchain.png)
 
 C++ toolchain consists of the following libraries and tools:
 
@@ -105,8 +95,7 @@ C++ toolchain consists of the following libraries and tools:
 
   
 
-Brief introduction to TON and TVM and the terminology
------------------------------------------------------
+## Brief introduction to TON and TVM and the terminology
 
 Unlike common C++ programs, smart contracts are intended to be run in a blockchain. This implies that the code and, perhaps, data need to be stored permanently unless someone modifies or destroys them. In TON blockchain all contracts exchange messages between each other. The exchange is essentially asynchronous. When a contract receives a message, it parses it, and in case the message is sensible to a contract it generally invokes a user defined handler called a public method (which is usually a class method with public access specifier, but it doesn't have to be implemented this way).
 
@@ -120,8 +109,7 @@ Thus a typical smart contract in C++ avoids using memory. Moreover, currently al
 
   
 
-Environment setup
------------------
+## Environment setup
 
 Prior to start developing a contract, we configure `PATH` to add all the tools we need:
 
@@ -135,8 +123,7 @@ export TVM\_LIBRARY\_PATH=TON-Compiler-source/stdlib #path to stdlib_cpp.tvm
 
   
 
-Hello, world!
--------------
+## Hello, world
 
 A typical smart contract consists of two files:
 
@@ -340,8 +327,8 @@ The command is supposed to output the message ending with
 Succeded.
 Result = {"output":{"value0":"0x2a"}}
 
-Authorization
--------------
+## Authorization
+
 
 ### Interface and implementation
 

@@ -301,7 +301,7 @@ clang++ -o HelloWorld.tvc HelloWorld.cpp --sysroot=$TVM\_INCLUDE\_PATH
 
 This command generates ABI file (*.abi) and executable TVC file (*.tvc). 
 
-The first command produces the ABI file. Note that in case the contract uses an unsupported type, clang will silently generate "unknown" for it in the ABI and the contract will not link. The second command compiles and links the contract. It produces address.tvc file and the file named ‚Äúkey‚Äù.
+The first command produces the ABI file. Note that in case the contract uses an unsupported type, clang will silently generate "unknown" for it in the ABI and the contract will not link. The second command compiles and links the contract. It produces address.tvc file and the file named ìkeyî.
   
 
 ### Debugging locally

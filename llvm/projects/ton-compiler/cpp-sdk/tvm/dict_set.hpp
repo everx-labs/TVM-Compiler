@@ -45,11 +45,13 @@ struct dict_set_const_iterator {
     }
     return *this;
   }
+  __always_inline
   bool operator==(dict_set_const_iterator v) const {
     bool left_end = is_end();
     bool right_end = v.is_end();
     return left_end && right_end;
   }
+  __always_inline
   bool operator!=(dict_set_const_iterator v) const {
     return !(*this == v);
   }
@@ -60,26 +62,32 @@ class dict_set<schema::uint_t<KeyLen>> {
 public:
   using key_type = schema::uint_t<KeyLen>;
 
+  __always_inline
   dict_set() {}
+  __always_inline
   dict_set(schema::uint32 size, dictionary dict) : size_{size}, dict_{dict} {}
 
+  __always_inline
   dict_set(std::initializer_list<key_type> il) {
     size_ = 0;
     for (auto v : il)
       insert(v);
   }
+  __always_inline
   dict_set(std::initializer_list<unsigned> il) {
     size_ = 0;
     for (auto v : il)
       insert(key_type(v));
   }
 
+  __always_inline
   dict_set& operator=(std::initializer_list<key_type> il) {
     clear();
     for (auto v : il)
       insert(v);
     return *this;
   }
+  __always_inline
   dict_set& operator=(std::initializer_list<unsigned> il) {
     clear();
     for (auto v : il)
@@ -87,22 +95,26 @@ public:
     return *this;
   }
   template<class It>
+  __always_inline
   dict_set(It begin, It end) {
     size_ = 0;
     for (auto it = begin; it != end; ++it)
       insert(*it);
   }
 
+  __always_inline
   bool contains(key_type key) const {
     auto [slice, succ] = dict_.dictuget(key.get(), KeyLen);
     return succ;
   }
 
+  __always_inline
   void erase(key_type key) {
     if (dict_.dictudel(key.get(), KeyLen))
       --size_;
   }
 
+  __always_inline
   void insert(key_type key) {
     // increase size if adding new key
     auto [sl, existing] = dict_.dictusetget(slice::create_empty(), key.get(), KeyLen);
@@ -110,16 +122,21 @@ public:
       ++size_;
   }
 
+  __always_inline
   void clear() {
     size_ = 0;
     dict_.clear();
   }
+  __always_inline
   bool empty() const { return size_ == 0; }
+  __always_inline
   schema::uint32 size() const { return size_; }
 
+  __always_inline
   dict_set_const_iterator<KeyLen> begin() const {
     return dict_set_const_iterator<KeyLen>::create_begin(dict_);
   }
+  __always_inline
   dict_set_const_iterator<KeyLen> end() const {
     return dict_set_const_iterator<KeyLen>::create_end();
   }

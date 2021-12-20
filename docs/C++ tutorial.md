@@ -105,7 +105,7 @@ Alternatively, an external tool might also create and send a message to a contra
 
 However, even if a contract has outstanding balance, there is a hard limit on how much it can spend on a single incoming message, if this limit is exceeded, the contract is terminated even if the code it runs is well-formed. To minimize the state which is transferred between contracts and stored in the blockchain, TVM does not have random access memory. The memory might be emulated by dictionaries, however, it's quite expensive and often not practical taking into account limited gas supply.
 
-Thus a typical smart contract in C++ avoids using memory. Moreover, currently all the functions have to be inlined. That's why `-O3` optimization and LTO are essential and it's the pipeline `tvm-build++` implements.
+Thus a typical smart contract in C++ avoids using memory. Moreover, all the functions with pointer or reference arguments have to be **__always_inline** . Non-static methods too, because they have implicit **this** pointer argument. 
 
   
 
@@ -115,14 +115,6 @@ Prior to start developing a contract, we configure `PATH` to add all the tools w
 
 ```
 export PATH=TON-Compiler-build/bin:TVM-linker-source/tvm_linker/target/<debug or release>:tonos-cli/target/<debug or release>:$PATH
-```
-
-`tvm-build++` needs additional treatment:
-
-```
-export TVM_LINKER=TVM-linker-source/tvm_linker/target/<debug or release>/tvm_linker #path to tvm_linker tool.
-export TVM_INCLUDE_PATH=TON-Compiler-source/stdlib #path to the folder containing cpp-sdk directory.
-export TVM_LIBRARY_PATH=TON-Compiler-source/stdlib #path to stdlib_cpp.tvm
 ```
   
 
@@ -140,8 +132,8 @@ A contract interface consists of three parts:
 * Public methods declarations.
 * Persistent data.
 * Events. Public methods are functions that receive messages in the blockchain. There is a dedicated method called `constructor` which is called upon the contract deploy. The constructor is a must, otherwise the contract can not be deployed. The constructor, as well as other public methods, must only take arguments of types that are listed below:
-* `int_t<N>` \- N-bits wide signed integer, 0 < N < 256.
-* `uint_t<N>` \- N-bits wide unsigned integer, 0 < N < 257.
+* `int_t<N>` \- N-bits wide signed integer, 0 < N < 257.
+* `uint_t<N>` \- N-bits wide unsigned integer, 0 < N < 256.
 * `MsgAddress` - message address which work for both internal or external messages.
 * `MsgAddressInt` - an internal message address.
 * `MsgAddressExt` - an external message address.
@@ -155,11 +147,11 @@ A contract interface consists of three parts:
 // Hello world interface
 struct IHelloWorld {
   // Handle external messages only
-  __attribute__((external))
+  [[external]]
   void constructor() = 1;
      
   // Handle external messages only
-  __attribute__((external))
+  [[external]]
   uint_t<8> hello_world() = 2;
 };
 ```
@@ -438,7 +430,7 @@ Finally, we are ready to implement more complex contracts that exchange messages
 
 ```
 auto handle = contract_handle<ICallee>(callee_address);
-handle(message_balance, message_flags).call<&ICallee::method_name>(parameters…);
+handle(message_balance, message_flags).method_name(parameters…);
 ```
 
 The first line constructs the handle for the contract. A contract might be called though it. The second line configures the call via `operator()` and then performs it. `operator()` is optional, by default this configuration guarantees that if the sender has enough balance the message will carry 1 000 000 units of money.

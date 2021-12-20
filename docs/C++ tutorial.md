@@ -113,14 +113,16 @@ Thus a typical smart contract in C++ avoids using memory. Moreover, currently al
 
 Prior to start developing a contract, we configure `PATH` to add all the tools we need:
 
-export PATH=TON-Compiler-build/bin:TVM-linker-source/tvm_linker/target/&lt;debug or release&gt;:tonos-cli/target/&lt;debug or release&gt;:$PATH
+```
+export PATH=TON-Compiler-build/bin:TVM-linker-source/tvm_linker/target/<debug or release>:tonos-cli/target/<debug or release>:$PATH
+```
 
 `tvm-build++` needs additional treatment:
 
 ```
-export TVM\_LINKER=TVM-linker-source/tvm\_linker/target/&lt;debug or release&gt;/tvm\_linker #path to tvm\_linker tool.
-export TVM\_INCLUDE\_PATH=TON-Compiler-source/stdlib #path to the folder containing cpp-sdk directory.
-export TVM\_LIBRARY\_PATH=TON-Compiler-source/stdlib #path to stdlib_cpp.tvm
+export TVM_LINKER=TVM-linker-source/tvm_linker/target/<debug or release>/tvm_linker #path to tvm_linker tool.
+export TVM_INCLUDE_PATH=TON-Compiler-source/stdlib #path to the folder containing cpp-sdk directory.
+export TVM_LIBRARY_PATH=TON-Compiler-source/stdlib #path to stdlib_cpp.tvm
 ```
   
 

@@ -414,16 +414,12 @@ __always_inline uint_t<8> hello_world() final {
 This time we omit testing in the linker (you might do it by yourself, following the instructions from the corresponding subsection section of `Hello, world!` contract). For testing in the network, we generate another key when deploying and then check if we can get result using this key and the previous one which should not be valid. Recompile and copy the contract to `tonos-cli/target/<debug or release>/` similar to the previous contract. Then run:
 
 ```
-cd tonos-cli/target/&lt;debug or release&gt;/
+cd tonos-cli/target/<debug or release>/
 cargo run genaddr HelloWorld.tvc HelloWorld.abi --genkey auth.key
-```
-
 #send coins to the contract address somehow
-
-```
 cargo run deploy --abi HelloWorld.abi HelloWorld.tvc '{}' --sign auth.key
-cargo run call -abi HelloWorld.abi "&lt;raw address&gt;" hello_world "{}" --sign hw.key
-cargo run call -abi HelloWorld.abi "&lt;raw address&gt;" hello_world "{}" --sign auth.key
+cargo run call –abi HelloWorld.abi "<raw address>" hello_world "{}" --sign hw.key
+cargo run call –abi HelloWorld.abi "<raw address>" hello_world "{}" --sign auth.key
 ```
 
 The first call will fail and terminate by timeout. Any uncaught exception that occurs prior to accept will not be shown, because currently the node doesn't support such a feature. To properly diagnose it, you should install TON OS SE and use it for debugging, which is out of scope of this tutorial. The second call should successfully return 0x2a.
@@ -450,10 +446,10 @@ The first line constructs the handle for the contract. A contract might be calle
 Unlike the previous testing scenarios, we need to check how internal messages work. To do so, first we need generate an outgoing message. Let's call `get_money` method of `Client` contract and ask the `Giver` with address `<Giver address>` 42 000 units of money:
 
 ```
-tvm_linker test &lt;Client address&gt; \
+tvm_linker test <Client address> \
 --abi-json Client.abi \
 --abi-method get_money \
---abi-params "{\\"giver\\":\\"&lt;Giver address&gt;\\", \\"balance\\":42000}" \
+--abi-params "{\"giver\":\"<Giver address>\", \"balance\":42000}" \
 --sign client \
 --decode-c6
 ```
@@ -469,9 +465,9 @@ The message is `0000000200000000000000000000000000000000000000000000000000000000
 ```
 
 ```
-tvm_linker test &lt;Giver address&gt; \
---src "&lt;Client address&gt; " \
---internal &lt;message balance&gt; \
+tvm_linker test <Giver address> \
+--src "<Client address> " \
+--internal <message balance> \
 --body 00000002000000000000000000000000000000000000000000000000000000000000a410 \
 --decode-c6
 ```

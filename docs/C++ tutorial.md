@@ -117,10 +117,11 @@ export PATH=TON-Compiler-build/bin:TVM-linker-source/tvm_linker/target/&lt;debug
 
 `tvm-build++` needs additional treatment:
 
+```
 export TVM\_LINKER=TVM-linker-source/tvm\_linker/target/&lt;debug or release&gt;/tvm\_linker #path to tvm\_linker tool.
 export TVM\_INCLUDE\_PATH=TON-Compiler-source/stdlib #path to the folder containing cpp-sdk directory.
 export TVM\_LIBRARY\_PATH=TON-Compiler-source/stdlib #path to stdlib_cpp.tvm
-
+```
   
 
 ## Hello, world
@@ -148,16 +149,18 @@ A contract interface consists of three parts:
 * `lazy<T>` \- value of `T`, but the parsing is deferred until the actual value is needed. Only lazy, lazy and lazy are supported at the moment.
 * a compound type - a POD structure which only have data members of types from the list. When a compound type is used, it's encoded the same way the sequence of its element does. Also note, that for the sake of ABI generation (see below) the names of the members are used, so be aware of possible collisions. Aside from that, public methods might have an arbitrary signature. However, at the moment C++ for TVM does not support public method templates. For Hello, world contract all we need is the constructor and a method that sends an external message:
 
+```
 // Hello world interface
 struct IHelloWorld {
   // Handle external messages only
-  \_\_attribute\_\_((external))
+  __attribute__((external))
   void constructor() = 1;
-
+/
   // Handle external messages only
-  \_\_attribute\_\_((external))
-  uint\_t&lt;8&gt; hello\_world() = 2;
+  __attribute__((external))
+  uint_t<8> hello_world() = 2;
 };
+```
 
 All the methods here are pure virtual ones, and N in `= N` designates their IDs. These IDs must be unique within a contract and an ID must also not be equal to 0. Also methods have to be marked with at least one of the attributes:
 
@@ -165,45 +168,50 @@ All the methods here are pure virtual ones, and N in `= N` designates their IDs.
 * internal - the method handles internal incoming messages
 * getter - the method could be executed offchain, thus you can read persistent data without paying for it. As you might have noticed, a public method could return. In such a case, the return value is interpreted as the value that needs to be sent via an external message, so an off-chain application can handle it. The type of the return value must also belong to the list above. Note that TVM supports multiple return values. Struct return type is the way to use the feature from C++. `Hello, world!` contract doesn't need any persistent data member, however, currently, it's required to have at least one field of data otherwise you'd receive a weird looking error message. For `Hello, world!` contract, we use the following persistent data.
 
+```
 // Hello world persistent data
 struct DHelloWorld {
-  uint_t&lt;1&gt; x;
+  uint_t<1> x;
 };
+```
 
 Finally, events might be interpreted as a kind of off-chain function calls. When a public method emits an event it works similar to another public method call implying that the message containing the function ID and the call parameters is emitted. However, in case of an event, this message is to be sent externally (i.e. outside of the blockchain), so an external handle could process it. Events are pure virtual methods as well, but they are not supposed to ever be defined or called. Also, their IDs must be different from the IDs of public methods. For Hello, world contract we don't need events at all:
 
+```
 // Hello world events
 struct EHelloWorld {};
+```
 
 Putting all together, below is the complete listing of Hello, world contract interface.
 
+```
 #pragma once
-
-#include &lt;tvm/schema/message.hpp&gt;
-
+/
+#include <tvm/schema/message.hpp>
+/
 namespace tvm { namespace schema {
-
+/
 // Hello world interface
 struct IHelloWorld {
   // Handle external messages only
-  \_\_attribute\_\_((external))
+  __attribute__((external))
   void constructor() = 1;
-
+/
   // Handle external messages only
-  \_\_attribute\_\_((external))
-  uint\_t&lt;8&gt; hello\_world() = 2;
+  __attribute__((external))
+  uint_t<8> hello_world() = 2;
 };
-
+/
 // Hello world persistent data
 struct DHelloWorld {
-  uint_t&lt;1&gt; x;
+  uint_t<1> x;
 };
-
+/
 // Hello world events
 struct EHelloWorld {};
-
+/
 }} // namespace tvm::schema
-
+```
   
 
 ### Implementation
@@ -215,22 +223,26 @@ To implement a contract some SDK headers will be of help.
 * tvm/smart\_switcher.hpp implement smart\_interface which generates boilerplate code for parsing incoming messages, serializing method results and so on.
 * tvm/replay\_attack\_protection/timestamp.hpp implement timestamp based replay protection which is an essential thing which prevent the same message to be handles more than once. After including the headers, we declare a class that represents the contract.
 
+```
 using namespace tvm::schema;
 using namespace tvm;
-
-class HelloWorld final : public smart_interface&lt;IHelloWorld&gt;,
+\
+class HelloWorld final : public smart_interface<IHelloWorld>,
                          public DHelloWorld {
-â€¦
+…
 };
+```
 
 To utilize smart switcher to not to write message parsing by yourself, a contract class must inherit from `start_interface<T>` where `T` is the type of the struct describing public methods (i.e. the interface) and from the struct describing the contract's persistent data. Implementation of `HelloWorld` is trivial:
 
+```
 public:
-  \_\_always\_inline void constructor() final {}
-  \_\_always\_inline uint\_t&lt;8&gt; hello\_world() final {return uint_t&lt;8&gt;(42);};
-
+  __always_inline void constructor() final {}
+  __always_inline uint_t<8> hello_world() final {return uint_t<8>(42);};
+/
   // Function is called in case of unparsed or unsupported func_id
-static \_\_always\_inline int \_fallback(cell msg, slice msg\_body) { return 0; };
+static __always_inline int _fallback(cell msg, slice msg_body) { return 0; };
+```
 
 Notes:
 
@@ -238,36 +250,41 @@ Notes:
 2.  The first two methods we've already seen. Aside from doing what is written they always perform replay protection check and accept the incoming message. By accepting a message, a contact agrees to pay for its processing and thus the computation the contract makes will not be discarded.
 3.  The last method is called when either message ID is invalid or does not exist (e.g. when a contract sending it doesn't use the ABI). Smart switcher isn't able to help this method to parse a message, nor does it insert accept into it. Thus, by doing nothing there, the contract ignores ill-formed incoming external messages. A couple of things needs to be added after the contract class is defined:
 
+```
 DEFINE\_JSON\_ABI(IHelloWorld, DHelloWorld, EHelloWorld);
+```
 
 Insert logic necessary to generate the ABI file which is required to work with the contract.
 
+```
 DEFAULT\_MAIN\_ENTRY_FUNCTIONS(HelloWorld, IHelloWorld, DHelloWorld, 1800)
+```
 
 Generate entry points function that transfer control flow to a public method. 1800 here is the argument which configure replay protection. 1800 it's time in seconds which is recommended by the ABI manual. Putting all together, here is the complete listing of the contract implementation.
 
+```
 #include "HelloWorld.hpp"
-
-#include &lt;tvm/contract.hpp&gt;
-#include &lt;tvm/smart_switcher.hpp&gt;
-#include &lt;tvm/replay\_attack\_protection/timestamp.hpp&gt;
-
+/
+#include <tvm/contract.hpp>
+#include <tvm/smart_switcher.hpp>
+#include <tvm/replay_attack_protection/timestamp.hpp>
+/
 using namespace tvm::schema;
 using namespace tvm;
-
-class HelloWorld final : public smart_interface&lt;IHelloWorld&gt;,
+/
+class HelloWorld final : public smart_interface<IHelloWorld>,
                          public DHelloWorld {
 public:
-  \_\_always\_inline void constructor() final {}
-  \_\_always\_inline uint\_t&lt;8&gt; hello\_world() final {return uint_t&lt;8&gt;(42);};
-
+  __always_inline void constructor() final {}
+  __always_inline uint_t<8> hello_world() final {return uint_t<8>(42);};
+/
   // Function is called in case of unparsed or unsupported func_id
-  static \_\_always\_inline int \_fallback(cell msg, slice msg\_body) { return 0; }; };
-DEFINE\_JSON\_ABI(IHelloWorld, DHelloWorld, EHelloWorld);
-
-// \-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\- Main entry functions ---------------------- //
-DEFAULT\_MAIN\_ENTRY_FUNCTIONS(HelloWorld, IHelloWorld, DHelloWorld, 1800)
-
+  static __always_inline int _fallback(cell msg, slice msg_body) { return 0; }; };
+DEFINE_JSON_ABI(IHelloWorld, DHelloWorld, EHelloWorld);
+/
+// ----------------------------- Main entry functions ---------------------- //
+DEFAULT_MAIN_ENTRY_FUNCTIONS(HelloWorld, IHelloWorld, DHelloWorld, 1800)
+```
   
 
 ### Compilation and local testing
@@ -276,7 +293,9 @@ The code we wrote so far can be found at [Hello, world!](https://github.com/tonl
 
 1.  Compiling and linking
 
+```
 clang++ -o HelloWorld.tvc HelloWorld.cpp --sysroot=$TVM\_INCLUDE\_PATH
+```
 
 This command generates ABI file (*.abi) and executable TVC file (*.tvc). 
 
@@ -287,40 +306,46 @@ The first command produces the ABI file. Note that in case the contract uses an 
 
 `tvm_linker` tool can be used to send messages to and to get messages from a contract. Please note though, that a contract modifies its persistent data stored in tvc file so that such a contract might no longer be deployable to the network. So, we recommend you to make a copy of the contract if you plan to test it locally, or alternatively recompile prior to the deployment. When debugging in linker, the constructor is not called automatically and it supposed to be explicitly invoked by a programmer. In case the constructor does nothing like in `Hello, world!` it isn't necessary, but for the sake of demonstration we still call it.
 
+```
 $ export ADDRESS=\`ls *.tvc | cut -f 1 -d '.'\`
 $ tvm_linker test $ADDRESS \
 --abi-json HelloWorld.abi \
 --abi-method constructor \
 --abi-params '{}' \
 --sign key
+```
 
 After executing the contract, the linker prints a long message. The most important part of it is that TVM is terminated with 0 exit code i.e. successfully. The second important part is how much gas were spent. Let's call `hello_world` method to ensure that it works as well.
-
+```
 tvm_linker test $ADDRESS \
 --abi-json HelloWorld.abi \
 --abi-method hello_world \
 --abi-params '{}'  \
 --sign key \
 --decode-c6
+```
 
 Here we use `--decode-c6` option (please refer to `tvm_tools -help` for a complete manual on its command-line options) to display the outgoing message and ensure that the contract indeed sends a message containing 42 as a payload. You will find the outgoing message at the end of the linker output. The message body is displayed in hexadecimal form, and 0x2a = 42.
 
-  
 
 ### Deploying and testing in the network
 
 Testing in the network is somewhat similar to testing locally, but instead of the linker `tonos-cli` needs to be used and argument passing is a bit different. The deploying workflow is described in [README](https://github.com/tonlabs/samples/tree/master/cpp#contract-deployment) but we will repeat it once again here. First, we need to recompile the contract since we used for linker tests. Then copy newly generated tvc file (and rename it to `HelloWorld.tvc` for simplicity) and abi file to `tonos-cli/target/<debug or release>/` After all the preparations, we can execute the following script
-
+```
 cd tonos-cli/target/&lt;debug or release&gt;/
 cargo run genaddr HelloWorld.tvc HelloWorld.abi --genkey hw.key
+```
 
 The latter command returns the raw address of the contract. Now you can send (test) coins to it using any method described in [README](https://github.com/tonlabs/samples/tree/master/cpp#getting-test-coins). When contract balance is greater than 0, we can deploy the contract:
-
+```
 cargo run deploy --abi HelloWorld.abi HelloWorld.tvc '{}' --sign hw.key
+```
 
 And finally test `hello_world` method:
 
+```
 cargo run call -abi HelloWorld.abi "&lt;raw address&gt;" hello_world "{}" --sign hw.key
+```
 
 The command is supposed to output the message ending with
 
@@ -337,56 +362,72 @@ Now we are ready to extend the contract we just developed. The main issue of `He
 1.  Store the public key of the owner when deployed.
 2.  Check the message signature against the key when `hello_world` is called. The implementation is simple. First, we need to add persistent data to the contract.
 
+```
 // Hello world persistent data
 struct DHelloWorld {
-  uint_t&lt;256&gt; ownerKey;
+  uint_t<256> ownerKey;
 };
+```
 
 Second, we need to add the following members to `HelloWorld` contract class:
 
+```
 // The compiler reads the key from the incoming message and stores is in
 // pubkey_. So the key is available in a public method via tvm_pubkey().
 unsigned pubkey_ = 0;
-\_\_always\_inline void set\_tvm\_pubkey(unsigned pubkey) { pubkey_ = pubkey; }
-\_\_always\_inline unsigned tvm\_pubkey() const { return pubkey\_; }
+__always_inline void set_tvm_pubkey(unsigned pubkey) { pubkey_ = pubkey; }
+__always_inline unsigned tvm_pubkey() const { return pubkey_; }
+```
 
 Third, we need to modify the constructor and `hello_world` method:
 
+```
 /// Deploy the contract.
-\_\_always\_inline void constructor() final { ownerKey = tvm_pubkey(); }
-\_\_always\_inline uint\_t&lt;8&gt; hello\_world() final {
+__always_inline void constructor() final { ownerKey = tvm_pubkey(); }
+__always_inline uint_t<8> hello_world() final {
   require(tvm_pubkey() == ownerKey, 101);
-  return uint_t&lt;8&gt;(42);
+  return uint_t<8>(42);
 }
+```
 
 Here we store the public key in the constructor, and then check it in `hello_world`. `101` in require call is the error code which needs to be greater than `100` to not interfere with virtual machine and C++ SDK error codes. The only issue remains is that the contract still accepts the incoming message before it checks the requirements. So, we don't pay for the outgoing message if a stranger called it, but still pay for the rest of the execution. To fix that problem, we need to change the pure virtual method declaration:
 
-\_\_attribute\_\_((external, noaccept))
-uint\_t&lt;8&gt; hello\_world() = 2;
+```
+__attribute__((external, noaccept))
+uint_t<8> hello_world() = 2;
+```
 
 We also need to accept explicitly:
 
-\_\_always\_inline uint\_t&lt;8&gt; hello\_world() final {
+```
+__always_inline uint_t<8> hello_world() final {
   require(tvm_pubkey() == ownerKey, 101);
   tvm_accept();
-  return uint_t&lt;8&gt;(42);
+  return uint_t<8>(42);
 };
+```
 
 ### Deploying and testing in the network
 
 This time we omit testing in the linker (you might do it by yourself, following the instructions from the corresponding subsection section of `Hello, world!` contract). For testing in the network, we generate another key when deploying and then check if we can get result using this key and the previous one which should not be valid. Recompile and copy the contract to `tonos-cli/target/<debug or release>/` similar to the previous contract. Then run:
 
+```
 cd tonos-cli/target/&lt;debug or release&gt;/
 cargo run genaddr HelloWorld.tvc HelloWorld.abi --genkey auth.key
+```
+
 #send coins to the contract address somehow
+
+```
 cargo run deploy --abi HelloWorld.abi HelloWorld.tvc '{}' --sign auth.key
 cargo run call -abi HelloWorld.abi "&lt;raw address&gt;" hello_world "{}" --sign hw.key
 cargo run call -abi HelloWorld.abi "&lt;raw address&gt;" hello_world "{}" --sign auth.key
+```
 
 The first call will fail and terminate by timeout. Any uncaught exception that occurs prior to accept will not be shown, because currently the node doesn't support such a feature. To properly diagnose it, you should install TON OS SE and use it for debugging, which is out of scope of this tutorial. The second call should successfully return 0x2a.
 
-Message exchange
-----------------
+## Message exchange
+
 
 ### Interface and implementation
 
@@ -395,8 +436,10 @@ Finally, we are ready to implement more complex contracts that exchange messages
 1.  An internal public method could be declared the same way the external is, but it's marked with `internal` attribute. An internal method use, the incoming message balance rather than the contract's balance to compute, so unlike an external method, it doesn't need to accept a message.
 2.  `tvm/contract_handle.hpp` provides function to call a method of another contract. To do so, it needs the callee contract's interface class definition, so that was the reason for separate cpp and hpp part of the contract implementation. The syntax is generally the following:
 
-auto handle = contract\_handle&lt;ICallee&gt;(callee\_address);
-handle(message\_balance, message\_flags).call&lt;&ICallee::method_name&gt;(parametersâ€¦);
+```
+auto handle = contract_handle<ICallee>(callee_address);
+handle(message_balance, message_flags).call<&ICallee::method_name>(parameters…);
+```
 
 The first line constructs the handle for the contract. A contract might be called though it. The second line configures the call via `operator()` and then performs it. `operator()` is optional, by default this configuration guarantees that if the sender has enough balance the message will carry 1 000 000 units of money.
 
@@ -404,26 +447,32 @@ The first line constructs the handle for the contract. A contract might be calle
 
 Unlike the previous testing scenarios, we need to check how internal messages work. To do so, first we need generate an outgoing message. Let's call `get_money` method of `Client` contract and ask the `Giver` with address `<Giver address>` 42 000 units of money:
 
+```
 tvm_linker test &lt;Client address&gt; \
 --abi-json Client.abi \
 --abi-method get_money \
 --abi-params "{\\"giver\\":\\"&lt;Giver address&gt;\\", \\"balance\\":42000}" \
 --sign client \
 --decode-c6
+```
 
 After the execution, the message is encoded in one of the last lines of the output:
-
   
-
+```
 body  : bits: 288   refs: 0   data: 00000002000000000000000000000000000000000000000000000000000000000000a410
+```
 
+```
 The message is `00000002000000000000000000000000000000000000000000000000000000000000a410` The linker does not automatically send this message to Giver contract, so we need to request it to do so:
+```
 
+```
 tvm_linker test &lt;Giver address&gt; \
 --src "&lt;Client address&gt; " \
 --internal &lt;message balance&gt; \
 --body 00000002000000000000000000000000000000000000000000000000000000000000a410 \
 --decode-c6
+```
 
 `--src` here is the sender address. It might be omitted if the receiver doesn't check where the message came from.
 

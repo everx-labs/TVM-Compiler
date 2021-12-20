@@ -253,13 +253,13 @@ Notes:
 3.  The last method is called when either message ID is invalid or does not exist (e.g. when a contract sending it doesn't use the ABI). Smart switcher isn't able to help this method to parse a message, nor does it insert accept into it. Thus, by doing nothing there, the contract ignores ill-formed incoming external messages. A couple of things needs to be added after the contract class is defined:
 
 ```
-DEFINE\_JSON\_ABI(IHelloWorld, DHelloWorld, EHelloWorld);
+DEFINE_JSON_ABI(IHelloWorld, DHelloWorld, EHelloWorld);
 ```
 
 Insert logic necessary to generate the ABI file which is required to work with the contract.
 
 ```
-DEFAULT\_MAIN\_ENTRY_FUNCTIONS(HelloWorld, IHelloWorld, DHelloWorld, 1800)
+DEFAULT_MAIN_ENTRY_FUNCTIONS(HelloWorld, IHelloWorld, DHelloWorld, 1800)
 ```
 
 Generate entry points function that transfer control flow to a public method. 1800 here is the argument which configure replay protection. 1800 it's time in seconds which is recommended by the ABI manual. Putting all together, here is the complete listing of the contract implementation.

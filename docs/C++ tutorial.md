@@ -132,8 +132,8 @@ A contract interface consists of three parts:
 * Public methods declarations.
 * Persistent data.
 * Events. Public methods are functions that receive messages in the blockchain. There is a dedicated method called `constructor` which is called upon the contract deploy. The constructor is a must, otherwise the contract can not be deployed. The constructor, as well as other public methods, must only take arguments of types that are listed below:
-* `int_t<N>` \- N-bits wide signed integer, 0 < N < 257.
-* `uint_t<N>` \- N-bits wide unsigned integer, 0 < N < 256.
+* `int_t<N>` \- N-bits wide signed integer, 0 < N <= 257.
+* `uint_t<N>` \- N-bits wide unsigned integer, 0 < N <= 256.
 * `MsgAddress` - message address which work for both internal or external messages.
 * `MsgAddressInt` - an internal message address.
 * `MsgAddressExt` - an external message address.

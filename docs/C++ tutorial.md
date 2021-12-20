@@ -188,30 +188,30 @@ Putting all together, below is the complete listing of Hello, world contract int
 
 ```
 #pragma once
-/
+
 #include <tvm/schema/message.hpp>
-/
+
 namespace tvm { namespace schema {
-/
+
 // Hello world interface
 struct IHelloWorld {
   // Handle external messages only
   __attribute__((external))
   void constructor() = 1;
-/
+
   // Handle external messages only
   __attribute__((external))
   uint_t<8> hello_world() = 2;
 };
-/
+
 // Hello world persistent data
 struct DHelloWorld {
   uint_t<1> x;
 };
-/
+
 // Hello world events
 struct EHelloWorld {};
-/
+
 }} // namespace tvm::schema
 ```
   
@@ -228,7 +228,7 @@ To implement a contract some SDK headers will be of help.
 ```
 using namespace tvm::schema;
 using namespace tvm;
-\
+
 class HelloWorld final : public smart_interface<IHelloWorld>,
                          public DHelloWorld {
 …
@@ -241,7 +241,7 @@ To utilize smart switcher to not to write message parsing by yourself, a contrac
 public:
   __always_inline void constructor() final {}
   __always_inline uint_t<8> hello_world() final {return uint_t<8>(42);};
-/
+
   // Function is called in case of unparsed or unsupported func_id
 static __always_inline int _fallback(cell msg, slice msg_body) { return 0; };
 ```
@@ -266,24 +266,24 @@ Generate entry points function that transfer control flow to a public method. 18
 
 ```
 #include "HelloWorld.hpp"
-/
+
 #include <tvm/contract.hpp>
 #include <tvm/smart_switcher.hpp>
 #include <tvm/replay_attack_protection/timestamp.hpp>
-/
+
 using namespace tvm::schema;
 using namespace tvm;
-/
+
 class HelloWorld final : public smart_interface<IHelloWorld>,
                          public DHelloWorld {
 public:
   __always_inline void constructor() final {}
   __always_inline uint_t<8> hello_world() final {return uint_t<8>(42);};
-/
+
   // Function is called in case of unparsed or unsupported func_id
   static __always_inline int _fallback(cell msg, slice msg_body) { return 0; }; };
 DEFINE_JSON_ABI(IHelloWorld, DHelloWorld, EHelloWorld);
-/
+
 // ----------------------------- Main entry functions ---------------------- //
 DEFAULT_MAIN_ENTRY_FUNCTIONS(HelloWorld, IHelloWorld, DHelloWorld, 1800)
 ```

@@ -659,6 +659,9 @@ NumericLiteralParser::NumericLiteralParser(StringRef TokSpelling,
       continue;  // Success.
     case 'i':
     case 'I':
+      // TVM local begin
+      break; // In TVM we have user-defined literals for i8-i256
+      // TVM local end
       if (PP.getLangOpts().MicrosoftExt) {
         if (isLong || isLongLong || MicrosoftInteger)
           break;

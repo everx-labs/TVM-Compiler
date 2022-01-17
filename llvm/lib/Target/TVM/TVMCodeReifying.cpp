@@ -116,6 +116,7 @@ void TVMCodeReifying::calculateDefinitions(MachineFunction &MF,
 }
 
 void TVMCodeReifying::reify(MachineFunction &MF, unordered_map<unsigned, vector<MachineInstr *>> defs) {
+  unordered_map<MachineInstr*, unsigned> defMap;  // MachineInstr* -> number of instructions which use it
   for (MachineBasicBlock &MBB : MF) {
     if (MBB.empty())
       continue;
@@ -135,9 +136,43 @@ void TVMCodeReifying::reify(MachineFunction &MF, unordered_map<unsigned, vector<
         continue;
 
       MachineInstrBuilder MIB = BuildMI(MBB, &instr, instr.getDebugLoc(), TII->get(TVM::PUSHCONT_MBB))
-        .addReg(reg)
+        .addDef(reg)
         .addMBB(defInstr->getOperand(1).getMBB());
+
+      auto it = defMap.find(defInstr);
+      if (it == defMap.end()) {
+        defMap[defInstr] = 1;
+      }
+      else {
+        defMap[defInstr] = it->second + 1;
+      }
+
     }
+  }
+
+  // Fast dead instructions analysis 
+  for (auto it : defMap) {
+    MachineInstr* defInstr = it.first;
+    unsigned reg = defInstr->getOperand(0).getReg();
+    unsigned numUses = it.second;
+    unsigned numUses2 = 0;
+
+    // Check there are no other uses of defInstr (may be redundant)
+    MachineBasicBlock* defMBB = defInstr->getParent();
+    for (MachineBasicBlock &MBB : MF) {
+      if (!MDT->dominates(defMBB, &MBB))
+        continue;
+      for (MachineInstr& MI : MBB) {
+        for (auto use : MI.uses()) {
+          if (use.isReg()  &&  use.getReg() == reg)
+            numUses2++;
+        }
+      }
+    }
+
+    // There is no other uses than we already reified
+    if (numUses == numUses2)
+      defInstr->removeFromParent();
   }
 }
 

@@ -760,9 +760,14 @@ bool TargetLowering::SimplifyDemandedBits(SDValue Op,
     // If (1) we only need the sign-bit, (2) the setcc operands are the same
     // width as the setcc result, and (3) the result of a setcc conforms to 0 or
     // -1, we may be able to bypass the setcc.
+    // TVM local begin
+    auto BoolCont = getBooleanContents(VT);
+    bool NegOne =
+      (BoolCont == BooleanContent::ZeroOrNegativeOneBooleanContent) ||
+      (BoolCont == BooleanContent::NegativeOneProduceNonZeroReceiveContent);
     if (NewMask.isSignMask() && Op0.getScalarValueSizeInBits() == BitWidth &&
-        getBooleanContents(VT) ==
-            BooleanContent::ZeroOrNegativeOneBooleanContent) {
+        NegOne) {
+    // TVM local end
       // If we're testing X < 0, then this compare isn't needed - just use X!
       // FIXME: We're limiting to integer types here, but this should also work
       // if we don't care about FP signed-zero. The use of SETLT with FP means
@@ -1737,8 +1742,11 @@ bool TargetLowering::isConstTrueVal(const SDNode *N) const {
   }
 
   switch (getBooleanContents(N->getValueType(0))) {
+  // TVM local begin
+  case NegativeOneProduceNonZeroReceiveContent:
   case UndefinedBooleanContent:
     return CVal[0];
+  // TVM local end
   case ZeroOrOneBooleanContent:
     return CVal.isOneValue();
   case ZeroOrNegativeOneBooleanContent:
@@ -1783,9 +1791,12 @@ bool TargetLowering::isExtendedTrueVal(const ConstantSDNode *N, EVT VT,
     // An extended value of 1 is always true, unless its original type is i1,
     // in which case it will be sign extended to -1.
     return (N->isOne() && !SExt) || (SExt && (N->getValueType(0) != MVT::i1));
+  // TVM local begin
   case TargetLowering::UndefinedBooleanContent:
   case TargetLowering::ZeroOrNegativeOneBooleanContent:
+  case TargetLowering::NegativeOneProduceNonZeroReceiveContent:
     return N->isAllOnesValue() && SExt;
+  // TVM local end
   }
   llvm_unreachable("Unexpected enumeration.");
 }

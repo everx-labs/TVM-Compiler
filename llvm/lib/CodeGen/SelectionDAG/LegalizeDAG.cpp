@@ -3757,9 +3757,12 @@ bool SelectionDAGLegalize::ExpandNode(SDNode *Node) {
     case TargetLowering::UndefinedBooleanContent:
       TrueValue = 1;
       break;
+    // TVM local begin
+    case TargetLowering::NegativeOneProduceNonZeroReceiveContent:
     case TargetLowering::ZeroOrNegativeOneBooleanContent:
       TrueValue = -1;
       break;
+    // TVM local end
     }
     Tmp1 = DAG.getNode(ISD::SELECT_CC, dl, VT, Tmp1, Tmp2,
                        DAG.getConstant(TrueValue, dl, VT),

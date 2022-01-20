@@ -21,7 +21,7 @@ entry:
   %flag = extractvalue {slice, i257} %dictiget, 1
   %slice = extractvalue {slice, i257} %dictiget, 0
 
-  %flag1 = trunc i257 %flag to i1
+  %flag1 = icmp ne i257 %flag, 0
   br i1 %flag1, label %ok, label %do_throw
 ok:
   %ldi = call {i257, slice} @llvm.tvm.ldi(slice %slice, i257 257)
@@ -58,7 +58,7 @@ entry:
   %flag = extractvalue {slice, i257} %dictiget, 1
   %slice = extractvalue {slice, i257} %dictiget, 0
 
-  %flag1 = trunc i257 %flag to i1
+  %flag1 = icmp ne i257 %flag, 0
   br i1 %flag1, label %ok, label %do_throw
 ok:
   %ldi = call {i257, slice} @llvm.tvm.ldi(slice %slice, i257 257)

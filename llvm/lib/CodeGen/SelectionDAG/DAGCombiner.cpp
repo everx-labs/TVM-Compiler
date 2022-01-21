@@ -2325,9 +2325,12 @@ static SDValue flipBoolean(SDValue V, const SDLoc &DL, EVT VT,
   case TargetLowering::UndefinedBooleanContent:
     Cst = DAG.getConstant(1, DL, VT);
     break;
+  // TVM local begin
+  case TargetLowering::NegativeOneProduceNonZeroReceiveContent:
   case TargetLowering::ZeroOrNegativeOneBooleanContent:
     Cst = DAG.getConstant(-1, DL, VT);
     break;
+  // TVM local end
   }
 
   return DAG.getNode(ISD::XOR, DL, VT, V, Cst);
@@ -2341,8 +2344,11 @@ static bool isBooleanFlip(SDValue V, EVT VT, const TargetLowering &TLI) {
   switch(TLI.getBooleanContents(VT)) {
     case TargetLowering::ZeroOrOneBooleanContent:
       return Const->isOne();
+    // TVM local begin
+    case TargetLowering::NegativeOneProduceNonZeroReceiveContent:
     case TargetLowering::ZeroOrNegativeOneBooleanContent:
       return Const->isAllOnesValue();
+    // TVM local end
     case TargetLowering::UndefinedBooleanContent:
       return (Const->getAPIntValue() & 0x01) == 1;
   }

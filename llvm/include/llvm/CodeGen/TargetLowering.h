@@ -137,11 +137,14 @@ public:
   using LegalizeKind = std::pair<LegalizeTypeAction, EVT>;
 
   /// Enum that describes how the target represents true/false values.
+  // TVM local begin
   enum BooleanContent {
-    UndefinedBooleanContent,    // Only bit 0 counts, the rest can hold garbage.
-    ZeroOrOneBooleanContent,        // All bits zero except for bit 0.
-    ZeroOrNegativeOneBooleanContent // All bits equal to bit 0.
+    UndefinedBooleanContent,                // Only bit 0 counts, the rest can hold garbage.
+    ZeroOrOneBooleanContent,                // All bits zero except for bit 0.
+    ZeroOrNegativeOneBooleanContent,        // All bits equal to bit 0.
+    NegativeOneProduceNonZeroReceiveContent // (0;-1) generates, any non-zero receives
   };
+  // TVM local end
 
   /// Enum that describes what type of support for selects the target has.
   enum SelectSupportKind {
@@ -209,9 +212,12 @@ public:
     case ZeroOrOneBooleanContent:
       // Extend by adding zero bits.
       return ISD::ZERO_EXTEND;
+    // TVM local begin
     case ZeroOrNegativeOneBooleanContent:
+    case NegativeOneProduceNonZeroReceiveContent:
       // Extend by copying the sign bit.
       return ISD::SIGN_EXTEND;
+    // TVM local end
     }
     llvm_unreachable("Invalid content kind");
   }

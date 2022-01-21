@@ -1,4 +1,4 @@
-; RUN: llc -O3 < %s -march=tvm | FileCheck %s
+; RUN: llc -O3 < %s -march=tvm -asm-verbose=false | FileCheck %s
 target datalayout = "E-S257-i1:257:257-i8:257:257-i16:257:257-i32:257:257-i64:257:257-i257:257:257-p:257:257-a:257:257"
 target triple = "tvm"
 
@@ -31,7 +31,7 @@ then:
 define void @test() nounwind {
   %1 = call i257 @f(i257 0)
   %2 = sub i257 %1, 2
-  %flag = trunc i257 %2 to i1
+  %flag = icmp ne i257 %2, 0
   br i1 %flag, label %do_throw, label %ok
 ok:
   ret void
@@ -51,7 +51,7 @@ define i257 @l(i257 %x) {
 ; CHECK: {
 ; CHECK:   POP c0
 ; CHECK: }
-; CHECK: IFJMP
+; CHECK: IFNOTJMP
 ; CHECK: PUSHCONT
 ; CHECK: {
 ; CHECK:   POP c0

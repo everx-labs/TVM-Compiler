@@ -1175,8 +1175,11 @@ SDValue SelectionDAG::getBoolConstant(bool V, const SDLoc &DL, EVT VT,
   case TargetLowering::ZeroOrOneBooleanContent:
   case TargetLowering::UndefinedBooleanContent:
     return getConstant(1, DL, VT);
+  // TVM local begin
+  case TargetLowering::NegativeOneProduceNonZeroReceiveContent:
   case TargetLowering::ZeroOrNegativeOneBooleanContent:
     return getAllOnesConstant(DL, VT);
+  // TVM local end
   }
   llvm_unreachable("Unexpected boolean content enum!");
 }
@@ -3366,12 +3369,22 @@ unsigned SelectionDAG::ComputeNumSignBits(SDValue Op, const APInt &DemandedElts,
     if (TLI->getBooleanContents(Op.getValueType().isVector(), false) ==
         TargetLowering::ZeroOrNegativeOneBooleanContent)
       return VTBits;
+    // TVM local begin
+    if (TLI->getBooleanContents(Op.getValueType().isVector(), false) ==
+        TargetLowering::NegativeOneProduceNonZeroReceiveContent)
+      return VTBits;
+    // TVM local end
     break;
   case ISD::SETCC:
     // If setcc returns 0/-1, all bits are sign bits.
     if (TLI->getBooleanContents(Op.getOperand(0).getValueType()) ==
         TargetLowering::ZeroOrNegativeOneBooleanContent)
       return VTBits;
+    // TVM local begin
+    if (TLI->getBooleanContents(Op.getOperand(0).getValueType()) ==
+        TargetLowering::NegativeOneProduceNonZeroReceiveContent)
+      return VTBits;
+    // TVM local end
     break;
   case ISD::ROTL:
   case ISD::ROTR:

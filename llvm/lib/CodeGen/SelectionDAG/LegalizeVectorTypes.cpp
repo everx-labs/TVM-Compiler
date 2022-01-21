@@ -354,6 +354,8 @@ SDValue DAGTypeLegalizer::ScalarizeVecRes_VSELECT(SDNode *N) {
         Cond = DAG.getNode(ISD::AND, SDLoc(N), CondVT,
                            Cond, DAG.getConstant(1, SDLoc(N), CondVT));
         break;
+      // TVM local begin
+      case TargetLowering::NegativeOneProduceNonZeroReceiveContent:
       case TargetLowering::ZeroOrNegativeOneBooleanContent:
         assert(VecBool == TargetLowering::UndefinedBooleanContent ||
                VecBool == TargetLowering::ZeroOrOneBooleanContent);
@@ -361,6 +363,7 @@ SDValue DAGTypeLegalizer::ScalarizeVecRes_VSELECT(SDNode *N) {
         Cond = DAG.getNode(ISD::SIGN_EXTEND_INREG, SDLoc(N), CondVT,
                            Cond, DAG.getValueType(MVT::i1));
         break;
+      // TVM local end
     }
   }
 

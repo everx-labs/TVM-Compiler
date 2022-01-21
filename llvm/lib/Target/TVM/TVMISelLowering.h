@@ -102,6 +102,7 @@ private:
                                SmallVectorImpl<SDValue> &InVals) const override;
 
   // Custom lowering hooks.
+  SDValue LowerXOR(SDValue Op, SelectionDAG &DAG) const;
   SDValue LowerGlobalAddress(SDValue Op, SelectionDAG &DAG) const;
   SDValue LowerLoad(SDValue Op, SelectionDAG &DAG) const;
   SDValue LowerStore(SDValue Op, SelectionDAG &DAG) const;

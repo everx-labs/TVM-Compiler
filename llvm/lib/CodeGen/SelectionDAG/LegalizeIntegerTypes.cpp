@@ -1334,9 +1334,12 @@ SDValue DAGTypeLegalizer::PromoteIntOp_ADDSUBCARRY(SDNode *N, unsigned OpNo) {
   case TargetLoweringBase::ZeroOrOneBooleanContent:
     Carry = DAG.getZExtOrTrunc(Carry, DL, VT);
     break;
+  // TVM local begin
+  case TargetLoweringBase::NegativeOneProduceNonZeroReceiveContent:
   case TargetLoweringBase::ZeroOrNegativeOneBooleanContent:
     Carry = DAG.getSExtOrTrunc(Carry, DL, VT);
     break;
+  // TVM local end
   }
 
   return SDValue(DAG.UpdateNodeOperands(N, LHS, RHS, Carry), 0);
@@ -1878,10 +1881,13 @@ void DAGTypeLegalizer::ExpandIntRes_ADDSUB(SDNode *N,
       OVF = DAG.getZExtOrTrunc(OVF, dl, NVT);
       Hi = DAG.getNode(N->getOpcode(), dl, NVT, Hi, OVF);
       break;
+    // TVM local begin
+    case TargetLoweringBase::NegativeOneProduceNonZeroReceiveContent:
     case TargetLoweringBase::ZeroOrNegativeOneBooleanContent:
       OVF = DAG.getSExtOrTrunc(OVF, dl, NVT);
       Hi = DAG.getNode(RevOpc, dl, NVT, Hi, OVF);
     }
+    // TVM local end
     return;
   }
 

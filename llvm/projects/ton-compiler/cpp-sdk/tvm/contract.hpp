@@ -20,11 +20,19 @@
 
 namespace tvm {
 
-inline void tvm_accept() {
+__always_inline void tvm_accept() {
   __builtin_tvm_accept();
 }
-inline void tvm_commit() {
-  __builtin_tvm_commit();
+__always_inline cell tvm_mycode() {
+  return __builtin_tvm_mycode();
+}
+__always_inline slice tvm_code_salt() {
+  cell code = __builtin_tvm_mycode();
+  require(code.ctos().srefs() == 3, error_code::unexpected_refs_count_in_code);
+  parser mycode_parser(code.ctos());
+  mycode_parser.ldref();
+  mycode_parser.ldref();
+  return mycode_parser.ldrefrtos();
 }
 
 /* From tvm RAWRESERVE(x, y) :

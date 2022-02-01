@@ -24,6 +24,7 @@ __interface ETest {};
 static constexpr unsigned TIMESTAMP_DELAY = 1800;
 
 class Test final : public smart_interface<ITest>, public DTest {
+  using data = DTest;
 public:
   using replay_protection_t = replay_attack_protection::timestamp<TIMESTAMP_DELAY>;
 

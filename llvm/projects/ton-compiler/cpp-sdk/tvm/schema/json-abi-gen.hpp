@@ -400,12 +400,34 @@ constexpr auto make_getters() {
 }
 
 template<class Interface>
+constexpr auto make_header_pubkey() {
+  if constexpr (get_interface_has_pubkey<Interface>::value)
+    return "\n    \"pubkey\","_s;
+  else
+    return ""_s;
+}
+template<class Interface>
+constexpr auto make_header_timestamp() {
+  if constexpr (get_interface_has_timestamp<Interface>::value)
+    return "\n    \"time\","_s;
+  else
+    return ""_s;
+}
+template<class Interface>
+constexpr auto make_header_expire() {
+  if constexpr (get_interface_has_expire<Interface>::value)
+    return "\n    \"expire\""_s;
+  else
+    return ""_s;
+}
+
+template<class Interface>
 constexpr auto make_header() {
-  if constexpr (get_interface_has_pubkey<Interface>::value) {
-    return "\"header\": [\n    \"pubkey\",\n    \"time\",\n    \"expire\"\n  ]"_s;
-  } else {
-    return "\"header\": [\n    \"time\",\n    \"expire\"\n  ]"_s;
-  }
+  return "\"header\": ["_s +
+    make_header_pubkey<Interface>() +
+    make_header_timestamp<Interface>() +
+    make_header_expire<Interface>() +
+    "\n  ]"_s;
 }
 
 constexpr auto make_functions_begin() {

@@ -4,157 +4,130 @@
 
 namespace tvm {
 
-static constexpr unsigned one_full_ton_size = 1000000000;
+static constexpr unsigned one_full_ev_size = 1000000000;
 
-constexpr Grams operator "" nanoton(unsigned long long v) {
-  return Grams(v);
+constexpr Evers operator "" _nanoev(unsigned long long v) {
+  return Evers(v);
 }
-constexpr Grams operator "" nano(unsigned long long v) {
-  return Grams(v);
+constexpr Evers operator "" _nano(unsigned long long v) {
+  return Evers(v);
 }
-constexpr Grams operator "" nTon(unsigned long long v) {
-  return Grams(v);
-}
-constexpr Grams operator "" nT(unsigned long long v) {
-  return Grams(v);
+constexpr Evers operator "" _nEv(unsigned long long v) {
+  return Evers(v);
 }
 
-constexpr Grams operator "" microton(long double v) {
-  return Grams(static_cast<unsigned>(v * 1000));
+constexpr Evers operator "" _microev(long double v) {
+  return Evers(static_cast<unsigned>(v * 1000));
 }
-constexpr Grams operator "" micro(long double v) {
-  return Grams(static_cast<unsigned>(v * 1000));
+constexpr Evers operator "" _micro(long double v) {
+  return Evers(static_cast<unsigned>(v * 1000));
 }
-constexpr Grams operator "" mcT(long double v) {
-  return Grams(static_cast<unsigned>(v * 1000));
+constexpr Evers operator "" _mcEv(long double v) {
+  return Evers(static_cast<unsigned>(v * 1000));
 }
-constexpr Grams operator "" microton(unsigned long long v) {
-  return Grams(v * 1000);
+constexpr Evers operator "" _microev(unsigned long long v) {
+  return Evers(v * 1000);
 }
-constexpr Grams operator "" micro(unsigned long long v) {
-  return Grams(v * 1000);
+constexpr Evers operator "" _micro(unsigned long long v) {
+  return Evers(v * 1000);
 }
-constexpr Grams operator "" mcT(unsigned long long v) {
-  return Grams(v * 1000);
-}
-
-constexpr Grams operator "" milliton(long double v) {
-  return Grams(static_cast<unsigned>(v * 1000000));
-}
-constexpr Grams operator "" milli(long double v) {
-  return Grams(static_cast<unsigned>(v * 1000000));
-}
-constexpr Grams operator "" mT(long double v) {
-  return Grams(static_cast<unsigned>(v * 1000000));
-}
-constexpr Grams operator "" milliton(unsigned long long v) {
-  return Grams(v * 1000000);
-}
-constexpr Grams operator "" milli(unsigned long long v) {
-  return Grams(v * 1000000);
-}
-constexpr Grams operator "" mT(unsigned long long v) {
-  return Grams(v * 1000000);
+constexpr Evers operator "" _mcEv(unsigned long long v) {
+  return Evers(v * 1000);
 }
 
-constexpr Grams operator "" ton(long double v) {
-  return Grams(static_cast<unsigned>(v * one_full_ton_size));
+constexpr Evers operator "" _milliev(long double v) {
+  return Evers(static_cast<unsigned>(v * 1000000));
 }
-constexpr Grams operator "" Ton(long double v) {
-  return Grams(static_cast<unsigned>(v * one_full_ton_size));
+constexpr Evers operator "" _milli(long double v) {
+  return Evers(static_cast<unsigned>(v * 1000000));
 }
-constexpr Grams operator "" ton(unsigned long long v) {
-  return Grams(v * one_full_ton_size);
+constexpr Evers operator "" _mEv(long double v) {
+  return Evers(static_cast<unsigned>(v * 1000000));
 }
-constexpr Grams operator "" Ton(unsigned long long v) {
-  return Grams(v * one_full_ton_size);
+constexpr Evers operator "" _milliev(unsigned long long v) {
+  return Evers(v * 1000000);
 }
-constexpr Grams operator "" T(long double v) {
-  return Grams(static_cast<unsigned>(v * one_full_ton_size));
+constexpr Evers operator "" _milli(unsigned long long v) {
+  return Evers(v * 1000000);
 }
-constexpr Grams operator "" T(unsigned long long v) {
-  return Grams(v * one_full_ton_size);
-}
-constexpr uint128 operator "" UT(long double v) {
-  return uint128(static_cast<unsigned>(v * one_full_ton_size));
-}
-constexpr uint128 operator "" UT(unsigned long long v) {
-  return uint128(v * one_full_ton_size);
+constexpr Evers operator "" _mEv(unsigned long long v) {
+  return Evers(v * 1000000);
 }
 
-constexpr Grams operator "" kiloton(long double v) {
-  return Grams(static_cast<unsigned>(v * one_full_ton_size * 1000));
+constexpr Evers operator "" _ev(long double v) {
+  return Evers(static_cast<unsigned>(v * one_full_ev_size));
 }
-constexpr Grams operator "" kiloton(unsigned long long v) {
-  return Grams(v * one_full_ton_size * 1000);
+constexpr Evers operator "" _Ev(long double v) {
+  return Evers(static_cast<unsigned>(v * one_full_ev_size));
 }
-constexpr Grams operator "" kTon(long double v) {
-  return Grams(static_cast<unsigned>(v * one_full_ton_size * 1000));
+constexpr Evers operator "" _ev(unsigned long long v) {
+  return Evers(v * one_full_ev_size);
 }
-constexpr Grams operator "" kTon(unsigned long long v) {
-  return Grams(v * one_full_ton_size * 1000);
+constexpr Evers operator "" _Ev(unsigned long long v) {
+  return Evers(v * one_full_ev_size);
 }
-constexpr Grams operator "" KT(long double v) {
-  return Grams(static_cast<unsigned>(v * one_full_ton_size * 1000));
+constexpr uint128 operator "" _UEv(long double v) {
+  return uint128(static_cast<unsigned>(v * one_full_ev_size));
 }
-constexpr Grams operator "" KT(unsigned long long v) {
-  return Grams(v * one_full_ton_size * 1000);
-}
-constexpr uint128 operator "" UKT(long double v) {
-  return uint128(static_cast<unsigned>(v * one_full_ton_size * 1000));
-}
-constexpr uint128 operator "" UKT(unsigned long long v) {
-  return uint128(v * one_full_ton_size * 1000);
+constexpr uint128 operator "" _UEv(unsigned long long v) {
+  return uint128(v * one_full_ev_size);
 }
 
-constexpr Grams operator "" megaton(long double v) {
-  return Grams(static_cast<unsigned>(v * one_full_ton_size * 1000000));
+constexpr Evers operator "" _kiloev(long double v) {
+  return Evers(static_cast<unsigned>(v * one_full_ev_size * 1000));
 }
-constexpr Grams operator "" megaton(unsigned long long v) {
-  return Grams(v * one_full_ton_size * 1000000);
+constexpr Evers operator "" _kiloev(unsigned long long v) {
+  return Evers(v * one_full_ev_size * 1000);
 }
-constexpr Grams operator "" MTon(long double v) {
-  return Grams(static_cast<unsigned>(v * one_full_ton_size * 1000000));
+constexpr Evers operator "" _kEv(long double v) {
+  return Evers(static_cast<unsigned>(v * one_full_ev_size * 1000));
 }
-constexpr Grams operator "" MTon(unsigned long long v) {
-  return Grams(v * one_full_ton_size * 1000000);
+constexpr Evers operator "" _kEv(unsigned long long v) {
+  return Evers(v * one_full_ev_size * 1000);
 }
-constexpr Grams operator "" MT(long double v) {
-  return Grams(static_cast<unsigned>(v * one_full_ton_size * 1000000));
+constexpr uint128 operator "" _UKEv(long double v) {
+  return uint128(static_cast<unsigned>(v * one_full_ev_size * 1000));
 }
-constexpr Grams operator "" MT(unsigned long long v) {
-  return Grams(v * one_full_ton_size * 1000000);
-}
-constexpr uint128 operator "" UMT(long double v) {
-  return uint128(static_cast<unsigned>(v * one_full_ton_size * 1000000));
-}
-constexpr uint128 operator "" UMT(unsigned long long v) {
-  return uint128(v * one_full_ton_size * 1000000);
+constexpr uint128 operator "" _UKEv(unsigned long long v) {
+  return uint128(v * one_full_ev_size * 1000);
 }
 
-constexpr Grams operator "" gigaton(long double v) {
-  return Grams(static_cast<unsigned>(v * one_full_ton_size * 1000000000));
+constexpr Evers operator "" _megaev(long double v) {
+  return Evers(static_cast<unsigned>(v * one_full_ev_size * 1000000));
 }
-constexpr Grams operator "" gigaton(unsigned long long v) {
-  return Grams(v * one_full_ton_size * 1000000000);
+constexpr Evers operator "" _megaev(unsigned long long v) {
+  return Evers(v * one_full_ev_size * 1000000);
 }
-constexpr Grams operator "" GTon(long double v) {
-  return Grams(static_cast<unsigned>(v * one_full_ton_size * 1000000000));
+constexpr Evers operator "" _MEv(long double v) {
+  return Evers(static_cast<unsigned>(v * one_full_ev_size * 1000000));
 }
-constexpr Grams operator "" GTon(unsigned long long v) {
-  return Grams(v * one_full_ton_size * 1000000000);
+constexpr Evers operator "" _MEv(unsigned long long v) {
+  return Evers(v * one_full_ev_size * 1000000);
 }
-constexpr Grams operator "" GT(long double v) {
-  return Grams(static_cast<unsigned>(v * one_full_ton_size * 1000000000));
+constexpr uint128 operator "" _UMEv(long double v) {
+  return uint128(static_cast<unsigned>(v * one_full_ev_size * 1000000));
 }
-constexpr Grams operator "" GT(unsigned long long v) {
-  return Grams(v * one_full_ton_size * 1000000000);
+constexpr uint128 operator "" _UMEv(unsigned long long v) {
+  return uint128(v * one_full_ev_size * 1000000);
 }
-constexpr uint128 operator "" UGT(long double v) {
-  return uint128(static_cast<unsigned>(v * one_full_ton_size * 1000000000));
+
+constexpr Evers operator "" _gigaev(long double v) {
+  return Evers(static_cast<unsigned>(v * one_full_ev_size * 1000000000));
 }
-constexpr uint128 operator "" UGT(unsigned long long v) {
-  return uint128(v * one_full_ton_size * 1000000000);
+constexpr Evers operator "" _gigaev(unsigned long long v) {
+  return Evers(v * one_full_ev_size * 1000000000);
+}
+constexpr Evers operator "" _GEv(long double v) {
+  return Evers(static_cast<unsigned>(v * one_full_ev_size * 1000000000));
+}
+constexpr Evers operator "" _GEv(unsigned long long v) {
+  return Evers(v * one_full_ev_size * 1000000000);
+}
+constexpr uint128 operator "" _UGEv(long double v) {
+  return uint128(static_cast<unsigned>(v * one_full_ev_size * 1000000000));
+}
+constexpr uint128 operator "" _UGEv(unsigned long long v) {
+  return uint128(v * one_full_ev_size * 1000000000);
 }
 
 constexpr uint8 operator "" u8(unsigned long long v) {

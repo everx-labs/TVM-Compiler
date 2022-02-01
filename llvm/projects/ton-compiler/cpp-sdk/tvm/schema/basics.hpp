@@ -580,6 +580,7 @@ using varint32 = varint<32>;
 
 using Grams = varuint16;
 using Crystals = varuint16;
+using Evers = varuint16;
 
 template<unsigned _keylen, class _element_type>
 struct HashmapE {

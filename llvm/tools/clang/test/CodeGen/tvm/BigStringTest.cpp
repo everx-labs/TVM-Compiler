@@ -30,6 +30,7 @@ static constexpr unsigned TIMESTAMP_DELAY = 1800;
 using replay_protection_t = replay_attack_protection::timestamp<TIMESTAMP_DELAY>;
 
 class BigStringTest final : public smart_interface<IBigStringTest>, public DBigStringTest {
+  using data = DBigStringTest;
 public:
   __always_inline
   void constructor() override {

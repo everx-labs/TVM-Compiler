@@ -68,5 +68,11 @@
   void set_persistent_data_header(                                                                         \
     persistent_data_header_t<TVM_INTERFACE, TVM_REPLAY_PROTECTION> header) {                               \
     header_ = header;                                                                                      \
+  }                                                                                                        \
+  __always_inline                                                                                          \
+  void tvm_commit() {                                                                                      \
+    auto &base = static_cast<data&>(*this);                                                                \
+    save_persistent_data<TVM_INTERFACE, TVM_REPLAY_PROTECTION>(header_, base);                             \
+    __builtin_tvm_commit();                                                                                \
   }
 

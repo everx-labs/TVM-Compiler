@@ -10,6 +10,7 @@ struct error_code {
   static constexpr int bad_incoming_msg            = 48; // invalid inbound message
   // custom error codes
 
+  static constexpr int integer_overflow            = 50;
   static constexpr int persistent_data_parse_error = 51;
   static constexpr int custom_data_parse_error     = 52;
   static constexpr int bad_tupled_variant_kind     = 53;
@@ -30,9 +31,10 @@ struct error_code {
   static constexpr int empty_container             = 65;
 
   // test/temp error codes
-  static constexpr int non_empty_bits_at_cell_wrap  = 66;
-  static constexpr int non_single_refs_at_cell_wrap = 67;
-  static constexpr int no_pubkey                    = 68;
+  static constexpr int non_empty_bits_at_cell_wrap   = 66;
+  static constexpr int non_single_refs_at_cell_wrap  = 67;
+  static constexpr int no_pubkey                     = 68;
+  static constexpr int unexpected_refs_count_in_code = 69;
 };
 
 } // namespace tvm

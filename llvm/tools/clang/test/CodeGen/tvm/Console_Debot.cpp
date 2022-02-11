@@ -44,6 +44,7 @@ static constexpr unsigned TIMESTAMP_DELAY = 1800;
 using replay_protection_t = replay_attack_protection::timestamp<TIMESTAMP_DELAY>;
 
 class SMV_Debot final : public smart_interface<ISMV_Debot>, public DSMV_Debot {
+  using data = DSMV_Debot;
   IConsolePtr cout_ptr_ = IConsolePtr(address::make_std(schema::int8{0}, schema::uint256{0}));
 
   __always_inline IConsolePtr::proxy cout() {

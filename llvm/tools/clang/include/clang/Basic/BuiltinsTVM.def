@@ -76,6 +76,7 @@ BUILTIN(__builtin_tvm_printstr, "vc*", "nc")
 BUILTIN(__builtin_tvm_logflush, "v", "nc")
 BUILTIN(__builtin_tvm_hashcu, "WiTc", "nc")
 BUILTIN(__builtin_tvm_hashsu, "WiTs", "nc")
+BUILTIN(__builtin_tvm_mycode, "Tc", "nc")
 BUILTIN(__builtin_tvm_chksignu, "WiWiTsWi", "nc")
 
 BUILTIN(__builtin_tvm_index, "WiTtWi", "nc")

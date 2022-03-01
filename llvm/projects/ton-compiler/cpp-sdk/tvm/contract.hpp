@@ -17,6 +17,7 @@
 #include <tvm/schema/json-abi-gen.hpp>
 #include <tvm/message_flags.hpp>
 #include <tvm/func_id.hpp>
+#include <tvm/schema/build_chain_static.hpp>
 
 namespace tvm {
 
@@ -33,6 +34,36 @@ __always_inline slice tvm_code_salt() {
   mycode_parser.ldref();
   mycode_parser.ldref();
   return mycode_parser.ldrefrtos();
+}
+
+__always_inline cell tvm_add_code_salt_cell(cell salt, cell code) {
+  require(code.ctos().srefs() == 2, error_code::unexpected_refs_count_in_code);
+  return builder().stslice(code.ctos()).stref(salt).endc();
+}
+
+template<class Data>
+__always_inline cell tvm_add_code_salt(Data data, cell code) {
+  return tvm_add_code_salt_cell(build_chain_static(data), code);
+}
+
+template<class T>
+struct prohibit_early_assert {
+  static constexpr bool value = false;
+};
+
+template<class Interface, class Data>
+struct preparer {
+  __always_inline
+  static std::pair<StateInit, uint256> execute([[maybe_unused]] Data data, [[maybe_unused]] cell code) {
+    static_assert(prohibit_early_assert<Interface>::value, "preparer must be overriden for this interface");
+  }
+};
+
+/// Prepare StateInit and hash (for address) for contract deploy
+template<class Interface, class Data>
+__always_inline
+std::pair<StateInit, uint256> prepare(Data data, cell code) {
+  return preparer<Interface, Data>::execute(data, code);
 }
 
 /* From tvm RAWRESERVE(x, y) :

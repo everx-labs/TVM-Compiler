@@ -35,7 +35,7 @@ We expect the project to build successfully on
 ## Building and installing
 To build and to install the compiler use the following script:
 ```
-$ git clone git@github.com:tonlabs/TON-Compiler.git
+$ git clone git@github.com:tonlabs/TON-Compiler.git && cd TON-Compiler
 $ mkdir build
 $ cd build
 $ cmake -DCMAKE_INSTALL_PREFIX=/path/to/install -C /path/to/TON-Compiler/cmake/Cache/ton-compiler.cmake ../llvm
@@ -49,7 +49,7 @@ Notes:
 
 For Windows / Microsoft Visual Studio 2017/2020 (clang Compiler without linker & other external tools)
 ```
-> git clone git@github.com:tonlabs/TON-Compiler.git
+> git clone git@github.com:tonlabs/TON-Compiler.git && cd TON-Compiler
 > mkdir build
 > cd build
 > cmake -G "Visual Studio 15" -DLLVM_TARGETS_TO_BUILD="TVM" -C /path/to/TON-Compiler/cmake/Cache/ton-compiler-alone.cmake ../llvm

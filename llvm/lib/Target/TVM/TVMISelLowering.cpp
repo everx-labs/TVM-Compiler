@@ -121,6 +121,8 @@ TVMTargetLowering::TVMTargetLowering(const TargetMachine &TM,
 
   setTargetDAGCombine(ISD::ANY_EXTEND);
 
+  setBooleanContents(NegativeOneProduceNonZeroReceiveContent);
+
   // Expand these forms; we pattern-match the forms that we can handle in isel.
   for (auto Op : {ISD::BR_CC, ISD::SELECT_CC}) {
     setOperationAction(Op, MVT::i257, Expand);
@@ -129,6 +131,9 @@ TVMTargetLowering::TVMTargetLowering(const TargetMachine &TM,
     setOperationAction(Op, MVT::TVMBuilder, Expand);
     setOperationAction(Op, MVT::TVMCell, Expand);
   }
+
+  setOperationAction(ISD::CTTZ, MVT::i257, Custom);
+  setOperationAction(ISD::CTLZ, MVT::i257, Custom);
 }
 
 //===----------------------------------------------------------------------===//
@@ -438,6 +443,7 @@ void TVMTargetLowering::ReplaceNodeResults(SDNode *N,
   switch (N->getOpcode()) {
   default:
     llvm_unreachable("Do not know how to custom type legalize this operation!");
+    return;
   case ISD::GlobalAddress:
     Results.push_back(LowerGlobalAddress(SDValue(N, 0), DAG));
     return;
@@ -477,6 +483,69 @@ void TVMTargetLowering::LowerOperationWrapper(SDNode *N,
     Results.push_back(Res.getValue(I));
 }
 
+// TVMISD::IFELSE
+// Optimize compare with zero and branch.
+static SDValue performIFELSECombine(SDNode *N,
+                                    TargetLowering::DAGCombinerInfo &DCI,
+                                    SelectionDAG &DAG) {
+  SDValue Chain = N->getOperand(0);
+  SDValue N1 = N->getOperand(1);
+  SDValue ThenDest = N->getOperand(2);
+  SDValue ElseDest = N->getOperand(3);
+
+  if (N1.getOpcode() != ISD::SETCC)
+    return SDValue();
+  SDValue LHS = N1->getOperand(0);
+  SDValue RHS = N1->getOperand(1);
+  ISD::CondCode CC = cast<CondCodeSDNode>(N1->getOperand(2))->get();
+  if (CC != ISD::CondCode::SETNE && CC != ISD::CondCode::SETEQ)
+    return SDValue();
+  if (LHS.getValueType() != MVT::i257)
+    return SDValue();
+  if (isNullConstant(LHS))
+    std::swap(LHS, RHS);
+  if (!isNullConstant(RHS))
+    return SDValue();
+  if (CC == ISD::CondCode::SETEQ)
+    std::swap(ThenDest, ElseDest);
+  auto RV = DAG.getNode(TVMISD::IFELSE, SDLoc(N), MVT::Other, Chain, LHS, ThenDest, ElseDest);
+
+  // Do not add new nodes to DAG combiner worklist.
+  DCI.CombineTo(N, RV, false);
+
+  return SDValue();
+}
+
+// TVMISD::IFJMP
+// Optimize compare with zero and branch.
+static SDValue performIFJMPCombine(SDNode *N,
+                                   TargetLowering::DAGCombinerInfo &DCI,
+                                   SelectionDAG &DAG) {
+  SDValue Chain = N->getOperand(0);
+  SDValue N1 = N->getOperand(1);
+  SDValue Dest = N->getOperand(2);
+
+  if (N1.getOpcode() != ISD::SETCC)
+    return SDValue();
+  SDValue LHS = N1->getOperand(0);
+  SDValue RHS = N1->getOperand(1);
+  ISD::CondCode CC = cast<CondCodeSDNode>(N1->getOperand(2))->get();
+  if (CC != ISD::CondCode::SETNE)
+    return SDValue();
+  if (LHS.getValueType() != MVT::i257)
+    return SDValue();
+  if (isNullConstant(LHS))
+    std::swap(LHS, RHS);
+  if (!isNullConstant(RHS))
+    return SDValue();
+  auto RV = DAG.getNode(TVMISD::IFJMP, SDLoc(N), MVT::Other, Chain, LHS, Dest);
+
+  // Do not add new nodes to DAG combiner worklist.
+  DCI.CombineTo(N, RV, false);
+
+  return SDValue();
+}
+
 SDValue TVMTargetLowering::PerformDAGCombine(SDNode *N,
                                              DAGCombinerInfo &DCI) const {
   SelectionDAG &DAG = DCI.DAG;
@@ -486,6 +555,10 @@ SDValue TVMTargetLowering::PerformDAGCombine(SDNode *N,
     if (N->getOperand(0)->getValueType(0) == N->getValueType(0))
       return N->getOperand(0);
     break;
+  case TVMISD::IFELSE:
+    return performIFELSECombine(N, DCI, DAG);
+  case TVMISD::IFJMP:
+    return performIFJMPCombine(N, DCI, DAG);
   case ISD::TRUNCATE: {
     // TVM uses only one value type for all operations. This leads to folding
     // of all truncate nodes during legalization because there is no truncation
@@ -738,6 +811,24 @@ SDValue TVMTargetLowering::LowerINTRINSIC_WO_CHAIN(SDValue Op,
   }
   return SDValue();
 }
+
+SDValue TVMTargetLowering::LowerLeadingBits(SDValue Op,
+                                            SelectionDAG &DAG) const {
+  SDLoc DL(Op);
+  SDValue Val = Op.getOperand(0);
+  SDValue C257 = DAG.getConstant(257, DL, MVT::i257);
+  if (Op.getOpcode() == ISD::CTLZ) {
+    SDValue UBitSize = DAG.getNode(TVMISD::UBITSIZE, DL, MVT::i257, Val);
+    SDValue Sub = DAG.getNode(ISD::SUB, DL, MVT::i257, C257, UBitSize);
+    return Sub;
+  } else if (Op.getOpcode() == ISD::CTTZ) {
+    // TODO not implemented yet
+    assert(false);
+    return Val;
+  } else
+    assert(false);
+}
+
 
 //===----------------------------------------------------------------------===//
 //                       TVM Inline Assembly Support

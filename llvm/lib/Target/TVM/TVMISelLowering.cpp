@@ -816,7 +816,7 @@ SDValue TVMTargetLowering::LowerLeadingBits(SDValue Op,
                                             SelectionDAG &DAG) const {
   SDLoc DL(Op);
   SDValue Val = Op.getOperand(0);
-  SDValue C257 = DAG.getConstant(257, DL, MVT::i257);
+  SDValue C257 = DAG.getConstant(256, DL, MVT::i257);
   if (Op.getOpcode() == ISD::CTLZ) {
     SDValue UBitSize = DAG.getNode(TVMISD::UBITSIZE, DL, MVT::i257, Val);
     SDValue Sub = DAG.getNode(ISD::SUB, DL, MVT::i257, C257, UBitSize);

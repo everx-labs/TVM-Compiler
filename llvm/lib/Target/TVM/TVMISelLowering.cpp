@@ -131,6 +131,9 @@ TVMTargetLowering::TVMTargetLowering(const TargetMachine &TM,
     setOperationAction(Op, MVT::TVMBuilder, Expand);
     setOperationAction(Op, MVT::TVMCell, Expand);
   }
+
+  setOperationAction(ISD::CTTZ, MVT::i257, Custom);
+  setOperationAction(ISD::CTLZ, MVT::i257, Custom);
 }
 
 //===----------------------------------------------------------------------===//
@@ -808,6 +811,24 @@ SDValue TVMTargetLowering::LowerINTRINSIC_WO_CHAIN(SDValue Op,
   }
   return SDValue();
 }
+
+SDValue TVMTargetLowering::LowerLeadingBits(SDValue Op,
+                                            SelectionDAG &DAG) const {
+  SDLoc DL(Op);
+  SDValue Val = Op.getOperand(0);
+  SDValue C257 = DAG.getConstant(256, DL, MVT::i257);
+  if (Op.getOpcode() == ISD::CTLZ) {
+    SDValue UBitSize = DAG.getNode(TVMISD::UBITSIZE, DL, MVT::i257, Val);
+    SDValue Sub = DAG.getNode(ISD::SUB, DL, MVT::i257, C257, UBitSize);
+    return Sub;
+  } else if (Op.getOpcode() == ISD::CTTZ) {
+    // TODO not implemented yet
+    assert(false);
+    return Val;
+  } else
+    assert(false);
+}
+
 
 //===----------------------------------------------------------------------===//
 //                       TVM Inline Assembly Support

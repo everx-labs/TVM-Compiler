@@ -69,6 +69,9 @@ public:
 
   SDValue LowerINTRINSIC_WO_CHAIN(SDValue Op, SelectionDAG &DAG) const;
 
+  // Provide custom lowering for leading zeros and leading ones calculation
+  SDValue LowerLeadingBits(SDValue Op, SelectionDAG &DAG) const;
+
   /// getTargetNodeName - This method returns the name of a target specific
   /// DAG node.
   const char *getTargetNodeName(unsigned Opcode) const override;

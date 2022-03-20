@@ -160,7 +160,7 @@ class RegisterInductionVariable {
 
 private:
   RegisterInductionVariable(unsigned indVarReg, unsigned baseVarReg,
-                            int64_t fact, int64_t dif, MachineInstr *defInsn)
+         InductionExpression *fact, InductionExpression *dif, MachineInstr *defInsn)
       : indVar(indVarReg), baseVar(baseVarReg), factor(fact), diff(dif),
         defInstr(defInsn) {}
 
@@ -713,7 +713,8 @@ void TVMLoopInstructions::findInductionVariables(
       default:
         continue;
       }
-      indVars.push_back(RegisterInductionVariable(reg, reg, 1, 0, &MI));
+			// TODO
+//      indVars.push_back(RegisterInductionVariable(reg, reg, 1, 0, &MI));
     }
 
     // Calculate derivative induction variables
@@ -1057,6 +1058,7 @@ bool TVMLoopInstructions::convertUntilToWhileLoop(MachineLoop *loop) {
   condCleanup->eraseFromParent();
 
   // Add WHILE instruction + continuations
+  /*
   postLoopCont->getOperand(1).setMBB(preheader);
   const DebugLoc &dbgLoc = root->instr_back().getDebugLoc();
   BuildMI(*postBlock, postBlock->instr_begin(), dbgLoc, TII->get(TVM::WHILE))
@@ -1064,6 +1066,7 @@ bool TVMLoopInstructions::convertUntilToWhileLoop(MachineLoop *loop) {
       .addReg(loopBodyCont->getOperand(0).getReg());
   postBlock->insert(postBlock->instr_begin(), loopBodyCont);
   postBlock->insert(postBlock->instr_begin(), postLoopCont);
+	*/
 
   preheader->getParent()->dump();
 

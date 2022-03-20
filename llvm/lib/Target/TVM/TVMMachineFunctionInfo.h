@@ -77,7 +77,7 @@ public:
   void addLocal(MVT VT) { Locals.push_back(VT); }
   const std::vector<MVT> &getLocals() const { return Locals; }
 
-  inline static constexpr unsigned UnusedReg = -1u;
+  /*  inline  */ static constexpr unsigned UnusedReg = -1u;
 
   void stackifyVReg(unsigned VReg) {
     assert(MF.getRegInfo().getUniqueVRegDef(VReg));

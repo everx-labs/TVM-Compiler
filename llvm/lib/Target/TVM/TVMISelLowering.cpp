@@ -129,6 +129,9 @@ TVMTargetLowering::TVMTargetLowering(const TargetMachine &TM,
     setOperationAction(Op, MVT::TVMBuilder, Expand);
     setOperationAction(Op, MVT::TVMCell, Expand);
   }
+
+  setOperationAction(ISD::CTTZ, MVT::i257, Custom);
+  setOperationAction(ISD::CTLZ, MVT::i257, Custom);
 }
 
 //===----------------------------------------------------------------------===//
@@ -224,9 +227,15 @@ SDValue TVMTargetLowering::LowerCall(CallLoweringInfo &CLI,
   SDVTList InTyList = DAG.getVTList(InTys);
   unsigned CallCmd;
   switch (Ins.size()) {
-  case 0:  CallCmd = DictCall ? TVMISD::CALLDICT0 : TVMISD::CALL0; break;
-  case 1:  CallCmd = DictCall ? TVMISD::CALLDICT1 : TVMISD::CALL1; break;
-  default: CallCmd = DictCall ? TVMISD::CALLDICTN : TVMISD::CALLN; break;
+  case 0:
+    CallCmd = DictCall ? TVMISD::CALLDICT0 : TVMISD::CALL0;
+    break;
+  case 1:
+    CallCmd = DictCall ? TVMISD::CALLDICT1 : TVMISD::CALL1;
+    break;
+  default:
+    CallCmd = DictCall ? TVMISD::CALLDICTN : TVMISD::CALLN;
+    break;
   }
   if (CallCmd == TVMISD::CALLN || CallCmd == TVMISD::CALLDICTN)
     Ops.push_back(DAG.getTargetConstant(Ins.size(), DL, MVT::i257));
@@ -243,7 +252,7 @@ SDValue TVMTargetLowering::LowerCall(CallLoweringInfo &CLI,
 
 bool TVMTargetLowering::CanLowerReturn(
     CallingConv::ID /*CallConv*/, MachineFunction & /*MF*/, bool /*IsVarArg*/,
-    const SmallVectorImpl<ISD::OutputArg> &/*Outs*/,
+    const SmallVectorImpl<ISD::OutputArg> & /*Outs*/,
     LLVMContext & /*Context*/) const {
   return true;
 }
@@ -387,14 +396,14 @@ EVT TVMTargetLowering::getOptimalMemOpType(uint64_t /*Sz*/, unsigned /*DstAl*/,
                                            unsigned /*SrcAl*/, bool /*Memset*/,
                                            bool /*ZeroMemset*/,
                                            bool /*MemcpyStrSrc*/,
-                                           MachineFunction &/*MF*/) const {
+                                           MachineFunction & /*MF*/) const {
   return MVT::i257;
 }
 
 bool TVMTargetLowering::allowsMisalignedMemoryAccesses(EVT /*VT*/,
                                                        unsigned /*AddrSpace*/,
                                                        unsigned /*Align*/,
-                                                       bool */*Fast*/) const {
+                                                       bool * /*Fast*/) const {
   return true;
 }
 
@@ -425,6 +434,9 @@ SDValue TVMTargetLowering::LowerOperation(SDValue Op, SelectionDAG &DAG) const {
     return LowerINTRINSIC_W_CHAIN(Op, DAG);
   case ISD::INTRINSIC_WO_CHAIN:
     return LowerINTRINSIC_WO_CHAIN(Op, DAG);
+  case ISD::CTLZ:
+  case ISD::CTTZ:
+    return LowerLeadingBits(Op, DAG);
   default:
     llvm_unreachable("unimplemented operand");
   }
@@ -468,7 +480,7 @@ void TVMTargetLowering::LowerOperationWrapper(SDNode *N,
     return;
 
   assert((N->getNumValues() <= Res->getNumValues()) &&
-      "Lowering returned the wrong number of results!");
+         "Lowering returned the wrong number of results!");
 
   // Places new result values base on N result number.
   // In some cases Res has more result values
@@ -606,11 +618,10 @@ SDValue TVMTargetLowering::LowerExternalSymbol(SDValue Op,
                                                  /*TargetFlags=*/0x1));
 }
 
-SDValue TVMTargetLowering::LowerBR(SDValue Op,
-                                   SelectionDAG &DAG) const {
+SDValue TVMTargetLowering::LowerBR(SDValue Op, SelectionDAG &DAG) const {
   SDLoc DL(Op);
   SDValue Chain = Op.getOperand(0);
-  SDValue Dest  = Op.getOperand(1);
+  SDValue Dest = Op.getOperand(1);
   SDValue Zero = DAG.getTargetConstant(0, DL, MVT::i257);
   if (Chain.getOpcode() == ISD::BRCOND) {
     SDValue PrevChain = Chain->getOperand(0), Cond = Chain->getOperand(1),
@@ -619,19 +630,18 @@ SDValue TVMTargetLowering::LowerBR(SDValue Op,
     ThenBr = DAG.getNode(TVMISD::BBWrapper, DL, MVT::i257, ThenBr, Zero);
     ElseBr = DAG.getNode(TVMISD::BBWrapper, DL, MVT::i257, ElseBr, Zero);
 
-    return DAG.getNode(TVMISD::IFELSE, DL, MVT::Other, PrevChain, Cond,
-                       ThenBr, ElseBr);
+    return DAG.getNode(TVMISD::IFELSE, DL, MVT::Other, PrevChain, Cond, ThenBr,
+                       ElseBr);
   }
   Dest = DAG.getNode(TVMISD::BBWrapper, DL, MVT::i257, Dest, Zero);
   return DAG.getNode(TVMISD::JUMPX, DL, MVT::Other, Chain, Dest);
 }
 
-SDValue TVMTargetLowering::LowerBRCOND(SDValue Op,
-                                       SelectionDAG &DAG) const {
+SDValue TVMTargetLowering::LowerBRCOND(SDValue Op, SelectionDAG &DAG) const {
   SDLoc DL(Op);
   SDValue Chain = Op.getOperand(0);
-  SDValue Cond  = Op.getOperand(1);
-  SDValue Dest  = Op.getOperand(2);
+  SDValue Cond = Op.getOperand(1);
+  SDValue Dest = Op.getOperand(2);
   SDValue Zero = DAG.getTargetConstant(0, DL, MVT::i257);
   Dest = DAG.getNode(TVMISD::BBWrapper, DL, MVT::i257, Dest, Zero);
   return DAG.getNode(TVMISD::IFJMP, DL, MVT::Other, Chain, Dest, Cond);
@@ -663,9 +673,9 @@ SDValue TVMTargetLowering::LowerCopyToReg(SDValue Op, SelectionDAG &DAG) const {
     SDValue Copy(DAG.getMachineNode(TVM::REG_TO_REG_COPY, DL, VT, Src), 0);
     return Op.getNode()->getNumValues() == 1
                ? DAG.getCopyToReg(Chain, DL, Reg, Copy)
-               : DAG.getCopyToReg(Chain, DL, Reg, Copy, Op.getNumOperands() == 4
-                                                            ? Op.getOperand(3)
-                                                            : SDValue());
+               : DAG.getCopyToReg(Chain, DL, Reg, Copy,
+                                  Op.getNumOperands() == 4 ? Op.getOperand(3)
+                                                           : SDValue());
   }
   return SDValue();
 }
@@ -686,10 +696,9 @@ SDValue TVMTargetLowering::LowerINTRINSIC_W_CHAIN(SDValue Op,
     break;
   case Intrinsic::tvm_retrieve_signed: {
     // arguments: slice, from, len
-    SDValue Skip1 =
-        DAG.getNode(TVMISD::LDSLICEX, DL,
-                    DAG.getVTList(MVT::TVMSlice, MVT::TVMSlice),
-                    Op->getOperand(2), Op->getOperand(3));
+    SDValue Skip1 = DAG.getNode(TVMISD::LDSLICEX, DL,
+                                DAG.getVTList(MVT::TVMSlice, MVT::TVMSlice),
+                                Op->getOperand(2), Op->getOperand(3));
     SDValue Result =
         DAG.getNode(TVMISD::LDIX, DL, DAG.getVTList(MVT::i257, MVT::TVMSlice),
                     Skip1.getValue(0), Op->getOperand(4));
@@ -697,10 +706,9 @@ SDValue TVMTargetLowering::LowerINTRINSIC_W_CHAIN(SDValue Op,
   }
   case Intrinsic::tvm_retrieve_unsigned: {
     // arguments: slice, from, len
-    SDValue Skip1 =
-        DAG.getNode(TVMISD::LDSLICEX, DL,
-                    DAG.getVTList(MVT::TVMSlice, MVT::TVMSlice),
-                    Op->getOperand(2), Op->getOperand(3));
+    SDValue Skip1 = DAG.getNode(TVMISD::LDSLICEX, DL,
+                                DAG.getVTList(MVT::TVMSlice, MVT::TVMSlice),
+                                Op->getOperand(2), Op->getOperand(3));
     SDValue Result =
         DAG.getNode(TVMISD::LDUX, DL, DAG.getVTList(MVT::i257, MVT::TVMSlice),
                     Skip1.getValue(0), Op->getOperand(4));
@@ -708,13 +716,11 @@ SDValue TVMTargetLowering::LowerINTRINSIC_W_CHAIN(SDValue Op,
   }
   case Intrinsic::tvm_retrieve_ref: {
     // arguments: slice
-    SDValue Result =
-        DAG.getNode(TVMISD::LDREF, DL,
-                    DAG.getVTList(MVT::TVMCell, MVT::TVMSlice),
-                    Op->getOperand(2));
+    SDValue Result = DAG.getNode(TVMISD::LDREF, DL,
+                                 DAG.getVTList(MVT::TVMCell, MVT::TVMSlice),
+                                 Op->getOperand(2));
     return DAG.getMergeValues({Result.getValue(1), Chain}, DL);
   }
-
   }
   return SDValue();
 }
@@ -737,6 +743,23 @@ SDValue TVMTargetLowering::LowerINTRINSIC_WO_CHAIN(SDValue Op,
   }
   }
   return SDValue();
+}
+
+SDValue TVMTargetLowering::LowerLeadingBits(SDValue Op,
+                                            SelectionDAG &DAG) const {
+  SDLoc DL(Op);
+  SDValue Val = Op.getOperand(0);
+  SDValue C257 = DAG.getConstant(257, DL, MVT::i257);
+  if (Op.getOpcode() == ISD::CTLZ) {
+    SDValue UBitSize = DAG.getNode(TVMISD::UBITSIZE, DL, MVT::i257, Val);
+    SDValue Sub = DAG.getNode(ISD::SUB, DL, MVT::i257, C257, UBitSize);
+    return Sub;
+  } else if (Op.getOpcode() == ISD::CTTZ) {
+    // TODO not implemented yet
+    assert(false);
+    return Val;
+  } else
+    assert(false);
 }
 
 //===----------------------------------------------------------------------===//

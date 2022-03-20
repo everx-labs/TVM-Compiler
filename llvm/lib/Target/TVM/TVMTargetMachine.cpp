@@ -46,6 +46,11 @@ extern "C" void LLVMInitializeTVMTarget() {
   initializeTVMMoveMaterializablePass(PR);
   initializeTVMStoreCombinePass(PR);
   initializeTVMLowerIntrinsicsPass(PR);
+
+  initializeTVMCodeHoistingPass(PR);
+  initializeTVMCodeReifyingPass(PR);
+  initializeTVMLocalSchedulerPass(PR);
+  initializeTVMCodeStatisticsPass(PR);
 }
 
 static Reloc::Model getEffectiveRelocModel(Optional<Reloc::Model> RM) {
@@ -171,9 +176,13 @@ void TVMPassConfig::addPreEmitPass() {
   addPass(createTVMPrepareForLiveIntervals());
   addPass(createTVMRematerialize());
   addPass(createTVMRegStackify());
-  addPass(createTVMLoopInstructions());
+//  addPass(createTVMLoopInstructions());
   addPass(createTVMMoveMaterializable());
-  addPass(createTVMStackModel());
+    
+  addPass(createTVMCodeReifying());
+  addPass(createTVMLocalScheduler());
+
+//	addPass(createTVMStackModel());
 
   // Perform the very last peephole optimizations on the code.
   if (getOptLevel() != CodeGenOpt::None)

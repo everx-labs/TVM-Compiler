@@ -720,7 +720,7 @@ public:
 
   void setOrderNum(unsigned num) { orderNum = num; }
 
-  const TargetInstrInfo *getInstructionInfo();
+  const TargetInstrInfo *getInstructionInfo() const;
 
   // Return number of successors for register reg
   unsigned getNumSuccessors(unsigned reg) const {
@@ -754,7 +754,7 @@ public:
     return -1;
   }
 
-  string toString();
+  string toString() const;
 
   // Layered Instruction Graph iterators
   using pred_iterator = vector<Edge>::iterator;
@@ -830,7 +830,7 @@ private:
   }
 };
 
-string LayeredInstructionDAGNode::toString() {
+string LayeredInstructionDAGNode::toString() const {
   string str;
   char buf[8];
   switch (kind) {
@@ -864,7 +864,8 @@ class LayeredInstructionDAG {
   Recycler<LayeredInstructionDAGNode> LayeredInstructionDAGNodeRecycler;
 
 public:
-  LayeredInstructionDAG(MachineBasicBlock *MBB_, unordered_set<unsigned> const &pseudoSet,
+  LayeredInstructionDAG(MachineBasicBlock *MBB_,
+                        unordered_set<unsigned> const &pseudoSet,
                         unordered_set<unsigned> liveOut)
       : MBB(MBB_), levels() {
     constructFromMBB(pseudoSet, liveOut);
@@ -884,7 +885,7 @@ public:
 
   // scheduling nodes computation order
   // if includeSources = true, schedule nodes with Source nodes
-	// if includeSinks = true, schedule nodes whith Sink nodes
+  // if includeSinks = true, schedule nodes whith Sink nodes
   void scheduleNodes(vector<LayeredInstructionDAGNode *> &order,
                      bool includeSources = true, bool includeSinks = false);
 
@@ -920,7 +921,7 @@ LayeredInstructionDAG::createNode(LayeredInstructionDAGNodeKind kind,
           Allocator)) LayeredInstructionDAGNode(*this, kind, reg);
 }
 
-const TargetInstrInfo *LayeredInstructionDAGNode::getInstructionInfo() {
+const TargetInstrInfo *LayeredInstructionDAGNode::getInstructionInfo() const {
   return getDAG().getInstructionInfo();
 }
 
@@ -932,27 +933,29 @@ void LayeredInstructionDAG::addEdge(LayeredInstructionDAGNode *source,
   target->addPredecessor(source, outPortIndex, inPortIndex, reg);
 }
 
-void LayeredInstructionDAG::scheduleNodes(vector<LayeredInstructionDAGNode *> &order, bool includeSources,
+void LayeredInstructionDAG::scheduleNodes(
+    vector<LayeredInstructionDAGNode *> &order, bool includeSources,
     bool includeSinks) {
   // simple algorithm used node levels order
   // may be enhanced in future
+
   unsigned orderNum = 0;
   for (unsigned level = 0; level < levels.size(); level++) {
     vector<LayeredInstructionDAGNode *> const &lv = levels[level];
     for (unsigned pos = 0; pos < lv.size(); pos++) {
       LayeredInstructionDAGNode *node = lv[pos];
+      node->setOrderNum(orderNum++);
       if (node->getKind() == LINSource && !includeSources)
         continue;
       else if (node->getKind() == LINSink && !includeSinks)
-				continue;
-      node->setOrderNum(orderNum++);
+        continue;
       order.push_back(node);
     }
   }
 }
 
-void LayeredInstructionDAG::constructFromMBB(unordered_set<unsigned> const &pseudoSet, 
-	  unordered_set<unsigned> liveOut) {
+void LayeredInstructionDAG::constructFromMBB(
+    unordered_set<unsigned> const &pseudoSet, unordered_set<unsigned> liveOut) {
   unordered_map<unsigned, LayeredInstructionDAGNode *> defMap; // reg -> node
   vector<pair<unsigned, LayeredInstructionDAGNode *>> sinkCandidates;
   vector<LayeredInstructionDAGNode *> sources;
@@ -977,10 +980,9 @@ void LayeredInstructionDAG::constructFromMBB(unordered_set<unsigned> const &pseu
         if (it == defMap.end()) {
           def = createNode(LINSource, reg);
           def->setLevel(0);
-					levels[0].push_back(def);
+          levels[0].push_back(def);
           defMap.insert_or_assign(reg, def);
-        } 
-				else {
+        } else {
           def = it->second;
           int idx = def->getOutPortIndex(reg);
           assert(idx >= 0);
@@ -1028,6 +1030,9 @@ void LayeredInstructionDAG::constructFromMBB(unordered_set<unsigned> const &pseu
     addEdge(sinkInstr, sink, outPortIndex, 0, sinkReg);
     sinks.push_back(sink);
   }
+
+  // reverse sinks because they will be pushed in stack in reverse order
+  std::reverse(sinks.begin(), sinks.end());
   levels.push_back(sinks);
 }
 
@@ -1177,6 +1182,8 @@ unsigned OperandQueue::enqueue(LayeredInstructionDAGNode *targ,
     queue.insert(it, slot);
   } else
     queue.push_back(slot);
+  //  dbgs() << "Order for reg %" << (reg & 0xFFFF) << " = " << ord << " pos = "
+  //  << pos << "\n";
   return pos;
 }
 
@@ -2295,8 +2302,9 @@ void StackableRegion::calculateVariables(MachineRegisterInfo *MRI,
   }
 }
 
-StackableRegion *StackableRegionStructure::processNode(DJNode *node, 
-	  map<DJNode *, StackableRegion *> &nodeMap, map<DJNode *, vector<DJNode *>> &succJoins) {
+StackableRegion *StackableRegionStructure::processNode(
+    DJNode *node, map<DJNode *, StackableRegion *> &nodeMap,
+    map<DJNode *, vector<DJNode *>> &succJoins) {
   dbgs() << "Node " << node->toString() << "\n";
 
   // CFG Exit node
@@ -2378,8 +2386,9 @@ StackableRegion *StackableRegionStructure::processNode(DJNode *node,
   return newRegion;
 }
 
-StackableRegion *StackableRegionStructure::matchSequence(DJNode *node, 
-	  map<DJNode *, StackableRegion *> &nodeMap, map<DJNode *, vector<DJNode *>> &succJoins) {
+StackableRegion *StackableRegionStructure::matchSequence(
+    DJNode *node, map<DJNode *, StackableRegion *> &nodeMap,
+    map<DJNode *, vector<DJNode *>> &succJoins) {
   // If node has one child without any join edges, create Sequence
   DJNode *seqNode = nullptr;
   for (auto it = node->succ_begin(); it != node->succ_end(); it++) {
@@ -2789,6 +2798,10 @@ void StackableRegion::calculateQueueInfo(
   case SRLeaf:
     SchedulerUtils::gatherBlockQueueInfo(*getMBB(), MRI, LIS, nonQueueSet,
                                          queueInfo);
+    // Indeed we have a stack, not a real queue, thus we must reverse block
+    // output queue
+    std::reverse(queueInfo.preferredOutputQueue.begin(),
+                 queueInfo.preferredOutputQueue.end());
     break;
   case SRSequence:
 
@@ -2924,6 +2937,184 @@ void StackableRegion::dumpVariables(string margin) const {
            << "\n";
 }
 
+struct LayeredCoordinate {
+  MachineBasicBlock *MBB;
+  unsigned layer;
+  unsigned index;
+  unsigned useNumber;
+  MachineInstr *MI;
+
+  LayeredCoordinate(MachineBasicBlock *MBB_, unsigned layer_, unsigned index_,
+                    unsigned useNumber_, MachineInstr *MI_)
+      : MBB(MBB_), layer(layer_), index(index_), useNumber(useNumber_),
+        MI(MI_) {}
+
+  LayeredCoordinate(const LayeredCoordinate &coord)
+      : MBB(coord.MBB), layer(coord.layer), index(coord.index),
+        useNumber(coord.useNumber), MI(coord.MI) {}
+
+  LayeredCoordinate()
+      : MBB(nullptr), layer(0), index(0), useNumber(0), MI(nullptr) {}
+
+  bool equals(const LayeredCoordinate &coord) const {
+    return MBB == coord.MBB && index == coord.index &&
+           useNumber == coord.useNumber;
+  }
+
+  bool isLessThan(const LayeredCoordinate &coord) const {
+    return (layer < coord.layer) ||
+           (layer == coord.layer && index < coord.index) ||
+           (layer == coord.layer && index == coord.index &&
+            useNumber < coord.useNumber);
+  }
+
+  string toString() const;
+};
+
+string LayeredCoordinate::toString() const {
+  string s;
+  raw_string_ostream OS(s);
+  OS << "Block : " << blockToString(MBB) << "  Layer = " << layer
+     << " Index = " << index << " useNumber = " << useNumber;
+  if (MI) {
+    OS << " Instruction : ";
+    MI->print(OS, true, false, true, false);
+  }
+  return OS.str();
+}
+
+// Model of Machine Block local stack by means of operand queue.
+// The head of queue corresponds to the top of stack
+// Slots in EpochOperandQueue sorted according their last use coordinate
+class EpochOperandQueue {
+public:
+  class Slot {
+    // Coordinate of the last use of reg
+    LayeredCoordinate coord;
+    // Register used by this slot
+    unsigned reg;
+
+  public:
+    explicit Slot(LayeredCoordinate coord_, unsigned reg_)
+        : coord(coord_), reg(reg_) {}
+
+    LayeredCoordinate getCoordinate() const { return coord; }
+
+    unsigned getReg() const { return reg; }
+
+    string toString() const {
+      string s;
+      raw_string_ostream OS(s);
+      OS << "Register = " << reg;
+      OS << " Coordinate = " << coord.toString();
+      return OS.str();
+    }
+  };
+
+private:
+  unordered_map<unsigned, LayeredCoordinate> const &coordMap;
+  vector<Slot> queue;
+
+public:
+  EpochOperandQueue(unordered_map<unsigned, LayeredCoordinate> const &coordMap_)
+      : coordMap(coordMap_), queue() {}
+
+  EpochOperandQueue(const EpochOperandQueue &eq) : coordMap(eq.coordMap), queue(eq.queue) {}
+
+  unsigned size() const { return queue.size(); }
+
+  // Return slot for index slotIndex.
+  // Index 0 - head of the queue, index (size() -1) - tail of the queue.
+  Slot &getSlot(unsigned slotIndex) {
+    return queue[queue.size() - 1 - slotIndex];
+  }
+
+  const Slot &getSlot(unsigned slotIndex) const {
+    return queue[queue.size() - 1 - slotIndex];
+  }
+
+  bool containsCoordinate(unsigned reg) {
+    return coordMap.find(reg) != coordMap.end();
+  }
+
+  LayeredCoordinate lookupCoordinate(unsigned reg) { 
+    auto it = coordMap.find(reg);
+    assert(it != coordMap.end());
+    return it->second; 
+  }
+
+  // Insert new slot into queue
+  // Return insertion position of slot in queue
+  unsigned enqueue(unsigned reg);
+
+  // Remove num elements from queue head
+  void dequeue(unsigned num = 1);
+
+  // Return true if this queue contains register reg, false otherwise.
+  bool contains(unsigned reg) const { return lookupIndex(reg) >= 0; }
+
+  // Lookup slot index contains register reg.
+  // If there is no such slot, returns -1.
+  int lookupIndex(unsigned reg) const;
+
+  string toString();
+
+  void dump();
+};
+
+int EpochOperandQueue::lookupIndex(unsigned reg) const {
+  for (int idx = 0; idx < queue.size(); idx++) {
+    const EpochOperandQueue::Slot &slot = getSlot(idx);
+    if (getSlot(idx).getReg() == reg)
+      return idx;
+  }
+  return -1;
+}
+
+unsigned EpochOperandQueue::enqueue(unsigned reg) {
+  auto it = coordMap.find(reg);
+  assert(it != coordMap.end());
+  LayeredCoordinate coord = it->second;
+  Slot slot(coord, reg);
+  unsigned pos = 0;
+  for (pos = 0; pos < size(); pos++) {
+    Slot const &posSlot = getSlot(pos);
+    if (posSlot.getCoordinate().isLessThan(coord))
+      break;
+  }
+  if (pos != 0) {
+    auto it = queue.begin() + (queue.size() - pos);
+    queue.insert(it, slot);
+  } 
+  else queue.push_back(slot);
+  return pos;
+}
+
+void EpochOperandQueue::dequeue(unsigned num) {
+  assert(num <= size());
+  while (num > 0) {
+    queue.pop_back();
+    num--;
+  }
+}
+
+string EpochOperandQueue::toString() {
+  string str;
+  for (int i = 0; i < size(); i++) {
+    if (i != 0)
+      str += " ";
+    str += regToString(queue[i].getReg());
+  }
+  return str;
+}
+
+void EpochOperandQueue::dump() {
+  dbgs() << "Epoch Operand Queue : \n";
+  for (int i = 0; i < size(); i++) {
+    dbgs() << "  " << (size() - 1 - i) << " : " << queue[i].toString() << "\n";
+  }
+}
+
 namespace {
 class TVMLocalScheduler final : public MachineFunctionPass {
   StringRef getPassName() const override { return "TVM Local Scheduler"; }
@@ -2968,6 +3159,19 @@ private:
                                StackTreeNode &stack, OperandQueue &queue,
                                MachineBasicBlock &outMBB);
 
+ // Queue instruction scheduler
+  // Input - list of prescheduled instructions in Reg-Form nodes,
+  // EpochOperandQueue stack.
+  // Output - list of scheduled instructions in S-Form
+  void epochScheduleBlock(MachineBasicBlock &inMBB, EpochOperandQueue &queue,
+                          MachineBasicBlock &outMBB);
+
+  void insertEpochInputOperands(MachineInstr& MI, EpochOperandQueue &queue,
+                          MachineBasicBlock &outMBB);
+
+  void distributeEpochOutputResults(MachineInstr &MI, EpochOperandQueue &queue,
+                          MachineBasicBlock &outMBB);
+
   // Calculate Stack Fixups on the entrance and exits of Machine Basic Blocks.
   // First element of resulting pair - fixup on entrance, second - fixup on
   // exit.
@@ -2991,6 +3195,25 @@ private:
   void calculateJoinQueueMerge(const StackableRegionStructure &SRS,
                                const StackableRegion &region,
                                vector<unsigned> &merge);
+
+  // Calculate Layers (global distance metric) for machine blocks
+  void
+  calculateBlockLayers(const StackableRegionStructure &SRS,
+                       unordered_map<MachineBasicBlock *, unsigned> &layerMap);
+
+  unsigned
+  calculateBlockLayers(const StackableRegion &region,
+                       unordered_map<MachineBasicBlock *, unsigned> &layerMap,
+                       unsigned curLayer);
+
+  // Calculate last use of each variable (virtual register)
+  void calculateLastUses(MachineFunction &MF,
+                         const StackableRegionStructure &SRS,
+                         unordered_map<unsigned, LayeredCoordinate> &coordMap);
+
+  // Print last uses of each variable (virtual register)
+  static void
+  printLastUses(unordered_map<unsigned, LayeredCoordinate> const &coordMap);
 
   MachineRegisterInfo *MRI;
   LiveIntervals *LIS;
@@ -3029,6 +3252,8 @@ bool TVMLocalScheduler::runOnMachineFunction(MachineFunction &MF) {
 bool TVMLocalScheduler::runOnBasicBlocks(MachineFunction &MF) {
   bool changed = false;
 
+  //  MF.dump();
+
   //  BlockQueueInfo::test(MF);
 
   // unordered_map<unsigned, MachineInstr *> pseudoMap;
@@ -3053,6 +3278,13 @@ bool TVMLocalScheduler::runOnBasicBlocks(MachineFunction &MF) {
   SRS.calculateQueueInfo(MRI, LIS, nonQueueSet);
   SRS.dump();
   dbgs() << "\n";
+
+  //  unordered_map<MachineBasicBlock *, unsigned> layerMap;
+  //  calculateBlockLayers(SRS, layerMap);
+
+  unordered_map<unsigned, LayeredCoordinate> coordMap;
+  calculateLastUses(MF, SRS, coordMap);
+  printLastUses(coordMap);
 
   StackTree stackTree(MF);
   SRS.createStackTree(stackTree);
@@ -3146,11 +3378,13 @@ void TVMLocalScheduler::createTreeGraph(MachineBasicBlock & MBB) {
 }
 */
 
-void TVMLocalScheduler::insertInputOperands(const LayeredInstructionDAGNode &node, 
-	  StackTreeNode &stack, OperandQueue &queue, MachineBasicBlock &outMBB) {
+void TVMLocalScheduler::insertInputOperands(
+    const LayeredInstructionDAGNode &node, StackTreeNode &stack,
+    OperandQueue &queue, MachineBasicBlock &outMBB) {
   MachineInstr *MI = node.getInstruction();
   assert(MI);
 #if 0
+    dbgs() << "Before insertInputOperands() input for node " << node.toString() << "\n";
     dbgs() << "Stack : " << stack.toString() << "\n";
     dbgs() << "Queue :\n";
     queue.dump();
@@ -3175,13 +3409,11 @@ void TVMLocalScheduler::insertInputOperands(const LayeredInstructionDAGNode &nod
           stackArgs.insert(stackArgs.begin(), reg);
           stackSlots.push_back(queueSlotIndex);
           queue.enqueue(reg);
-        } 
-				else {
+        } else {
           // Operand register is in queue, already in place
           queueArgs.insert(queueArgs.begin(), reg);
         }
-      } 
-			else {
+      } else {
         // Operand register is in stack tree, use PUSH instruction
         int stackOffset = stack.lookupRegisterOffset(reg);
         assert(stackOffset >= 0);
@@ -3193,6 +3425,7 @@ void TVMLocalScheduler::insertInputOperands(const LayeredInstructionDAGNode &nod
   }
 
 #if 0
+    dbgs() << "After insertInputOperands() input for node " << node.toString() << "\n";
     dbgs() << "Stack args: " << regListToString(stackArgs) << "\n";
     dbgs() << "Queue args: " << regListToString(queueArgs) << "\n";
     dbgs() << "Queue :\n";
@@ -3211,15 +3444,13 @@ void TVMLocalScheduler::insertInputOperands(const LayeredInstructionDAGNode &nod
       push3->addOperand(MF, MachineOperand::CreateImm(k - 2));
       outMBB.push_back(push3);
       idx += 2;
-    } 
-		else if (idx + 1 < stackSlots.size() && i <= 15 && j <= 15) {
+    } else if (idx + 1 < stackSlots.size() && i <= 15 && j <= 15) {
       MachineInstr *push2 = MF.CreateMachineInstr(TII->get(TVM::PUSH2), DL);
       push2->addOperand(MF, MachineOperand::CreateImm(i));
       push2->addOperand(MF, MachineOperand::CreateImm(j - 1));
       outMBB.push_back(push2);
       idx++;
-    } 
-		else {
+    } else {
       MachineInstr *push = MF.CreateMachineInstr(TII->get(TVM::PUSH), DL);
       push->addOperand(MF, MachineOperand::CreateImm(i));
       outMBB.push_back(push);
@@ -3254,11 +3485,12 @@ void TVMLocalScheduler::insertInputOperands(const LayeredInstructionDAGNode &nod
       dbgs() << "\n\n";
 #endif
   }
-  outMBB.dump();
+  //  outMBB.dump();
 }
 
-void TVMLocalScheduler::distributeOutputResults(const LayeredInstructionDAGNode &node, 
-	  StackTreeNode &stack, OperandQueue &queue, MachineBasicBlock &outMBB) {
+void TVMLocalScheduler::distributeOutputResults(
+    const LayeredInstructionDAGNode &node, StackTreeNode &stack,
+    OperandQueue &queue, MachineBasicBlock &outMBB) {
   MachineInstr *MI = node.getInstruction();
   assert(MI);
   StackFixup fixup;
@@ -3291,8 +3523,7 @@ void TVMLocalScheduler::distributeOutputResults(const LayeredInstructionDAGNode 
       unsigned slot = queue.enqueue(target, targetPortIndex, reg, succNum);
       if (slot > 0)
         fixup(StackFixup::makeRoll(slot));
-    } 
-		else {
+    } else {
       // There are no consumers for this result, drop it
       fixup(StackFixup::pop(0)); // DROP
     }
@@ -3304,6 +3535,7 @@ void TVMLocalScheduler::distributeOutputResults(const LayeredInstructionDAGNode 
   }
 
 #if 0
+  dbgs() << "After distributeOutputResults():\n";
   dbgs() << "Result Fixups :\n";
   fixup.dump();
   dbgs() << "\n";
@@ -3314,26 +3546,27 @@ void TVMLocalScheduler::distributeOutputResults(const LayeredInstructionDAGNode 
 #endif
 }
 
-void TVMLocalScheduler::schedule(const vector<LayeredInstructionDAGNode *> nodes, StackTreeNode &stack,
+void TVMLocalScheduler::schedule(
+    const vector<LayeredInstructionDAGNode *> nodes, StackTreeNode &stack,
     MachineBasicBlock &outMBB) {
   if (nodes.empty())
     return;
   LayeredInstructionDAG &DAG = nodes[0]->getDAG();
   OperandQueue queue(&DAG);
- #if 0
+#if 0
   dbgs() << "Schedule block " << blockToString(&outMBB) << "\n";
   dbgs() << "Stack :\n";
   stack.dump();
   dbgs() << "\n";
 #endif
   for (LayeredInstructionDAGNode *node : nodes) {
-		if (node->getKind() == LINSource) {
+    if (node->getKind() == LINSource) {
       unsigned reg = node->getReg();
       queue.enqueue(node, 0, reg, 1 /*TODO*/);
-			continue;
-		}
-		MachineInstr *MI = node->getInstruction();
-    MI->dump();
+      continue;
+    }
+    MachineInstr *MI = node->getInstruction();
+//    MI->dump();
     MachineInstr *SMI = SchedulerUtils::convertToSForm(*MI, TII);
     if (SMI) {
       insertInputOperands(*node, stack, queue, outMBB);
@@ -3361,14 +3594,15 @@ void TVMLocalScheduler::schedule(const vector<LayeredInstructionDAGNode *> nodes
 
         // Maybe we can optimize this place not to generate to versions of SMI
         if (swap && SchedulerUtils::getReverseOpcode(SMI->getOpcode()) >= 0) {
-          //outMBB.dump();
+          // outMBB.dump();
           lastMI.removeFromParent();
           SMI = SchedulerUtils::convertToSForm(*MI, TII, true);
-          //outMBB.dump();
+          // outMBB.dump();
         }
       }
       outMBB.push_back(SMI);
-      dbgs() << "Queue before instruction execution :  " << queue.toString() << "\n";
+      dbgs() << "Queue before instruction execution :  " << queue.toString()
+             << "\n";
       for (MachineOperand &MO : MI->uses()) {
         if (MO.isReg())
           queue.dequeue();
@@ -3377,14 +3611,16 @@ void TVMLocalScheduler::schedule(const vector<LayeredInstructionDAGNode *> nodes
         if (MO.isReg())
           queue.enqueue(MO.getReg());
       }
-      dbgs() << "Queue after instruction execution :  " << queue.toString() << "\n";
+      dbgs() << "Queue after instruction execution :  " << queue.toString()
+             << "\n";
       distributeOutputResults(*node, stack, queue, outMBB);
     }
   }
 }
 
-void TVMLocalScheduler::calculateForkQueueMerge(const StackableRegionStructure &SRS, 
-	  const StackableRegion &region, vector<unsigned> &merge) {
+void TVMLocalScheduler::calculateForkQueueMerge(
+    const StackableRegionStructure &SRS, const StackableRegion &region,
+    vector<unsigned> &merge) {
   assert(region.getMBB()->succ_size() > 1);
   vector<unsigned> &outputQueue = region.getQueueInfo().actualOutputQueue;
   // Simple algorithm, input queues are the same as Fork output queue without
@@ -3406,8 +3642,9 @@ void TVMLocalScheduler::calculateForkQueueMerge(const StackableRegionStructure &
   }
 }
 
-void TVMLocalScheduler::calculateJoinQueueMerge(const StackableRegionStructure &SRS, 
-	  const StackableRegion &region, vector<unsigned> &merge) {
+void TVMLocalScheduler::calculateJoinQueueMerge(
+    const StackableRegionStructure &SRS, const StackableRegion &region,
+    vector<unsigned> &merge) {
   assert(region.getMBB()->pred_size() > 1);
   vector<unsigned> &inputQueue = region.getQueueInfo().actualInputQueue;
   // Simple algorithm, output queues are the same as Join input queue.
@@ -3442,7 +3679,8 @@ inline static void embedFixups(
   }
 }
 
-void TVMLocalScheduler::calculateFixups(const StackableRegionStructure &SRS,
+void TVMLocalScheduler::calculateFixups(
+    const StackableRegionStructure &SRS,
     unordered_map<MachineBasicBlock *, pair<StackFixup, StackFixup>> &fixups) {
   MachineFunction &MF = SRS.getMF();
   for (MachineBasicBlock &MBB : MF) {
@@ -3474,8 +3712,8 @@ void TVMLocalScheduler::calculateFixups(const StackableRegionStructure &SRS,
         if (!stackDefined) {
           copyList(succStack, branchStack);
           stackDefined = true;
-        } 
-				else assert(branchStack == succStack);
+        } else
+          assert(branchStack == succStack);
 
         // Fixup on fork entrance : { merge } -> { branch.preferredInput }
         vector<unsigned> &inputQueue =
@@ -3522,6 +3760,9 @@ void TVMLocalScheduler::calculateFixups(const StackableRegionStructure &SRS,
         // Fixup on join exit : { branch.actualOutput } -> { merge }
         vector<unsigned> &actualOutput =
             predRegion->getQueueInfo().actualOutputQueue;
+
+        //        dbgs() << "Actual Output " << regListToString(actualOutput) <<
+        //        "    Merge " << regListToString(merge) << "\n";
         StackFixup fixup =
             BlockQueueInfo::calculateFixup(MF, merge, actualOutput);
         // fixup.dump();
@@ -3546,7 +3787,8 @@ void TVMLocalScheduler::calculateFixups(const StackableRegionStructure &SRS,
   }
 }
 
-void TVMLocalScheduler::printFixups(MachineFunction &MF,
+void TVMLocalScheduler::printFixups(
+    MachineFunction &MF,
     unordered_map<MachineBasicBlock *, pair<StackFixup, StackFixup>> &fixups)
     const {
   dbgs() << "\nFixups :\n";
@@ -3568,8 +3810,314 @@ void TVMLocalScheduler::printFixups(MachineFunction &MF,
   }
 }
 
+void TVMLocalScheduler::calculateBlockLayers(
+    const StackableRegionStructure &SRS,
+    unordered_map<MachineBasicBlock *, unsigned> &layerMap) {
+  calculateBlockLayers(SRS.getRoot(), layerMap, 0);
+}
+
+unsigned TVMLocalScheduler::calculateBlockLayers(
+    const StackableRegion &region,
+    unordered_map<MachineBasicBlock *, unsigned> &layerMap, unsigned curLayer) {
+  unsigned maxLayer = 0;
+  unsigned childLayer = 0;
+  switch (region.getKind()) {
+  case SRLeaf:
+    dbgs() << "Layer for block " << blockToString(region.getMBB()) << " = "
+           << curLayer << "\n";
+    layerMap[region.getMBB()] = curLayer;
+    curLayer++;
+    break;
+  case SRSequence:
+    for (StackableRegion *child : region) {
+      curLayer = calculateBlockLayers(*child, layerMap, curLayer);
+    }
+    break;
+  case SRIfThen:
+  case SRIfThenElse:
+    curLayer = calculateBlockLayers(*region.getCondition(), layerMap, curLayer);
+    maxLayer = calculateBlockLayers(*region.getThen(), layerMap, curLayer);
+    if (region.getKind() == SRIfThenElse) {
+      childLayer = calculateBlockLayers(*region.getElse(), layerMap, curLayer);
+    }
+    curLayer = childLayer > maxLayer ? childLayer : maxLayer;
+    break;
+  case SRSwitch:
+    curLayer = calculateBlockLayers(*region.getCondition(), layerMap, curLayer);
+    for (auto it = region.case_begin(); it != region.case_end(); it++) {
+      StackableRegion *caseRegion = *it;
+      childLayer = calculateBlockLayers(*caseRegion, layerMap, curLayer);
+      if (childLayer > maxLayer)
+        maxLayer = childLayer;
+      if (region.hasDefault()) {
+        childLayer =
+            calculateBlockLayers(*region.getCondition(), layerMap, curLayer);
+        if (childLayer > maxLayer)
+          maxLayer = childLayer;
+      }
+    }
+    curLayer = maxLayer;
+    break;
+  case SRSelfLoop:
+    curLayer = calculateBlockLayers(*region.getBody(), layerMap, curLayer);
+    break;
+  case SRWhileLoop:
+    curLayer = calculateBlockLayers(*region.getCondition(), layerMap, curLayer);
+    curLayer = calculateBlockLayers(*region.getBody(), layerMap, curLayer);
+    break;
+  case SRNaturalLoop:
+    curLayer = calculateBlockLayers(*region.getCondition(), layerMap, curLayer);
+    curLayer = calculateBlockLayers(*region.getBody(), layerMap, curLayer);
+    break;
+  case SRProper:
+  case SRImproper:
+  default:
+    assert(false);
+  }
+  return curLayer;
+}
+
+void TVMLocalScheduler::calculateLastUses(
+    MachineFunction &MF, const StackableRegionStructure &SRS,
+    unordered_map<unsigned, LayeredCoordinate> &coordMap) {
+  unordered_map<MachineBasicBlock *, unsigned> layerMap;
+  calculateBlockLayers(SRS, layerMap);
+  for (MachineBasicBlock &MBB : MF) {
+    unsigned layer = layerMap[&MBB];
+    unsigned index = 0;
+    for (MachineInstr &MI : MBB) {
+      unsigned useNumber = 0;
+      for (const MachineOperand &op : MI.uses()) {
+        if (op.isReg()) {
+          unsigned reg = op.getReg();
+          auto search = coordMap.find(reg);
+          LayeredCoordinate newCoord(&MBB, layer, index, useNumber, &MI);
+          if (search != coordMap.end()) {
+            LayeredCoordinate oldCoord = search->second;
+            if (oldCoord.isLessThan(newCoord))
+              search->second = newCoord;
+          } else {
+            coordMap[reg] = newCoord;
+          }
+        }
+        useNumber++;
+      }
+      index++;
+    }
+  }
+}
+
+void TVMLocalScheduler::printLastUses(
+    unordered_map<unsigned, LayeredCoordinate> const &coordMap) {
+  dbgs() << "Last uses:\n";
+  vector<unsigned> regs;
+  for (auto it = coordMap.begin(); it != coordMap.end(); it++) {
+    unsigned reg = it->first;
+    regs.push_back(reg);
+  }
+  std::sort(regs.begin(), regs.end(), [](int a, int b) { return a > b; });
+  for (unsigned reg : regs) {
+    auto search = coordMap.find(reg);
+    if (search != coordMap.end()) {
+      dbgs() << regToString(reg) << " -> " << search->second.toString() << "\n";
+    }
+  }
+}
+
+void TVMLocalScheduler::epochScheduleBlock(MachineBasicBlock &inMBB,
+       EpochOperandQueue &queue, MachineBasicBlock &outMBB) {
+  for (MachineInstr &MI : inMBB) {
+    //    MI->dump();
+    MachineInstr *SMI = SchedulerUtils::convertToSForm(MI, TII);
+    if (SMI) {
+      insertEpochInputOperands(MI, queue, outMBB);
+      if (!outMBB.empty()) {
+        auto it = --outMBB.end();
+        // Check if we can omit SWAP instruction for arguments by using
+        // reverse instruction
+        bool swap = false;
+        MachineInstr &lastMI = *it;
+        if (lastMI.getOpcode() == TVM::XCHG_TOP) {
+          if (lastMI.getOperand(0).getImm() == 1)
+            swap = true;
+        }
+        if (swap && it != outMBB.begin()) {
+          // Check if we have to consecutive SWAP at the end of Machine Block
+          MachineInstr &preLastMI = *(--it);
+          if (preLastMI.getOpcode() == TVM::XCHG_TOP) {
+            if (preLastMI.getOperand(0).getImm() == 1) {
+              lastMI.removeFromParent();
+              preLastMI.removeFromParent();
+              swap = false;
+            }
+          }
+        }
+
+        // Maybe we can optimize this place not to generate to versions of SMI
+        if (swap && SchedulerUtils::getReverseOpcode(SMI->getOpcode()) >= 0) {
+          // outMBB.dump();
+          lastMI.removeFromParent();
+          SMI = SchedulerUtils::convertToSForm(MI, TII, true);
+          // outMBB.dump();
+        }
+      }
+      outMBB.push_back(SMI);
+      dbgs() << "Epoch Queue before instruction execution :  " << queue.toString()
+             << "\n";
+      for (MachineOperand &MO : MI.uses()) {
+        if (MO.isReg())
+          queue.dequeue();
+      }
+      for (MachineOperand &MO : MI.defs()) {
+        if (MO.isReg())
+          queue.enqueue(MO.getReg());
+      }
+      dbgs() << "Epoch Queue after instruction execution :  " << queue.toString()
+             << "\n";
+      distributeEpochOutputResults(MI, queue, outMBB);
+    }  
+  }
+}
+
+void TVMLocalScheduler::insertEpochInputOperands(MachineInstr &MI,
+    EpochOperandQueue &queue, MachineBasicBlock &outMBB) {
+#if 0 
+  dbgs() << "Before insertEpochInputOperands() input for instruction ";
+  MI.dump();
+  dbgs() << "Epoch Queue :\n";
+  queue.dump();
+  dbgs() << "\n";
+#endif
+  const DebugLoc &DL = MI.getDebugLoc();
+  MachineFunction &MF = *MI.getParent()->getParent();
+  vector<unsigned> params;
+  vector<unsigned> queueArgs;
+  vector<unsigned> stackArgs;
+  vector<unsigned> stackSlots;
+
+  for (const MachineOperand &op : MI.uses()) {
+    if (op.isReg()) {
+      unsigned reg = op.getReg();
+      params.insert(params.begin(), reg);
+      int queueSlotIndex = queue.lookupIndex(reg);
+      assert(queueSlotIndex >= 0);
+      EpochOperandQueue::Slot &slot = queue.getSlot(queueSlotIndex);
+      if (slot.getCoordinate().MI != &MI) {
+        // Current instruction MI is not last use of register
+        // use PUSH instruction
+        stackArgs.insert(stackArgs.begin(), reg);
+        stackSlots.push_back(queueSlotIndex);
+        queue.enqueue(reg);
+      } else {
+        // Current instruction MI is last use of register
+        // Operand register already in place
+        // TODO local fixup (stack ROLL) instead of fixup at the beginning of the block
+        queueArgs.insert(queueArgs.begin(), reg);
+      }
+    }
+  }
+
+#if 0
+    dbgs() << "After insertEpochInputOperands() input for instruction ";
+    dbgs() << "Queue args: " << regListToString(queueArgs) << "\n";
+    dbgs() << "Stack args: " << regListToString(stackArgs) << "\n";
+    dbgs() << "Epoch Queue :\n";
+    queue.dump();
+    dbgs() << "\n";
+#endif
+
+  for (int idx = 0; idx < stackSlots.size(); idx++) {
+    unsigned i = stackSlots[idx];
+    unsigned j = idx + 1 < stackSlots.size() ? stackSlots[idx + 1] : 0;
+    unsigned k = idx + 2 < stackSlots.size() ? stackSlots[idx + 2] : 0;
+    if (idx + 2 < stackSlots.size() && i <= 15 && j <= 15 && k <= 15) {
+      MachineInstr *push3 = MF.CreateMachineInstr(TII->get(TVM::PUSH3), DL);
+      push3->addOperand(MF, MachineOperand::CreateImm(i));
+      push3->addOperand(MF, MachineOperand::CreateImm(j - 1));
+      push3->addOperand(MF, MachineOperand::CreateImm(k - 2));
+      outMBB.push_back(push3);
+      idx += 2;
+    } else if (idx + 1 < stackSlots.size() && i <= 15 && j <= 15) {
+      MachineInstr *push2 = MF.CreateMachineInstr(TII->get(TVM::PUSH2), DL);
+      push2->addOperand(MF, MachineOperand::CreateImm(i));
+      push2->addOperand(MF, MachineOperand::CreateImm(j - 1));
+      outMBB.push_back(push2);
+      idx++;
+    } else {
+      MachineInstr *push = MF.CreateMachineInstr(TII->get(TVM::PUSH), DL);
+      push->addOperand(MF, MachineOperand::CreateImm(i));
+      outMBB.push_back(push);
+    }
+  }
+
+  for (unsigned idx = 0; idx < queueArgs.size(); idx++) {
+    const EpochOperandQueue::Slot &slot = queue.getSlot(idx);
+    //   assert(queueArgs[idx] == slot.getReg());
+    stackArgs.insert(stackArgs.begin(), queueArgs[idx]);
+  }
+
+  bool skip = false;
+  if (params.size() == 2 && params[0] == stackArgs[1] &&
+      params[1] == stackArgs[0]) {
+    // Try to optimize commutative instructions
+    if (MI.isCommutable())
+      skip = true;
+  }
+
+  if (!skip && params != stackArgs) {
+    // We need sun fixup to adjust mix of stack and queue arguments
+    StackFixup fixup = BlockQueueInfo::calculateFixup(MF, params, stackArgs);
+    StackFixup::InstructionGenerator instrGen(TII, MFI, &outMBB, outMBB.end());
+    instrGen(fixup);
+#if 0
+      dbgs() << "Parameters: " << regListToString(params) << "\n";
+      dbgs() << "Stack args: " << regListToString(stackArgs) << "\n";
+      dbgs() << "Args Fixup : ";
+      fixup.dump();
+      dbgs() << "\n\n";
+#endif
+  }
+  //  outMBB.dump();
+}
+
+void TVMLocalScheduler::distributeEpochOutputResults(MachineInstr &MI, 
+    EpochOperandQueue &queue, MachineBasicBlock &outMBB) {
+  StackFixup fixup;
+  for (const MachineOperand &op : MI.defs()) {
+    assert(op.isReg());
+    unsigned reg = op.getReg();
+    queue.dequeue();
+    if (queue.containsCoordinate(reg)) {
+      // Result have some use instructions
+      unsigned slot = queue.enqueue(reg);
+      if (slot > 0)
+        fixup(StackFixup::makeRoll(slot));
+    } else {
+      // There are no consumers for this result, drop it
+      fixup(StackFixup::pop(0)); // DROP
+    }
+  }
+
+  if (fixup.getChanges().size() > 0) {
+    StackFixup::InstructionGenerator instrGen(TII, MFI, &outMBB, outMBB.end());
+    instrGen(fixup);
+  }
+
+#if 0
+  dbgs() << "After distributeEpochOutputResults():\n";
+  dbgs() << "Result Fixups :\n";
+  fixup.dump();
+  dbgs() << "\n";
+  dbgs() << "Result Epoch Queue : \n";
+  queue.dump();
+  dbgs() << "\n";
+  outMBB.dump();
+#endif
+}
+
 MachineInstr *SchedulerUtils::convertToSForm(const MachineInstr &MI,
-     const TargetInstrInfo *TII, bool reverse) {
+                                             const TargetInstrInfo *TII,
+                                             bool reverse) {
   size_t NumDefs = MI.getNumDefs();
   size_t NumOperands = MI.getNumOperands();
   int NewOpcode = TVM::RegForm2SForm[MI.getOpcode()];
@@ -3585,7 +4133,7 @@ MachineInstr *SchedulerUtils::convertToSForm(const MachineInstr &MI,
     return MO.isImm() || MO.isCImm();
   });
 
-  MachineFunction &MF = *(MachineFunction *) MI.getParent()->getParent();
+  MachineFunction &MF = *(MachineFunction *)MI.getParent()->getParent();
   const DebugLoc &DL = MI.getDebugLoc();
   MachineInstr *SMI = nullptr;
 
@@ -3599,8 +4147,7 @@ MachineInstr *SchedulerUtils::convertToSForm(const MachineInstr &MI,
           SMI = MF.CreateMachineInstr(TII->get(TVM::PUSHCONT_LABEL), DL);
           SMI->addOperand(
               MF, MachineOperand::CreateGA(Op.getGlobal(), Op.getOffset()));
-        } 
-				else {
+        } else {
           SMI = MF.CreateMachineInstr(TII->get(TVM::PUSHCONT_LABEL), DL);
           SMI->addOperand(MF, MachineOperand::CreateES(Op.getSymbolName()));
         }
@@ -3618,8 +4165,7 @@ MachineInstr *SchedulerUtils::convertToSForm(const MachineInstr &MI,
 
     if (MI.getOpcode() == TVM::PUSHCONT_MBB) {
       SMI->addOperand(MF, MI.getOperand(1));
-    } 
-		else {
+    } else {
       for (unsigned I = 0; I < NumImms; I++) {
         const auto &Op = MI.getOperand(NumOperands - NumImms + I);
         assert(Op.isImm() || Op.isCImm() && "Expected Imm or CImm");
@@ -3696,8 +4242,8 @@ void BlockQueueInfo::calculateOptimizedMerge(
   merge.push_back((unsigned)*allRegs.begin());
 }
 
-void BlockQueueInfo::calculateOptimizedMerge(vector<vector<unsigned>> const &queues, 
-	  vector<unsigned> merge) {
+void BlockQueueInfo::calculateOptimizedMerge(
+    vector<vector<unsigned>> const &queues, vector<unsigned> merge) {
   vector<unsigned> queueWeights;
   for (unsigned i = 0; i < queues.size(); i++)
     queueWeights.push_back(1);
@@ -3739,8 +4285,7 @@ StackFixup BlockQueueInfo::calculateFixup(MachineFunction &MF,
 #endif
 }
 
-static unsigned
-calculatePermutations(vector<pair<unsigned, int>> const &disorder,
+static unsigned calculatePermutations(vector<pair<unsigned, int>> const &disorder,
                       int startIndex) {
   int permutCnt = 0;
   for (unsigned idx = startIndex; idx < disorder.size(); idx++) {
@@ -3750,8 +4295,9 @@ calculatePermutations(vector<pair<unsigned, int>> const &disorder,
 }
 
 void BlockQueueInfo::calculateMaximumCommonChain(vector<unsigned> const &queue1,
-     vector<unsigned> const &queue2, vector<unsigned> &result,  
-	   unsigned maxPermutations) {
+                                                 vector<unsigned> const &queue2,
+                                                 vector<unsigned> &result,
+                                                 unsigned maxPermutations) {
   vector<unsigned> commons;
   vector<int> commonIndexes2;
   for (unsigned idx1 = 0; idx1 < queue1.size(); idx1++) {
@@ -3815,7 +4361,8 @@ void BlockQueueInfo::calculateMaximumCommonChain(vector<unsigned> const &queue1,
     result.push_back(disorder[idx].first);
 }
 
-unsigned BlockQueueInfo::calculateCommonTailLength(vector<vector<unsigned>> const &queues) {
+unsigned BlockQueueInfo::calculateCommonTailLength(
+    vector<vector<unsigned>> const &queues) {
   unsigned cnt = 0;
   for (;;) {
     for (vector<unsigned> const &queue : queues) {

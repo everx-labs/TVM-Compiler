@@ -66,6 +66,9 @@ def SDT_TVMConstU257     : SDTypeProfile<1, 1,
                            [SDTCisVT<0, i257>, SDTCisVT<1, i257>]>;
 def SDT_TVMGlobalAddressWrapper : SDTypeProfile<1, 1, [SDTCisPtrTy<0>]>;
 
+def SDT_TVMUbitsize      : SDTypeProfile<1, 1, [SDTCisVT<0, i257>,
+                                               SDTCisVT<1, i257>]>;
+
 //===----------------------------------------------------------------------===//
 // TVM specific node definitions
 //===----------------------------------------------------------------------===//
@@ -110,6 +113,8 @@ def TVMmul       : SDNode<"TVMISD::MUL", SDT_TVMMul, []>;
 def TVMand       : SDNode<"TVMISD::AND", SDT_TVMAnd, []>;
 def TVMrshift    : SDNode<"TVMISD::RSHIFT", SDT_TVMRShift, []>;
 def TVMconst_u257 : SDNode<"TVMISD::CONST_U257", SDT_TVMConstU257, []>;
+
+def TVMUbitsize  : SDNode<"TVMISD::UBITSIZE", SDT_TVMUbitsize, []>;
 
 def TVMtuple
     : SDNode<"TVMISD::TUPLE", SDTypeProfile<0, -1, []>, [SDNPVariadic]>;
@@ -375,6 +380,8 @@ def : Pat<(TVMmul I257:$a, I257:$b), (MUL I257:$a, I257:$b)>;
 def : Pat<(TVMand I257:$a, I257:$b), (AND I257:$a, I257:$b)>;
 def : Pat<(TVMrshift I257:$a, timm:$b), (SHRCONST I257:$a, imm:$b)>;
 def : Pat<(TVMrshift I257:$a, I257:$b), (SHR I257:$a, I257:$b)>;
+
+def : Pat<(TVMUbitsize I257:$a), (UBITSIZE I257:$a)>;
 
 // unsigned a / b = a DIV b
 // unsigned a % b = a MOD b

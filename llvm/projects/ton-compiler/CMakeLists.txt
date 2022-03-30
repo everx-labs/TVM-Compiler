@@ -66,21 +66,21 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tonlabs AND IS_DIRECTORY ${CMAKE_CURRENT_S
     message(STATUS "Build tvm-linker from preloaded sources for Win32")
     ExternalProject_Add(tvm_linker
       PREFIX 
-      SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/tonlabs/TVM-linker/tvm_linker
+      SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/tonlabs/TVM-linker
       BUILD_IN_SOURCE On
-      CONFIGURE_COMMAND echo %cd% && cd  ${CMAKE_CURRENT_SOURCE_DIR}/tonlabs/TVM-linker/tvm_linker && cargo update
-      BUILD_COMMAND echo %cd% && cd  ${CMAKE_CURRENT_SOURCE_DIR}/tonlabs/TVM-linker/tvm_linker && cargo build --release
-      INSTALL_COMMAND echo %cd% && ROBOCOPY  "${CMAKE_CURRENT_SOURCE_DIR}/tonlabs/TVM-linker/tvm_linker/target/release" "${CMAKE_INSTALL_PREFIX}/bin" tvm_linker.exe || echo %ERRORLEVEL%
+      CONFIGURE_COMMAND echo %cd% && cd  ${CMAKE_CURRENT_SOURCE_DIR}/tonlabs/TVM-linker && cargo update
+      BUILD_COMMAND echo %cd% && cd  ${CMAKE_CURRENT_SOURCE_DIR}/tonlabs/TVM-linker && cargo build --release
+      INSTALL_COMMAND echo %cd% && ROBOCOPY  "${CMAKE_CURRENT_SOURCE_DIR}/tonlabs/TVM-linker/target/release" "${CMAKE_INSTALL_PREFIX}/bin" tvm_linker.exe || echo %ERRORLEVEL%
     )
   else()
     message(STATUS "Build tvm-linker from preloaded sources for linux/darwin")
     ExternalProject_Add(tvm_linker
       PREFIX 
-      SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/tonlabs/TVM-linker/tvm_linker
+      SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/tonlabs/TVM-linker
       BUILD_IN_SOURCE On
-      CONFIGURE_COMMAND cd  ${CMAKE_CURRENT_SOURCE_DIR}/tonlabs/TVM-linker/tvm_linker && cargo update
-      BUILD_COMMAND cd  ${CMAKE_CURRENT_SOURCE_DIR}/tonlabs/TVM-linker/tvm_linker && cargo build --release
-      INSTALL_COMMAND cp "${CMAKE_CURRENT_SOURCE_DIR}/tonlabs/TVM-linker/tvm_linker/target/release/tvm_linker" "${CMAKE_INSTALL_PREFIX}/bin"
+      CONFIGURE_COMMAND cd  ${CMAKE_CURRENT_SOURCE_DIR}/tonlabs/TVM-linker && cargo update
+      BUILD_COMMAND cd  ${CMAKE_CURRENT_SOURCE_DIR}/tonlabs/TVM-linker && cargo build --release
+      INSTALL_COMMAND cp "${CMAKE_CURRENT_SOURCE_DIR}/tonlabs/TVM-linker/target/release/tvm_linker" "${CMAKE_INSTALL_PREFIX}/bin"
     )
   endif()
 else()

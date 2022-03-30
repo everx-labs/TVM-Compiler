@@ -273,6 +273,18 @@ defm CONST_U257 : I<(outs I257:$res), (ins UImm257:$uimm),
                     (outs), (ins UImm257:$uimm),
                     [(set I257:$res, (TVMconst_u257 timm:$uimm))],
                     "PUSHINT\t$res, $uimm", "PUSHINT\t$uimm", 0x82>;
+defm CONST_POW2 : I<(outs I257:$res), (ins i257imm:$imm),
+                    (outs), (ins i257imm:$imm),
+                    [(set I257:$res, imm:$imm)],
+                    "PUSHPOW2\t$res, $imm", "PUSHPOW2\t$imm", 0x83>;
+defm CONST_POW2DEC : I<(outs I257:$res), (ins i257imm:$imm),
+                      (outs), (ins i257imm:$imm),
+                      [(set I257:$res, imm:$imm)],
+                       "PUSHPOW2DEC\t$res, $imm", "PUSHPOW2DEC\t$imm", 0x84>;
+defm CONST_NEGPOW2 : I<(outs I257:$res), (ins i257imm:$imm),
+                       (outs), (ins i257imm:$imm),
+                       [(set I257:$res, imm:$imm)],
+                       "PUSHNEGPOW2\t$res, $imm", "PUSHNEGPOW2\t$imm", 0x85>;
 }
 
 

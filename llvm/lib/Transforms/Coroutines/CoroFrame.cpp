@@ -781,15 +781,16 @@ static bool materializable(Instruction &V, Value *ThisPtr) {
     }
     }
   }
-  // Rematerializing load from contract class data for TVM
-  if (auto *Load = dyn_cast<LoadInst>(&V)) {
-    auto *Ptr = Load->getPointerOperand()->stripInBoundsConstantOffsets();
-    if (Ptr == ThisPtr)
+  if (Triple(V.getModule()->getTargetTriple()).isTVM()) {
+    // Rematerializing load from contract class data for TVM
+    if (auto *Load = dyn_cast<LoadInst>(&V)) {
+      auto *Ptr = Load->getPointerOperand()->stripInBoundsConstantOffsets();
+      if (Ptr == ThisPtr)
+        return true;
+    }
+    if (isa<Constant>(&V))
       return true;
   }
-  if (isa<Constant>(&V))
-    return true;
-
   return isa<CastInst>(&V) || isa<GetElementPtrInst>(&V) ||
          isa<BinaryOperator>(&V) || isa<CmpInst>(&V) || isa<SelectInst>(&V);
 }
@@ -942,7 +943,8 @@ void coro::buildCoroutineFrame(Function &F, Shape &Shape) {
   for (int Repeat = 0; Repeat < 4; ++Repeat) {
     // See if there are materializable instructions across suspend points.
     // TVM local begin
-    assert(F.arg_size() >= 2 &&
+    assert((!Triple(F.getParent()->getTargetTriple()).isTVM() ||
+            F.arg_size() >= 2) &&
            "We only support coroutine methods in TVM (resumable sret + this)");
     auto *ThisPtr = &*std::next(F.arg_begin());
     for (Instruction &I : instructions(F))

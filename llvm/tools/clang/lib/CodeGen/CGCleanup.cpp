@@ -343,11 +343,9 @@ static void ResolveAllBranchFixups(CodeGenFunction &CGF,
     // i.e. where there's an unresolved fixup inside a single cleanup
     // entry which we're currently popping.
     if (Fixup.OptimisticBranchBlock == nullptr) {
-      // TVM local begin
-      createStoreInstBefore(CGF.Builder.getInt257(Fixup.DestinationIndex),
+      createStoreInstBefore(CGF.Builder.getInt32(Fixup.DestinationIndex),
                             CGF.getNormalCleanupDestSlot(),
                             Fixup.InitialBranch);
-      // TVM local end
       Fixup.InitialBranch->setSuccessor(0, CleanupEntry);
     }
 
@@ -355,10 +353,8 @@ static void ResolveAllBranchFixups(CodeGenFunction &CGF,
     if (!CasesAdded.insert(Fixup.Destination).second)
       continue;
 
-    // TVM local begin
-    Switch->addCase(CGF.Builder.getInt257(Fixup.DestinationIndex),
+    Switch->addCase(CGF.Builder.getInt32(Fixup.DestinationIndex),
                     Fixup.Destination);
-    // TVM local end
   }
 
   CGF.EHStack.clearFixups();
@@ -417,9 +413,7 @@ void CodeGenFunction::ResolveBranchFixups(llvm::BasicBlock *Block) {
     llvm::SwitchInst *Switch = TransitionToCleanupSwitch(*this, BranchBB);
 
     // Add a case to the switch.
-    // TVM local begin
-    Switch->addCase(Builder.getInt257(Fixup.DestinationIndex), Block);
-    // TVM local end
+    Switch->addCase(Builder.getInt32(Fixup.DestinationIndex), Block);
   }
 
   if (ResolvedAny)
@@ -800,10 +794,8 @@ void CodeGenFunction::PopCleanupBlock(bool FallthroughIsBranchThrough) {
       // If there's a fallthrough, we need to store the cleanup
       // destination index.  For fall-throughs this is always zero.
       if (HasFallthrough) {
-        // TVM local begin
         if (!HasPrebranchedFallthrough)
-          Builder.CreateStore(Builder.getInt257(0), getNormalCleanupDestSlot());
-        // TVM local end
+          Builder.CreateStore(Builder.getInt32(0), getNormalCleanupDestSlot());
 
       // Otherwise, save and clear the IP if we don't have fallthrough
       // because the cleanup is inactive.
@@ -885,10 +877,8 @@ void CodeGenFunction::PopCleanupBlock(bool FallthroughIsBranchThrough) {
         // Branch-after fallthrough.
         if (FallthroughSource && !FallthroughIsBranchThrough) {
           FallthroughDest = createBasicBlock("cleanup.cont");
-          // TVM local begin
           if (HasFallthrough)
-            Switch->addCase(Builder.getInt257(0), FallthroughDest);
-          // TVM local end
+            Switch->addCase(Builder.getInt32(0), FallthroughDest);
         }
 
         for (unsigned I = 0, E = Scope.getNumBranchAfters(); I != E; ++I) {
@@ -923,11 +913,9 @@ void CodeGenFunction::PopCleanupBlock(bool FallthroughIsBranchThrough) {
         BranchFixup &Fixup = EHStack.getBranchFixup(I);
         if (!Fixup.Destination) continue;
         if (!Fixup.OptimisticBranchBlock) {
-          // TVM local begin
-          createStoreInstBefore(Builder.getInt257(Fixup.DestinationIndex),
+          createStoreInstBefore(Builder.getInt32(Fixup.DestinationIndex),
                                 getNormalCleanupDestSlot(),
                                 Fixup.InitialBranch);
-          // TVM local end
           Fixup.InitialBranch->setSuccessor(0, NormalEntry);
         }
         Fixup.OptimisticBranchBlock = NormalExit;
@@ -1098,9 +1086,7 @@ void CodeGenFunction::EmitBranchThroughCleanup(JumpDest Dest) {
   // Otherwise, thread through all the normal cleanups in scope.
 
   // Store the index at the start.
-  // TVM local begin
-  llvm::ConstantInt *Index = Builder.getInt257(Dest.getDestIndex());
-  // TVM local end
+  llvm::ConstantInt *Index = Builder.getInt32(Dest.getDestIndex());
   createStoreInstBefore(Index, getNormalCleanupDestSlot(), BI);
 
   // Adjust BI to point to the first cleanup block.
@@ -1282,11 +1268,9 @@ void CodeGenFunction::DeactivateCleanupBlock(EHScopeStack::stable_iterator C,
 }
 
 Address CodeGenFunction::getNormalCleanupDestSlot() {
-  // TVM local begin
   if (!NormalCleanupDest.isValid())
     NormalCleanupDest =
-      CreateDefaultAlignTempAlloca(Builder.getInt257Ty(), "cleanup.dest.slot");
-  // TVM local end
+      CreateDefaultAlignTempAlloca(Builder.getInt32Ty(), "cleanup.dest.slot");
   return NormalCleanupDest;
 }
 

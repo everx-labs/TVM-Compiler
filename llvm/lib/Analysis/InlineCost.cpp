@@ -17,6 +17,7 @@
 #include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/Statistic.h"
+#include "llvm/ADT/Triple.h"
 #include "llvm/Analysis/AssumptionCache.h"
 #include "llvm/Analysis/BlockFrequencyInfo.h"
 #include "llvm/Analysis/CodeMetrics.h"
@@ -2029,7 +2030,8 @@ bool llvm::isInlineViable(Function &F) {
   // TVM local begin
   #define CORO_PRESPLIT_ATTR "coroutine.presplit"
   // Disallow inlining of pre-split coroutines
-  if (F.hasFnAttribute(CORO_PRESPLIT_ATTR)) {
+  if (Triple(F.getParent()->getTargetTriple()).isTVM() &&
+      F.hasFnAttribute(CORO_PRESPLIT_ATTR)) {
     return false;
   }
   // TVM local end

@@ -56,7 +56,7 @@ cfg=$(echo $0 | grep -E -o "^([\.]*)?([A-Za-z0-9_/\-]*)").cfg
 if [ -f "$cfg" ]; then
    linker_path=`cat $cfg | grep "linker_path=" | sed -r -e "s/linker_path=//g"`
 else
-   linker_path=$(find ~/ -name "tvm_linker" | grep -E "^(/[A-Za-z0-9А-Яа-я\-\_]*)*/TVM-linker/tvm_linker$")
+   linker_path=$(find ~/ -name "tvm_linker" | grep -E "^(/[A-Za-z0-9А-Яа-я\-\_]*)*/TVM-linker$")
    echo "linker_path=$linker_path" > $cfg
 fi
  # check that linker found

@@ -401,7 +401,9 @@ void AsmPrinter::EmitLinkage(const GlobalValue *GV, MCSymbol *GVSym) const {
       //NOTE: linkonce is handled by the section the symbol was assigned to.
     } else {
       // .weak _foo
-      OutStreamer->EmitSymbolAttribute(GVSym, MCSA_Weak);
+      // TVM local begin
+      //OutStreamer->EmitSymbolAttribute(GVSym, MCSA_Weak);
+      // TVM local end
     }
     return;
   case GlobalValue::ExternalLinkage:

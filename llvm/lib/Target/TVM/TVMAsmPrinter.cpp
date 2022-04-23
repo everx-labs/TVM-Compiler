@@ -235,7 +235,8 @@ void TVMAsmPrinter::EmitFunctionHeader() {
   const Function &F = MF->getFunction();
   if (F.hasFnAttribute("tvm_raw_func")) {
     OutStreamer->EmitRawText("\t.internal\t:" + CurrentFnSym->getName());
-  } else if (F.hasInternalLinkage() && F.doesNotRecurse()) {
+  } else if (F.hasInternalLinkage() && F.doesNotRecurse() &&
+      (StringRef::npos == CurrentFnSym->getName().find("onCodeUpgrade"))) {
     OutStreamer->EmitRawText("\t.macro\t" + CurrentFnSym->getName());
   } else {
     AsmPrinter::EmitFunctionHeader();

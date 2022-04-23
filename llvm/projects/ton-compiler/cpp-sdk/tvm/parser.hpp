@@ -89,6 +89,11 @@ public:
     sl_ = remain_slice;
     return *this;
   }
+  parser& skipref() {
+    auto [to_skip, sl] = __builtin_tvm_ldref(sl_);
+    sl_ = sl;
+    return *this;
+  }
 
   // load msg address as slice
   slice ldmsgaddr() {

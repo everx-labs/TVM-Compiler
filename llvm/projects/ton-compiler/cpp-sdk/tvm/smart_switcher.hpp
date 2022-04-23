@@ -211,10 +211,10 @@ __always_inline void send_answer(Contract& c, unsigned func_id, ReturnValue rv) 
 }
 
 template<class Interface, class ReplayAttackProtection, class DContract>
-__always_inline std::tuple<persistent_data_header_t<Interface, ReplayAttackProtection>, DContract> load_persistent_data() {
+__always_inline std::tuple<persistent_data_header_t<Interface, ReplayAttackProtection>, DContract> parse_persistent_data(cell state) {
   using namespace schema;
 
-  parser persist(persistent_data::get());
+  parser persist(state);
   bool uninitialized = persist.ldu(1);
   tvm_assert(!uninitialized, error_code::method_called_without_init);
 
@@ -244,6 +244,12 @@ __always_inline std::tuple<persistent_data_header_t<Interface, ReplayAttackProte
     DContract base = to_struct<DContract>(chain_fold_tup<data_tup_t>(linear_tup));
     return { {}, base };
   }
+}
+
+
+template<class Interface, class ReplayAttackProtection, class DContract>
+__always_inline std::tuple<persistent_data_header_t<Interface, ReplayAttackProtection>, DContract> load_persistent_data() {
+  return parse_persistent_data<Interface, ReplayAttackProtection, DContract>(persistent_data::get());
 }
 
 // For parsing arguments from message body sequence
@@ -314,7 +320,6 @@ struct smart_switcher_impl {
   static int execute(Contract& c, std::optional<schema::bitfield<512>> signature,
       MsgHeader hdr, cell msg, slice msg_body, slice body_from_header, bool checked_deploy) {
     constexpr bool is_getter = get_interface_method_getter<IContract, Index>::value;
-    constexpr bool is_noaccept = get_interface_method_noaccept<IContract, Index>::value;
     constexpr bool is_implicit_id = is_implicit_func_id<IContract, Index>();
     constexpr bool is_internal = get_interface_method_internal<IContract, Index>::value;
     constexpr bool is_external = get_interface_method_external<IContract, Index>::value;
@@ -327,6 +332,8 @@ struct smart_switcher_impl {
     if (hdr.function_id() == my_method_id) {
       require(!checked_deploy || get_interface_method_deploy<IContract, Index>::value,
               error_code::method_not_for_deploy);
+      // noaccept is activated for non-constructor methods
+      constexpr bool is_noaccept = !is_method_constructor<IContract, my_method_id>();
 
       // We need to parse persistent data for contract, parse arguments for method,
       // call method, build return value and send message, build updated persistent data and store

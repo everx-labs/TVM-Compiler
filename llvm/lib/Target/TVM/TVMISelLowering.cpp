@@ -166,9 +166,12 @@ SDValue TVMTargetLowering::LowerCall(CallLoweringInfo &CLI,
   bool DictCall = true;
 
   if (GlobalAddressSDNode *GA = dyn_cast<GlobalAddressSDNode>(Callee)) {
-    auto *F = dyn_cast<Function>(GA->getGlobal());
-    if (F && F->hasInternalLinkage() && F->doesNotRecurse())
-      DictCall = false;
+    if (auto *F = dyn_cast<Function>(GA->getGlobal())) {
+      // onCodeUpgrade function should be dict call
+      bool upgrade_func = (F->getName().find("onCodeUpgrade") != StringRef::npos);
+      if (F->hasInternalLinkage() && F->doesNotRecurse() && !upgrade_func)
+        DictCall = false;
+    }
   }
 
   CallingConv::ID CallConv = CLI.CallConv;

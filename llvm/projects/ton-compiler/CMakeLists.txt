@@ -90,9 +90,9 @@ else()
       PREFIX ${CMAKE_CURRENT_SOURCE_DIR}/tvm_linker
       BUILD_IN_SOURCE On
       GIT_REPOSITORY https://github.com/tonlabs/TVM-linker/
-      CONFIGURE_COMMAND cd tvm_linker && cargo update
-      BUILD_COMMAND cd tvm_linker && cargo build --release
-      INSTALL_COMMAND ROBOCOPY "tvm_linker/target/release" "${CMAKE_INSTALL_PREFIX}/bin" tvm_linker.exe || echo %ERRORLEVEL%
+      CONFIGURE_COMMAND cargo update
+      BUILD_COMMAND cargo build --release
+      INSTALL_COMMAND ROBOCOPY "target/release" "${CMAKE_INSTALL_PREFIX}/bin" tvm_linker.exe || echo %ERRORLEVEL%
     )
   else()
     message(STATUS "Build tvm-linker from git sources for linux/darwin")
@@ -100,9 +100,9 @@ else()
       PREFIX ${CMAKE_CURRENT_SOURCE_DIR}/tvm_linker
       BUILD_IN_SOURCE On
       GIT_REPOSITORY https://github.com/tonlabs/TVM-linker/
-      CONFIGURE_COMMAND cd tvm_linker && cargo update
-      BUILD_COMMAND cd tvm_linker && cargo build --release
-      INSTALL_COMMAND cp "tvm_linker/target/release/tvm_linker" "${CMAKE_INSTALL_PREFIX}/bin"
+      CONFIGURE_COMMAND cargo update
+      BUILD_COMMAND cargo build --release
+      INSTALL_COMMAND cp "target/release/tvm_linker" "${CMAKE_INSTALL_PREFIX}/bin"
     )
   endif()
 endif()

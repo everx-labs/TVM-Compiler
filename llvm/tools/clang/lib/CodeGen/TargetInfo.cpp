@@ -860,6 +860,31 @@ public:
         llvm::Function *Fn = cast<llvm::Function>(GV);
         Fn->addFnAttr("tvm_raw_func");
       }
+      if (llvm::any_of(FD->parameters(), [](ParmVarDecl *P) {
+                       return P->getType()->isPointerType(); })) {
+        if (FD->hasAttr<NoInlineAttr>()) {
+          auto &Diag = CGM.getContext().getDiagnostics();
+          unsigned CustomDiagID = Diag.
+            getCustomDiagID(DiagnosticsEngine::Error, "%0");
+          Diag.Report(FD->getLocation(), CustomDiagID)
+            << "Function with pointer argument can't have `noinline` attribute";
+        }
+        llvm::Function *Fn = cast<llvm::Function>(GV);
+        Fn->addFnAttr(llvm::Attribute::AlwaysInline);
+      }
+    }
+    if (auto *MD = dyn_cast_or_null<CXXMethodDecl>(D)) {
+      if (!MD->isStatic()) {
+        if (MD->hasAttr<NoInlineAttr>()) {
+          auto &Diag = CGM.getContext().getDiagnostics();
+          unsigned CustomDiagID = Diag.
+            getCustomDiagID(DiagnosticsEngine::Error, "%0");
+          Diag.Report(MD->getLocation(), CustomDiagID)
+            << "Non-static method can't have `noinline` attribute";
+        }
+        llvm::Function *Fn = cast<llvm::Function>(GV);
+        Fn->addFnAttr(llvm::Attribute::AlwaysInline);
+      }
     }
   }
 };

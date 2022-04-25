@@ -1,0 +1,35 @@
+# RUN: llc -march=tvm %s -run-pass=tvm-stack-model -o - | FileCheck %s
+# XFAIL:*
+
+---
+name: repeated_writes
+liveins:
+  - { reg: '$arguments' }
+tracksRegLiveness: true
+body: |
+  bb.0:
+    liveins: $arguments
+
+    ARGUMENT_NUM 1
+    %0:i64 = ARGUMENT 0, implicit $arguments
+    dead %2:i64 = IMPLICIT_DEF
+    dead %1:i64 = IMPLICIT_DEF
+    %1:i64 = CONST_I64 0
+    %0:i64 = ADD %0:i64, %1:i64
+    %0:i64 = ADD %0:i64, %1:i64
+    %1:i64 = ADD %0:i64, %1:i64
+    %0:i64 = ADD %1:i64, %0:i64
+
+    ; CHECK-ID: repeated_writes
+    ; CHECK: CONST_I64_S 0
+    ; CHECK-NEXT: XCHG 0, 1
+    ; CHECK-NEXT: PUSH 1
+    ; CHECK-NEXT: ADD_S
+    ; CHECK-NEXT: PUSH 1
+    ; CHECK-NEXT: ADD_S
+    ; CHECK-NEXT: PUSH 0
+    ; CHECK-NEXT: XCHG 0, 2
+    ; CHECK-NEXT: ADD_S
+    ; CHECK_NEXT: ADD_S
+    RETURN_I64 %0:i64
+...

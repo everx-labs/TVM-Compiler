@@ -1,0 +1,25 @@
+# RUN: llc -march=tvm %s -run-pass=tvm-stack-model -o - | FileCheck %s
+# XFAIL:*
+---
+name: mir_source
+liveins:
+  - { reg: '$arguments' }
+tracksRegLiveness: true
+body: |
+  bb.0:
+    liveins: $arguments
+
+    ARGUMENT_NUM 1
+    %0:i64 = ARGUMENT 0, implicit $arguments
+    dead %2:i64 = IMPLICIT_DEF
+    dead %1:i64 = IMPLICIT_DEF
+
+    %1:i64 = CONST_I64 1
+    %2:i64 = ADD %0:i64, %1:i64
+
+    ; CHECK-ID: mir_source
+    ; CHECK: ADD_S
+    ; CHECK-NEXT: POP 0
+    ; CHECK-NEXT: RETURN_VOID
+    RETURN_VOID
+...

@@ -1,0 +1,13 @@
+include(${CMAKE_CURRENT_LIST_DIR}/ton-compiler.cmake)
+
+set(LLVM_INSTALL_UTILS On CACHE BOOL "")
+set(LLVM_BUILD_UTILS On CACHE BOOL "")
+set(LLVM_DISTRIBUTION_COMPONENTS
+  ${LLVM_DISTRIBUTION_COMPONENTS}
+
+  not
+  count
+  FileCheck
+  llvm-lit
+  CACHE STRING "" FORCE
+)

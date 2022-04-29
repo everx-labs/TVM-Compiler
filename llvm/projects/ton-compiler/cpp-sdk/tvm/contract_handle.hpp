@@ -849,7 +849,7 @@ public:
   }
   template<class ReturnVal>
   __always_inline
-  auto tail_call(address wait_addr, Crystals amount = 10000000,
+  auto tail_call(address wait_addr, Evers amount = 10000000,
                  unsigned flags = DEFAULT_MSG_FLAGS) const {
     return proxy_tail_call<ReturnVal>(addr_, wait_addr, amount, flags);
   }

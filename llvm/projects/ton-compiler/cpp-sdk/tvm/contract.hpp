@@ -66,6 +66,21 @@ std::pair<StateInit, uint256> prepare(Data data, cell code) {
   return preparer<Interface, Data>::execute(data, code);
 }
 
+template<class Interface, class Data>
+struct expecter {
+  __always_inline
+  static uint256 execute([[maybe_unused]] Data data, [[maybe_unused]] uint256 code_hash, [[maybe_unused]] uint16 code_depth) {
+    static_assert(prohibit_early_assert<Interface>::value, "expecter must be overriden for this interface");
+  }
+};
+
+/// Calculate expected hash from StateInit (contract deploy address). Using code_hash and code_depth.
+template<class Interface, class Data>
+__always_inline
+uint256 expected(Data data, uint256 code_hash, uint16 code_depth) {
+  return expecter<Interface, Data>::execute(data, code_hash, code_depth);
+}
+
 /* From tvm RAWRESERVE(x, y) :
 Creates an output action which would reserve
   exactly x nanograms (if y = 0),
@@ -89,6 +104,9 @@ inline void tvm_rawreserve(unsigned x, rawreserve_flag y) {
 }
 inline void tvm_setcode(cell new_root_cell) {
   __builtin_tvm_setcode(new_root_cell);
+}
+inline void tvm_setcurrentcode(cell new_root_cell) {
+  __builtin_tvm_setreg(3, __builtin_tvm_bless(new_root_cell.ctos()));
 }
 inline void tvm_pop_c3(int val) {
   __builtin_tvm_setreg(3, val);
@@ -160,18 +178,6 @@ __attribute__((tvm_raw_func)) int main_external(__tvm_cell msg, __tvm_slice msg_
 __attribute__((tvm_raw_func)) int main_internal(__tvm_cell msg, __tvm_slice msg_body) {    \
   return smart_switch</*Internal=*/true, Contract, IContract, DContract,                   \
                       replay_attack_protection::timestamp<TimestampDelay>>(msg, msg_body); \
-}                                                                                          \
-__attribute__((tvm_raw_func)) int main_ticktock(__tvm_cell, __tvm_slice) {                 \
-  tvm_throw(error_code::unsupported_call_method);                                          \
-  return 0;                                                                                \
-}                                                                                          \
-__attribute__((tvm_raw_func)) int main_split(__tvm_cell, __tvm_slice) {                    \
-  tvm_throw(error_code::unsupported_call_method);                                          \
-  return 0;                                                                                \
-}                                                                                          \
-__attribute__((tvm_raw_func)) int main_merge(__tvm_cell, __tvm_slice) {                    \
-  tvm_throw(error_code::unsupported_call_method);                                          \
-  return 0;                                                                                \
 }
 
 #define MAIN_ENTRY_FUNCTIONS_NO_REPLAY(Contract, IContract, DContract)                     \
@@ -182,18 +188,6 @@ __attribute__((tvm_raw_func)) int main_external(__tvm_cell msg, __tvm_slice msg_
 __attribute__((tvm_raw_func)) int main_internal(__tvm_cell msg, __tvm_slice msg_body) {    \
   return smart_switch</*Internal=*/true, Contract, IContract, DContract, void>(            \
     msg, msg_body);                                                                        \
-}                                                                                          \
-__attribute__((tvm_raw_func)) int main_ticktock(__tvm_cell, __tvm_slice) {                 \
-  tvm_throw(error_code::unsupported_call_method);                                          \
-  return 0;                                                                                \
-}                                                                                          \
-__attribute__((tvm_raw_func)) int main_split(__tvm_cell, __tvm_slice) {                    \
-  tvm_throw(error_code::unsupported_call_method);                                          \
-  return 0;                                                                                \
-}                                                                                          \
-__attribute__((tvm_raw_func)) int main_merge(__tvm_cell, __tvm_slice) {                    \
-  tvm_throw(error_code::unsupported_call_method);                                          \
-  return 0;                                                                                \
 }
 
 // Contract class may be simple class, or template with parameter: `bool Internal`.
@@ -207,18 +201,6 @@ __attribute__((tvm_raw_func)) int main_external(__tvm_cell msg, __tvm_slice msg_
 __attribute__((tvm_raw_func)) int main_internal(__tvm_cell msg, __tvm_slice msg_body) {    \
   return smart_switch</*Internal=*/true, Contract<true>, IContract, DContract,             \
                       replay_attack_protection::timestamp<TimestampDelay>>(msg, msg_body); \
-}                                                                                          \
-__attribute__((tvm_raw_func)) int main_ticktock(__tvm_cell, __tvm_slice) {                 \
-  tvm_throw(error_code::unsupported_call_method);                                          \
-  return 0;                                                                                \
-}                                                                                          \
-__attribute__((tvm_raw_func)) int main_split(__tvm_cell, __tvm_slice) {                    \
-  tvm_throw(error_code::unsupported_call_method);                                          \
-  return 0;                                                                                \
-}                                                                                          \
-__attribute__((tvm_raw_func)) int main_merge(__tvm_cell, __tvm_slice) {                    \
-  tvm_throw(error_code::unsupported_call_method);                                          \
-  return 0;                                                                                \
 }
 
 #define MAIN_ENTRY_FUNCTIONS_NO_REPLAY_TMPL(Contract, IContract, DContract)                \
@@ -229,18 +211,6 @@ __attribute__((tvm_raw_func)) int main_external(__tvm_cell msg, __tvm_slice msg_
 __attribute__((tvm_raw_func)) int main_internal(__tvm_cell msg, __tvm_slice msg_body) {    \
   return smart_switch</*Internal=*/true, Contract<true>, IContract, DContract, void>(      \
     msg, msg_body);                                                                        \
-}                                                                                          \
-__attribute__((tvm_raw_func)) int main_ticktock(__tvm_cell, __tvm_slice) {                 \
-  tvm_throw(error_code::unsupported_call_method);                                          \
-  return 0;                                                                                \
-}                                                                                          \
-__attribute__((tvm_raw_func)) int main_split(__tvm_cell, __tvm_slice) {                    \
-  tvm_throw(error_code::unsupported_call_method);                                          \
-  return 0;                                                                                \
-}                                                                                          \
-__attribute__((tvm_raw_func)) int main_merge(__tvm_cell, __tvm_slice) {                    \
-  tvm_throw(error_code::unsupported_call_method);                                          \
-  return 0;                                                                                \
 }
 
 // Prepare and send empty message with nanograms as transfer value.

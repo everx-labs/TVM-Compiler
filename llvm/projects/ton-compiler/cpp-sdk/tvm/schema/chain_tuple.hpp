@@ -90,25 +90,34 @@ auto make_expanded_tuple(std::tuple<Elems...> tup) {
 template<unsigned Offset = 0, unsigned RefsOffset = 0, class... Elems>
 __always_inline
 auto make_chain_tuple_impl(std::tuple<Elems...> tup) {
+  // Fit count (of elems) with usage of the last `reserved` cell for reference elems
+  static constexpr unsigned last_fit_count =
+    extract_fit<cell::max_bits - Offset, cell::max_refs - RefsOffset, 0, Elems...>::value;
+  // Fit count (of elems) without usage of the last `reserved` cell for reference elems
   static constexpr unsigned fit_count =
     extract_fit<cell::max_bits - Offset, cell::max_refs - 1 - RefsOffset, 0, Elems...>::value;
-  auto cur_subtup = hana::take_front_c<fit_count>(tup);
-
-  if constexpr (fit_count == 0 && sizeof...(Elems) != 0) {
-    if constexpr (Offset || RefsOffset) {
-      auto cont_tup = make_chain_tuple_impl(tup);
-      return std::make_tuple(schema::ref<decltype(cont_tup)>{cont_tup});
-    } else {
-      static_assert(Offset || RefsOffset, "Can't place even 1 sequence element into cell");
-      return std::tuple<>();
-    }
+  // If all the remaining elems fit into cell (including `reserved` last reference)
+  if constexpr (sizeof...(Elems) == last_fit_count) {
+    return hana::take_front_c<last_fit_count>(tup);
   } else {
-    if constexpr (sizeof...(Elems) > fit_count) {
-      auto next_subtup = hana::take_back_c<sizeof...(Elems) - fit_count>(tup);
-      auto cont_tup = make_chain_tuple_impl(next_subtup);
-      return std::tuple_cat(cur_subtup, std::make_tuple(schema::ref<decltype(cont_tup)>{cont_tup}));
+    auto cur_subtup = hana::take_front_c<fit_count>(tup);
+
+    if constexpr (fit_count == 0 && sizeof...(Elems) != 0) {
+      if constexpr (Offset || RefsOffset) {
+        auto cont_tup = make_chain_tuple_impl(tup);
+        return std::make_tuple(schema::ref<decltype(cont_tup)>{cont_tup});
+      } else {
+        static_assert(Offset || RefsOffset, "Can't place even 1 sequence element into cell");
+        return std::tuple<>();
+      }
     } else {
-      return cur_subtup;
+      if constexpr (sizeof...(Elems) > fit_count) {
+        auto next_subtup = hana::take_back_c<sizeof...(Elems) - fit_count>(tup);
+        auto cont_tup = make_chain_tuple_impl(next_subtup);
+        return std::tuple_cat(cur_subtup, std::make_tuple(schema::ref<decltype(cont_tup)>{cont_tup}));
+      } else {
+        return cur_subtup;
+      }
     }
   }
 }

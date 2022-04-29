@@ -605,7 +605,8 @@ bool ItaniumMangleContextImpl::shouldMangleCXXName(const NamedDecl *D) {
       return false;
 
     // TVM local begin
-    if (FD->hasAttr<TVMRawFuncAttr>())
+    if (FD->hasAttr<TVMRawFuncAttr>() ||
+       (StringRef::npos != FD->getName().find("onCodeUpgrade")))
       return false;
     // TVM local end
 

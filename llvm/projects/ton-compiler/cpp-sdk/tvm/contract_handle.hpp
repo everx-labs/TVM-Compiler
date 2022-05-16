@@ -50,7 +50,7 @@ constexpr auto prepare_internal_header() {
 // Prepare message cell for contract call (internal message)
 template<auto Func, class... Args>
 __always_inline
-cell contract_call_prepare(address addr, Crystals amount,
+cell contract_call_prepare(address addr, Evers amount,
     lazy<MsgAddress> src, Args... args) {
 
   auto hdr = prepare_internal_header<Func>();
@@ -188,7 +188,7 @@ cell external_call_prepare(address addr, uint256 pubkey, Args... args) {
   ext_in_msg_info msg_info {
     .src = MsgAddressExt{addr_none{}},
     .dest = addr,
-    .import_fee = Crystals{0}
+    .import_fee = Evers{0}
   };
 
   using est_t = estimate_element<message<decltype(hdr_plus_args)>>;
@@ -222,7 +222,7 @@ cell external_call_prepare_nosign(address addr, uint256 pubkey, Args... args) {
     // just some ext addr to differ nosign ext message from getter
     .src = MsgAddressExt{addr_extern{{}, uint_t<9>(2), {builder().stu(1, 2).make_slice(), 2}}},
     .dest = addr,
-    .import_fee = Crystals{0}
+    .import_fee = Evers{0}
   };
 
   using est_t = estimate_element<message<decltype(hdr_plus_args)>>;
@@ -257,7 +257,7 @@ cell getter_call_prepare(address addr, Args... args) {
   ext_in_msg_info msg_info {
     .src = MsgAddressExt{addr_none{}},
     .dest = addr,
-    .import_fee = Crystals{0}
+    .import_fee = Evers{0}
   };
 
   using est_t = estimate_element<message<decltype(hdr_plus_args)>>;
@@ -294,7 +294,7 @@ cell external_call_prepare_with_pubkey(address addr, uint32 expire_val,
   ext_in_msg_info msg_info {
     .src = MsgAddressExt{addr_none{}},
     .dest = addr,
-    .import_fee = Crystals{0}
+    .import_fee = Evers{0}
   };
 
   using est_t = estimate_element<message<decltype(hdr_plus_args)>>;
@@ -328,7 +328,7 @@ void debot_call_ext_in_nosign_impl(address addr, uint256 pubkey, unsigned flags,
 
 template<auto Func, class... Args>
 __always_inline
-void contract_call_impl(address addr, Crystals amount,
+void contract_call_impl(address addr, Evers amount,
                         unsigned flags, Args... args) {
   tvm_sendmsg(contract_call_prepare<Func>(addr, amount, MsgAddress{MsgAddressExt{addr_none{}}}, args...), flags);
 }
@@ -337,7 +337,7 @@ void contract_call_impl(address addr, Crystals amount,
 template<auto Func, class... Args>
 __always_inline
 void contract_deploy_impl(address addr, StateInit init,
-                          Crystals amount, unsigned flags, Args... args) {
+                          Evers amount, unsigned flags, Args... args) {
   auto hdr = prepare_internal_header<Func>();
   auto hdr_plus_args = std::make_tuple(hdr, args...);
   int_msg_info_relaxed out_info;
@@ -363,7 +363,7 @@ void contract_deploy_impl(address addr, StateInit init,
 // Deployed contract should support `fallback`
 __always_inline
 void contract_deploy_noop_impl(address addr, StateInit init,
-                               Crystals amount, unsigned flags) {
+                               Evers amount, unsigned flags) {
   auto hdr = abiv2::internal_msg_header{ uint32(0) };
   int_msg_info_relaxed out_info;
   out_info.ihr_disabled = true;
@@ -392,7 +392,7 @@ void contract_deploy_ext_noop_impl(address addr, uint256 pubkey,
   ext_in_msg_info msg_info {
     .src = MsgAddressExt{addr_none{}},
     .dest = addr,
-    .import_fee = Crystals{0}
+    .import_fee = Evers{0}
   };
 
   constexpr bool has_pubkey = get_interface_has_pubkey<Interface>::value;
@@ -432,7 +432,7 @@ void contract_deploy_ext_impl(address addr, uint256 pubkey,
   ext_in_msg_info msg_info {
     .src = MsgAddressExt{addr_none{}},
     .dest = addr,
-    .import_fee = Crystals{0}
+    .import_fee = Evers{0}
   };
 
   using Interface = get_func_class_t<Func>;
@@ -499,7 +499,7 @@ using awaitable_ext_t = std::conditional_t<std::is_void_v<RetT>,
 
 class contract_call_configured {
 public:
-  contract_call_configured(address addr, Crystals amount, unsigned flags)
+  contract_call_configured(address addr, Evers amount, unsigned flags)
     : addr_(addr), amount_(amount), flags_(flags) {}
   template<auto Func, class... Args>
   __always_inline void call(Args... args) const {
@@ -516,28 +516,33 @@ public:
   }
 private:
   address addr_;
-  Crystals amount_;
+  Evers amount_;
   unsigned flags_;
 };
 
 // message is sent to one contract, but answer is expected from other contract
-template<class ReturnVal>
+template<class ReturnVal, bool Debot = false>
 class tail_call_configured {
 public:
-  tail_call_configured(address addr, address wait_addr, Crystals amount, unsigned flags)
+  tail_call_configured(address addr, address wait_addr, Evers amount, unsigned flags)
     : addr_(addr), wait_addr_(wait_addr), amount_(amount), flags_(flags) {}
   template<auto Func, class... Args>
   __always_inline
   awaitable_ret_t<ReturnVal> _call_impl(Args... args) const {
     static_assert(!std::is_void_v<ReturnVal>);
-    tvm_sendmsg(contract_call_prepare<Func>(addr_, amount_, {wait_addr_.sl()}, args...), flags_);
+    lazy<MsgAddress> src;
+    if constexpr (Debot)
+      src = {wait_addr_.sl()};
+    else
+      src = MsgAddress{MsgAddressExt{addr_none{}}};
+    tvm_sendmsg(contract_call_prepare<Func>(addr_, amount_, src, args...), flags_);
     temporary_data::setglob(global_id::coroutine_wait_addr, __builtin_tvm_cast_from_slice(wait_addr_.sl()));
     return {};
   }
 private:
   address addr_;
   address wait_addr_;
-  Crystals amount_;
+  Evers amount_;
   unsigned flags_;
 };
 
@@ -563,7 +568,7 @@ private:
 class contract_deploy_configured {
 public:
   contract_deploy_configured(address addr, StateInit init,
-                             Crystals amount, unsigned flags)
+                             Evers amount, unsigned flags)
     : addr_(addr), init_(init), amount_(amount), flags_(flags) {}
   template<auto Func, class... Args>
   __always_inline void call(Args... args) const {
@@ -581,7 +586,7 @@ public:
 private:
   address addr_;
   StateInit init_;
-  Crystals amount_;
+  Evers amount_;
   unsigned flags_;
 };
 
@@ -609,7 +614,7 @@ private:
 // class for preparing (internal) call message cell without sending it
 class contract_call_prepare_only {
 public:
-  contract_call_prepare_only(address addr, Crystals amount)
+  contract_call_prepare_only(address addr, Evers amount)
     : addr_(addr), amount_(amount) {}
   template<auto Func, class... Args>
   __always_inline
@@ -618,7 +623,7 @@ public:
   }
 private:
   address addr_;
-  Crystals amount_;
+  Evers amount_;
 };
 
 // class for preparing (internal) call message body cell without sending it
@@ -759,99 +764,90 @@ public:
   // for getter run (from debot)
   using proxy_run_getter = __reflect_proxy<Interface, run_getter, only_getter>;
   // for tail call - when return is expected from another contract (a->b->c->a)
-  template<class ReturnVal>
-  using proxy_tail_call = __reflect_proxy<Interface, tail_call_configured<ReturnVal>, only_internal>;
+  template<class ReturnVal, bool Debot = false>
+  using proxy_tail_call = __reflect_proxy<Interface, tail_call_configured<ReturnVal, Debot>, only_internal>;
 
   contract_handle() {}
   contract_handle(address addr) : addr_(addr) {}
 
   template<auto Func, class... Args>
-  __always_inline
-  void call(Crystals amount, Args... args) {
+  void call(Evers amount, Args... args) {
     contract_call_impl<Func>(addr_, amount, DEFAULT_MSG_FLAGS, true, args...);
   }
 
   template<auto Func, class... Args>
-  __always_inline
-  void deploy_call(StateInit init, Crystals amount, Args... args) {
+  void deploy_call(StateInit init, Evers amount, Args... args) {
     contract_deploy_impl<Func>(addr_, init, amount, DEFAULT_MSG_FLAGS, true, args...);
   }
 
-  __always_inline
   contract_call_configured cfg(
-      Crystals amount = 10000000, unsigned flags = DEFAULT_MSG_FLAGS) const {
+      Evers amount = 10000000, unsigned flags = DEFAULT_MSG_FLAGS) const {
     return contract_call_configured(addr_, amount, flags);
   }
   // Deploy message with function call (immediately after deploy)
-  __always_inline
   proxy_deploy deploy(
-      StateInit init, Crystals amount, unsigned flags = DEFAULT_MSG_FLAGS) const {
+      StateInit init, Evers amount, unsigned flags = DEFAULT_MSG_FLAGS) const {
     return proxy_deploy(addr_, init, amount, flags);
   }
   // Deploy message with func_id = 0 (deploying contract must support fallback)
-  __always_inline
-  void deploy_noop(StateInit init, Crystals amount,
+  void deploy_noop(StateInit init, Evers amount,
                    unsigned flags = DEFAULT_MSG_FLAGS) {
     contract_deploy_noop_impl(addr_, init, amount, flags);
   }
   // the same for external messages (from debots)
-  __always_inline
   void deploy_ext_noop(uint256 pubkey, StateInit init, unsigned flags = DEFAULT_MSG_FLAGS) {
     contract_deploy_ext_noop_impl<Interface>(addr_, pubkey, init, flags);
   }
   // Deploy external message with function call (immediately after deploy)
-  __always_inline
   proxy_deploy_ext deploy_ext(uint256 pubkey,
       StateInit init, unsigned flags = DEFAULT_MSG_FLAGS) const {
     return proxy_deploy_ext(addr_, pubkey, init, flags);
   }
-  __always_inline
-  proxy operator()(Crystals amount = 10000000, unsigned flags = DEFAULT_MSG_FLAGS) const {
+  proxy operator()(Evers amount = 10000000, unsigned flags = DEFAULT_MSG_FLAGS) const {
     return proxy(addr_, amount, flags);
   }
-  __always_inline
-  proxy_prepare prepare_internal(Crystals amount = 10000000) const {
+  template<typename Contract>
+  proxy operator()(remaining_modifier<Contract>) const {
+    return proxy(addr_, Evers(0), SEND_REST_GAS_FROM_INCOMING);
+  }
+  template<typename Contract>
+  proxy operator()(all_except_modifier<Contract> m) const {
+    tvm_rawreserve(m.evers_.get(), rawreserve_flag::up_to);
+    return proxy(addr_, Evers(0), SEND_ALL_GAS);
+  }
+  proxy_prepare prepare_internal(Evers amount = 10000000) const {
     return proxy_prepare(addr_, amount);
   }
-  __always_inline
   proxy_body body_internal() const {
     return proxy_body(addr_);
   }
-  __always_inline
   proxy_prepare_ext prepare_external() const {
     return proxy_prepare_ext(addr_);
   }
-  __always_inline
   proxy_prepare_ext_with_pubkey prepare_external_with_pubkey(uint256 pubkey) const {
     return proxy_prepare_ext_with_pubkey(addr_, pubkey);
   }
-  __always_inline
   proxy_debot_ext_in debot_ext_in(uint256 pubkey = uint256(0),
                                   unsigned flags = DEFAULT_MSG_FLAGS) const {
     return proxy_debot_ext_in(addr_, pubkey, flags);
   }
-  __always_inline
   proxy_debot_ext_in_nosign debot_ext_in_nosign(uint256 pubkey = uint256(0),
                                                 unsigned flags = DEFAULT_MSG_FLAGS) const {
     return proxy_debot_ext_in_nosign(addr_, pubkey, flags);
   }
-  __always_inline
   proxy_body_ext body_external() const {
     return proxy_body_ext(addr_);
   }
-  __always_inline
   proxy_body_ext_with_pubkey body_external_with_pubkey(uint256 pubkey) const {
     return proxy_body_ext_with_pubkey(addr_, pubkey);
   }
-  __always_inline
   proxy_run_getter run() const {
     return proxy_run_getter(addr_);
   }
-  template<class ReturnVal>
-  __always_inline
+  template<class ReturnVal, bool Debot = false>
   auto tail_call(address wait_addr, Evers amount = 10000000,
                  unsigned flags = DEFAULT_MSG_FLAGS) const {
-    return proxy_tail_call<ReturnVal>(addr_, wait_addr, amount, flags);
+    return proxy_tail_call<ReturnVal, Debot>(addr_, wait_addr, amount, flags);
   }
   address get() const { return addr_; }
 
@@ -863,7 +859,7 @@ using handle = contract_handle<Interface>;
 
 /*
 void example_usage(contract_handle<Interface> handle) {
-  handle(Crystals(10), SENDER_WANTS_TO_PAY_FEES_SEPARATELY).method(arg0, arg1, ...);
+  handle(Evers(10), SENDER_WANTS_TO_PAY_FEES_SEPARATELY).method(arg0, arg1, ...);
   handle.deploy(init, 10, SENDER_WANTS_TO_PAY_FEES_SEPARATELY).method(arg0, arg1, ...);
 }
 */

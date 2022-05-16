@@ -1059,14 +1059,15 @@ unsigned StringLiteral::mapCharByteWidth(TargetInfo const &Target,
     CharByteWidth = Target.getChar32Width();
     break;
   }
+
+  //assert((CharByteWidth & 7) == 0 && "Assumes character size is byte multiple");
+  //CharByteWidth /= 8;
   // TVM local begin
   assert((CharByteWidth % ByteSizeInBits) == 0 &&
          "Assumes character size is byte multiple");
   CharByteWidth /= ByteSizeInBits;
   // TVM local end
 
-  assert((CharByteWidth & 7) == 0 && "Assumes character size is byte multiple");
-  CharByteWidth /= 8;
   assert((CharByteWidth == 1 || CharByteWidth == 2 || CharByteWidth == 4) &&
          "The only supported character byte widths are 1,2 and 4!");
 

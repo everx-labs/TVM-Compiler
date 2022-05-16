@@ -1416,8 +1416,6 @@ static bool matchIntrinsicType(
     bool IsDeferredCheck) {
   using namespace Intrinsic;
 
-  Ty->dump();
-
   // If we ran out of descriptors, there are too many arguments.
   if (Infos.empty()) return true;
 

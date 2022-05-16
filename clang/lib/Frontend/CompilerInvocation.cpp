@@ -3729,6 +3729,13 @@ bool CompilerInvocation::ParseLangArgs(LangOptions &Opts, ArgList &Args,
         (Opts.ObjCRuntime.getKind() == ObjCRuntime::FragileMacOSX);
   }
 
+  // TVM local begin
+  bool isTVM = T.getArch() == llvm::Triple::tvm;
+  Opts.DecompositionBindingOverride =
+      Args.hasFlag(OPT_fdecomposition_binding_override,
+                   OPT_fno_decomposition_binding_override, isTVM);
+  // TVM local end
+
   if (Arg *A = Args.getLastArg(options::OPT_fgnuc_version_EQ)) {
     // Check that the version has 1 to 3 components and the minor and patch
     // versions fit in two decimal digits.

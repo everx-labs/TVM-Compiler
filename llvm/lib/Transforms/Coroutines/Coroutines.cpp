@@ -163,24 +163,38 @@ static bool isCoroutineIntrinsicName(StringRef Name) {
   */
 
   // TVM local begin
-  static const char *const CoroIntrinsics[] = {"llvm.coro.alloc",
-                                               "llvm.coro.begin",
-                                               "llvm.coro.destroy",
-                                               "llvm.coro.done",
-                                               "llvm.coro.end",
-                                               "llvm.coro.frame",
-                                               "llvm.coro.free",
-                                               "llvm.coro.id",
-                                               "llvm.coro.noop",
-                                               "llvm.coro.param",
-                                               "llvm.coro.promise",
-                                               "llvm.coro.resume",
-                                               "llvm.coro.save",
-                                               "llvm.coro.size",
-                                               "llvm.coro.subfn.addr",
-                                               "llvm.coro.suspend",
-                                               "llvm.coro.tvm.deserialize",
-                                               "llvm.coro.tvm.serialize"};
+  static const char *const CoroIntrinsics[] = {
+      "llvm.coro.alloc",
+      "llvm.coro.async.context.alloc",
+      "llvm.coro.async.context.dealloc",
+      "llvm.coro.async.size.replace",
+      "llvm.coro.async.store_resume",
+      "llvm.coro.begin",
+      "llvm.coro.destroy",
+      "llvm.coro.done",
+      "llvm.coro.end",
+      "llvm.coro.end.async",
+      "llvm.coro.frame",
+      "llvm.coro.free",
+      "llvm.coro.id",
+      "llvm.coro.id.async",
+      "llvm.coro.id.retcon",
+      "llvm.coro.id.retcon.once",
+      "llvm.coro.noop",
+      "llvm.coro.param",
+      "llvm.coro.prepare.async",
+      "llvm.coro.prepare.retcon",
+      "llvm.coro.promise",
+      "llvm.coro.resume",
+      "llvm.coro.save",
+      "llvm.coro.size",
+      "llvm.coro.subfn.addr",
+      "llvm.coro.suspend",
+      "llvm.coro.suspend.async",
+      "llvm.coro.suspend.retcon", 
+      "llvm.coro.tvm.deserialize",
+      "llvm.coro.tvm.serialize"
+  };
   // TVM local end
   return Intrinsic::lookupLLVMIntrinsicByName(CoroIntrinsics, Name) != -1;
 }

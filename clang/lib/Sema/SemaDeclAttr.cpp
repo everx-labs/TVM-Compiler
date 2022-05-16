@@ -8192,6 +8192,60 @@ static void ProcessDeclAttribute(Sema &S, Scope *scope, Decl *D,
   case ParsedAttr::AT_ObjCIndependentClass:
     handleObjCIndependentClass(S, D, AL);
     break;
+  // TVM local begin
+  case ParsedAttr::AT_TVMTupleStruct:
+    handleSimpleAttribute<TVMTupleStructAttr>(S, D, AL);
+    D->setLiteral();
+    break;
+  case ParsedAttr::AT_TVMNoPubkeyInterface:
+    handleSimpleAttribute<TVMNoPubkeyInterfaceAttr>(S, D, AL);
+    break;
+  case ParsedAttr::AT_TVMNoTimestampInterface:
+    handleSimpleAttribute<TVMNoTimestampInterfaceAttr>(S, D, AL);
+    break;
+  case ParsedAttr::AT_TVMNoExpireInterface:
+    handleSimpleAttribute<TVMNoExpireInterfaceAttr>(S, D, AL);
+    break;
+  case ParsedAttr::AT_TVMRawFunc:
+    handleSimpleAttribute<TVMRawFuncAttr>(S, D, AL);
+    break;
+  case ParsedAttr::AT_TVMInternalFunc:
+    handleSimpleAttribute<TVMInternalFuncAttr>(S, D, AL);
+    break;
+  case ParsedAttr::AT_TVMAnswerIdFunc:
+    handleSimpleAttribute<TVMAnswerIdFuncAttr>(S, D, AL);
+    break;
+  case ParsedAttr::AT_TVMExternalFunc:
+    handleSimpleAttribute<TVMExternalFuncAttr>(S, D, AL);
+    break;
+  case ParsedAttr::AT_TVMGetterFunc:
+    handleSimpleAttribute<TVMGetterFuncAttr>(S, D, AL);
+    // Applying also no_write_persistent for getter methods
+    handleSimpleAttribute<TVMNoWritePersistentFuncAttr>(S, D, AL);
+    break;
+  case ParsedAttr::AT_TVMNoAcceptFunc:
+    handleSimpleAttribute<TVMNoAcceptFuncAttr>(S, D, AL);
+    break;
+  case ParsedAttr::AT_TVMImplicitFuncIdFunc:
+    handleSimpleAttribute<TVMImplicitFuncIdFuncAttr>(S, D, AL);
+    break;
+  case ParsedAttr::AT_TVMDynChainParseFunc:
+    handleSimpleAttribute<TVMDynChainParseFuncAttr>(S, D, AL);
+    break;
+  case ParsedAttr::AT_TVMReturnNameFunc:
+    handleReturnNameAttr(S, D, AL);
+    break;
+  case ParsedAttr::AT_TVMNoReadPersistentFunc:
+    handleSimpleAttribute<TVMNoReadPersistentFuncAttr>(S, D, AL);
+    break;
+  case ParsedAttr::AT_TVMNoWritePersistentFunc:
+    handleSimpleAttribute<TVMNoWritePersistentFuncAttr>(S, D, AL);
+    break;
+  case ParsedAttr::AT_TVMNoPersistentFunc:
+    handleSimpleAttribute<TVMNoReadPersistentFuncAttr>(S, D, AL);
+    handleSimpleAttribute<TVMNoWritePersistentFuncAttr>(S, D, AL);
+    break;
+  // TVM local end
   case ParsedAttr::AT_Blocks:
     handleBlocksAttr(S, D, AL);
     break;

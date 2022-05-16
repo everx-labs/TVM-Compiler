@@ -2936,6 +2936,16 @@ const char *Type::getTypeClassName() const {
 
 StringRef BuiltinType::getName(const PrintingPolicy &Policy) const {
   switch (getKind()) {
+  // TVM local begin
+  case TVMSlice:
+    return "__tvm_slice";
+  case TVMBuilder:
+    return "__tvm_builder";
+  case TVMCell:
+    return "__tvm_cell";
+  case TVMTuple:
+    return "__tvm_tuple";
+  // TVM local end
   case Void:
     return "void";
   case Bool:

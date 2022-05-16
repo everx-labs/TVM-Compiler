@@ -463,6 +463,19 @@ bool CodeGenPrepare::runOnFunction(Function &F) {
   InsertedInsts.clear();
   PromotedInsts.clear();
 
+  // TVM local begin
+  if (auto *TPC = getAnalysisIfAvailable<TargetPassConfig>()) {
+    // TODO: remove TVM local change.
+    // The pass doesn't expose public ID, thus disablePass doesn't apply.
+    // We need to find another way to disable it for TVM target.
+    // We also need to localize the functionality that is broken by empty basic
+    // block insertion and try to disable it rather that the whole pass.
+    const Triple &T = TPC->getTM<TargetMachine>().getTargetTriple();
+    if (T.getArch() == Triple::tvm)
+      return false;
+  }
+  // TVM local end
+
   TM = &getAnalysis<TargetPassConfig>().getTM<TargetMachine>();
   SubtargetInfo = TM->getSubtargetImpl(F);
   TLI = SubtargetInfo->getTargetLowering();

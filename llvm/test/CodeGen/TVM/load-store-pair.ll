@@ -4,7 +4,7 @@ target triple = "tvm"
 %struct.Pair = type { i257, i257 }
 
 ; CHECK-LABEL: mk_pair
-define void @mk_pair(%struct.Pair* noalias sret %agg.result) {
+define void @mk_pair(%struct.Pair* noalias sret(%struct.Pair*) %agg.result) {
 ; CHECK: PUSHINT 11
 ; CHECK: GETGLOB 14 CALLX
   %left = getelementptr inbounds %struct.Pair, %struct.Pair* %agg.result, i32 0, i32 0
@@ -23,7 +23,7 @@ define i257 @test_pair() {
 ; CHECK-NEXT: ADDCONST -2
 ; CHECK-NEXT: SETGLOB
   %p = alloca %struct.Pair, align 1
-  call void @mk_pair(%struct.Pair* sret %p)
+  call void @mk_pair(%struct.Pair* sret(%struct.Pair*) %p)
   %left = getelementptr inbounds %struct.Pair, %struct.Pair* %p, i32 0, i32 0
   %1 = load i257, i257* %left, align 1
   %right = getelementptr inbounds %struct.Pair, %struct.Pair* %p, i32 0, i32 1

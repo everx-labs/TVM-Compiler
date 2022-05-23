@@ -1655,7 +1655,10 @@ void AggExprEmitter::VisitInitListExpr(InitListExpr *E) {
     cleanups.push_back(cleanup);
     if (!cleanupDominator) // create placeholder once needed
       cleanupDominator = CGF.Builder.CreateAlignedLoad(
-          CGF.Int8Ty, llvm::Constant::getNullValue(CGF.Int8PtrTy),
+          // CGF.Int8Ty, llvm::Constant::getNullValue(CGF.Int8PtrTy),
+          // TVM local begin
+          CGF.Int8Ty, llvm::Constant::getNullValue(CGF.BytePtrTy),
+          // TVM local end
           CharUnits::One());
   };
 

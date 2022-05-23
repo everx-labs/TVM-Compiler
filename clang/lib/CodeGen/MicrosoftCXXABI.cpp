@@ -951,7 +951,7 @@ void MicrosoftCXXABI::emitBeginCatch(CodeGenFunction &CGF,
 std::tuple<Address, llvm::Value *, const CXXRecordDecl *>
 MicrosoftCXXABI::performBaseAdjustment(CodeGenFunction &CGF, Address Value,
                                        QualType SrcRecordTy) {
-  Value = CGF.Builder.CreateBitCast(Value, CGF.Int8PtrTy);
+  //Value = CGF.Builder.CreateBitCast(Value, CGF.Int8PtrTy);
   // TVM local begin
   Value = CGF.Builder.CreateBitCast(Value, CGF.BytePtrTy);
   // TVM local end
@@ -4412,7 +4412,10 @@ llvm::GlobalVariable *MicrosoftCXXABI::getThrowInfo(QualType T) {
       if (!DtorD->isTrivial())
         CleanupFn = llvm::ConstantExpr::getBitCast(
             CGM.getAddrOfCXXStructor(GlobalDecl(DtorD, Dtor_Complete)),
-            CGM.Int8PtrTy);
+            // CGM.Int8PtrTy);
+            // TVM local begin
+            CGM.BytePtrTy);
+            // TVM local end
   // This is unused as far as we can tell, initialize it to null.
   //llvm::Constant *ForwardCompat =
   //    getImageRelativeConstant(llvm::Constant::getNullValue(CGM.Int8PtrTy));

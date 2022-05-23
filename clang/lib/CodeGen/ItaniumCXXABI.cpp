@@ -761,7 +761,10 @@ CGCallee ItaniumCXXABI::EmitLoadOfMemberFunctionPointer(
             // TVM local end
         CheckResult = Builder.CreateCall(
             CGM.getIntrinsic(llvm::Intrinsic::type_test),
-            {Builder.CreateBitCast(VFPAddr, CGF.Int8PtrTy), TypeId});
+            // {Builder.CreateBitCast(VFPAddr, CGF.Int8PtrTy), TypeId});
+            // TVM local begin
+            {Builder.CreateBitCast(VFPAddr, CGF.BytePtrTy), TypeId});
+            // TVM local end
       }
 
       if (CGM.getItaniumVTableContext().isRelativeLayout()) {
@@ -836,8 +839,13 @@ CGCallee ItaniumCXXABI::EmitLoadOfMemberFunctionPointer(
       };
 
       llvm::Value *Bit = Builder.getFalse();
+      //llvm::Value *CastedNonVirtualFn =
+      //    Builder.CreateBitCast(NonVirtualFn, CGF.Int8PtrTy);
+      // TVM local begin
       llvm::Value *CastedNonVirtualFn =
-          Builder.CreateBitCast(NonVirtualFn, CGF.Int8PtrTy);
+          Builder.CreateBitCast(NonVirtualFn, CGF.BytePtrTy);
+      // TVM local end
+
       for (const CXXRecordDecl *Base : CGM.getMostBaseClasses(RD)) {
         llvm::Metadata *MD = CGM.CreateMetadataIdentifierForType(
             getContext().getMemberPointerType(
@@ -1286,7 +1294,7 @@ void ItaniumCXXABI::emitVirtualObjectDelete(CodeGenFunction &CGF,
 
     // Apply the offset.
     llvm::Value *CompletePtr =
-      CGF.Builder.CreateBitCast(Ptr.getPointer(), CGF.Int8PtrTy);
+      // CGF.Builder.CreateBitCast(Ptr.getPointer(), CGF.Int8PtrTy);
       // TVM local begin
       CGF.Builder.CreateBitCast(Ptr.getPointer(), CGF.BytePtrTy);
       // TVM local end
@@ -1508,7 +1516,11 @@ llvm::Value *ItaniumCXXABI::EmitTypeid(CodeGenFunction &CGF,
 
   if (CGM.getItaniumVTableContext().isRelativeLayout()) {
     // Load the type info.
-    Value = CGF.Builder.CreateBitCast(Value, CGM.Int8PtrTy);
+    // Value = CGF.Builder.CreateBitCast(Value, CGM.Int8PtrTy);
+    // TVM local begin
+    Value = CGF.Builder.CreateBitCast(Value, CGM.BytePtrTy);
+    // TVM local end
+
     Value = CGF.Builder.CreateCall(
         CGM.getIntrinsic(llvm::Intrinsic::load_relative, {CGM.Int32Ty}),
         {Value, llvm::ConstantInt::get(CGM.Int32Ty, -4)});
@@ -2017,7 +2029,11 @@ CGCallee ItaniumCXXABI::getVirtualFunctionPointer(CodeGenFunction &CGF,
 
     llvm::Value *VFuncLoad;
     if (CGM.getItaniumVTableContext().isRelativeLayout()) {
-      VTable = CGF.Builder.CreateBitCast(VTable, CGM.Int8PtrTy);
+      // VTable = CGF.Builder.CreateBitCast(VTable, CGM.Int8PtrTy);
+      // TVM local begin
+      VTable = CGF.Builder.CreateBitCast(VTable, CGM.BytePtrTy);
+      // TVM local end
+
       llvm::Value *Load = CGF.Builder.CreateCall(
           CGM.getIntrinsic(llvm::Intrinsic::load_relative, {CGM.Int32Ty}),
           {VTable, llvm::ConstantInt::get(CGM.Int32Ty, 4 * VTableIndex)});
@@ -3729,16 +3745,24 @@ void ItaniumRTTIBuilder::BuildVTablePointer(const Type *Ty) {
     // TVM local begin
     llvm::Constant *Two = llvm::ConstantInt::get(PtrDiffTy, 2);
     VTable = llvm::ConstantExpr::getInBoundsGetElementPtr(CGM.BytePtrTy, VTable, Two);
-    VTable = llvm::ConstantExpr::getBitCast(VTable, CGM.BytePtrTy);
+    //VTable = llvm::ConstantExpr::getBitCast(VTable, CGM.BytePtrTy);
     // TVM local end
 
   } else {
     llvm::Constant *Two = llvm::ConstantInt::get(PtrDiffTy, 2);
-    VTable = llvm::ConstantExpr::getInBoundsGetElementPtr(CGM.Int8PtrTy, VTable,
+    //VTable = llvm::ConstantExpr::getInBoundsGetElementPtr(CGM.Int8PtrTy, VTable,
+    //                                                      Two);
+    // TVM local begin
+    VTable = llvm::ConstantExpr::getInBoundsGetElementPtr(CGM.BytePtrTy, VTable,
                                                           Two);
+    //VTable = llvm::ConstantExpr::getBitCast(VTable, CGM.BytePtrTy);
+    // TVM local end
   }
-  VTable = llvm::ConstantExpr::getBitCast(VTable, CGM.Int8PtrTy);
 
+  //VTable = llvm::ConstantExpr::getBitCast(VTable, CGM.Int8PtrTy);
+  // TVM local begin
+  VTable = llvm::ConstantExpr::getBitCast(VTable, CGM.BytePtrTy);
+  // TVM local end
   Fields.push_back(VTable);
 }
 
@@ -3878,7 +3902,7 @@ llvm::Constant *ItaniumRTTIBuilder::BuildTypeInfo(
   } else {
     // TypeNameField = llvm::ConstantExpr::getBitCast(TypeName, CGM.Int8PtrTy);
     // TVM local begin
-    llvm::ConstantExpr::getBitCast(TypeNameField, CGM.BytePtrTy);
+    TypeNameField = llvm::ConstantExpr::getBitCast(TypeName, CGM.BytePtrTy);
     // TVM local end
   }
   Fields.push_back(TypeNameField);

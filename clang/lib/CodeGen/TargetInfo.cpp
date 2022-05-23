@@ -8531,8 +8531,13 @@ Address HexagonABIInfo::EmitVAArgForHexagon(CodeGenFunction &CGF,
                                             Address VAListAddr,
                                             QualType Ty) const {
   // FIXME: Need to handle alignment
-  llvm::Type *BP = CGF.Int8PtrTy;
-  llvm::Type *BPP = CGF.Int8PtrPtrTy;
+  //llvm::Type *BP = CGF.Int8PtrTy;
+  //llvm::Type *BPP = CGF.Int8PtrPtrTy;
+  // TVM local begin
+  llvm::Type *BP = CGF.BytePtrTy;
+  llvm::Type *BPP = CGF.BytePtrPtrTy;  
+  // TVM local end
+
   CGBuilderTy &Builder = CGF.Builder;
   Address VAListAddrAsBPP = Builder.CreateBitCast(VAListAddr, BPP, "ap");
   llvm::Value *Addr = Builder.CreateLoad(VAListAddrAsBPP, "ap.cur");

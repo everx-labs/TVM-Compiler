@@ -128,8 +128,13 @@ CodeGenModule::CodeGenModule(ASTContext &C, const HeaderSearchOptions &HSO,
   IntTy = llvm::IntegerType::get(LLVMContext, C.getTargetInfo().getIntWidth());
   IntPtrTy = llvm::IntegerType::get(LLVMContext,
     C.getTargetInfo().getMaxPointerWidth());
-  Int8PtrTy = Int8Ty->getPointerTo(0);
-  Int8PtrPtrTy = Int8PtrTy->getPointerTo(0);
+  //Int8PtrTy = Int8Ty->getPointerTo(0);
+  //Int8PtrPtrTy = Int8PtrTy->getPointerTo(0);
+  // TVM local begin
+  BytePtrTy = Int8Ty->getPointerTo(0);
+  BytePtrPtrTy = BytePtrTy->getPointerTo(0);  
+  // TVM local end
+
   //AllocaInt8PtrTy = Int8Ty->getPointerTo(
   //    M.getDataLayout().getAllocaAddrSpace());
 
@@ -2563,7 +2568,10 @@ llvm::Constant *CodeGenModule::EmitAnnotationLineNo(SourceLocation L) {
 llvm::Constant *CodeGenModule::EmitAnnotationArgs(const AnnotateAttr *Attr) {
   ArrayRef<Expr *> Exprs = {Attr->args_begin(), Attr->args_size()};
   if (Exprs.empty())
-    return llvm::ConstantPointerNull::get(Int8PtrTy);
+    // return llvm::ConstantPointerNull::get(Int8PtrTy);
+    // TVM local begin
+    return llvm::ConstantPointerNull::get(BytePtrTy);
+    // TVM local end
 
   llvm::FoldingSetNodeID ID;
   for (Expr *E : Exprs) {
@@ -2587,7 +2595,10 @@ llvm::Constant *CodeGenModule::EmitAnnotationArgs(const AnnotateAttr *Attr) {
                                       ".args");
   GV->setSection(AnnotationSection);
   GV->setUnnamedAddr(llvm::GlobalValue::UnnamedAddr::Global);
-  auto *Bitcasted = llvm::ConstantExpr::getBitCast(GV, Int8PtrTy);
+  // auto *Bitcasted = llvm::ConstantExpr::getBitCast(GV, Int8PtrTy);
+  // TVM local begin
+  auto *Bitcasted = llvm::ConstantExpr::getBitCast(GV, BytePtrTy);
+  // TVM local end
 
   Lookup = Bitcasted;
   return Bitcasted;

@@ -1401,7 +1401,10 @@ namespace {
         CGF.EmitBlock(RethrowBB);
         if (SavedExnVar) {
           CGF.EmitRuntimeCallOrInvoke(RethrowFn,
-            CGF.Builder.CreateAlignedLoad(CGF.Int8PtrTy, SavedExnVar,
+            // CGF.Builder.CreateAlignedLoad(CGF.Int8PtrTy, SavedExnVar,
+            // TVM local begin
+            CGF.Builder.CreateAlignedLoad(CGF.BytePtrTy, SavedExnVar,
+            // TVM local end
                                           CGF.getPointerAlign()));
         } else {
           CGF.EmitRuntimeCallOrInvoke(RethrowFn);
@@ -1964,7 +1967,10 @@ void CodeGenFunction::EmitCapturedLocals(CodeGenFunction &ParentCGF,
       llvm::Function *FrameRecoverFn = llvm::Intrinsic::getDeclaration(
           &CGM.getModule(), llvm::Intrinsic::localrecover);
       llvm::Constant *ParentI8Fn =
-          llvm::ConstantExpr::getBitCast(ParentCGF.CurFn, Int8PtrTy);
+          // llvm::ConstantExpr::getBitCast(ParentCGF.CurFn, Int8PtrTy);
+          // TVM local begin
+          llvm::ConstantExpr::getBitCast(ParentCGF.CurFn, BytePtrTy);
+          // TVM local end
       ParentFP = Builder.CreateCall(
           FrameRecoverFn, {ParentI8Fn, ParentFP,
                            llvm::ConstantInt::get(Int32Ty, FrameEscapeIdx)});

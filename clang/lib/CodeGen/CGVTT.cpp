@@ -86,9 +86,12 @@ CodeGenVTables::EmitVTTDefinition(llvm::GlobalVariable *VTT,
          VTable->getValueType(), VTable, Idxs, /*InBounds=*/true,
          /*InRangeIndex=*/1);
 
+     //Init = llvm::ConstantExpr::getPointerBitCastOrAddrSpaceCast(Init,
+     //                                                            CGM.Int8PtrTy);
+     // TVM local begin
      Init = llvm::ConstantExpr::getPointerBitCastOrAddrSpaceCast(Init,
-                                                                 CGM.Int8PtrTy);
-
+                                                                 CGM.BytePtrTy);
+     // TVM local end
      VTTComponents.push_back(Init);
   }
 
@@ -126,7 +129,10 @@ llvm::GlobalVariable *CodeGenVTables::GetAddrOfVTT(const CXXRecordDecl *RD) {
       llvm::ArrayType::get(CGM.BytePtrTy, Builder.getVTTComponents().size());
       // TVM local end
 
-  unsigned Align = CGM.getDataLayout().getABITypeAlignment(CGM.Int8PtrTy);
+  // unsigned Align = CGM.getDataLayout().getABITypeAlignment(CGM.Int8PtrTy);
+  // TVM local begin
+  unsigned Align = CGM.getDataLayout().getABITypeAlignment(CGM.BytePtrTy);
+  // TVM local end
 
   llvm::GlobalVariable *GV = CGM.CreateOrReplaceCXXRuntimeVariable(
       Name, ArrayType, llvm::GlobalValue::ExternalLinkage, Align);

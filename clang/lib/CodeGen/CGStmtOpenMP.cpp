@@ -1670,8 +1670,13 @@ Address CodeGenFunction::OMPBuilderCBHelpers::getAddrOfThreadPrivate(
   llvm::OpenMPIRBuilder &OMPBuilder = CGM.getOpenMPRuntime().getOMPBuilder();
 
   llvm::Type *VarTy = VDAddr.getElementType();
+  //llvm::Value *Data =
+  //    CGF.Builder.CreatePointerCast(VDAddr.getPointer(), CGM.Int8PtrTy);
+  // TVM local begin
   llvm::Value *Data =
-      CGF.Builder.CreatePointerCast(VDAddr.getPointer(), CGM.Int8PtrTy);
+      CGF.Builder.CreatePointerCast(VDAddr.getPointer(), CGM.BytePtrTy);
+  // TVM local end
+
   llvm::ConstantInt *Size = CGM.getSize(CGM.GetTargetTypeStoreSize(VarTy));
   std::string Suffix = getNameWithSeparators({"cache", ""});
   llvm::Twine CacheName = Twine(CGM.getMangledName(VD)).concat(Suffix);

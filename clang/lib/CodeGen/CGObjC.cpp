@@ -2665,11 +2665,11 @@ void CodeGenFunction::EmitARCDestroyWeak(Address addr) {
   }
 
   // Cast the argument to 'id*'.
+  // addr = Builder.CreateBitCast(addr, Int8PtrPtrTy);
   // TVM local begin
-  addr = Builder.CreateBitCast(addr, BytePtrTy->getPointerTo(0));
+  addr = Builder.CreateBitCast(addr, BytePtrPtrTy);
   // TVM local end
-  addr = Builder.CreateBitCast(addr, Int8PtrPtrTy);
-
+   
   EmitNounwindRuntimeCall(fn, addr.getPointer());
 }
 

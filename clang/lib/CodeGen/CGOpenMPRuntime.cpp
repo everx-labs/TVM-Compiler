@@ -9445,7 +9445,10 @@ static void emitNonContiguousDescriptor(
     }
     // args[I] = &dims
     Address DAddr = CGF.Builder.CreatePointerBitCastOrAddrSpaceCast(
-        DimsAddr, CGM.Int8PtrTy);
+        // DimsAddr, CGM.Int8PtrTy);
+        // TVM local begin
+        DimsAddr, CGM.BytePtrTy);
+        // TVM local end
     llvm::Value *P = CGF.Builder.CreateConstInBoundsGEP2_32(
         llvm::ArrayType::get(CGM.VoidPtrTy, Info.NumberOfPtrs),
         Info.PointersArray, 0, I);

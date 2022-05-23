@@ -70,16 +70,16 @@ struct CodeGenTypeCache {
   // TVM local end
 
   /// void* in address space 0
-  union {
-    llvm::PointerType *VoidPtrTy;
-    llvm::PointerType *Int8PtrTy;
-  };
+//  union {
+//    llvm::PointerType *VoidPtrTy;
+//    llvm::PointerType *Int8PtrTy;
+//  };
 
   /// void** in address space 0
-  union {
-    llvm::PointerType *VoidPtrPtrTy;
-    llvm::PointerType *Int8PtrPtrTy;
-  };
+//  union {
+//    llvm::PointerType *VoidPtrPtrTy;
+//    llvm::PointerType *Int8PtrPtrTy;
+//  };
 
   /// void* in alloca address space
   union {

@@ -2212,7 +2212,10 @@ public:
   }
 
   void emitDispose(CodeGenFunction &CGF, Address field) override {
-    field = CGF.Builder.CreateBitCast(field, CGF.Int8PtrTy->getPointerTo(0));
+    // field = CGF.Builder.CreateBitCast(field, CGF.Int8PtrTy->getPointerTo(0));
+    // TVM local begin
+    field = CGF.Builder.CreateBitCast(field, CGF.BytePtrTy->getPointerTo(0));
+    // TVM local end
     llvm::Value *value = CGF.Builder.CreateLoad(field);
 
     CGF.BuildBlockRelease(value, Flags | BLOCK_BYREF_CALLER, false);

@@ -6982,7 +6982,10 @@ Value *CodeGenFunction::EmitCommonNeonBuiltinExpr(
   case NEON::BI__builtin_neon_vld3q_lane_v:
   case NEON::BI__builtin_neon_vld4_lane_v:
   case NEON::BI__builtin_neon_vld4q_lane_v: {
-    llvm::Type *Tys[] = {Ty, Int8PtrTy};
+    // llvm::Type *Tys[] = {Ty, Int8PtrTy};
+    // TVM local begin
+    llvm::Type *Tys[] = {Ty, BytePtrTy};
+    // TVM local end
     Function *F = CGM.getIntrinsic(LLVMIntrinsic, Tys);
     for (unsigned I = 2; I < Ops.size() - 1; ++I)
       Ops[I] = Builder.CreateBitCast(Ops[I], Ty);
@@ -8133,7 +8136,10 @@ Value *CodeGenFunction::EmitARMBuiltinExpr(unsigned BuiltinID,
       Ops[1] = Builder.CreateShuffleVector(Ops[1], Ops[1], SV);
       // Load the value as a one-element vector.
       Ty = llvm::FixedVectorType::get(VTy->getElementType(), 1);
-      llvm::Type *Tys[] = {Ty, Int8PtrTy};
+      // llvm::Type *Tys[] = {Ty, Int8PtrTy};
+      // TVM local begin
+      llvm::Type *Tys[] = {Ty, BytePtrTy};
+      // TVM local end
       Function *F = CGM.getIntrinsic(Intrinsic::arm_neon_vld1, Tys);
       Value *Align = getAlignmentValue32(PtrOp0);
       Value *Ld = Builder.CreateCall(F, {Ops[0], Align});
@@ -9843,7 +9849,10 @@ Value *CodeGenFunction::EmitAArch64BuiltinExpr(unsigned BuiltinID,
       Value *Pointer = EmitScalarExpr(E->getArg(0));
       Value *Mask = EmitScalarExpr(E->getArg(1));
 
-      Pointer = Builder.CreatePointerCast(Pointer, Int8PtrTy);
+      //Pointer = Builder.CreatePointerCast(Pointer, Int8PtrTy);
+      // TVM local begin
+      Pointer = Builder.CreatePointerCast(Pointer, BytePtrTy);
+      // TVM local end
       Mask = Builder.CreateZExt(Mask, Int64Ty);
       Value *RV = Builder.CreateCall(
                        CGM.getIntrinsic(MTEIntrinsicID), {Pointer, Mask});
@@ -9853,7 +9862,10 @@ Value *CodeGenFunction::EmitAArch64BuiltinExpr(unsigned BuiltinID,
       Value *Pointer = EmitScalarExpr(E->getArg(0));
       Value *TagOffset = EmitScalarExpr(E->getArg(1));
 
-      Pointer = Builder.CreatePointerCast(Pointer, Int8PtrTy);
+      //Pointer = Builder.CreatePointerCast(Pointer, Int8PtrTy);
+      // TVM local begin
+      Pointer = Builder.CreatePointerCast(Pointer, BytePtrTy);
+      // TVM local end
       TagOffset = Builder.CreateZExt(TagOffset, Int64Ty);
       Value *RV = Builder.CreateCall(
                        CGM.getIntrinsic(MTEIntrinsicID), {Pointer, TagOffset});
@@ -9864,7 +9876,10 @@ Value *CodeGenFunction::EmitAArch64BuiltinExpr(unsigned BuiltinID,
       Value *ExcludedMask = EmitScalarExpr(E->getArg(1));
 
       ExcludedMask = Builder.CreateZExt(ExcludedMask, Int64Ty);
-      Pointer = Builder.CreatePointerCast(Pointer, Int8PtrTy);
+      // Pointer = Builder.CreatePointerCast(Pointer, Int8PtrTy);
+      // TVM local begin
+      Pointer = Builder.CreatePointerCast(Pointer, BytePtrTy);
+      // TVM local end
       return Builder.CreateCall(
                        CGM.getIntrinsic(MTEIntrinsicID), {Pointer, ExcludedMask});
     }
@@ -9873,7 +9888,10 @@ Value *CodeGenFunction::EmitAArch64BuiltinExpr(unsigned BuiltinID,
     // return address same as input address.
     if (MTEIntrinsicID == Intrinsic::aarch64_ldg) {
       Value *TagAddress = EmitScalarExpr(E->getArg(0));
-      TagAddress = Builder.CreatePointerCast(TagAddress, Int8PtrTy);
+      // TagAddress = Builder.CreatePointerCast(TagAddress, Int8PtrTy);
+      // TVM local begin
+      TagAddress = Builder.CreatePointerCast(TagAddress, BytePtrTy);
+      // TVM local end
       Value *RV = Builder.CreateCall(
                     CGM.getIntrinsic(MTEIntrinsicID), {TagAddress, TagAddress});
       return Builder.CreatePointerCast(RV, T);
@@ -9883,15 +9901,23 @@ Value *CodeGenFunction::EmitAArch64BuiltinExpr(unsigned BuiltinID,
     // the tag that is in input address arg (common use case).
     if (MTEIntrinsicID == Intrinsic::aarch64_stg) {
         Value *TagAddress = EmitScalarExpr(E->getArg(0));
-        TagAddress = Builder.CreatePointerCast(TagAddress, Int8PtrTy);
+
+        // TagAddress = Builder.CreatePointerCast(TagAddress, Int8PtrTy);
+        // TVM local begin
+        TagAddress = Builder.CreatePointerCast(TagAddress, BytePtrTy);
+        // TVM local end
         return Builder.CreateCall(
                  CGM.getIntrinsic(MTEIntrinsicID), {TagAddress, TagAddress});
     }
     if (MTEIntrinsicID == Intrinsic::aarch64_subp) {
       Value *PointerA = EmitScalarExpr(E->getArg(0));
       Value *PointerB = EmitScalarExpr(E->getArg(1));
-      PointerA = Builder.CreatePointerCast(PointerA, Int8PtrTy);
-      PointerB = Builder.CreatePointerCast(PointerB, Int8PtrTy);
+      //PointerA = Builder.CreatePointerCast(PointerA, Int8PtrTy);
+      //PointerB = Builder.CreatePointerCast(PointerB, Int8PtrTy);
+      // TVM local begin
+      PointerA = Builder.CreatePointerCast(PointerA, BytePtrTy);
+      PointerB = Builder.CreatePointerCast(PointerB, BytePtrTy);
+      // TVM local end
       return Builder.CreateCall(
                        CGM.getIntrinsic(MTEIntrinsicID), {PointerA, PointerB});
     }
@@ -15996,7 +16022,10 @@ Value *CodeGenFunction::EmitPPCBuiltinExpr(unsigned BuiltinID,
 
   case PPC::BI__builtin_ppc_sthcx: {
     llvm::Function *F = CGM.getIntrinsic(Intrinsic::ppc_sthcx);
-    Ops[0] = Builder.CreateBitCast(Ops[0], Int8PtrTy);
+    // Ops[0] = Builder.CreateBitCast(Ops[0], Int8PtrTy);
+    // TVM local begin
+    Ops[0] = Builder.CreateBitCast(Ops[0], BytePtrTy);
+    // TVM local end
     Ops[1] = Builder.CreateSExt(Ops[1], Int32Ty);
     return Builder.CreateCall(F, Ops);
   }
@@ -16053,10 +16082,18 @@ Value *CodeGenFunction::EmitPPCBuiltinExpr(unsigned BuiltinID,
         BuiltinID == PPC::BI__builtin_mma_stxvp) {
       if (BuiltinID == PPC::BI__builtin_vsx_lxvp ||
           BuiltinID == PPC::BI__builtin_mma_lxvp) {
-        Ops[1] = Builder.CreateBitCast(Ops[1], Int8PtrTy);
+        // Ops[1] = Builder.CreateBitCast(Ops[1], Int8PtrTy);
+        // TVM local begin
+        Ops[1] = Builder.CreateBitCast(Ops[1], BytePtrTy);
+        // TVM local end
+
         Ops[0] = Builder.CreateGEP(Int8Ty, Ops[1], Ops[0]);
       } else {
-        Ops[2] = Builder.CreateBitCast(Ops[2], Int8PtrTy);
+        // Ops[2] = Builder.CreateBitCast(Ops[2], Int8PtrTy);
+        // TVM local begin
+        Ops[2] = Builder.CreateBitCast(Ops[2], BytePtrTy);
+        // TVM local end
+
         Ops[1] = Builder.CreateGEP(Int8Ty, Ops[2], Ops[1]);
       }
       Ops.pop_back();
@@ -18428,8 +18465,9 @@ Value *CodeGenFunction::EmitHexagonBuiltinExpr(unsigned BuiltinID,
                        DestAddr.getAlignment());
     // TVM local end
 
-    DestAddr = Address(Builder.CreateBitCast(DestAddr.getPointer(), Int8PtrTy),
-                       DestAddr.getAlignment());
+    //DestAddr = Address(Builder.CreateBitCast(DestAddr.getPointer(), Int8PtrTy),
+    //                   DestAddr.getAlignment());
+
     llvm::Value *DestAddress = DestAddr.getPointer();
 
     // Operands are Base, Dest, Modifier.

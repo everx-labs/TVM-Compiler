@@ -9,6 +9,12 @@ function(llvm_update_compile_flags name)
     set(update_src_props ON)
   endif()
 
+  # TVM local begin
+  if(DEFINED LLVM_BYTE_SIZE_IN_BITS)
+    list(APPEND LLVM_COMPILE_FLAGS "-DLLVM_BYTE_SIZE_IN_BITS=${LLVM_BYTE_SIZE_IN_BITS}")
+  endif()
+  # TVM local end
+
   list(APPEND LLVM_COMPILE_CFLAGS " ${LLVM_COMPILE_FLAGS}")
 
   # LLVM_REQUIRES_EH is an internal flag that individual targets can use to

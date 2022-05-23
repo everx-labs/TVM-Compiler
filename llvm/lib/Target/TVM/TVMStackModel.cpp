@@ -631,14 +631,14 @@ StackFixup TVMStackModel::prepareStackFor(MachineInstr &MI,
       return StackFixup::DiffForReturn(TheStack);
     else if (NumOperands == 1) {
       auto Op = MI.getOperand(0);
-      auto Reg = Op.isUndef() ? TVMFunctionInfo::UnusedReg : Op.getReg();
+      auto Reg = Op.isUndef() ? TVMFunctionInfo::UnusedReg : (unsigned) Op.getReg();
       return StackFixup::DiffForReturn(TheStack, Reg);
     } else {
       SmallVector<unsigned, 16> RetRegs;
       RetRegs.reserve(NumOperands);
       for (const auto &Op : MI.operands())
         RetRegs.push_back(Op.isUndef() ? TVMFunctionInfo::UnusedReg
-                                       : Op.getReg());
+                                       : (unsigned) Op.getReg());
       return StackFixup::DiffForReturnMulti(TheStack, RetRegs);
     }
   }

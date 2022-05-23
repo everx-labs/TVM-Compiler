@@ -282,7 +282,7 @@ public:
   /// includes all first-class types except struct and array types.
   bool isSingleValueType() const {
     return isFloatingPointTy() || isX86_MMXTy() || isIntegerTy() ||
-           isPointerTy() || isVectorTy() || isX86_AMXTy();
+           isPointerTy() || isVectorTy() || isX86_AMXTy() || isTVMBuiltinTy();
   }
 
   /// Return true if the type is an aggregate type. This means it is valid as

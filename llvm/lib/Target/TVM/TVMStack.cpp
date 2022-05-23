@@ -24,7 +24,7 @@
 #include "llvm/IR/DebugInfoMetadata.h"
 
 namespace llvm {
-
+  
 Stack::Stack(MachineFunction &MF, size_t Size)
     : TRI(MF.getSubtarget<TVMSubtarget>().getRegisterInfo()),
       MRI(&MF.getRegInfo()),
@@ -48,7 +48,7 @@ MIArgs::MIArgs(MachineInstr &MI, const LiveIntervals &LIS, SlotIndex LIIndex) {
   auto regUses = llvm::make_filter_range(MI.uses(),
                    [](const MachineOperand &Op) { return Op.isReg(); });
   for (auto Arg : regUses) {
-    auto Vreg = Arg.isUndef() ? TVMFunctionInfo::UnusedReg : Arg.getReg();
+    auto Vreg = Arg.isUndef() ? TVMFunctionInfo::UnusedReg : (unsigned) Arg.getReg();
     bool Killed =
         Arg.isUndef() ? true : isKilled(MI, Arg.getReg(), LIS, LIIndex);
     Args.emplace_back(StackVreg(Vreg), Killed);

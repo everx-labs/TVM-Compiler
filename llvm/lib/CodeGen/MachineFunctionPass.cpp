@@ -39,7 +39,6 @@ bool MachineFunctionPass::runOnFunction(Function &F) {
   // definitions outside the translation unit.
   if (F.hasAvailableExternallyLinkage())
     return false;
-
   MachineModuleInfo &MMI = getAnalysis<MachineModuleInfoWrapperPass>().getMMI();
   MachineFunction &MF = MMI.getOrCreateMachineFunction(F);
 

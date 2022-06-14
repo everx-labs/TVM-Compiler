@@ -85,7 +85,9 @@ bool llvm::isAllocaPromotable(const AllocaInst *AI) {
       //if (!onlyUsedByLifetimeMarkersOrDroppableInsts(BCI))
       // TVM local begin
       if (BCI->getType() != Type::getIntBytePtrTy(U->getContext(), AS))
+        return false;
       // TVM local end
+      if (!onlyUsedByLifetimeMarkers(BCI))
         return false;
     } else if (const GetElementPtrInst *GEPI = dyn_cast<GetElementPtrInst>(U)) {
       //if (!GEPI->hasAllZeroIndices())

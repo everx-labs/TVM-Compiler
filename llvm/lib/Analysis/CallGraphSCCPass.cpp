@@ -476,7 +476,6 @@ bool CGPassManager::RunAllPassesOnSCC(CallGraphSCC &CurSCC, CallGraph &CG,
     // Actually run this pass on the current SCC.
     bool LocalChanged =
         RunPassOnSCC(P, CurSCC, CG, CallGraphUpToDate, DevirtualizedCall);
-
     Changed |= LocalChanged;
 
 #ifdef EXPENSIVE_CHECKS
@@ -550,6 +549,7 @@ bool CGPassManager::runOnModule(Module &M) {
 
     MaxSCCIterations.updateMax(Iteration);
   }
+
   Changed |= doFinalization(CG);
   return Changed;
 }

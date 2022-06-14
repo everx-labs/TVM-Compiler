@@ -4156,6 +4156,7 @@ static bool combineInstructionsOverFunction(
     AssumptionCache &AC, TargetLibraryInfo &TLI, TargetTransformInfo &TTI,
     DominatorTree &DT, OptimizationRemarkEmitter &ORE, BlockFrequencyInfo *BFI,
     ProfileSummaryInfo *PSI, unsigned MaxIterations, LoopInfo *LI) {
+
   auto &DL = F.getParent()->getDataLayout();
   MaxIterations = std::min(MaxIterations, LimitMaxIterations.getValue());
 
@@ -4264,6 +4265,9 @@ void InstructionCombiningPass::getAnalysisUsage(AnalysisUsage &AU) const {
 bool InstructionCombiningPass::runOnFunction(Function &F) {
   if (skipFunction(F))
     return false;
+
+  //dbgs() << F.getName();
+  //dbgs() << "\n";
 
   // Required analyses.
   auto AA = &getAnalysis<AAResultsWrapperPass>().getAAResults();

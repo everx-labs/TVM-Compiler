@@ -434,7 +434,7 @@ bool SelectionDAGISel::runOnMachineFunction(MachineFunction &mf) {
   CodeGenOpt::Level NewOptLevel = OptLevel;
   if (OptLevel != CodeGenOpt::None && skipFunction(Fn))
     NewOptLevel = CodeGenOpt::None;
-  OptLevelChanger OLC(*this, NewOptLevel);
+  OptLevelChanger OLC(*this, NewOptLevel); 
 
   TII = MF->getSubtarget().getInstrInfo();
   TLI = MF->getSubtarget().getTargetLowering();

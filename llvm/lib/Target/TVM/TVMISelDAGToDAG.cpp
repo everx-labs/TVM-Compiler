@@ -41,7 +41,8 @@ namespace {
 class TVMDAGToDAGISel : public SelectionDAGISel {
 public:
   TVMDAGToDAGISel(TVMTargetMachine &TM, CodeGenOpt::Level OptLevel)
-      : SelectionDAGISel(TM, OptLevel) {}
+      : SelectionDAGISel(TM, OptLevel) {
+  }
 
 private:
   StringRef getPassName() const override {

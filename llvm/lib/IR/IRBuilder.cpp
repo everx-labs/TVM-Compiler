@@ -194,8 +194,13 @@ CallInst *IRBuilderBase::CreateMemTransferInst(
     Intrinsic::ID IntrID, Value *Dst, MaybeAlign DstAlign, Value *Src,
     MaybeAlign SrcAlign, Value *Size, bool isVolatile, MDNode *TBAATag,
     MDNode *TBAAStructTag, MDNode *ScopeTag, MDNode *NoAliasTag) {
-  Dst = getCastedInt8PtrValue(Dst);
-  Src = getCastedInt8PtrValue(Src);
+  //Dst = getCastedInt8PtrValue(Dst);
+  //Src = getCastedInt8PtrValue(Src);
+
+  // TVM local begin
+  Dst = getCastedIntBytePtrValue(Dst);
+  Src = getCastedIntBytePtrValue(Src);
+  // TVM local end
 
   Value *Ops[] = {Dst, Src, Size, getInt1(isVolatile)};
   Type *Tys[] = { Dst->getType(), Src->getType(), Size->getType() };
@@ -1059,7 +1064,9 @@ Value *IRBuilderBase::CreateLaunderInvariantGroup(Value *Ptr) {
          "launder.invariant.group only applies to pointers.");
   // FIXME: we could potentially avoid casts to/from i8*.
   auto *PtrType = Ptr->getType();
-  auto *Int8PtrTy = getInt8PtrTy(PtrType->getPointerAddressSpace());
+  // auto *Int8PtrTy = getInt8PtrTy(PtrType->getPointerAddressSpace());
+  auto *Int8PtrTy = getIntBytePtrTy(PtrType->getPointerAddressSpace());
+
   if (PtrType != Int8PtrTy)
     Ptr = CreateBitCast(Ptr, Int8PtrTy);
   Module *M = BB->getParent()->getParent();
@@ -1084,7 +1091,9 @@ Value *IRBuilderBase::CreateStripInvariantGroup(Value *Ptr) {
 
   // FIXME: we could potentially avoid casts to/from i8*.
   auto *PtrType = Ptr->getType();
-  auto *Int8PtrTy = getInt8PtrTy(PtrType->getPointerAddressSpace());
+  // auto *Int8PtrTy = getInt8PtrTy(PtrType->getPointerAddressSpace());
+  auto *Int8PtrTy = getIntBytePtrTy(PtrType->getPointerAddressSpace());
+
   if (PtrType != Int8PtrTy)
     Ptr = CreateBitCast(Ptr, Int8PtrTy);
   Module *M = BB->getParent()->getParent();

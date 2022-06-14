@@ -6888,7 +6888,10 @@ SDValue SelectionDAG::getMemcpy(SDValue Chain, const SDLoc &dl, SDValue Dst,
   // Emit a library call.
   TargetLowering::ArgListTy Args;
   TargetLowering::ArgListEntry Entry;
-  Entry.Ty = Type::getInt8PtrTy(*getContext());
+  //Entry.Ty = Type::getInt8PtrTy(*getContext());
+  // TVM local begin
+  Entry.Ty = getDataLayout().getIntPtrType(*getContext());
+  // TVM local end
   Entry.Node = Dst; Args.push_back(Entry);
   Entry.Node = Src; Args.push_back(Entry);
 

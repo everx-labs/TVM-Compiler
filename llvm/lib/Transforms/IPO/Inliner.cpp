@@ -638,6 +638,7 @@ bool LegacyInlinerBase::removeDeadFunctions(CallGraph &CG,
     delete CG.removeFunctionFromModule(CGN);
     ++NumDeleted;
   }
+
   return true;
 }
 

@@ -41,10 +41,9 @@ defm HASHSU   : I0<(outs I257 : $result), (ins Slice : $slice),
                    [(set I257 : $result, (int_tvm_hashsu Slice : $slice))],
                    "HASHSU", 0xf901>;
 
-// TODO
-//defm MYCODE : I0<(outs Cell:$code), (ins),
-//                 [(set Cell:$code, (int_tvm_mycode))],
-//                 "MYCODE", 0xffff>; // TODO: fix MYCODE hex id
+defm MYCODE : I0<(outs Cell:$code), (ins),
+                 [(set Cell:$code, (int_tvm_mycode))],
+                 "MYCODE", 0xffff>; // TODO: fix MYCODE hex id
 
 defm CHKSIGNU : I0<(outs I257 : $result),
                    (ins I257 : $hash, Slice : $signature, I257 : $key),

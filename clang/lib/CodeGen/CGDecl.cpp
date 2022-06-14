@@ -1170,8 +1170,13 @@ static Address createUnnamedGlobalForMemcpyFrom(CodeGenModule &CGM,
                                                 llvm::Constant *Constant,
                                                 CharUnits Align) {
   Address SrcPtr = CGM.createUnnamedGlobalFrom(D, Constant, Align);
-  llvm::Type *BP = llvm::PointerType::getInt8PtrTy(CGM.getLLVMContext(),
-                                                   SrcPtr.getAddressSpace());
+//  llvm::Type *BP = llvm::PointerType::getInt8PtrTy(CGM.getLLVMContext(),
+//                                                   SrcPtr.getAddressSpace());
+
+  // TVM local begin
+  llvm::Type *BP = CGM.ByteTy->getPointerTo(SrcPtr.getAddressSpace());
+  // TVM local end
+
   if (SrcPtr.getType() != BP)
     SrcPtr = Builder.CreateBitCast(SrcPtr, BP);
   return SrcPtr;

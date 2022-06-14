@@ -932,6 +932,8 @@ void AggExprEmitter::VisitCastExpr(CastExpr *E) {
   }
 }
 
+static int vcnt = 0;
+
 void AggExprEmitter::VisitCallExpr(const CallExpr *E) {
   if (E->getCallReturnType(CGF.getContext())->isReferenceType()) {
     EmitAggLoadOfLValue(E);

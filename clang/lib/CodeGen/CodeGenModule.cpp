@@ -1875,7 +1875,11 @@ void CodeGenModule::SetLLVMFunctionAttributesForDefinition(const Decl *D,
         return any_of(Pattern->redecls(), CheckRedeclForInline);
       };
       if (CheckForInline(FD)) {
-        B.addAttribute(llvm::Attribute::InlineHint);
+        // B.addAttribute(llvm::Attribute::InlineHint);
+        // TVM local begin
+        B.addAttribute(llvm::Attribute::AlwaysInline);
+        // TVM local end
+
       } else if (CodeGenOpts.getInlining() ==
                      CodeGenOptions::OnlyHintInlining &&
                  !FD->isInlined() &&

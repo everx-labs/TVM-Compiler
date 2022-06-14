@@ -1568,7 +1568,7 @@ bool CompilerInvocation::ParseCodeGenArgs(CodeGenOptions &Opts, ArgList &Args,
   // variable name and type.
   const LangOptions *LangOpts = &LangOptsRef;
 
-#define CODEGEN_OPTION_WITH_MARSHALLING(                                       \
+ #define CODEGEN_OPTION_WITH_MARSHALLING(                                       \
     PREFIX_TYPE, NAME, ID, KIND, GROUP, ALIAS, ALIASARGS, FLAGS, PARAM,        \
     HELPTEXT, METAVAR, VALUES, SPELLING, SHOULD_PARSE, ALWAYS_EMIT, KEYPATH,   \
     DEFAULT_VALUE, IMPLIED_CHECK, IMPLIED_VALUE, NORMALIZER, DENORMALIZER,     \
@@ -1578,6 +1578,12 @@ bool CompilerInvocation::ParseCodeGenArgs(CodeGenOptions &Opts, ArgList &Args,
       IMPLIED_CHECK, IMPLIED_VALUE, NORMALIZER, MERGER, TABLE_INDEX)
 #include "clang/Driver/Options.inc"
 #undef CODEGEN_OPTION_WITH_MARSHALLING
+
+  // TVM local begin
+  Opts.LegacyPassManager = 1;
+  // For compatibility with Clang7, maybe excessive
+  Opts.setFiniteLoops(CodeGenOptions::FiniteLoopsKind::Never);
+  // TVM local end
 
   // At O0 we want to fully disable inlining outside of cases marked with
   // 'alwaysinline' that are required for correctness.
@@ -3734,6 +3740,7 @@ bool CompilerInvocation::ParseLangArgs(LangOptions &Opts, ArgList &Args,
   Opts.DecompositionBindingOverride =
       Args.hasFlag(OPT_fdecomposition_binding_override,
                    OPT_fno_decomposition_binding_override, isTVM);
+  Opts.GNUCVersion = 0x4e20;
   // TVM local end
 
   if (Arg *A = Args.getLastArg(options::OPT_fgnuc_version_EQ)) {

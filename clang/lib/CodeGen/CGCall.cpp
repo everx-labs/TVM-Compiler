@@ -1295,7 +1295,7 @@ static llvm::Value *CreateCoercedLoad(Address Src, llvm::Type *Ty,
   if (SrcTy == Ty)
     return CGF.Builder.CreateLoad(Src);
 
-  llvm::TypeSize DstSize = CGF.CGM.getDataLayout().getTypeAllocSize(Ty);
+   llvm::TypeSize DstSize = CGF.CGM.getDataLayout().getTypeAllocSize(Ty);
 
   if (llvm::StructType *SrcSTy = dyn_cast<llvm::StructType>(SrcTy)) {
     Src = EnterStructPointerForCoercedAccess(Src, SrcSTy,
@@ -1310,7 +1310,8 @@ static llvm::Value *CreateCoercedLoad(Address Src, llvm::Type *Ty,
   if ((isa<llvm::IntegerType>(Ty) || isa<llvm::PointerType>(Ty)) &&
       (isa<llvm::IntegerType>(SrcTy) || isa<llvm::PointerType>(SrcTy))) {
     llvm::Value *Load = CGF.Builder.CreateLoad(Src);
-    return CoerceIntOrPtrToIntOrPtr(Load, Ty, CGF);
+    llvm::Value *CLoad = CoerceIntOrPtrToIntOrPtr(Load, Ty, CGF);
+    return CLoad;
   }
 
   // If load is legal, just bitcast the src pointer.
@@ -1404,11 +1405,32 @@ void CodeGenFunction::EmitAggregateStore(llvm::Value *Val, Address Dest,
                                          bool DestIsVolatile) {
   // Prefer scalar stores to first-class aggregate stores.
   if (llvm::StructType *STy = dyn_cast<llvm::StructType>(Val->getType())) {
+    //for (unsigned i = 0, e = STy->getNumElements(); i != e; ++i) {
+    //  Address EltPtr = Builder.CreateStructGEP(Dest, i);
+    //  llvm::Value *Elt = Builder.CreateExtractValue(Val, i);
+    //  Builder.CreateStore(Elt, EltPtr, DestIsVolatile);
+    // }
+
+    // TVM local begin
+    const llvm::StructLayout *Layout =
+        CGM.getDataLayout().getStructLayout(STy);
+
+    auto *STyDst = dyn_cast<llvm::StructType>(Dest.getElementType());
+    if (getTarget().getTriple().getArch() == llvm::Triple::tvm)
+      if (STyDst && STy->isLiteral() && STyDst->isLiteral()) {
+        Address Ptr =
+            Builder.CreateBitCast(Dest, Val->getType()->getPointerTo());
+        Builder.CreateStore(Val, Ptr, DestIsVolatile);
+        return;
+      }
+
     for (unsigned i = 0, e = STy->getNumElements(); i != e; ++i) {
+      auto EltOffset = CharUnits::fromQuantity(Layout->getElementOffset(i));
       Address EltPtr = Builder.CreateStructGEP(Dest, i);
       llvm::Value *Elt = Builder.CreateExtractValue(Val, i);
       Builder.CreateStore(Elt, EltPtr, DestIsVolatile);
     }
+    // TVM local end
   } else {
     Builder.CreateStore(Val, Dest, DestIsVolatile);
   }

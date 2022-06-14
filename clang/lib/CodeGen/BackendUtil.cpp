@@ -1208,7 +1208,11 @@ void EmitAssemblyHelper::EmitAssemblyWithNewPassManager(
 
   bool RequiresCodeGen = (Action != Backend_EmitNothing &&
                           Action != Backend_EmitBC &&
-                          Action != Backend_EmitLL);
+                          Action != Backend_EmitLL &&
+                          // TVM local begin
+                          Action != Backend_EmitTextConst);
+                          // TVM local end
+  
   CreateTargetMachine(RequiresCodeGen);
 
   if (RequiresCodeGen && !TM)

@@ -3847,8 +3847,7 @@ bool InstCombinerImpl::run() {
         // Add operands to the worklist.
         replaceInstUsesWith(*I, C);
         ++NumConstProp;
-        if (isInstructionTriviallyDead(I, &TLI))
-          eraseInstFromFunction(*I);
+        eraseInstFromFunction(*I);    
         MadeIRChange = true;
         continue;
       }
@@ -3946,7 +3945,6 @@ bool InstCombinerImpl::run() {
         // Push the new instruction and any users onto the worklist.
         Worklist.pushUsersToWorkList(*Result);
         Worklist.push(Result);
-
         eraseInstFromFunction(*I);
       } else {
         LLVM_DEBUG(dbgs() << "IC: Mod = " << OrigI << '\n'
@@ -4144,7 +4142,7 @@ static bool prepareICWorklistFromFunction(Function &F, const DataLayout &DL,
       MadeIRChange = true;
       continue;
     }
-
+ 
     ICWorklist.push(Inst);
   }
 
@@ -4156,7 +4154,6 @@ static bool combineInstructionsOverFunction(
     AssumptionCache &AC, TargetLibraryInfo &TLI, TargetTransformInfo &TTI,
     DominatorTree &DT, OptimizationRemarkEmitter &ORE, BlockFrequencyInfo *BFI,
     ProfileSummaryInfo *PSI, unsigned MaxIterations, LoopInfo *LI) {
-
   auto &DL = F.getParent()->getDataLayout();
   MaxIterations = std::min(MaxIterations, LimitMaxIterations.getValue());
 
@@ -4208,6 +4205,12 @@ static bool combineInstructionsOverFunction(
       break;
 
     MadeIRChange = true;
+  }
+
+  if (db) {
+    dbgs() << "After combineInstructionsOverFunction\n";
+    F.getEntryBlock().print(dbgs());
+    dbgs() << "\n";
   }
 
   return MadeIRChange;

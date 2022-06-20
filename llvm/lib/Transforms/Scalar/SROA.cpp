@@ -5025,6 +5025,7 @@ PreservedAnalyses SROA::runImpl(Function &F, DominatorTree &RunDT,
   do {
     while (!Worklist.empty()) {
       Changed |= runOnAlloca(*Worklist.pop_back_val());
+
       Changed |= deleteDeadInstructions(DeletedAllocas);
 
       // Remove the deleted allocas from various lists so that we don't try to
@@ -5036,6 +5037,7 @@ PreservedAnalyses SROA::runImpl(Function &F, DominatorTree &RunDT,
         llvm::erase_if(PromotableAllocas, IsInSet);
         DeletedAllocas.clear();
       }
+
     }
 
     Changed |= promoteAllocas(F);

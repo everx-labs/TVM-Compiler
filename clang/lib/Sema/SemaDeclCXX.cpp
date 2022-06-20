@@ -12304,11 +12304,16 @@ NamedDecl *Sema::BuildUsingDeclaration(
     return nullptr;
 
   // 'using_if_exists' doesn't make sense on an inherited constructor.
+  // TVM localbegin
+  // CLANG13-TVM-SDK
+  /*
   if (IsUsingIfExists && UsingName.getName().getNameKind() ==
                              DeclarationName::CXXConstructorName) {
     Diag(UsingLoc, diag::err_using_if_exists_on_ctor);
     return nullptr;
   }
+  */
+  // TVM local end
 
   DeclContext *LookupContext = computeDeclContext(SS);
   NestedNameSpecifierLoc QualifierLoc = SS.getWithLocInContext(Context);

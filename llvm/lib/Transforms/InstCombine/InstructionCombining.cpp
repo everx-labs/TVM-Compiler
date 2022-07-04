@@ -137,7 +137,10 @@ static constexpr unsigned InstCombineDefaultInfiniteLoopThreshold = 1000;
 
 static cl::opt<bool>
 EnableCodeSinking("instcombine-code-sinking", cl::desc("Enable code sinking"),
-                                              cl::init(true));
+                                              // cl::init(true));
+                                              // TVM local begin
+                                              cl::init(false));
+                                              // TVM local end
 
 static cl::opt<unsigned> LimitMaxIterations(
     "instcombine-max-iterations",
@@ -2692,6 +2695,8 @@ Instruction *InstCombinerImpl::visitAllocSite(Instruction &MI) {
 
   // If we are removing an alloca with a dbg.declare, insert dbg.value calls
   // before each store.
+  // 
+
   SmallVector<DbgVariableIntrinsic *, 8> DVIs;
   std::unique_ptr<DIBuilder> DIB;
   if (isa<AllocaInst>(MI)) {
@@ -4207,12 +4212,6 @@ static bool combineInstructionsOverFunction(
     MadeIRChange = true;
   }
 
-  if (db) {
-    dbgs() << "After combineInstructionsOverFunction\n";
-    F.getEntryBlock().print(dbgs());
-    dbgs() << "\n";
-  }
-
   return MadeIRChange;
 }
 
@@ -4268,9 +4267,6 @@ void InstructionCombiningPass::getAnalysisUsage(AnalysisUsage &AU) const {
 bool InstructionCombiningPass::runOnFunction(Function &F) {
   if (skipFunction(F))
     return false;
-
-  //dbgs() << F.getName();
-  //dbgs() << "\n";
 
   // Required analyses.
   auto AA = &getAnalysis<AAResultsWrapperPass>().getAAResults();

@@ -541,6 +541,13 @@ Value *value::gen_call(Instruction *Instr, Function *F, value *fmt) const {
   SmallVector<Value*, 10> Args;
   gen_call_visitor visitor{this, Args};
   std::visit(visitor, *get(), *fmt->get());
+  size_t i = 0;
+  for (const auto& arg : F->args()) {
+    if (arg.getType() != Args[i]->getType()) {
+      Args[i] = B.CreateBitCast(Args[i], arg.getType());
+    }
+    ++i;
+  }
   return B.CreateCall(F, Args);
 }
 

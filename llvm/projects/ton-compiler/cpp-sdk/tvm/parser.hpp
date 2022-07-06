@@ -19,6 +19,10 @@ public:
     return val;
   }
 
+  bool ldb() {
+    return ldu(1);
+  }
+
   unsigned ldu(unsigned len) {
     auto [val, sl] = __builtin_tvm_ldu(sl_, len);
     sl_ = sl;

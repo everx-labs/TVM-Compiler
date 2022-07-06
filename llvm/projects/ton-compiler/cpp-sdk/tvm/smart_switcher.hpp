@@ -211,7 +211,7 @@ __always_inline void send_answer(Contract& c, unsigned func_id, ReturnValue rv) 
 }
 
 template<class Interface, class ReplayAttackProtection, class DContract>
-__always_inline std::tuple<persistent_data_header_t<Interface, ReplayAttackProtection>, DContract> parse_persistent_data(cell state) {
+std::tuple<persistent_data_header_t<Interface, ReplayAttackProtection>, DContract> parse_persistent_data(cell state) {
   using namespace schema;
 
   parser persist(state);
@@ -246,16 +246,16 @@ __always_inline std::tuple<persistent_data_header_t<Interface, ReplayAttackProte
   }
 }
 
-
 template<class Interface, class ReplayAttackProtection, class DContract>
-__always_inline std::tuple<persistent_data_header_t<Interface, ReplayAttackProtection>, DContract> load_persistent_data() {
+__attribute__((noinline))
+std::tuple<persistent_data_header_t<Interface, ReplayAttackProtection>, DContract> load_persistent_data() {
   return parse_persistent_data<Interface, ReplayAttackProtection, DContract>(persistent_data::get());
 }
 
 // For parsing arguments from message body sequence
 // p - message body after header (and answer_id) already parsed
 template<bool Internal, class MsgHeader, class Data, bool dyn_chain>
-__always_inline Data parse_smart(parser p) {
+Data parse_smart(parser p) {
   using namespace schema;
 
   if constexpr (dyn_chain) {
@@ -306,8 +306,9 @@ inline cell prepare_persistent_data(persistent_data_header_t<IContract, ReplayAt
 }
 
 template<class IContract, class ReplayAttackProtection, class DContract>
-inline void save_persistent_data(persistent_data_header_t<IContract, ReplayAttackProtection> hdr,
-                                 DContract base) {
+__attribute__((noinline))
+void save_persistent_data(persistent_data_header_t<IContract, ReplayAttackProtection> hdr,
+                          DContract base) {
   persistent_data::set(prepare_persistent_data<IContract, ReplayAttackProtection, DContract>(hdr, base));
 }
 
@@ -655,6 +656,17 @@ struct smart_process_answer {
   }
 };
 
+/// If incoming message has `init` section (this is a deploy message)
+template<bool Internal>
+__attribute__((noinline))
+bool msg_has_init(slice msg_slice) {
+  using MsgInfoT = std::conditional_t<Internal, int_msg_info, ext_in_msg_info>;
+  parser p(msg_slice);
+  auto [msg_info, =p] = parse_continue<MsgInfoT>(p);
+  require(!!msg_info, error_code::bad_incoming_msg);
+  return p.ldb();
+}
+
 template<bool Internal, class Contract, class IContract, class DContract, class ReplayAttackProtection = void>
 __always_inline
 int smart_switch(cell msg, slice msg_body) {
@@ -683,8 +695,7 @@ int smart_switch(cell msg, slice msg_body) {
   bool checked_deploy = false;
   if constexpr (checked_deploy_enabled_v<Contract>) {
     if constexpr (Contract::_checked_deploy) {
-      auto parsed_msg = parse<message<anyval>>(c.msg_slice());
-      checked_deploy = !!parsed_msg.init;
+      checked_deploy = msg_has_init<Internal>(c.msg_slice());
     }
   }
 

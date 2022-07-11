@@ -1402,7 +1402,7 @@ void FPPassManager::dumpPassStructure(unsigned Offset) {
 bool FPPassManager::runOnFunction(Function &F) {
    if (F.isDeclaration())
     return false;
-      
+
   bool Changed = false;
   Module &M = *F.getParent();
   // Collect inherited analysis from Module level pass manager.
@@ -1439,7 +1439,7 @@ bool FPPassManager::runOnFunction(Function &F) {
 
       bool Chg = FP->runOnFunction(F);
       LocalChanged |= Chg;
-      
+
  #if defined(EXPENSIVE_CHECKS) && !defined(NDEBUG)
       if (!LocalChanged && (RefHash != StructuralHash(F))) {
         llvm::errs() << "Pass modifies its input and doesn't report it: "

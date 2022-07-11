@@ -185,7 +185,7 @@ raw_ostream &llvm::dbgs() {
 namespace llvm {
   /// dbgs - Return errs().
   raw_ostream &dbgs() {
-   return errs();
+    return errs();
   }
 }
 void llvm::initDebugOptions() {}

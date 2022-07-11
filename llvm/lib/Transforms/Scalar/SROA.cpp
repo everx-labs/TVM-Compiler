@@ -716,9 +716,8 @@ private:
   }
 
   void visitGetElementPtrInst(GetElementPtrInst &GEPI) {
-    if (GEPI.use_empty()) {
+    if (GEPI.use_empty())
       return markAsDead(GEPI);
-    }
 
     if (SROAStrictInbounds && GEPI.isInBounds()) {
       // FIXME: This is a manually un-factored variant of the basic code inside
@@ -795,14 +794,6 @@ private:
 
   void visitStoreInst(StoreInst &SI) {
     Value *ValOp = SI.getValueOperand();
-    
-    // TVM local begin
-    if (ValOp->getType()->isTVMCellTy() || 
-        ValOp->getType()->isTVMBuilderTy() ||
-        ValOp->getType()->isTVMSliceTy() || ValOp->getType()->isTVMTupleTy())
-      return PI.setEscapedAndAborted(&SI);
-    // TVM local end
-
     if (ValOp == *U)
       return PI.setEscapedAndAborted(&SI);
     if (!IsOffsetKnown)
@@ -3504,7 +3495,6 @@ public:
       U = Queue.pop_back_val();
       Changed |= visit(cast<Instruction>(U->getUser()));
     }
-
     return Changed;
   }
 
@@ -4908,7 +4898,6 @@ bool SROA::runOnAlloca(AllocaInst &AI) {
 
   // Build the slices using a recursive instruction-visiting builder.
   AllocaSlices AS(DL, AI);
-
   LLVM_DEBUG(AS.print(dbgs()));
   if (AS.isEscaped())
     return Changed;
@@ -5036,6 +5025,7 @@ PreservedAnalyses SROA::runImpl(Function &F, DominatorTree &RunDT,
   do {
     while (!Worklist.empty()) {
       Changed |= runOnAlloca(*Worklist.pop_back_val());
+      Changed |= deleteDeadInstructions(DeletedAllocas);
 
       // Remove the deleted allocas from various lists so that we don't try to
       // continue processing them.
@@ -5046,10 +5036,10 @@ PreservedAnalyses SROA::runImpl(Function &F, DominatorTree &RunDT,
         llvm::erase_if(PromotableAllocas, IsInSet);
         DeletedAllocas.clear();
       }
-
     }
 
     Changed |= promoteAllocas(F);
+
     Worklist = PostPromotionWorklist;
     PostPromotionWorklist.clear();
   } while (!Worklist.empty());
@@ -5085,6 +5075,7 @@ public:
   bool runOnFunction(Function &F) override {
     if (skipFunction(F))
       return false;
+
     auto PA = Impl.runImpl(
         F, getAnalysis<DominatorTreeWrapperPass>().getDomTree(),
         getAnalysis<AssumptionCacheTracker>().getAssumptionCache(F));

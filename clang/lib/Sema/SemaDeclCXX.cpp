@@ -957,9 +957,9 @@ static bool checkSimpleDecomposition(
     ExprResult E = S.BuildDeclRefExpr(Src, DecompType, VK_LValue, Loc);
     if (E.isInvalid())
       return true;
-    //E = GetInit(Loc, E.get(), I++);
-    //if (E.isInvalid())
-    //  return true;
+    E = GetInit(Loc, E.get(), I++);
+    if (E.isInvalid())
+      return true;
     //B->setBinding(ElemType, E.get());
 
     // TVM local begin

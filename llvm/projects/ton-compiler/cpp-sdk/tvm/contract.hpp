@@ -202,7 +202,6 @@ __attribute__((tvm_raw_func)) int main_internal(__tvm_cell msg, __tvm_slice msg_
   return smart_switch</*Internal=*/true, Contract<true>, IContract, DContract,             \
                       replay_attack_protection::timestamp<TimestampDelay>>(msg, msg_body); \
 }
-
 #define MAIN_ENTRY_FUNCTIONS_NO_REPLAY_TMPL(Contract, IContract, DContract)                \
 __attribute__((tvm_raw_func)) int main_external(__tvm_cell msg, __tvm_slice msg_body) {    \
   return smart_switch</*Internal=*/false, Contract<false>, IContract, DContract, void>(    \
@@ -211,6 +210,22 @@ __attribute__((tvm_raw_func)) int main_external(__tvm_cell msg, __tvm_slice msg_
 __attribute__((tvm_raw_func)) int main_internal(__tvm_cell msg, __tvm_slice msg_body) {    \
   return smart_switch</*Internal=*/true, Contract<true>, IContract, DContract, void>(      \
     msg, msg_body);                                                                        \
+}
+
+#define DEFAULT_MAIN_ENTRY_FUNCTIONS2(Contract, IContract, DContract, ReplayProtect)        \
+__attribute__((tvm_raw_func)) int main_external(__tvm_cell msg, __tvm_slice msg_body) {     \
+  return smart_switch<false, Contract, IContract, DContract, ReplayProtect>(msg, msg_body); \
+}                                                                                           \
+__attribute__((tvm_raw_func)) int main_internal(__tvm_cell msg, __tvm_slice msg_body) {     \
+  return smart_switch<true, Contract, IContract, DContract, ReplayProtect>(msg, msg_body);  \
+}
+
+#define DEFAULT_MAIN_ENTRY_FUNCTIONS_TMPL2(Contract, IContract, DContract, ReplayProtect)          \
+__attribute__((tvm_raw_func)) int main_external(__tvm_cell msg, __tvm_slice msg_body) {            \
+  return smart_switch<false, Contract<false>, IContract, DContract, ReplayProtect>(msg, msg_body); \
+}                                                                                                  \
+__attribute__((tvm_raw_func)) int main_internal(__tvm_cell msg, __tvm_slice msg_body) {            \
+  return smart_switch<true, Contract<true>, IContract, DContract, ReplayProtect>(msg, msg_body);   \
 }
 
 // Prepare and send empty message with nanograms as transfer value.

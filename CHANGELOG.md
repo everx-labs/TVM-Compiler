@@ -7,6 +7,11 @@ All notable changes to this project will be documented in this file.
 ### New
 
 
+## Version: 7.7.38
+
+### New
+
+
 ## Version: 7.7.37
 
 ### New

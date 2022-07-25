@@ -2468,6 +2468,7 @@ void CodeGenModule::EmitDeferred() {
     // to get GlobalValue with exactly the type we need, not something that
     // might had been created for another decl with the same mangled name but
     // different type.
+
     llvm::GlobalValue *GV = dyn_cast<llvm::GlobalValue>(
         GetAddrOfGlobal(D, ForDefinition));
 

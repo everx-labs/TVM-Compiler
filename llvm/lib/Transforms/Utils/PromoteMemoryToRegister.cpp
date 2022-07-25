@@ -554,6 +554,7 @@ static bool promoteSingleBlockAlloca(AllocaInst *AI, const AllocaInfo &Info,
 
 void PromoteMem2Reg::run() {
   Function &F = *DT.getRoot()->getParent();
+
   AllocaDbgUsers.resize(Allocas.size());
 
   AllocaInfo Info;

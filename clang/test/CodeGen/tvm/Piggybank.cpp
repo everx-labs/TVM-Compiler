@@ -19,7 +19,7 @@ public:
 
   __always_inline void constructor(lazy<MsgAddress> pb_owner, uint_t<256> pb_limit) final;
   __always_inline void deposit() final;
-  __always_inline void withdraw() final;
+//  __always_inline void withdraw() final;
 
   // Function is called in case of unparsed or unsupported func_id
   static __always_inline int _fallback(cell msg, slice msg_body);
@@ -37,6 +37,8 @@ void Piggybank::deposit() {
   balance += int_msg().unpack().value();
 }
 
+
+/*
 void Piggybank::withdraw() {
   auto sender = int_msg().unpack().int_sender();
 
@@ -46,6 +48,7 @@ void Piggybank::withdraw() {
   tvm_transfer(sender, balance.get(), false);
   balance = 0;
 }
+*/
 
 // Fallback function
 int Piggybank::_fallback(cell msg, slice msg_body) {

@@ -660,7 +660,11 @@ CGCallee ItaniumCXXABI::EmitLoadOfMemberFunctionPointer(
   // TVM local begin
   llvm::Value *Ptr = Builder.CreateBitCast(This, Builder.getIntBytePtrTy());
   // TVM local end
-  Ptr = Builder.CreateInBoundsGEP(Builder.getInt8Ty(), Ptr, Adj);
+
+  //Ptr = Builder.CreateInBoundsGEP(Builder.getInt8Ty(), Ptr, Adj);
+  // TVM local begin
+  Ptr = Builder.CreateInBoundsGEP(Builder.getByteTy(), Ptr, Adj);
+  // TVM local end
   This = Builder.CreateBitCast(Ptr, This->getType(), "this.adjusted");
   ThisPtrForCall = This;
 

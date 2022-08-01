@@ -197,7 +197,7 @@ bool LPPassManager::runOnFunction(Function &F) {
 #endif
         LocalChanged = P->runOnLoop(CurrentLoop, *this);
 
- #ifdef EXPENSIVE_CHECKS
+#ifdef EXPENSIVE_CHECKS
         if (!LocalChanged && (RefHash != StructuralHash(F))) {
           llvm::errs() << "Pass modifies its input and doesn't report it: "
                        << P->getPassName() << "\n";

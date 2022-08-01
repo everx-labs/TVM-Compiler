@@ -535,11 +535,6 @@ public:
   bool isIntegerConstantExpr(const ASTContext &Ctx,
                              SourceLocation *Loc = nullptr) const;
 
-  // TVM local begin
-  bool isIntegerConstantExpr(llvm::APSInt &Value, const ASTContext &Ctx,
-                             SourceLocation *Loc = nullptr, bool isEvaluated = true) const;
-  // TVM local end
-
   /// isCXX98IntegralConstantExpr - Return true if this expression is an
   /// integral constant expression in C++98. Can only be used in C++.
   bool isCXX98IntegralConstantExpr(const ASTContext &Ctx) const;

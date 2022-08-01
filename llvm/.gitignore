@@ -39,9 +39,11 @@ autoconf/autom4te.cache
 # Directories to ignore (do not add trailing '/'s, they skip symlinks).
 #==============================================================================#
 # External projects that are tracked independently.
-projects/*
-!projects/*.*
-!projects/Makefile
+# TVM local begin
+# projects/*
+#!projects/*.*
+#!projects/Makefile
+# TVM local end
 runtimes/*
 !runtimes/*.*
 # Sphinx build tree, if building in-source dir.

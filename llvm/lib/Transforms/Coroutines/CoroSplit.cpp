@@ -562,10 +562,7 @@ void CoroCloner::replaceCoroSuspends() {
   // result in control flow proceeding to a cleanup label associated with this
   // suspend point.
   case coro::ABI::Switch:
-    // SuspendResult = Builder.getInt8(isSwitchDestroyFunction() ? 1 : 0);
-    // TVM local begin
-    SuspendResult = Builder.getByte(isSwitchDestroyFunction() ? 1 : 0);
-    // TVM local end
+    SuspendResult = Builder.getInt8(isSwitchDestroyFunction() ? 1 : 0);
     break;
 
   // In async lowering there are no uses of the result.
@@ -1571,10 +1568,7 @@ static void replaceAsyncResumeFunction(CoroSuspendAsyncInst *Suspend,
                                        Value *Continuation) {
   auto *ResumeIntrinsic = Suspend->getResumeFunction();
   auto &Context = Suspend->getParent()->getParent()->getContext();
-  //auto *Int8PtrTy = Type::getInt8PtrTy(Context);
-  // TVM local begin
-  auto *Int8PtrTy = Type::getIntBytePtrTy(Context);
-  // TVM local end
+  auto *Int8PtrTy = Type::getInt8PtrTy(Context);
 
   IRBuilder<> Builder(ResumeIntrinsic);
   auto *Val = Builder.CreateBitOrPointerCast(Continuation, Int8PtrTy);
@@ -1628,10 +1622,7 @@ static void splitAsyncCoroutine(Function &F, coro::Shape &Shape,
   F.removeAttribute(AttributeList::ReturnIndex, Attribute::NonNull);
 
   auto &Context = F.getContext();
-  //auto *Int8PtrTy = Type::getInt8PtrTy(Context);
-  // TVM local begin
-  auto *Int8PtrTy = Type::getIntBytePtrTy(Context);
-  // TVM local end
+  auto *Int8PtrTy = Type::getInt8PtrTy(Context);
 
   auto *Id = cast<CoroIdAsyncInst>(Shape.CoroBegin->getId());
   IRBuilder<> Builder(Id);

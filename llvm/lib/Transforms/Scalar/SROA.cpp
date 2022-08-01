@@ -716,9 +716,8 @@ private:
   }
 
   void visitGetElementPtrInst(GetElementPtrInst &GEPI) {
-    if (GEPI.use_empty()) {
+    if (GEPI.use_empty())
       return markAsDead(GEPI);
-    }
 
     if (SROAStrictInbounds && GEPI.isInBounds()) {
       // FIXME: This is a manually un-factored variant of the basic code inside
@@ -795,14 +794,6 @@ private:
 
   void visitStoreInst(StoreInst &SI) {
     Value *ValOp = SI.getValueOperand();
-    
-    // TVM local begin
-    //if (ValOp->getType()->isTVMCellTy() || 
-    //    ValOp->getType()->isTVMBuilderTy() ||
-    //    ValOp->getType()->isTVMSliceTy() || ValOp->getType()->isTVMTupleTy())
-    //  return PI.setEscapedAndAborted(&SI);
-    // TVM local end
-
     if (ValOp == *U)
       return PI.setEscapedAndAborted(&SI);
     if (!IsOffsetKnown)
@@ -3504,7 +3495,6 @@ public:
       U = Queue.pop_back_val();
       Changed |= visit(cast<Instruction>(U->getUser()));
     }
-
     return Changed;
   }
 
@@ -4908,7 +4898,6 @@ bool SROA::runOnAlloca(AllocaInst &AI) {
 
   // Build the slices using a recursive instruction-visiting builder.
   AllocaSlices AS(DL, AI);
-
   LLVM_DEBUG(AS.print(dbgs()));
   if (AS.isEscaped())
     return Changed;
@@ -5047,7 +5036,6 @@ PreservedAnalyses SROA::runImpl(Function &F, DominatorTree &RunDT,
         llvm::erase_if(PromotableAllocas, IsInSet);
         DeletedAllocas.clear();
       }
-
     }
 
     Changed |= promoteAllocas(F);

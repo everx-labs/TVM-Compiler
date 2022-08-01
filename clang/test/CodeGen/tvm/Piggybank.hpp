@@ -12,8 +12,8 @@ __interface IPiggybank {
   __attribute__((internal))
   void deposit() = 2;
 
-//  __attribute__((internal))
-//  void withdraw() = 3;
+  __attribute__((internal))
+  void withdraw() = 3;
 };
 
 // Piggybank persistent data

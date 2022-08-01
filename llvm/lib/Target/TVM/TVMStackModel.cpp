@@ -286,7 +286,6 @@ bool TVMStackModel::processInstruction(MachineInstr &MI, Stack &TheStack) {
   auto *MBB = CurrentMI.getParent();
   StackFixup::InstructionGenerator InsertMIs(TII, MFI, MBB, CurrentMI);
   std::string PreTermStackStr;
-
   StackFixup Fix =
       prepareStackFor(CurrentMI, TheStack, Index, &PreTermStackStr);
   InsertMIs(Fix);

@@ -61,7 +61,7 @@ git clone https://github.com/tonlabs/TON-Compiler.git –-branch master --single-b
 cd TON-compiler
 mkdir build
 cd build
-cmake -DCMAKE_INSTALL_PREFIX=../../install -C ../cmake/Cache/ton-compiler.cmake ../llvm
+cmake -DCMAKE_INSTALL_PREFIX=../../install -DLLVM_ENABLE_PROJECTS=clang -C ../cmake/Cache/ton-compiler.cmake ../llvm
 cmake --build . --target install
 ```
 

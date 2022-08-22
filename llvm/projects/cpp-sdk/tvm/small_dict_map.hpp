@@ -108,8 +108,7 @@ struct small_dict_map {
   std::optional<Element> extract(Key key) const {
     auto [sl, succ] = dict_.dictdelget(schema::build(key).make_slice(), KeyLen::value);
     if (succ) {
-      //DXX
-      //--size_;
+      --size_;
       return schema::parse<Element>(sl);
     }
     return {};

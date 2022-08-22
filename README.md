@@ -1,124 +1,431 @@
-# C and C++ compiler for TVM
+# C++ Tutorial
+  
 
-`Getting C++ toolchain in binary form`
-This README is mostly about building C++ for TVM which is the most appropriate way to get the compiler and the library for contributors. If your intent is only to use the compiler, we provide binary package you can simply download:
-- [For Ubuntu](http://sdkbinaries-ws.tonlabs.io/clang-for-tvm/clang-for-tvm.tar.gz)
-- [For Mac OS X](https://sdkbinaries.tonlabs.io/clang-for-tvm/clang-for-tvm-darwin.zip)
-
-The binaries are updated on every commit in master, so they are always up to date.
-
-`Clang for TVM based on LLVM 7.0.0`.
-This repository contain
-* Clang for TVM C and C++ compiler
-* [C++ runtime and SDK headers-only library](https://github.com/tonlabs/TON-Compiler/tree/master/llvm/projects/ton-compiler)
-* [C runtime and SDK library](https://github.com/tonlabs/TON-Compiler/tree/master/llvm/projects/ton-compiler)
-The following guide is about building the compilers and installing them, to find a user guide and example contracts, please refer to [the samples repository](https://github.com/tonlabs/samples).
+> **Note**: this tutorial is a work in progress. It updates once C++ for TVM gets a juicy new feature, so we recommend to return to it from time to time.
 
 ## Prerequisites
-To build the toolchain, you need a recent C++ toolchain supporting C++17:
-- MSVC 2017 or newer
-- Clang 6.0.0 or newer
-- GCC 7.3.0 or newer
-- Rust 1.47.0 or newer
-- Cargo
 
-Stable operation of older toolchains is not guaranteed.
-You also need zlib 1.2.3.4 or newer. Python 2.7 is required to run tests. Optionally, you can use ninja-build.
-For more info about LLVM software requirements visit: [https://llvm.org/docs/GettingStarted.html](https://llvm.org/docs/GettingStarted.html).
+To reproduce the tutorial, you need to get [TON-Compiler sources](https://github.com/tonlabs/TON-Compiler), [TONOS-CLI](https://github.com/tonlabs/tonos-cli), [TVM-linker sources](https://github.com/tonlabs/TVM-linker) and build `clang++`, `tvm_linker` and `tonos-cli`. Please follow `README` files from the corresponding repositories.
 
-## Supported operation systems
-We expect the project to build successfully on
-- Ubuntu 16.04, 18.04
-- Mac OS Mojave 10.14.3 or higher
-- Windows 10
+## Installation sequence
 
-## Building and installing
-To build and to install the compiler use the following script:
+## [Install Build Tools & Libraries](./docs/installtools.md)
+
+## Build and Install C/C++ compiler for TVM and TVM-linker
+
+To build C++ compiler from sources, use command sequence (for Linux):
 ```
-$ git clone git@github.com:tonlabs/TON-Compiler.git
-$ mkdir build
-$ cd build
-$ cmake -DCMAKE_INSTALL_PREFIX=/path/to/install -C /path/to/TON-Compiler/cmake/Cache/ton-compiler.cmake ../llvm
-$ cmake --build . --target install-distribution
+git clone https://github.com/tonlabs/TON-Compiler.git –-branch master --single-branch TON-Compiler
+cd TON-compiler
+mkdir build
+cd build
+cmake -DCMAKE_INSTALL_PREFIX=../../install -DLLVM_ENABLE_PROJECTS=clang -C ../cmake/Cache/ton-compiler.cmake ../llvm
+cmake --build . --target install
 ```
+
+This command sequence also builds and installs a TVM-linker.
+You can change -DCMAKE_INSTALL_PREFIX if you want to install C++ to other directory.
+Sometimes there is a conflict during installation between "build" directory and "build" temporary file name. To eliminate such conflict, you can beforehand create a "build" subdirectory in your "install" directory. 
+
+For Window users you can use Microsoft Visual Studio 2017 or newer and generate *.sln Solution with command sequence:
+```
+git clone https://github.com/tonlabs/TON-Compiler.git –-branch master --single-branch TON-Compiler
+cd TON-compiler
+mkdir build
+cd build
+cmake -G "Visual Studio 15" -DLLVM_TARGETS_TO_BUILD="TVM" -C /path/to/TON-Compiler/cmake/Cache/ton-compiler-alone.cmake ../llvm
+```
+Than you can compiler "clang" Solution subproject to generate Clang compiler for TVM.
+
+## The toolchain description
+
+ ![Toolchain scheme](./docs/Images/Toolchain.png)
+
+C++ toolchain consists of the following libraries and tools:
+
+* C++ runtime located at `TON-Compiler-source/stdlib/stdlib_cpp.tvm`.
+* C++ std headers at `TON-Compiler-source/stdlib/cpp-sdk/std`. These are mostly original headers from LLVM libstdc++ configured with TVM architecture parameters. You might expect these headers to work and to use them. But we don't guarantee that every single feature will work smoothly: some C++ features are beyound the capabilities of TVM architecture. We address this subject later on in this tutorial.
+* Boost hana library which might be used in contracts. It's located at `TON-Compiler-source/stdlib/cpp-sdk/boost`.
+* TON SDK header-based library containing essential functions and classes to work with contracts. It's located at `TON-Compiler-source/stdlib/cpp-sdk/tvm`.
+* Clang-7 based C++ compiler. The binary is located at `TON-Compiler-build/bin/clang++`.
+* `tvm_linker` linker for TVM assembly and also a local testing tool for contracts. The tool is located at `TVM-linker-source/tvm_linker/target/<debug or release>/tvm_linker`.
+* `tonos-cli` contract deployment tool. The tool is located at `tonos-cli/target/<debug or release>/tonos-cli`.
+
+  
+
+## Brief introduction to TON and TVM and the terminology
+
+Unlike common C++ programs, smart contracts are intended to be run in a blockchain. This implies that the code and, perhaps, data need to be stored permanently unless someone modifies or destroys them. In TON blockchain all contracts exchange messages between each other. The exchange is essentially asynchronous. When a contract receives a message, it parses it, and in case the message is sensible to a contract it generally invokes a user defined handler called a public method (which is usually a class method with public access specifier, but it doesn't have to be implemented this way).
+
+When this tutorial refers to a public method it means a public method in terms of TVM rather than in terms of C++. One contract might send a message to another one and by means of this message call a public method asynchronously. Such a message is called an internal message (i.e. the sender is in the blockchain).
+
+Alternatively, an external tool might also create and send a message to a contract. Such a message is called an external message. When a contract is handling a message, it has limited computation resources measured in gas. Gas price is deducted from contract balance and this balance is associated with the contract deployed into the network.
+
+However, even if a contract has outstanding balance, there is a hard limit on how much it can spend on a single incoming message, if this limit is exceeded, the contract is terminated even if the code it runs is well-formed. To minimize the state which is transferred between contracts and stored in the blockchain, TVM does not have random access memory. The memory might be emulated by dictionaries, however, it's quite expensive and often not practical taking into account limited gas supply.
+
+Thus a typical smart contract in C++ avoids using memory. Moreover, all the functions with pointer or reference arguments have to be **__always_inline** . Non-static methods too, because they have implicit **this** pointer argument. 
+
+  
+
+## Environment setup
+
+Prior to start developing a contract, we configure `PATH` to add all the tools we need:
+
+```
+export PATH=TON-Compiler-build/bin:TVM-linker-source/tvm_linker/target/<debug or release>:tonos-cli/target/<debug or release>:$PATH
+```
+  
+
+## Hello, world
+
+A typical smart contract consists of two files:
+
+* contract interface description in a header file
+* contract implementation in a cpp-file A contract might consist of more files if it's needed, but since the contract tends to be small, two files are often enough. Let's start developing our first, `Hello, world!` contract by describing its interface.
+
+### Describing a contract interface
+
+A contract interface consists of three parts:
+
+* Public methods declarations.
+* Persistent data.
+* Events. Public methods are functions that receive messages in the blockchain. There is a dedicated method called `constructor` which is called upon the contract deploy. The constructor is a must, otherwise the contract can not be deployed. The constructor, as well as other public methods, must only take arguments of types that are listed below:
+* `int_t<N>` \- N-bits wide signed integer, 0 < N <= 257.
+* `uint_t<N>` \- N-bits wide unsigned integer, 0 < N <= 256.
+* `MsgAddress` - message address which work for both internal or external messages.
+* `MsgAddressInt` - an internal message address.
+* `MsgAddressExt` - an external message address.
+* `dict_array<T, 32>` \- a map representing an "array" stored in a dictionaly with 32-bits wide keys which are indices of the array. `T` must also belong to this list.
+* `dict_map<KeyT, ValueT>` \- a map. `ValueT` must also belong to the list, `KeyT` must be `uint_t<N>`.
+* `sequence<uint_t<8>>` \- a sequence of 8-bit unsigned values, it might also be seen as an "array" of 8-bits values; it's usually cheaper to use sequentially stored data then maps.
+* `lazy<T>` \- value of `T`, but the parsing is deferred until the actual value is needed. Only lazy, lazy and lazy are supported at the moment.
+* a compound type - a POD structure which only have data members of types from the list. When a compound type is used, it's encoded the same way the sequence of its element does. Also note, that for the sake of ABI generation (see below) the names of the members are used, so be aware of possible collisions. Aside from that, public methods might have an arbitrary signature. However, at the moment C++ for TVM does not support public method templates. For Hello, world contract all we need is the constructor and a method that sends an external message:
+
+```
+// Hello world interface
+struct IHelloWorld {
+  // Handle external messages only
+  [[external]]
+  void constructor() = 1;
+     
+  // Handle external messages only
+  [[external]]
+  uint_t<8> hello_world() = 2;
+};
+```
+
+All the methods here are pure virtual ones, and N in `= N` designates their IDs. These IDs must be unique within a contract and an ID must also not be equal to 0. Also methods have to be marked with at least one of the attributes:
+
+* external - the method handles external incoming messages
+* internal - the method handles internal incoming messages
+* getter - the method could be executed offchain, thus you can read persistent data without paying for it. As you might have noticed, a public method could return. In such a case, the return value is interpreted as the value that needs to be sent via an external message, so an off-chain application can handle it. The type of the return value must also belong to the list above. Note that TVM supports multiple return values. Struct return type is the way to use the feature from C++. `Hello, world!` contract doesn't need any persistent data member, however, currently, it's required to have at least one field of data otherwise you'd receive a weird looking error message. For `Hello, world!` contract, we use the following persistent data.
+
+```
+// Hello world persistent data
+struct DHelloWorld {
+  uint_t<1> x;
+};
+```
+
+Finally, events might be interpreted as a kind of off-chain function calls. When a public method emits an event it works similar to another public method call implying that the message containing the function ID and the call parameters is emitted. However, in case of an event, this message is to be sent externally (i.e. outside of the blockchain), so an external handle could process it. Events are pure virtual methods as well, but they are not supposed to ever be defined or called. Also, their IDs must be different from the IDs of public methods. For Hello, world contract we don't need events at all:
+
+```
+// Hello world events
+struct EHelloWorld {};
+```
+
+Putting all together, below is the complete listing of Hello, world contract interface.
+
+```
+#pragma once
+
+#include <tvm/schema/message.hpp>
+
+namespace tvm { namespace schema {
+
+// Hello world interface
+struct IHelloWorld {
+  // Handle external messages only
+  [[external]]
+  void constructor() = 1;
+
+  // Handle external messages only
+  [[external]]
+  uint_t<8> hello_world() = 2;
+};
+
+// Hello world persistent data
+struct DHelloWorld {
+  uint_t<1> x;
+};
+
+// Hello world events
+struct EHelloWorld {};
+
+}} // namespace tvm::schema
+```
+  
+
+### Implementation
+
+To implement a contract some SDK headers will be of help.
+
+* tvm/schema/message.hpp define message structure which is used in TON.
+* tvm/contract.hpp implement contract class and essential auxiliary functions to work with it.
+* tvm/smart\_switcher.hpp implement smart\_interface which generates boilerplate code for parsing incoming messages, serializing method results and so on.
+* tvm/replay\_attack\_protection/timestamp.hpp implement timestamp based replay protection which is an essential thing which prevent the same message to be handles more than once. After including the headers, we declare a class that represents the contract.
+
+```
+using namespace tvm::schema;
+using namespace tvm;
+
+class HelloWorld final : public smart_interface<IHelloWorld>,
+                         public DHelloWorld {
+…
+};
+```
+
+To utilize smart switcher to not to write message parsing by yourself, a contract class must inherit from `start_interface<T>` where `T` is the type of the struct describing public methods (i.e. the interface) and from the struct describing the contract's persistent data. Implementation of `HelloWorld` is trivial:
+
+```
+public:
+  __always_inline void constructor() final {}
+  __always_inline uint_t<8> hello_world() final {return uint_t<8>(42);};
+
+  // Function is called in case of unparsed or unsupported func_id
+static __always_inline int _fallback(cell msg, slice msg_body) { return 0; };
+```
+
 Notes:
-* `/path/to/install` must be complete path to the installation folder, otherwise Clang might be unable to find all the libraries, headers and tools by default.
-* We strongly recommend to use the installed version of the compiler, otherwise it might be unable to find the required headers and tools by itself, so they have to be specified by hands.
-* A complete C and C++ toolchain require [tvm_linker](https://github.com/tonlabs/TVM-linker/) to be built. We recommend to put the liker binary to `/path/to/install/bin` directory. Otherwise you might need to use `-fuse-ld` option to spicify full name of the linker.
-* `install-distribution` installs only required minimum of tools, while `install` target copies all the LLVM tools to the installation folder. These additional tools doesn't necessary work with TVM target properly.
 
-For Windows / Microsoft Visual Studio 2017/2020 (clang Compiler without linker & other external tools)
+1.  `__always_inline` is essential here. Remember that the compiler will fail if a function fails to inline.
+2.  The first two methods we've already seen. Aside from doing what is written they always perform replay protection check and accept the incoming message. By accepting a message, a contact agrees to pay for its processing and thus the computation the contract makes will not be discarded.
+3.  The last method is called when either message ID is invalid or does not exist (e.g. when a contract sending it doesn't use the ABI). Smart switcher isn't able to help this method to parse a message, nor does it insert accept into it. Thus, by doing nothing there, the contract ignores ill-formed incoming external messages. A couple of things needs to be added after the contract class is defined:
+
 ```
-> git clone git@github.com:tonlabs/TON-Compiler.git
-> mkdir build
-> cd build
-> cmake -G "Visual Studio 15" -DLLVM_TARGETS_TO_BUILD="TVM" -C /path/to/TON-Compiler/cmake/Cache/ton-compiler-alone.cmake ../llvm
+DEFINE_JSON_ABI(IHelloWorld, DHelloWorld, EHelloWorld);
 ```
 
-Then open generated solution file LLVM.sln with Visual Studio
+Insert logic necessary to generate the ABI file which is required to work with the contract.
 
-### Troubleshooting and speeding up the build
-Building Clang takes quite a bit of time, below we list some options to speed it up:
-* Use faster build system via `-GXXX` option. We recommend to choose `ninja-build` (you might need to install it first) using `-GNinja`.
-* Use a faster linker via `-DCMAKE_LINKER=<linker name>`. It's known that `lld` is faster than `gold`, and gold is faster than `ld`. On Linux, however, `lld` might not be a part of the default toolchain, so you might have to install it first.
-* Use a faster compiler via `-DCMAKE_C_COMPILER=<compiler>` and `-DCMAKE_CXX_COMPILER=<compiler>`. Clang might be slightly faster than GCC.
-* Build dynamically linked version of Clang via `-DBUILD_SHARED_LIB=On`.
-Note that building Clang also require a tens of gigabytes of disk space (especially for a static build) and several gigabytes of RAM to be build. In case, you run out of memory `-DLLVM_PARALLEL_LINK_JOBS=N` might be of help. This option limits the number of link jobs running in parallel does the footpring. There is also a separate option `-DLLVM_PARALLEL_COMPILE_JOBS=N` to limit number of compilation jobs running in parallel.
-To learn more about possible configurations of LLVM build, please refer to [LLVM documentation](https://llvm.org/docs/CMake.html). In case you are experiencing problems with build, we would appreciete raising an issue in this repository.
-
-## Running tests
-To run tests for TVM, execute
 ```
-$ cmake --build . --target check-llvm-codegen-tvm
+DEFAULT_MAIN_ENTRY_FUNCTIONS(HelloWorld, IHelloWorld, DHelloWorld, 1800)
 ```
 
-To run tests for other platforms (to ensure that LLVM itself is not broken), you have to create a separate build without using `/path/to/TON-Compiler/cmake/Cache/ton-compiler.cmake` config and run
+Generate entry points function that transfer control flow to a public method. 1800 here is the argument which configure replay protection. 1800 it's time in seconds which is recommended by the ABI manual. Putting all together, here is the complete listing of the contract implementation.
+
 ```
-$ cmake --build . --target check all
+#include "HelloWorld.hpp"
+
+#include <tvm/contract.hpp>
+#include <tvm/smart_switcher.hpp>
+#include <tvm/replay_attack_protection/timestamp.hpp>
+
+using namespace tvm::schema;
+using namespace tvm;
+
+class HelloWorld final : public smart_interface<IHelloWorld>,
+                         public DHelloWorld {
+public:
+  __always_inline void constructor() final {}
+  __always_inline uint_t<8> hello_world() final {return uint_t<8>(42);};
+
+  // Function is called in case of unparsed or unsupported func_id
+  static __always_inline int _fallback(cell msg, slice msg_body) { return 0; }; };
+DEFINE_JSON_ABI(IHelloWorld, DHelloWorld, EHelloWorld);
+
+// ----------------------------- Main entry functions ---------------------- //
+DEFAULT_MAIN_ENTRY_FUNCTIONS(HelloWorld, IHelloWorld, DHelloWorld, 1800)
+```
+  
+
+### Compilation and local testing
+
+The code we wrote so far can be found at [Hello, world!](https://github.com/tonlabs/samples/blob/master/cpp/HelloWorld). Let's assume that we put the contract interface into `HelloWorld.hpp` and its implementation into `HelloWorld.cpp`. Compilation and linking now consist of one step:
+
+1.  Compiling and linking
+
+```
+clang++ -o HelloWorld.tvc HelloWorld.cpp --sysroot=$TVM\_INCLUDE\_PATH
 ```
 
-For more details see [testing.md](https://github.com/tonlabs/TON-Compiler/blob/readme/testing.md).
+This command generates ABI file (*.abi) and executable TVC file (*.tvc). 
 
-## Example of usage
-You can learn more about C++ for TVM and find examples of usage of C++ toolchain [here](https://github.com/tonlabs/samples/tree/master/cpp). C toolchain is mostly for geeks who want to follow TVM assembly closely, but doesn't want to work with stack. C examples might be found [here](https://github.com/tonlabs/samples/tree/master/c).
+The first command produces the ABI file. Note that in case the contract uses an unsupported type, clang will silently generate "unknown" for it in the ABI and the contract will not link. The second command compiles and links the contract. It produces address.tvc file and the file named “key”.
+  
 
-## Getting support
-C and C++ for TVM, being similar to conventional C and C++, has their own extensions and limitations, so if you are getting started with programming for TVM, we recommend to first refer to [the examples repository](https://github.com/tonlabs/samples).
-Texts, videos and samples illustrating how to use the compiler will soon appear at https://ton.dev/ and https://www.youtube.com/channel/UC9kJ6DKaxSxk6T3lEGdq-Gg. Stay tuned.
-You can also get support in [TON Dev Telegram channel](https://t.me/tondev_en).
-In case you found a bug, raise an issue in the repository. Please attach the source file, the command to reproduce the failure and your machine description.
+### Debugging locally
 
-## Contribution policy
-The project strives to follow LLVM coding standards and policies as well as C++ Core Guidelines, so before contributing, we recommend you to familiarize with the following documents:
-- [LLVM Developer Policy](https://llvm.org/docs/DeveloperPolicy.html)
-- [LLVM Coding Standards](https://llvm.org/docs/CodingStandards.html)
-- [LLVM Programmerâ€™s Manual](http://llvm.org/docs/ProgrammersManual.html)
-- [C++ Core Guidelines](https://github.com/isocpp/CppCoreGuidelines/blob/master/CppCoreGuidelines.md)
+`tvm_linker` tool can be used to send messages to and to get messages from a contract. Please note though, that a contract modifies its persistent data stored in tvc file so that such a contract might no longer be deployable to the network. So, we recommend you to make a copy of the contract if you plan to test it locally, or alternatively recompile prior to the deployment. When debugging in linker, the constructor is not called automatically and it supposed to be explicitly invoked by a programmer. In case the constructor does nothing like in `Hello, world!` it isn't necessary, but for the sake of demonstration we still call it.
 
-Note: Since TVM backend uses C++17 which is not yet fully supported in LLVM, the guidelines could be reasonably adjusted for cases of C++17 usages. C++17 data structures are preferred over LLVM counterparts, for instance, `std::optional<T>` is better to use w.r.t. `llvm::Optional<T>`.
-
-All changes in LLVM (excluding `lib/Target/TVM` subdirectory) must be marked as local changes in the following way:
 ```
-// TVM local begin
-<changed LLVM code>
-// TVM local end
+$ export ADDRESS=\`ls *.tvc | cut -f 1 -d '.'\`
+$ tvm_linker test $ADDRESS \
+--abi-json HelloWorld.abi \
+--abi-method constructor \
+--abi-params '{}' \
+--sign key
 ```
-The reason is to help resolving merge conflicts when updating LLVM to a new version.
 
-All removals from LLVM must be commented out instead:
+After executing the contract, the linker prints a long message. The most important part of it is that TVM is terminated with 0 exit code i.e. successfully. The second important part is how much gas were spent. Let's call `hello_world` method to ensure that it works as well.
 ```
-#if 0
-<removed LLVM code>
-#endif
+tvm_linker test $ADDRESS \
+--abi-json HelloWorld.abi \
+--abi-method hello_world \
+--abi-params '{}'  \
+--sign key \
+--decode-c6
 ```
-The reason is to minimize number of merge conflicts when updating LLVM to a new version.
-To learn more about development a downstream LLVM project, refer to [https://llvm.org/devmtg/2015-10/slides/RobinsonEdwards-LivingDownstreamWithoutDrowning.pdf](https://llvm.org/devmtg/2015-10/slides/RobinsonEdwards-LivingDownstreamWithoutDrowning.pdf).
 
-## Upstreaming
-We believe that LLVM community would benefit from getting TVM backend upstream. It's a very distinct architecture, that break several assumptions. For instance, Clang front-end and the optimizer relies on 8-bit bytes byte which is not true for TVM as well as for some non-mainstream processors. Furthermore, target independent code generator is designed for a register machine, so stack machine support is benefitial at least for WebAssembly. So, with some constraints removed, LLVM will be better placed to downstream development and we believe it is feasible without damaging existing targets.
-We would like to implement, upstream and maintain the following features:
-* Byte size specified in data layout, removing magical number 8 from the optimizer.
-* memset, memcopy, memmove configured with the byte size.
-* DAG scheduler for a stack machine.
-* Generic analysis and transformation passes to optimize for stack machine on MIR level.
-The current version of Clang for TVM is based on LLVM 7.0.0, it's planned update LLVM, remove hardcoded byte size and adopt opaque types insted of types we introduced to LLVM.
+Here we use `--decode-c6` option (please refer to `tvm_tools -help` for a complete manual on its command-line options) to display the outgoing message and ensure that the contract indeed sends a message containing 42 as a payload. You will find the outgoing message at the end of the linker output. The message body is displayed in hexadecimal form, and 0x2a = 42.
+
+
+### Deploying and testing in the network
+
+Testing in the network is somewhat similar to testing locally, but instead of the linker `tonos-cli` needs to be used and argument passing is a bit different. The deploying workflow is described in [README](https://github.com/tonlabs/samples/tree/master/cpp#contract-deployment) but we will repeat it once again here. First, we need to recompile the contract since we used for linker tests. Then copy newly generated tvc file (and rename it to `HelloWorld.tvc` for simplicity) and abi file to `tonos-cli/target/<debug or release>/` After all the preparations, we can execute the following script
+```
+cd tonos-cli/target/<debug or release>/
+cargo run genaddr HelloWorld.tvc HelloWorld.abi --genkey hw.key
+```
+
+The latter command returns the raw address of the contract. Now you can send (test) coins to it using any method described in [README](https://github.com/tonlabs/samples/tree/master/cpp#getting-test-coins). When contract balance is greater than 0, we can deploy the contract:
+```
+cargo run deploy --abi HelloWorld.abi HelloWorld.tvc '{}' --sign hw.key
+```
+
+And finally test `hello_world` method:
+
+```
+cargo run call –abi HelloWorld.abi "<raw address>" hello_world "{}" --sign hw.key
+```
+
+The command is supposed to output the message ending with
+
+```
+Succeded.
+Result = {"output":{"value0":"0x2a"}}
+```
+
+## Authorization
+
+
+### Interface and implementation
+
+Now we are ready to extend the contract we just developed. The main issue of `Hello, world!` contract is that `hello_world` public method might be called by anybody. Because a method execution is not free, a stranger might spam the contract and thus spend all its balance. To prevent this, we need to introduce additional checks prior to accepting an incoming external message. To perform this check, the contract will do the following:
+
+1.  Store the public key of the owner when deployed.
+2.  Check the message signature against the key when `hello_world` is called. The implementation is simple. First, we need to add persistent data to the contract.
+
+```
+// Hello world persistent data
+struct DHelloWorld {
+  uint_t<256> ownerKey;
+};
+```
+
+Second, we need to add the following members to `HelloWorld` contract class:
+
+```
+// The compiler reads the key from the incoming message and stores is in
+// pubkey_. So the key is available in a public method via tvm_pubkey().
+unsigned pubkey_ = 0;
+__always_inline void set_tvm_pubkey(unsigned pubkey) { pubkey_ = pubkey; }
+__always_inline unsigned tvm_pubkey() const { return pubkey_; }
+```
+
+Third, we need to modify the constructor and `hello_world` method:
+
+```
+/// Deploy the contract.
+__always_inline void constructor() final { ownerKey = tvm_pubkey(); }
+__always_inline uint_t<8> hello_world() final {
+  require(tvm_pubkey() == ownerKey, 101);
+  return uint_t<8>(42);
+}
+```
+
+Here we store the public key in the constructor, and then check it in `hello_world`. `101` in require call is the error code which needs to be greater than `100` to not interfere with virtual machine and C++ SDK error codes. The only issue remains is that the contract still accepts the incoming message before it checks the requirements. So, we don't pay for the outgoing message if a stranger called it, but still pay for the rest of the execution. To fix that problem, we need to change the pure virtual method declaration:
+
+```
+__attribute__((external, noaccept))
+uint_t<8> hello_world() = 2;
+```
+
+We also need to accept explicitly:
+
+```
+__always_inline uint_t<8> hello_world() final {
+  require(tvm_pubkey() == ownerKey, 101);
+  tvm_accept();
+  return uint_t<8>(42);
+};
+```
+
+### Deploying and testing in the network
+
+This time we omit testing in the linker (you might do it by yourself, following the instructions from the corresponding subsection section of `Hello, world!` contract). For testing in the network, we generate another key when deploying and then check if we can get result using this key and the previous one which should not be valid. Recompile and copy the contract to `tonos-cli/target/<debug or release>/` similar to the previous contract. Then run:
+
+```
+cd tonos-cli/target/<debug or release>/
+cargo run genaddr HelloWorld.tvc HelloWorld.abi --genkey auth.key
+#send coins to the contract address somehow
+cargo run deploy --abi HelloWorld.abi HelloWorld.tvc '{}' --sign auth.key
+cargo run call –abi HelloWorld.abi "<raw address>" hello_world "{}" --sign hw.key
+cargo run call –abi HelloWorld.abi "<raw address>" hello_world "{}" --sign auth.key
+```
+
+The first call will fail and terminate by timeout. Any uncaught exception that occurs prior to accept will not be shown, because currently the node doesn't support such a feature. To properly diagnose it, you should install TON OS SE and use it for debugging, which is out of scope of this tutorial. The second call should successfully return 0x2a.
+
+## Message exchange
+
+
+### Interface and implementation
+
+Finally, we are ready to implement more complex contracts that exchange messages between each other. Giver is a good example of such a contract. We ask the reader to familiarize yourself with the code. Here we only provide some gist of it:
+
+1.  An internal public method could be declared the same way the external is, but it's marked with `internal` attribute. An internal method use, the incoming message balance rather than the contract's balance to compute, so unlike an external method, it doesn't need to accept a message.
+2.  `tvm/contract_handle.hpp` provides function to call a method of another contract. To do so, it needs the callee contract's interface class definition, so that was the reason for separate cpp and hpp part of the contract implementation. The syntax is generally the following:
+
+```
+auto handle = contract_handle<ICallee>(callee_address);
+handle(message_balance, message_flags).method_name(parameters…);
+```
+
+The first line constructs the handle for the contract. A contract might be called though it. The second line configures the call via `operator()` and then performs it. `operator()` is optional, by default this configuration guarantees that if the sender has enough balance the message will carry 1 000 000 units of money.
+
+### Debugging locally
+
+Unlike the previous testing scenarios, we need to check how internal messages work. To do so, first we need generate an outgoing message. Let's call `get_money` method of `Client` contract and ask the `Giver` with address `<Giver address>` 42 000 units of money:
+
+```
+tvm_linker test <Client address> \
+--abi-json Client.abi \
+--abi-method get_money \
+--abi-params "{\"giver\":\"<Giver address>\", \"balance\":42000}" \
+--sign client \
+--decode-c6
+```
+
+After the execution, the message is encoded in one of the last lines of the output:
+  
+```
+body  : bits: 288   refs: 0   data: 00000002000000000000000000000000000000000000000000000000000000000000a410
+```
+
+```
+The message is `00000002000000000000000000000000000000000000000000000000000000000000a410` The linker does not automatically send this message to Giver contract, so we need to request it to do so:
+```
+
+```
+tvm_linker test <Giver address> \
+--src "<Client address> " \
+--internal <message balance> \
+--body 00000002000000000000000000000000000000000000000000000000000000000000a410 \
+--decode-c6
+```
+
+`--src` here is the sender address. It might be omitted if the receiver doesn't check where the message came from.
+
+### Deploying and testing in the network
+
+When testing in a real network, you don't need to send internal messages - only external ones. So the process does not differ much. However, [ton.live](https://net.ton.live/) becomes essential to see all incoming and outgoing messages for a contract. All you need is to specify the raw address, and look at the logs.

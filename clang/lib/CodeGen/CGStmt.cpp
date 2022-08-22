@@ -1295,7 +1295,7 @@ void CodeGenFunction::EmitReturnStmt(const ReturnStmt &S) {
                                 /*isInit*/ true);
       break;
     case TEK_Aggregate:
-      EmitAggExpr(RV, AggValueSlot::forAddr(
+     EmitAggExpr(RV, AggValueSlot::forAddr(
                           ReturnValue, Qualifiers(),
                           AggValueSlot::IsDestructed,
                           AggValueSlot::DoesNotNeedGCBarriers,

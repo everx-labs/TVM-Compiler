@@ -1875,9 +1875,9 @@ void CodeGenModule::SetLLVMFunctionAttributesForDefinition(const Decl *D,
         return any_of(Pattern->redecls(), CheckRedeclForInline);
       };
       if (CheckForInline(FD)) {
-        // B.addAttribute(llvm::Attribute::InlineHint);
+        B.addAttribute(llvm::Attribute::InlineHint);
         // TVM local begin
-        B.addAttribute(llvm::Attribute::AlwaysInline);
+        //B.addAttribute(llvm::Attribute::AlwaysInline);
         // TVM local end
 
       } else if (CodeGenOpts.getInlining() ==
@@ -2468,6 +2468,7 @@ void CodeGenModule::EmitDeferred() {
     // to get GlobalValue with exactly the type we need, not something that
     // might had been created for another decl with the same mangled name but
     // different type.
+
     llvm::GlobalValue *GV = dyn_cast<llvm::GlobalValue>(
         GetAddrOfGlobal(D, ForDefinition));
 
@@ -5343,6 +5344,25 @@ QualType CodeGenModule::getObjCFastEnumerationStateType() {
 llvm::Constant *
 CodeGenModule::GetConstantArrayFromStringLiteral(const StringLiteral *E) {
   assert(!E->getType()->isPointerType() && "Strings are always arrays");
+
+  // TVM local begin
+  if (getTriple().getArch() == llvm::Triple::tvm) {
+    auto *ATy = cast<llvm::ArrayType>(getTypes().ConvertType(E->getType()));
+    llvm::Type *ETy = ATy->getElementType();
+    unsigned NumElements = ATy->getNumElements();
+
+    SmallVector<llvm::Constant *, 32> Array;
+    Array.reserve(NumElements);
+    for (unsigned i = 0, e = E->getLength(); i != e; ++i)
+      Array.push_back(llvm::ConstantInt::get(ETy, E->getCodeUnit(i)));
+    if (NumElements > E->getLength())
+      Array.append(NumElements - E->getLength(),
+                   llvm::ConstantInt::get(ETy, 0));
+    Array.resize(NumElements);
+
+    return llvm::ConstantArray::get(ATy, Array);
+  }
+  // TVM local end
 
   // Don't emit it as the address of the string, emit the string data itself
   // as an inline array.

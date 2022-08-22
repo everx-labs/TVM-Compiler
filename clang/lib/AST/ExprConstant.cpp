@@ -8201,6 +8201,7 @@ bool LValueExprEvaluator::VisitVarDecl(const Expr *E, const VarDecl *VD) {
       Result.set({VD, Frame->Index, Version});
       return true;
     }
+
     return Success(VD);
   }
 
@@ -15573,6 +15574,25 @@ bool Expr::isIntegerConstantExpr(const ASTContext &Ctx,
   }
   return true;
 }
+
+// TVM local begin
+bool Expr::isIntegerConstantExpr(llvm::APSInt &Value, const ASTContext &Ctx,
+                                 SourceLocation *Loc, bool isEvaluated) const {
+  assert(!isValueDependent() &&
+         "Expression evaluator can't be called on a dependent expression.");
+
+  if (Ctx.getLangOpts().CPlusPlus11)
+    return EvaluateCPlusPlus11IntegralConstantExpr(Ctx, this, &Value, Loc);
+
+  ICEDiag D = CheckICE(this, Ctx);
+  if (D.Kind != IK_ICE) {
+    if (Loc)
+      *Loc = D.Loc;
+    return false;
+  }
+  return true;
+}
+// TVM local end
 
 Optional<llvm::APSInt> Expr::getIntegerConstantExpr(const ASTContext &Ctx,
                                                     SourceLocation *Loc,

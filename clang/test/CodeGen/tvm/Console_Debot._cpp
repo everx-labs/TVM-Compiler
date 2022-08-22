@@ -69,18 +69,16 @@ public:
 
   __always_inline
   resumable<void> start() override {
-    // co_await cout().print("Hello, I am SMV Debot!");
+    co_await cout().print("Hello, I am SMV Debot!");
 
+    if (!super_root_)
+      super_root_ = ISuperRootPtr(co_await cout().inputAddress("SMV root address:", "SMV.root"));
 
-    //if (!super_root_)
-    //  super_root_ = ISuperRootPtr(co_await cout().inputAddress("SMV root address:", "SMV.root"));
-    
     auto root_initialized = co_await super_root_->run().isFullyInitialized();
-    //if (!root_initialized) {
-    //  co_await printf("Root is not initialized, exiting");
-    //  co_return;
-    //}
-    /*
+    if (!root_initialized) {
+      co_await printf("Root is not initialized, exiting");
+      co_return;
+    }
     co_await printf("SMV root details \\{\n"
                     "  budget:     {address};\n"
                     "  statistics: {address};\n"
@@ -364,7 +362,6 @@ public:
       }
       }
     }
-*/
   }
   DEFAULT_SUPPORT_FUNCTIONS(ISMV_Debot, replay_protection_t)
   

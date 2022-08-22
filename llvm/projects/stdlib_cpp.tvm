@@ -1,0 +1,36 @@
+    .internal-alias :main_merge,        -4
+    .internal-alias :main_split,        -3
+    .internal-alias :main_ticktock,     -2
+    .internal-alias :main_external,     -1
+    .internal-alias :main_internal,     0
+
+; ======================================================
+; Part 1. Initialization and termination of the contract
+; ======================================================
+
+    .selector
+    ; s0 - func_id
+    ; s1.. - other data
+    SETCP0
+    DUP
+    ISNPOS
+    DICTPUSHCONST 32
+    ROT
+    PUSHCONT {
+      DICTIGETJMP
+    }
+    IFJMP
+    BLKDROP 2
+    PUSHREFCONT
+    DUP
+    POPCTR c3
+    JMPX
+
+; ==========================================
+; Part 2. C-specific functionality (runtime)
+; ==========================================
+
+; Global variables allocation (allocation of C7 tuple cells)
+; GLOB 0 (FIRST)  -- Smart contract info
+; GLOB 1 (SECOND) -- Global variables dictionary
+

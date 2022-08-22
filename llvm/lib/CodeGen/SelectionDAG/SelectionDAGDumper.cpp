@@ -51,6 +51,8 @@
 
 using namespace llvm;
 
+#define LLVM_ENABLE_DUMP
+
 static cl::opt<bool>
 VerboseDAGDumping("dag-dump-verbose", cl::Hidden,
                   cl::desc("Display more information when dumping selection "

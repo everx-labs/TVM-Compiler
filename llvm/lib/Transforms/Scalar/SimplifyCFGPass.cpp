@@ -300,14 +300,26 @@ static void applyCommandLineOverridesToOptions(SimplifyCFGOptions &Options) {
     Options.BonusInstThreshold = UserBonusInstThreshold;
   if (UserForwardSwitchCond.getNumOccurrences())
     Options.ForwardSwitchCondToPhi = UserForwardSwitchCond;
+  // TVM local begin
+  else
+    Options.ForwardSwitchCondToPhi = false;
+  // TVM local end
   if (UserSwitchToLookup.getNumOccurrences())
     Options.ConvertSwitchToLookupTable = UserSwitchToLookup;
+  // TVM local begin
+  else
+    Options.ConvertSwitchToLookupTable = false;
+  // TVM local end
   if (UserKeepLoops.getNumOccurrences())
     Options.NeedCanonicalLoop = UserKeepLoops;
   if (UserHoistCommonInsts.getNumOccurrences())
     Options.HoistCommonInsts = UserHoistCommonInsts;
   if (UserSinkCommonInsts.getNumOccurrences())
     Options.SinkCommonInsts = UserSinkCommonInsts;
+  // TVM local begin
+  else 
+    Options.SinkCommonInsts = false;
+  // TVM local end
 }
 
 SimplifyCFGPass::SimplifyCFGPass() : Options() {
@@ -360,6 +372,15 @@ struct CFGSimplifyPass : public FunctionPass {
     if (skipFunction(F) || (PredicateFtor && !PredicateFtor(F)))
       return false;
 
+    if (F.getName() == "_ZNSt3__116__variant_detail12__visitation6__base22__unroll_fmatrix1_"
+      "caseILm1EE6unrollINS_5arrayIPFN3tvm7builderEONS1_9__variant15__value_"
+      "visitorINS7_6schema15builder_visitorEEERNS0_6__baseILNS0_6_TraitE0EJNSB_"
+      "10EitherLeftINS_5tupleIJNSB_6uint_tILj32EEEEEEEENSB_11EitherRightINSB_"
+      "3refISL_EEEEEEEELm2EEESD_RNS0_6__implIJSM_SQ_EEEEEDcT_mOT0_OT1_") {
+      dbgs() << "\n";
+
+    }
+
     Options.AC = &getAnalysis<AssumptionCacheTracker>().getAssumptionCache(F);
     DominatorTree *DT = nullptr;
     if (RequireAndPreserveDomTree)
@@ -375,6 +396,7 @@ struct CFGSimplifyPass : public FunctionPass {
     auto &TTI = getAnalysis<TargetTransformInfoWrapperPass>().getTTI(F);
     return simplifyFunctionCFG(F, TTI, DT, Options);
   }
+
   void getAnalysisUsage(AnalysisUsage &AU) const override {
     AU.addRequired<AssumptionCacheTracker>();
     if (RequireAndPreserveDomTree)

@@ -44,6 +44,9 @@ using namespace llvm;
 void llvm::initializeCoroutines(PassRegistry &Registry) {
   initializeCoroEarlyLegacyPass(Registry);
   initializeCoroSplitLegacyPass(Registry);
+  // TVM local begin
+  initializeCoroTVMExpandPass(Registry);
+  // TVM local end
   initializeCoroElideLegacyPass(Registry);
   initializeCoroCleanupLegacyPass(Registry);
 }
@@ -51,6 +54,9 @@ void llvm::initializeCoroutines(PassRegistry &Registry) {
 static void addCoroutineOpt0Passes(const PassManagerBuilder &Builder,
                                    legacy::PassManagerBase &PM) {
   PM.add(createCoroSplitLegacyPass());
+  // TVM local begin
+  PM.add(createCoroTVMExpandPass());
+  // TVM local end
   PM.add(createCoroElideLegacyPass());
 
   PM.add(createBarrierNoopPass());
@@ -70,6 +76,9 @@ static void addCoroutineScalarOptimizerPasses(const PassManagerBuilder &Builder,
 static void addCoroutineSCCPasses(const PassManagerBuilder &Builder,
                                   legacy::PassManagerBase &PM) {
   PM.add(createCoroSplitLegacyPass(Builder.OptLevel != 0));
+  // TVM local begin
+  PM.add(createCoroTVMExpandPass());
+  // TVM local end
 }
 
 static void addCoroutineOptimizerLastPasses(const PassManagerBuilder &Builder,

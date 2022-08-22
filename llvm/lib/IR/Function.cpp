@@ -1146,6 +1146,48 @@ static void DecodeIITType(unsigned &NextElt, ArrayRef<unsigned char> Infos,
   case IIT_EMPTYSTRUCT:
     OutputTable.push_back(IITDescriptor::get(IITDescriptor::Struct, 0));
     return;
+  // TVM local begin
+  case IIT_STRUCT8_AND_MORE: {
+    unsigned StructElts = 8;
+    while (Infos[NextElt] == IIT_STRUCT8_AND_MORE) {
+      StructElts += 8;
+      ++NextElt;
+    }
+    switch (Infos[NextElt]) {
+    case IIT_STRUCT8:
+      ++NextElt;
+      decodeStruct(StructElts + 8);
+      return;
+    case IIT_STRUCT7:
+      ++NextElt;
+      decodeStruct(StructElts + 7);
+      return;
+    case IIT_STRUCT6:
+      ++NextElt;
+      decodeStruct(StructElts + 6);
+      return;
+    case IIT_STRUCT5:
+      ++NextElt;
+      decodeStruct(StructElts + 5);
+      return;
+    case IIT_STRUCT4:
+      ++NextElt;
+      decodeStruct(StructElts + 4);
+      return;
+    case IIT_STRUCT3:
+      ++NextElt;
+      decodeStruct(StructElts + 3);
+      return;
+    case IIT_STRUCT2:
+      ++NextElt;
+      decodeStruct(StructElts + 2);
+      return;
+    default:
+      decodeStruct(StructElts + 1);
+      return;
+    }
+  }
+  // TVM local end
   case IIT_STRUCT9: ++StructElts; LLVM_FALLTHROUGH;
   case IIT_STRUCT8: ++StructElts; LLVM_FALLTHROUGH;
   case IIT_STRUCT7: ++StructElts; LLVM_FALLTHROUGH;
@@ -1391,8 +1433,8 @@ Function *Intrinsic::getDeclaration(Module *M, ID id, ArrayRef<Type*> Tys) {
   auto *FT = getType(M->getContext(), id, Tys);
   return cast<Function>(
       M->getOrInsertFunction(Tys.empty() ? getName(id)
-                                         : getName(id, Tys, M, FT),
-                             getType(M->getContext(), id, Tys))
+               : getName(id, Tys, M, FT), 
+                             FT)
           .getCallee());
 }
 

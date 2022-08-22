@@ -448,11 +448,18 @@ void PassManagerBuilder::addFunctionSimplificationPasses(
   // Try to remove as much code from the loop header as possible,
   // to reduce amount of IR that will have to be duplicated.
   // TODO: Investigate promotion cap for O1.
-  MPM.add(createLICMPass(LicmMssaOptCap, LicmMssaNoAccForPromotionCap));
+  //MPM.add(createLICMPass(LicmMssaOptCap, LicmMssaNoAccForPromotionCap));
   // Rotate Loop - disable header duplication at -Oz
-  MPM.add(createLoopRotatePass(SizeLevel == 2 ? 0 : -1, PrepareForLTO));
+  //MPM.add(createLoopRotatePass(SizeLevel == 2 ? 0 : -1, PrepareForLTO));
   // TODO: Investigate promotion cap for O1.
-  MPM.add(createLICMPass(LicmMssaOptCap, LicmMssaNoAccForPromotionCap));
+  //MPM.add(createLICMPass(LicmMssaOptCap, LicmMssaNoAccForPromotionCap));
+
+    // TVM local begin
+  // Rotate Loop - disable header duplication at -Oz
+  MPM.add(createLoopRotatePass(SizeLevel == 2 ? 0 : -1));
+  MPM.add(createLICMPass()); // Hoist loop invariants
+  // TVM local end
+
   if (EnableSimpleLoopUnswitch)
     MPM.add(createSimpleLoopUnswitchLegacyPass());
   else
@@ -482,13 +489,20 @@ void PassManagerBuilder::addFunctionSimplificationPasses(
   // This ends the loop pass pipelines.
 
   // Break up allocas that may now be splittable after loop unrolling.
-  MPM.add(createSROAPass());
+  // TVM local begin
+  // MPM.add(createSROAPass());
+  // TVM local end
 
   if (OptLevel > 1) {
     MPM.add(createMergedLoadStoreMotionPass()); // Merge ld/st in diamonds
     MPM.add(NewGVN ? createNewGVNPass()
                    : createGVNPass(DisableGVNLoadPRE)); // Remove redundancies
   }
+
+ // TVM local begin
+  MPM.add(createMemCpyOptPass()); // Remove memcpy / form memset
+  // TVM local end
+
   MPM.add(createSCCPPass());                  // Constant prop with SCCP
 
   if (EnableConstraintElimination)
@@ -512,7 +526,10 @@ void PassManagerBuilder::addFunctionSimplificationPasses(
   }
   MPM.add(createAggressiveDCEPass()); // Delete dead instructions
 
-  MPM.add(createMemCpyOptPass());               // Remove memcpy / form memset
+  // TVM local begin
+  // MPM.add(createMemCpyOptPass());               // Remove memcpy / form memset
+  // TVM local end
+
   // TODO: Investigate if this is too expensive at O1.
   if (OptLevel > 1) {
     MPM.add(createDeadStoreEliminationPass());  // Delete dead stores

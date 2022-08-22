@@ -2505,6 +2505,7 @@ InlineResult CallAnalyzer::analyze() {
     return InlineResult::success();
 
   Function *Caller = CandidateCall.getFunction();
+
   // Check if the caller function is recursive itself.
   for (User *U : Caller->users()) {
     CallBase *Call = dyn_cast<CallBase>(U);
@@ -2861,6 +2862,17 @@ InlineCost llvm::getInlineCost(
 
   LLVM_DEBUG(CA.dump());
 
+  // Don't inline functions which can be interposed at link-time.  Don't inline
+  // functions marked noinline or call sites marked noinline.
+  // Note: inlining non-exact non-interposable functions is fine, since we know
+  // we have *a* correct implementation of the source level function.
+  // TVM local begin
+  if (Callee->isInterposable() || Callee->hasFnAttribute(Attribute::NoInline) ||
+      Call.isNoInline()) {
+    return llvm::InlineCost::getNever(ShouldInline.getFailureReason());
+  }
+  // TVM local end
+
   // Always make cost benefit based decision explicit.
   // We use always/never here since threshold is not meaningful,
   // as it's not what drives cost-benefit analysis.
@@ -2878,7 +2890,10 @@ InlineCost llvm::getInlineCost(
   if (ShouldInline.isSuccess() && CA.getCost() >= CA.getThreshold())
     return InlineCost::getAlways("empty function");
 
-  return llvm::InlineCost::get(CA.getCost(), CA.getThreshold());
+  //return llvm::InlineCost::get(CA.getCost(), CA.getThreshold());
+  // TVM local begin
+  return llvm::InlineCost::get(CA.getCost() * 2, CA.getThreshold());
+  // TVM local end
 }
 
 InlineResult llvm::isInlineViable(Function &F) {

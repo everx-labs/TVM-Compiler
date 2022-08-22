@@ -1436,10 +1436,9 @@ bool FPPassManager::runOnFunction(Function &F) {
 #ifdef EXPENSIVE_CHECKS
       uint64_t RefHash = StructuralHash(F);
 #endif
-
       bool Chg = FP->runOnFunction(F);
       LocalChanged |= Chg;
-      
+
  #if defined(EXPENSIVE_CHECKS) && !defined(NDEBUG)
       if (!LocalChanged && (RefHash != StructuralHash(F))) {
         llvm::errs() << "Pass modifies its input and doesn't report it: "

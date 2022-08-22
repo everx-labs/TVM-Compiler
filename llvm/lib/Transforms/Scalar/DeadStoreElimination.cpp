@@ -42,6 +42,7 @@
 #include "llvm/Analysis/GlobalsModRef.h"
 #include "llvm/Analysis/LoopInfo.h"
 #include "llvm/Analysis/MemoryBuiltins.h"
+#include "llvm/Analysis/MemoryDependenceAnalysis.h"
 #include "llvm/Analysis/MemoryLocation.h"
 #include "llvm/Analysis/MemorySSA.h"
 #include "llvm/Analysis/MemorySSAUpdater.h"
@@ -942,8 +943,7 @@ struct DSEState {
   /// \p Earlier, but they both write to the same underlying object. In that
   /// case, use isPartialOverwrite to check if \p Later partially overwrites
   /// \p Earlier. Returns 'OW_Unknown' if nothing can be determined.
-  OverwriteResult
-  isOverwrite(const Instruction *LaterI, const Instruction *EarlierI,
+  OverwriteResult isOverwrite(const Instruction *LaterI, const Instruction *EarlierI,
               const MemoryLocation &Later, const MemoryLocation &Earlier,
               int64_t &EarlierOff, int64_t &LaterOff) {
     // AliasAnalysis does not always account for loops. Limit overwrite checks
@@ -1870,13 +1870,18 @@ struct DSEState {
   }
 };
 
-static bool eliminateDeadStores(Function &F, AliasAnalysis &AA, MemorySSA &MSSA,
+static bool eliminateDeadStores(Function &F, AliasAnalysis &AA, 
+                                // TVM local begin
+                                MemoryDependenceResults *MD,
+                                // TVM local end
+                                MemorySSA &MSSA,
                                 DominatorTree &DT, PostDominatorTree &PDT,
                                 const TargetLibraryInfo &TLI,
                                 const LoopInfo &LI) {
   bool MadeChange = false;
-
+  
   DSEState State = DSEState::get(F, AA, MSSA, DT, PDT, TLI, LI);
+
   // For each store:
   for (unsigned I = 0; I < State.MemDefs.size(); I++) {
     MemoryDef *KillingDef = State.MemDefs[I];
@@ -1951,6 +1956,24 @@ static bool eliminateDeadStores(Function &F, AliasAnalysis &AA, MemorySSA &MSSA,
       auto *NextDef = cast<MemoryDef>(EarlierAccess);
       Instruction *NI = NextDef->getMemoryInst();
       LLVM_DEBUG(dbgs() << " (" << *NI << ")\n");
+
+      // TVM local begin
+      // If we find something that writes memory, get its memory dependence.
+      if (MD) {
+        MemDepResult InstDep = MD->getDependency(NI);
+
+        // Ignore any store where we can't find a local dependence.
+        // FIXME: cross-block DSE would be fun. :)
+        if (!InstDep.isDef() && !InstDep.isClobber()) {
+          continue;
+        }
+        Instruction *DepWrite = InstDep.getInst();
+        if (!hasAnalyzableMemoryWrite(DepWrite, TLI)) {
+          continue;
+        }
+      }
+      // TVM local end
+
       ToCheck.insert(NextDef->getDefiningAccess());
       NumGetDomMemoryDefPassed++;
 
@@ -2051,7 +2074,11 @@ PreservedAnalyses DSEPass::run(Function &F, FunctionAnalysisManager &AM) {
   PostDominatorTree &PDT = AM.getResult<PostDominatorTreeAnalysis>(F);
   LoopInfo &LI = AM.getResult<LoopAnalysis>(F);
 
-  bool Changed = eliminateDeadStores(F, AA, MSSA, DT, PDT, TLI, LI);
+  bool Changed = eliminateDeadStores(F, AA, 
+         // TVM local begin
+         nullptr,
+         // TVM local end 
+         MSSA, DT, PDT, TLI, LI);
 
 #ifdef LLVM_ENABLE_STATS
   if (AreStatisticsEnabled())
@@ -2093,7 +2120,16 @@ public:
         getAnalysis<PostDominatorTreeWrapperPass>().getPostDomTree();
     LoopInfo &LI = getAnalysis<LoopInfoWrapperPass>().getLoopInfo();
 
-    bool Changed = eliminateDeadStores(F, AA, MSSA, DT, PDT, TLI, LI);
+    // TVM local begin
+    MemoryDependenceResults *MD =
+        &getAnalysis<MemoryDependenceWrapperPass>().getMemDep();
+    // TVM local end
+
+    bool Changed = eliminateDeadStores(F, AA, 
+          // TVM local begin
+          MD, 
+          // TVM local end 
+          MSSA, DT, PDT, TLI, LI);
 
 #ifdef LLVM_ENABLE_STATS
     if (AreStatisticsEnabled())
@@ -2113,6 +2149,9 @@ public:
     AU.addPreserved<DominatorTreeWrapperPass>();
     AU.addRequired<PostDominatorTreeWrapperPass>();
     AU.addRequired<MemorySSAWrapperPass>();
+    // TVM local begin
+    AU.addRequired<MemoryDependenceWrapperPass>();
+    // TVM local end
     AU.addPreserved<PostDominatorTreeWrapperPass>();
     AU.addPreserved<MemorySSAWrapperPass>();
     AU.addRequired<LoopInfoWrapperPass>();

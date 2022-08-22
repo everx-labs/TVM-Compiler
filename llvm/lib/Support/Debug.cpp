@@ -182,7 +182,7 @@ raw_ostream &llvm::dbgs() {
 
 #else
 // Avoid "has no symbols" warning.
-namespace llvm {
+namespace llvm { 
   /// dbgs - Return errs().
   raw_ostream &dbgs() {
     return errs();

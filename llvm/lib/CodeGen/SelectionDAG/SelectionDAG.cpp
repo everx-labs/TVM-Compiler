@@ -107,7 +107,6 @@ static cl::opt<int> MaxLdStGlue("ldstmemcpy-glue-max",
 
 static void NewSDValueDbgMsg(SDValue V, StringRef Msg, SelectionDAG *G) {
   LLVM_DEBUG(dbgs() << Msg; V.getNode()->dump(G););
-}
 
 //===----------------------------------------------------------------------===//
 //                              ConstantFPSDNode Class

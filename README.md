@@ -29,7 +29,7 @@ Sometimes there is a conflict during installation between "build" directory and 
 
 For Window users you can use Microsoft Visual Studio 2017 or newer and generate *.sln Solution with command sequence:
 ```
-git clone https://github.com/tonlabs/TON-Compiler.git –-branch master --single-branch TON-Compiler
+git clone https://github.com/tonlabs/TON-Compiler.git –-branch ashistko/llvm13
 cd TON-compiler
 mkdir build
 cd build

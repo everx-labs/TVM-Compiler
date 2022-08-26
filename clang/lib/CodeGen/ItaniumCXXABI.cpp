@@ -4898,11 +4898,6 @@ static llvm::FunctionCallee getClangCallTerminateFn(CodeGenModule &CGM) {
 llvm::CallInst *
 ItaniumCXXABI::emitTerminateForUnexpectedException(CodeGenFunction &CGF,
                                                    llvm::Value *Exn) {
-  // In C++, we want to call __cxa_begin_catch() before terminating.
-  if (Exn) {
-    assert(CGF.CGM.getLangOpts().CPlusPlus);
-    return CGF.EmitNounwindRuntimeCall(getClangCallTerminateFn(CGF.CGM), Exn);
-  }
   return CGF.EmitNounwindRuntimeCall(CGF.CGM.getTerminateFn());
 }
 
@@ -4932,6 +4927,13 @@ WebAssemblyCXXABI::emitTerminateForUnexpectedException(CodeGenFunction &CGF,
   // std::terminate and ignore the violating exception as in CGCXXABI.
   // TODO Consider code transformation that makes calling __clang_call_terminate
   // possible.
+  // TVM locl begin
+  // In C++, we want to call __cxa_begin_catch() before terminating.
+  if (Exn) {
+    assert(CGF.CGM.getLangOpts().CPlusPlus);
+    return CGF.EmitNounwindRuntimeCall(getClangCallTerminateFn(CGF.CGM), Exn);
+  }
+  // TVM local end
   return CGCXXABI::emitTerminateForUnexpectedException(CGF, Exn);
 }
 

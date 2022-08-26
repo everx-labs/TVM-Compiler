@@ -1,119 +1,48 @@
-set(TVM_RUNTIMES
-  stdlib_cpp.tvm
-  stdlib_c.tvm
-)
+add_llvm_component_group(Projects)
 
-set(TVM_SUPPLEMENTS
-  abi_parser.py
-)
-
-set(TVM_C_HEADERS
-  ton-sdk
-)
-
-add_custom_target(tvm-runtimes)
-
-install(FILES ${TVM_RUNTIMES}
-  DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-  PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
-  COMPONENT tvm-runtimes)
-
-if (NOT CMAKE_CONFIGURATION_TYPES)
-  add_custom_target(install-tvm-runtimes
-                    DEPENDS tvm-runtimes
-                    COMMAND "${CMAKE_COMMAND}"
-                            -DCMAKE_INSTALL_COMPONENT=tvm-runtimes
-                            -P "${CMAKE_BINARY_DIR}/cmake_install.cmake")
-  add_custom_target(install-tvm-runtimes-stripped DEPENDS install-tvm-runtimes)
-endif()
-
-add_custom_target(tvm-supplements ALL DEPENDS ${TVM_SUPPLEMENTS})
-
-install(FILES ${TVM_SUPPLEMENTS}
-  DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
-  PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ
-  COMPONENT tvm-supplements)
-
-if (NOT CMAKE_CONFIGURATION_TYPES)
-  add_custom_target(install-tvm-supplements
-                    DEPENDS tvm-supplements
-                    COMMAND "${CMAKE_COMMAND}"
-                            -DCMAKE_INSTALL_COMPONENT=tvm-supplements
-                            -P "${CMAKE_BINARY_DIR}/cmake_install.cmake")
-  # Stripping is a no-op for scripts
-  add_custom_target(install-tvm-supplements-stripped DEPENDS install-tvm-supplements)
-endif()
-
-add_custom_target(tvm-c-headers ALL DEPENDS ${TVM_C_HEADERS})
-
-install(DIRECTORY ${TVM_C_HEADERS}
-  DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-  COMPONENT tvm-c-headers)
-
-if (NOT CMAKE_CONFIGURATION_TYPES)
-  add_custom_target(install-tvm-c-headers
-                    DEPENDS tvm-c-headers
-                    COMMAND "${CMAKE_COMMAND}"
-                            -DCMAKE_INSTALL_COMPONENT=tvm-c-headers
-                            -P "${CMAKE_BINARY_DIR}/cmake_install.cmake")
-  add_custom_target(install-tvm-c-headers-stripped DEPENDS install-tvm-c-headers)
-endif()
-
-add_subdirectory(cpp-sdk)
-include(ExternalProject)
-
-if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tonlabs AND IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tonlabs)
-  if(WIN32)
-    message(STATUS "Build tvm-linker from preloaded sources for Win32")
-    ExternalProject_Add(tvm_linker
-      PREFIX 
-      SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/tonlabs/TVM-linker
-      BUILD_IN_SOURCE On
-      CONFIGURE_COMMAND echo %cd% && cd  ${CMAKE_CURRENT_SOURCE_DIR}/tonlabs/TVM-linker && cargo update
-      BUILD_COMMAND echo %cd% && cd  ${CMAKE_CURRENT_SOURCE_DIR}/tonlabs/TVM-linker && cargo build --release
-      INSTALL_COMMAND echo %cd% && ROBOCOPY  "${CMAKE_CURRENT_SOURCE_DIR}/tonlabs/TVM-linker/target/release" "${CMAKE_INSTALL_PREFIX}/bin" tvm_linker.exe || echo %ERRORLEVEL%
-    )
-  else()
-    message(STATUS "Build tvm-linker from preloaded sources for linux/darwin")
-    ExternalProject_Add(tvm_linker
-      PREFIX 
-      SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/tonlabs/TVM-linker
-      BUILD_IN_SOURCE On
-      CONFIGURE_COMMAND cd  ${CMAKE_CURRENT_SOURCE_DIR}/tonlabs/TVM-linker && cargo update
-      BUILD_COMMAND cd  ${CMAKE_CURRENT_SOURCE_DIR}/tonlabs/TVM-linker && cargo build --release
-      INSTALL_COMMAND cp "${CMAKE_CURRENT_SOURCE_DIR}/tonlabs/TVM-linker/target/release/tvm_linker" "${CMAKE_INSTALL_PREFIX}/bin"
-    )
+# Discover the projects that use CMake in the subdirectories.
+# Note that explicit cmake invocation is required every time a new project is
+# added or removed.
+file(GLOB entries *)
+foreach(entry ${entries})
+  if(IS_DIRECTORY ${entry} AND EXISTS ${entry}/CMakeLists.txt)
+    if((NOT ${entry} STREQUAL ${CMAKE_CURRENT_SOURCE_DIR}/compiler-rt) AND
+       (NOT ${entry} STREQUAL ${CMAKE_CURRENT_SOURCE_DIR}/dragonegg) AND
+       (NOT ${entry} STREQUAL ${CMAKE_CURRENT_SOURCE_DIR}/libcxx) AND
+       (NOT ${entry} STREQUAL ${CMAKE_CURRENT_SOURCE_DIR}/libcxxabi) AND
+       (NOT ${entry} STREQUAL ${CMAKE_CURRENT_SOURCE_DIR}/libunwind) AND
+       (NOT ${entry} STREQUAL ${CMAKE_CURRENT_SOURCE_DIR}/test-suite) AND
+       (NOT ${entry} STREQUAL ${CMAKE_CURRENT_SOURCE_DIR}/parallel-libs) AND
+       (NOT ${entry} STREQUAL ${CMAKE_CURRENT_SOURCE_DIR}/openmp) AND
+       (NOT ${entry} STREQUAL ${CMAKE_CURRENT_SOURCE_DIR}/debuginfo-tests))
+      add_subdirectory(${entry})
+    endif()
   endif()
-else()
-  if(WIN32)
-    message(STATUS "Build tvm-linker from git sources for Win32")
-    ExternalProject_Add(tvm_linker
-      PREFIX ${CMAKE_CURRENT_SOURCE_DIR}/tvm_linker
-      BUILD_IN_SOURCE On
-      GIT_REPOSITORY https://github.com/tonlabs/TVM-linker/
-      CONFIGURE_COMMAND cargo update
-      BUILD_COMMAND cargo build --release
-      INSTALL_COMMAND ROBOCOPY "target/release" "${CMAKE_INSTALL_PREFIX}/bin" tvm_linker.exe || echo %ERRORLEVEL%
-    )
-  else()
-    message(STATUS "Build tvm-linker from git sources for linux/darwin")
-    ExternalProject_Add(tvm_linker
-      PREFIX ${CMAKE_CURRENT_SOURCE_DIR}/tvm_linker
-      BUILD_IN_SOURCE On
-      GIT_REPOSITORY https://github.com/tonlabs/TVM-linker/
-      CONFIGURE_COMMAND cargo update
-      BUILD_COMMAND cargo build --release
-      INSTALL_COMMAND cp "target/release/tvm_linker" "${CMAKE_INSTALL_PREFIX}/bin"
-    )
+endforeach(entry)
+
+# Also add in libc++ and compiler-rt trees if present (and we have
+# a sufficiently recent version of CMake where required).
+if(${LLVM_BUILD_RUNTIME})
+  # MSVC isn't quite working with libc++ yet, disable it until issues are
+  # fixed.
+  # FIXME: LLVM_FORCE_BUILD_RUNTIME is currently used by libc++ to force
+  # enable the in-tree build when targeting clang-cl.
+  if(NOT MSVC OR LLVM_FORCE_BUILD_RUNTIME)
+    # Add the projects in reverse order of their dependencies so that the
+    # dependent projects can see the target names of their dependencies.
+    add_llvm_external_project(libunwind)
+    add_llvm_external_project(libcxxabi)
+    add_llvm_external_project(libcxx)
+  endif()
+  if(NOT LLVM_BUILD_EXTERNAL_COMPILER_RT)
+    add_llvm_external_project(compiler-rt)
   endif()
 endif()
 
-if (NOT CMAKE_CONFIGURATION_TYPES)
-  if(WIN32)
-    add_custom_target(install-tvm_linker DEPENDS tvm_linker)
-    add_custom_target(install-tvm_linker-stripped DEPENDS install-tvm_linker)
-  else()
-    add_custom_target(install-tvm_linker DEPENDS tvm_linker)
-    add_custom_target(install-tvm_linker-stripped DEPENDS install-tvm_linker)
-  endif()
+add_llvm_external_project(dragonegg)
+add_llvm_external_project(parallel-libs)
+add_llvm_external_project(openmp)
+
+if(LLVM_INCLUDE_TESTS)
+  add_llvm_external_project(debuginfo-tests)
 endif()

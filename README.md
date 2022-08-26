@@ -15,7 +15,7 @@ To reproduce the tutorial, you need to get [TON-Compiler sources](https://github
 
 To build C++ compiler from sources, use command sequence (for Linux):
 ```
-git clone https://github.com/tonlabs/TON-Compiler.git –-branch ashistko/llvm13
+git clone -b ashistko/llvm13 https://github.com/tonlabs/TON-Compiler.git
 cd TON-compiler
 mkdir build
 cd build
@@ -29,7 +29,7 @@ Sometimes there is a conflict during installation between "build" directory and 
 
 For Window users you can use Microsoft Visual Studio 2017 or newer and generate *.sln Solution with command sequence:
 ```
-git clone https://github.com/tonlabs/TON-Compiler.git –-branch ashistko/llvm13
+git clone -b ashistko/llvm13 https://github.com/tonlabs/TON-Compiler.git
 cd TON-compiler
 mkdir build
 cd build

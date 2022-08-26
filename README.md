@@ -15,7 +15,7 @@ To reproduce the tutorial, you need to get [TON-Compiler sources](https://github
 
 To build C++ compiler from sources, use command sequence (for Linux):
 ```
-git clone https://github.com/tonlabs/TON-Compiler.git –-branch master --single-branch TON-Compiler
+git clone https://github.com/tonlabs/TON-Compiler.git –-branch ashistko/llvm13
 cd TON-compiler
 mkdir build
 cd build

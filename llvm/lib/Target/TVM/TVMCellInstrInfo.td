@@ -357,7 +357,7 @@ defm STBR : I<(outs Builder:$obldr), (ins Builder:$ibldr0, Builder:$ibldr),
 defm STREFQ : I<(outs Cell:$ocell, Builder:$obldr, I257:$result), (ins  Cell:$icell, Builder:$ibldr),
                (outs), (ins),
                [(set Cell:$ocell, Builder:$obldr, I257:$result, (int_tvm_strefq Cell:$icell, Builder:$ibldr))],
-               "STREFQ\t$ocell, $obldr, $result, $icell, $ibldr", "STREFQ", 0xcf18>;
+               "STREFQ\t$ocell, $obldr, $result, $icell, $ibldr", "STREFQ NULLROTRIFNOT", 0xcf18>;
 
 // CF19 - STBREFQ (b0 b - b0 b -1 or b00 0)
 defm STBREFQ : I<(outs Builder:$obldr0, Builder:$obldr, I257:$result), (ins Builder:$ibldr0, Builder:$ibldr),

@@ -4,6 +4,7 @@
 #include <tvm/builder.hpp>
 #include <tvm/error_code.hpp>
 #include <tvm/assert.hpp>
+#include <tvm/schema/basics.hpp>
 
 namespace tvm {
 
@@ -34,6 +35,7 @@ public:
       top_.reset();
     }
   }
+  unsigned size() const { return top_ ? (__builtin_tvm_tlen(tup_) + 1) : 0; }
   builder& top() { return *top_; }
 private:
   std::optional<builder> top_;
@@ -62,9 +64,47 @@ public:
       top_.reset();
     }
   }
+  unsigned size() const { return top_ ? (__builtin_tvm_tlen(tup_) + 1) : 0; }
   slice& top() { return *top_; }
 private:
   std::optional<slice> top_;
+  __tvm_tuple tup_;
+};
+
+// implementation of tuple_stack for cell elements
+template<>
+class tuple_stack<cell> {
+public:
+  tuple_stack() : tup_(__builtin_tvm_tuple()) {}
+  bool empty() {
+    return !top_;
+  }
+  void push(cell val) {
+    if (top_)
+      tup_ = __builtin_tvm_tpush(tup_, __builtin_tvm_cast_from_cell(top_->get()));
+    top_ = val;
+  }
+  void pop() {
+    require(!!top_, error_code::empty_container);
+    if (__builtin_tvm_tlen(tup_)) {
+      auto [=tup_, val] = __builtin_tvm_tpop(tup_);
+      top_ = cell(__builtin_tvm_cast_to_cell(val));
+    } else {
+      top_.reset();
+    }
+  }
+  optcell extract() {
+    if (!empty()) {
+      cell rv = top();
+      pop();
+      return { rv };
+    }
+    return {};
+  }
+  unsigned size() const { return top_ ? (__builtin_tvm_tlen(tup_) + 1) : 0; }
+  cell& top() { return *top_; }
+private:
+  std::optional<cell> top_;
   __tvm_tuple tup_;
 };
 

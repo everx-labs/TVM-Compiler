@@ -55,6 +55,11 @@ public:
     bldr_ = __builtin_tvm_stref(cl, bldr_);
     return *this;
   }
+  bool strefq(cell cl) {
+    auto [cl2, bldr2, failed] = __builtin_tvm_strefq(cl, bldr_);
+    bldr_ = bldr2;
+    return !failed;
+  }
 
   unsigned bbits() const { return __builtin_tvm_bbits(bldr_); }
   unsigned brembits() const { return __builtin_tvm_brembits(bldr_); }

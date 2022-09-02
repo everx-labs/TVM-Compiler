@@ -137,10 +137,7 @@ static constexpr unsigned InstCombineDefaultInfiniteLoopThreshold = 1000;
 
 static cl::opt<bool>
 EnableCodeSinking("instcombine-code-sinking", cl::desc("Enable code sinking"),
-                                              // cl::init(true));
-                                              // TVM local begin
-                                              cl::init(false));
-                                              // TVM local end
+                                              cl::init(true));
 
 static cl::opt<unsigned> LimitMaxIterations(
     "instcombine-max-iterations",
@@ -2603,7 +2600,6 @@ static bool isAllocSiteRemovable(Instruction *AI,
     Instruction *PI = Worklist.pop_back_val();
     for (User *U : PI->users()) {
       Instruction *I = cast<Instruction>(U);
-
       switch (I->getOpcode()) {
       default:
         // Give up the moment we see something we can't handle.
@@ -2696,8 +2692,6 @@ Instruction *InstCombinerImpl::visitAllocSite(Instruction &MI) {
 
   // If we are removing an alloca with a dbg.declare, insert dbg.value calls
   // before each store.
-  // 
-
   SmallVector<DbgVariableIntrinsic *, 8> DVIs;
   std::unique_ptr<DIBuilder> DIB;
   if (isa<AllocaInst>(MI)) {
@@ -3853,8 +3847,8 @@ bool InstCombinerImpl::run() {
         // Add operands to the worklist.
         replaceInstUsesWith(*I, C);
         ++NumConstProp;
-        eraseInstFromFunction(*I);    
-
+        if (isInstructionTriviallyDead(I, &TLI))
+          eraseInstFromFunction(*I);
         MadeIRChange = true;
         continue;
       }
@@ -3952,6 +3946,7 @@ bool InstCombinerImpl::run() {
         // Push the new instruction and any users onto the worklist.
         Worklist.pushUsersToWorkList(*Result);
         Worklist.push(Result);
+
         eraseInstFromFunction(*I);
       } else {
         LLVM_DEBUG(dbgs() << "IC: Mod = " << OrigI << '\n'
@@ -3966,7 +3961,6 @@ bool InstCombinerImpl::run() {
           Worklist.push(I);
         }
       }
-
       MadeIRChange = true;
     }
   }
@@ -4150,7 +4144,7 @@ static bool prepareICWorklistFromFunction(Function &F, const DataLayout &DL,
       MadeIRChange = true;
       continue;
     }
- 
+
     ICWorklist.push(Inst);
   }
 
@@ -4162,6 +4156,7 @@ static bool combineInstructionsOverFunction(
     AssumptionCache &AC, TargetLibraryInfo &TLI, TargetTransformInfo &TTI,
     DominatorTree &DT, OptimizationRemarkEmitter &ORE, BlockFrequencyInfo *BFI,
     ProfileSummaryInfo *PSI, unsigned MaxIterations, LoopInfo *LI) {
+
   auto &DL = F.getParent()->getDataLayout();
   MaxIterations = std::min(MaxIterations, LimitMaxIterations.getValue());
 
@@ -4270,6 +4265,9 @@ void InstructionCombiningPass::getAnalysisUsage(AnalysisUsage &AU) const {
 bool InstructionCombiningPass::runOnFunction(Function &F) {
   if (skipFunction(F))
     return false;
+
+  //dbgs() << F.getName();
+  //dbgs() << "\n";
 
   // Required analyses.
   auto AA = &getAnalysis<AAResultsWrapperPass>().getAAResults();

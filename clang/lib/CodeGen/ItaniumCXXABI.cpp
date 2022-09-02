@@ -660,11 +660,7 @@ CGCallee ItaniumCXXABI::EmitLoadOfMemberFunctionPointer(
   // TVM local begin
   llvm::Value *Ptr = Builder.CreateBitCast(This, Builder.getIntBytePtrTy());
   // TVM local end
-
-  //Ptr = Builder.CreateInBoundsGEP(Builder.getInt8Ty(), Ptr, Adj);
-  // TVM local begin
-  Ptr = Builder.CreateInBoundsGEP(Builder.getByteTy(), Ptr, Adj);
-  // TVM local end
+  Ptr = Builder.CreateInBoundsGEP(Builder.getInt8Ty(), Ptr, Adj);
   This = Builder.CreateBitCast(Ptr, This->getType(), "this.adjusted");
   ThisPtrForCall = This;
 
@@ -4898,6 +4894,11 @@ static llvm::FunctionCallee getClangCallTerminateFn(CodeGenModule &CGM) {
 llvm::CallInst *
 ItaniumCXXABI::emitTerminateForUnexpectedException(CodeGenFunction &CGF,
                                                    llvm::Value *Exn) {
+  // In C++, we want to call __cxa_begin_catch() before terminating.
+  if (Exn) {
+    assert(CGF.CGM.getLangOpts().CPlusPlus);
+    return CGF.EmitNounwindRuntimeCall(getClangCallTerminateFn(CGF.CGM), Exn);
+  }
   return CGF.EmitNounwindRuntimeCall(CGF.CGM.getTerminateFn());
 }
 
@@ -4927,13 +4928,6 @@ WebAssemblyCXXABI::emitTerminateForUnexpectedException(CodeGenFunction &CGF,
   // std::terminate and ignore the violating exception as in CGCXXABI.
   // TODO Consider code transformation that makes calling __clang_call_terminate
   // possible.
-  // TVM locl begin
-  // In C++, we want to call __cxa_begin_catch() before terminating.
-  if (Exn) {
-    assert(CGF.CGM.getLangOpts().CPlusPlus);
-    return CGF.EmitNounwindRuntimeCall(getClangCallTerminateFn(CGF.CGM), Exn);
-  }
-  // TVM local end
   return CGCXXABI::emitTerminateForUnexpectedException(CGF, Exn);
 }
 

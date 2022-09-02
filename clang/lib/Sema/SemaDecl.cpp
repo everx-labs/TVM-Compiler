@@ -12155,9 +12155,8 @@ void Sema::AddInitializerToDecl(Decl *RealDecl, Expr *Init, bool DirectInit) {
     // TVM local begin
     llvm::APSInt FuncId;
     if (Context.getTargetInfo().getTriple().getArch() == llvm::Triple::tvm &&
-        Init->isIntegerConstantExpr(FuncId, Context)) {
-      uint64_t Val = FuncId.getZExtValue();
-      Method->setTVMFuncId(static_cast<unsigned>(Val));
+        Init->isIntegerConstantExpr(Context /*, FuncId */)) {
+      Method->setTVMFuncId(static_cast<unsigned>(FuncId.getZExtValue()));
       return;
     }
     // TVM local end

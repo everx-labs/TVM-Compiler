@@ -95,7 +95,6 @@ bool MachineFunctionPass::runOnFunction(Function &F) {
 
   MFProps.set(SetProperties);
   MFProps.reset(ClearedProperties);
-
   return RV;
 }
 

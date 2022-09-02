@@ -449,7 +449,6 @@ MemDepResult MemoryDependenceResults::getSimplePointerDependencyFrom(
       // If we reach a lifetime begin or end marker, then the query ends here
       // because the value is undefined.
       Intrinsic::ID ID = II->getIntrinsicID();
-
       switch (ID) {
       case Intrinsic::lifetime_start: {
         // FIXME: This only considers queries directly on the invariant-tagged

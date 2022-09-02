@@ -78,8 +78,6 @@ unsigned baz3() {
 // ----------------- main entry functions ---------------------- //
 
 __attribute__((tvm_raw_func)) int main_external(__tvm_cell msg, __tvm_slice msg_body) {
-  return foo();
-/*
   cell msg_v(msg);
   slice msg_body_v(msg_body);
   parser msg_parser(msg_body_v);
@@ -98,7 +96,6 @@ __attribute__((tvm_raw_func)) int main_external(__tvm_cell msg, __tvm_slice msg_
   }
   tvm_throw(error_code::wrong_public_call);
   return 0;
-*/
 }
 
 __attribute__((tvm_raw_func)) int main_internal(__tvm_cell msg, __tvm_slice msg_body) {

@@ -207,10 +207,7 @@ void InstrEmitter::CreateVirtualRegisters(SDNode *Node,
   unsigned NumVRegs = HasVRegVariadicDefs ? NumResults : II.getNumDefs();
   if (Node->getMachineOpcode() == TargetOpcode::STATEPOINT)
     NumVRegs = NumResults;
-  //for (unsigned i = 0; i < NumVRegs; ++i) {
-  // TVM local begin
-  for (unsigned i = 0; i < NumDefs; ++i) {
-  // TVM local end 
+  for (unsigned i = 0; i < NumVRegs; ++i) {
     // If the specific node value is only used by a CopyToReg and the dest reg
     // is a vreg in the same register class, use the CopyToReg'd destination
     // register instead of creating a new vreg.

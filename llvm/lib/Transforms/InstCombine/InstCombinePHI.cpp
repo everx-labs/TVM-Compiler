@@ -1437,7 +1437,6 @@ Instruction *InstCombinerImpl::visitPHINode(PHINode &PN) {
     for (unsigned i = 0, e = FirstPN->getNumIncomingValues(); i != e; ++i) {
       BasicBlock *BBA = PN.getIncomingBlock(i);
       BasicBlock *BBB = FirstPN->getIncomingBlock(i);
-
       if (BBA != BBB) {
         Value *VA = PN.getIncomingValue(i);
         unsigned j = PN.getBasicBlockIndex(BBB);

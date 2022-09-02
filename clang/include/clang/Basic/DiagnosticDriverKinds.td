@@ -555,10 +555,4 @@ def remark_cc1_round_trip_generated : Remark<"Generated arguments #%0 in round-t
 def err_cc1_round_trip_fail_then_ok : Error<"Original arguments parse failed, then succeeded in round-trip">;
 def err_cc1_round_trip_ok_then_fail : Error<"Generated arguments parse failed in round-trip">;
 def err_cc1_round_trip_mismatch : Error<"Generated arguments do not match in round-trip">;
-
-// TVM local begin
-def warn_tvm_unsupported_assembler : Warning<
-  "TVM doesn't support assembler; -c flag ignored">,
-  InGroup<OptionIgnored>;
-// TVM local end
 }

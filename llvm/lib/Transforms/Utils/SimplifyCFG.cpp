@@ -1427,7 +1427,6 @@ bool SimplifyCFGOpt::HoistThenElseCodeToIf(BranchInst *BI,
     while (isa<DbgInfoIntrinsic>(I2))
       I2 = &*BB2_Itr++;
   }
-
   // FIXME: Can we define a safety predicate for CallBr?
   if (isa<PHINode>(I1) || !I1->isIdenticalToWhenDefined(I2) ||
       (isa<InvokeInst>(I1) && !isSafeToHoistInvoke(BB1, BB2, I1, I2)) ||
@@ -3097,11 +3096,7 @@ static bool performBranchToCommonDestFolding(BranchInst *BI, BranchInst *PBI,
   // or/and the two conditions together.
   Value *BICond = VMap[BI->getCondition()];
   PBI->setCondition(
-      //createLogicalOp(Builder, Opc, PBI->getCondition(), BICond, "or.cond")
-      // TVM local begin
-      Builder.CreateBinOp(Opc, PBI->getCondition(), BICond, "or.cond")
-      // TVM local end
-  );
+      createLogicalOp(Builder, Opc, PBI->getCondition(), BICond, "or.cond"));
 
   // Copy any debug value intrinsics into the end of PredBlock.
   for (Instruction &I : *BB) {

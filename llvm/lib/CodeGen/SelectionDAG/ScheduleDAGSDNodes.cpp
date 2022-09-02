@@ -316,17 +316,9 @@ void ScheduleDAGSDNodes::ClusterNodes() {
 
     unsigned Opc = Node->getMachineOpcode();
     const MCInstrDesc &MCID = TII->get(Opc);
-    //if (MCID.mayLoad())
-      // Cluster loads from "near" addresses into combined SUnits.
-    //  ClusterNeighboringLoads(Node);
-
-    // TVM local begin
-    // We have fake-mayLoad nodes in TVM like newc,
-    // to prevent moving of this instructions through ACCEPT
-    if (MCID.mayLoad() && !TM.getTargetTriple().isTVM())
+    if (MCID.mayLoad())
       // Cluster loads from "near" addresses into combined SUnits.
       ClusterNeighboringLoads(Node);
-    // TVM local end
   }
 }
 
@@ -942,7 +934,6 @@ EmitSchedule(MachineBasicBlock::iterator &InsertPos) {
     while (!GluedNodes.empty()) {
       SDNode *N = GluedNodes.back();
       auto NewInsn = EmitNode(N, SU->OrigNode != SU, SU->isCloned, VRBaseMap);
-
       // Remember the source order of the inserted instruction.
       if (HasDbg)
         ProcessSourceNode(N, DAG, Emitter, VRBaseMap, Orders, Seen, NewInsn);
@@ -955,7 +946,6 @@ EmitSchedule(MachineBasicBlock::iterator &InsertPos) {
     }
     auto NewInsn =
         EmitNode(SU->getNode(), SU->OrigNode != SU, SU->isCloned, VRBaseMap);
-
     // Remember the source order of the inserted instruction.
     if (HasDbg)
       ProcessSourceNode(SU->getNode(), DAG, Emitter, VRBaseMap, Orders, Seen,

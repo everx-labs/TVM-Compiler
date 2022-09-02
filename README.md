@@ -15,13 +15,11 @@ To reproduce the tutorial, you need to get [TON-Compiler sources](https://github
 
 To build C++ compiler from sources, use command sequence (for Linux):
 ```
-git clone -b ashistko/llvm13 https://github.com/tonlabs/TON-Compiler.git
+git clone https://github.com/tonlabs/TON-Compiler.git –-branch ashistko/llvm13
 cd TON-compiler
-mkdir build
-cd build
-cmake -DCMAKE_INSTALL_PREFIX=../../install -DLLVM_ENABLE_PROJECTS=clang -C ../cmake/Cache/ton-compiler.cmake ../llvm
-cmake --build . --target install
+make INSTALL_PREFIX=/path/to/install
 ```
+where /path/to/install - path to install compiler & TVM-linker tools, from current directory (TON-Compiler)
 
 This command sequence also builds and installs a TVM-linker.
 You can change -DCMAKE_INSTALL_PREFIX if you want to install C++ to other directory.
@@ -29,7 +27,7 @@ Sometimes there is a conflict during installation between "build" directory and 
 
 For Window users you can use Microsoft Visual Studio 2017 or newer and generate *.sln Solution with command sequence:
 ```
-git clone -b ashistko/llvm13 https://github.com/tonlabs/TON-Compiler.git
+git clone https://github.com/tonlabs/TON-Compiler.git –-branch master --single-branch TON-Compiler
 cd TON-compiler
 mkdir build
 cd build

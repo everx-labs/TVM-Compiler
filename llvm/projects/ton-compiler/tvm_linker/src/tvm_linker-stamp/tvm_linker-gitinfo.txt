@@ -1,3 +1,0 @@
-repository='https://github.com/tonlabs/TVM-linker/'
-module=''
-tag='origin'

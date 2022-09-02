@@ -92,7 +92,6 @@ void insertCleanupBBs(BasicBlock *BB) {
   for (auto *Predecessor : Predecessors) {
     auto *Terminator = Predecessor->getTerminator();
     std::string PredName = Predecessor->getName().str();
-
     auto NewBB = BasicBlock::Create(BB->getContext(),
                                     PredName + "." + BBName + ".cleanup", F);
     IRBuilder<> Builder(NewBB);
@@ -120,7 +119,6 @@ FunctionPass *llvm::createTVMControlFlowPrepare() {
 
 bool TVMControlFlowPrepare::runOnFunction(Function &F) {
   bool Changed = false;
-
   LLVM_DEBUG(dbgs() << "runnning TVMControlFlowPrepare on " << F.getName()
                     << "\n");
   std::vector<BasicBlock *> OriginalBBs;

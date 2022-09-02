@@ -3693,17 +3693,6 @@ void Driver::BuildActions(Compilation &C, DerivedArgList &Args,
     return;
   }
 
-  // TVM local begin
-  Arg *FinalPhaseArg;
-  phases::ID FinalPhase = getFinalPhase(Args, &FinalPhaseArg);
-  if (C.getDefaultToolChain().getTriple().isTVM() &&
-      FinalPhase == phases::Assemble && !Args.hasArg(options::OPT_emit_llvm)) {
-    Diag(clang::diag::warn_tvm_unsupported_assembler);
-    FinalPhase = phases::Link;
-    FinalPhaseArg = nullptr;
-  }
-  // TVM local end
-
   // Reject -Z* at the top level, these options should never have been exposed
   // by gcc.
   if (Arg *A = Args.getLastArg(options::OPT_Z_Joined))
@@ -3957,11 +3946,6 @@ Action *Driver::ConstructPhaseAction(
   // arguments. Just special case here.
   if (Phase == phases::Assemble && Input->getType() != types::TY_PP_Asm)
     return Input;
-
-  // TVM local change begin
-  if (Phase == phases::Assemble && C.getDefaultToolChain().getTriple().isTVM())
-    return Input;
-  // TVM local change end
 
   // Build the appropriate action.
   switch (Phase) {

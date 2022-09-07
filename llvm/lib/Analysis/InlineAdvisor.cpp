@@ -223,12 +223,19 @@ shouldBeDeferred(Function *Caller, InlineCost IC, int &TotalSecondaryCost,
   TotalSecondaryCost = 0;
   // The candidate cost to be imposed upon the current function.
   int CandidateCost = IC.getCost() - 1;
+
+  // TVM local begin
+  // This bool tracks what happens if we do NOT inline C into B.
+  bool callerWillBeRemoved = Caller->hasLocalLinkage();
+  // TVM local end
+
   // If the caller has local linkage and can be inlined to all its callers, we
   // can apply a huge negative bonus to TotalSecondaryCost.
   bool ApplyLastCallBonus = Caller->hasLocalLinkage() && !Caller->hasOneUse();
   // This bool tracks what happens if we DO inline C into B.
   bool InliningPreventsSomeOuterInline = false;
   unsigned NumCallerUsers = 0;
+
   for (User *U : Caller->users()) {
     CallBase *CS2 = dyn_cast<CallBase>(U);
 
@@ -237,6 +244,11 @@ shouldBeDeferred(Function *Caller, InlineCost IC, int &TotalSecondaryCost,
     // from being removed.
     if (!CS2 || CS2->getCalledFunction() != Caller) {
       ApplyLastCallBonus = false;
+
+      // TVM local begin
+      callerWillBeRemoved = false;
+      // TVM local end
+
       continue;
     }
 
@@ -244,6 +256,11 @@ shouldBeDeferred(Function *Caller, InlineCost IC, int &TotalSecondaryCost,
     ++NumCallerCallersAnalyzed;
     if (!IC2) {
       ApplyLastCallBonus = false;
+
+      // TVM local begin
+      callerWillBeRemoved = false;
+      // TVM local end
+
       continue;
     }
     if (IC2.isAlways())
@@ -266,17 +283,28 @@ shouldBeDeferred(Function *Caller, InlineCost IC, int &TotalSecondaryCost,
   // one is set very low by getInlineCost, in anticipation that Caller will
   // be removed entirely.  We did not account for this above unless there
   // is only one caller of Caller.
-  if (ApplyLastCallBonus)
+  // TVM local begin
+  //if (ApplyLastCallBonus)
+  //  TotalSecondaryCost -= InlineConstants::LastCallToStaticBonus;
+  if (callerWillBeRemoved && !Caller->hasOneUse())
     TotalSecondaryCost -= InlineConstants::LastCallToStaticBonus;
+  // TVM local end
 
+  // TVM local begin
   // If InlineDeferralScale is negative, then ignore the cost of primary
   // inlining -- IC.getCost() multiplied by the number of callers to Caller.
-  if (InlineDeferralScale < 0)
-    return TotalSecondaryCost < IC.getCost();
+  //if (InlineDeferralScale < 0)
+  //  return TotalSecondaryCost < IC.getCost();
 
-  int TotalCost = TotalSecondaryCost + IC.getCost() * NumCallerUsers;
-  int Allowance = IC.getCost() * InlineDeferralScale;
-  return TotalCost < Allowance;
+  //int TotalCost = TotalSecondaryCost + IC.getCost() * NumCallerUsers;
+  //int Allowance = IC.getCost() * InlineDeferralScale;
+  //return TotalCost < Allowance;
+
+  if (InliningPreventsSomeOuterInline && TotalSecondaryCost < IC.getCost())
+    return true;
+
+  return false;
+  // TVM local end
 }
 
 namespace llvm {

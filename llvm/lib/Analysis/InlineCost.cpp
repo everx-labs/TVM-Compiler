@@ -440,8 +440,6 @@ public:
   unsigned NumConstantPtrCmps = 0;
   unsigned NumConstantPtrDiffs = 0;
   unsigned NumInstructionsSimplified = 0;
-
-  void dump();
 };
 
 // Considering forming a binary search, we should find the number of nodes
@@ -2000,7 +1998,10 @@ bool CallAnalyzer::visitExtractValue(ExtractValueInst &I) {
     return true;
 
   // SROA can't look through these, but they may be free.
-  return Base::visitExtractValue(I);
+  // TVM local begin       
+  //return Base::visitExtractValue(I);
+  return false;
+  // TVM local end
 }
 
 bool CallAnalyzer::visitInsertValue(InsertValueInst &I) {
@@ -2013,7 +2014,10 @@ bool CallAnalyzer::visitInsertValue(InsertValueInst &I) {
     return true;
 
   // SROA can't look through these, but they may be free.
-  return Base::visitInsertValue(I);
+  // TVM local begin
+  // return Base::visitExtractValue(I);
+  return false;
+  // TVM local end
 }
 
 /// Try to simplify a call site.
@@ -2341,6 +2345,7 @@ CallAnalyzer::analyzeBlock(BasicBlock *BB,
       continue;
 
     ++NumInstructions;
+
     if (isa<ExtractElementInst>(I) || I.getType()->isVectorTy())
       ++NumVectorInstructions;
 
@@ -2505,6 +2510,7 @@ InlineResult CallAnalyzer::analyze() {
     return InlineResult::success();
 
   Function *Caller = CandidateCall.getFunction();
+
   // Check if the caller function is recursive itself.
   for (User *U : Caller->users()) {
     CallBase *Call = dyn_cast<CallBase>(U);
@@ -2842,14 +2848,56 @@ InlineCost llvm::getInlineCost(
     function_ref<const TargetLibraryInfo &(Function &)> GetTLI,
     function_ref<BlockFrequencyInfo &(Function &)> GetBFI,
     ProfileSummaryInfo *PSI, OptimizationRemarkEmitter *ORE) {
-  auto UserDecision =
-      llvm::getAttributeBasedInliningDecision(Call, Callee, CalleeTTI, GetTLI);
+  // TVM local begin
+  //auto UserDecision =
+  //    llvm::getAttributeBasedInliningDecision(Call, Callee, CalleeTTI, GetTLI);
+  //
+  //if (UserDecision.hasValue()) {
+  //  if (UserDecision->isSuccess())
+  //    return llvm::InlineCost::getAlways("always inline attribute");
+  //  return llvm::InlineCost::getNever(UserDecision->getFailureReason());
+  // }
+  // 
+  // Cannot inline indirect calls.
+  if (!Callee)
+    return llvm::InlineCost::getNever("Cannot inline indirect calls");
 
-  if (UserDecision.hasValue()) {
-    if (UserDecision->isSuccess())
-      return llvm::InlineCost::getAlways("always inline attribute");
-    return llvm::InlineCost::getNever(UserDecision->getFailureReason());
+  // Never inline calls with byval arguments that does not have the alloca
+  // address space. Since byval arguments can be replaced with a copy to an
+  // alloca, the inlined code would need to be adjusted to handle that the
+  // argument is in the alloca address space (so it is a little bit complicated
+  // to solve).
+  unsigned AllocaAS = Callee->getParent()->getDataLayout().getAllocaAddrSpace();
+  for (unsigned I = 0, E = Call.arg_size(); I != E; ++I)
+    if (Call.isByValArgument(I)) {
+      PointerType *PTy = cast<PointerType>(Call.getArgOperand(I)->getType());
+      if (PTy->getAddressSpace() != AllocaAS)
+        return llvm::InlineCost::getNever("");
+    }
+
+  if (Call.hasFnAttr(Attribute::AlwaysInline)) {
+    if (isInlineViable(*Callee).isSuccess())
+      return llvm::InlineCost::getAlways("");
+    return llvm::InlineCost::getNever("");
   }
+
+ // Never inline functions with conflicting attributes (unless callee has
+  // always-inline attribute).
+  Function *Caller = Call.getCaller();
+  if (!functionsHaveCompatibleAttributes(Caller, Callee, CalleeTTI, GetTLI))
+    return llvm::InlineCost::getNever("");
+
+  // Don't inline this call if the caller has the optnone attribute.
+  if (Caller->hasFnAttribute(Attribute::OptimizeNone))
+    return llvm::InlineCost::getNever("");
+
+  // Don't inline a function that treats null pointer as valid into a caller
+  // that does not have this attribute.
+  if (!Caller->nullPointerIsDefined() && Callee->nullPointerIsDefined()) {
+    return llvm::InlineCost::getNever("");
+  }
+  // TVM local end
+
 
   LLVM_DEBUG(llvm::dbgs() << "      Analyzing call of " << Callee->getName()
                           << "... (caller:" << Call.getCaller()->getName()

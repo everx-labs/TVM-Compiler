@@ -4,7 +4,16 @@ TVM_LINKER_RELEASE_DIR := target/release
 BUILD_DIR := build
 # INSTALL_PREFIX := ../install
 
-all: tvm-linker llvm-compiler
+# JOBS = 8
+JOBS = $(filter -j%, $(MAKEFLAGS))
+
+all: 
+	$(MAKE) job-count-test
+	$(MAKE) tvm-linker 
+	$(MAKE) llvm-compiler
+
+job-count-test:
+	echo "Building with $(JOBS) jobs."; 
 
 clean: clean-tvm-linker clean-llvm-compiler
 	
@@ -21,7 +30,7 @@ tvm-linker: create-install-path
 	cd $(PROJECTS_SOURCE_DIR) && \
 	git clone http://github.com/tonlabs/$(TVM_LINKER_DIR)/
 	cd $(PROJECTS_SOURCE_DIR)/$(TVM_LINKER_DIR) && \
-	cargo update && cargo build --release -j8
+	cargo update && cargo build --release $(JOBS)
 	cp $(PROJECTS_SOURCE_DIR)/$(TVM_LINKER_DIR)/$(TVM_LINKER_RELEASE_DIR)/tvm_linker $(INSTALL_PREFIX)/bin
 
 #install: $(PROJECTS_SOURCE_DIR)/$(TVM_LINKER_DIR)/$(TVM_LINKER_RELEASE_DIR)
@@ -34,13 +43,15 @@ clean-llvm-compiler:
 	  rm -rf $(BUILD_DIR); \
 	fi;
 
-llvm-compiler: llvm-configure llvm-build-install
+llvm-compiler: 
+	$(MAKE) llvm-configure 
+	$(MAKE) llvm-build-install
 
 llvm-configure:
-	mkdir $(BUILD_DIR)
+	mkdir $(BUILD_DIR) && \
 	cd $(BUILD_DIR) && \
 	cmake -DCMAKE_INSTALL_PREFIX=../$(INSTALL_PREFIX) -DLLVM_ENABLE_PROJECTS=clang -C ../cmake/Cache/ton-compiler.cmake ../llvm
 
 llvm-build-install: create-install-path
 	cd $(BUILD_DIR) && \
-	cmake --build . --target install -- -j8
+	cmake --build . --target install -- $(JOBS)

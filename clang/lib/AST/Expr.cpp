@@ -1679,10 +1679,13 @@ MemberExpr *MemberExpr::Create(
                        TemplateArgumentLoc>(
           HasQualOrFound ? 1 : 0, HasTemplateKWAndArgsInfo ? 1 : 0,
           TemplateArgs ? TemplateArgs->size() : 0);
-
   void *Mem = C.Allocate(Size, alignof(MemberExpr));
   MemberExpr *E = new (Mem) MemberExpr(Base, IsArrow, OperatorLoc, MemberDecl,
                                        NameInfo, T, VK, OK, NOUR);
+
+  // TVM local begin
+  E->setDependence(Base->getDependence());
+  // TVM local end
 
   // FIXME: remove remaining dependence computation to computeDependence().
   auto Deps = E->getDependence();

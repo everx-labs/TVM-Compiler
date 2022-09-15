@@ -43,6 +43,7 @@
 #include "ToolChains/RISCVToolchain.h"
 #include "ToolChains/Solaris.h"
 #include "ToolChains/TCE.h"
+#include "ToolChains/TVM.h"
 #include "ToolChains/VEToolchain.h"
 #include "ToolChains/WebAssembly.h"
 #include "ToolChains/XCore.h"
@@ -3693,6 +3694,17 @@ void Driver::BuildActions(Compilation &C, DerivedArgList &Args,
     return;
   }
 
+  // TVM local begin
+  Arg *FinalPhaseArg;
+  phases::ID FinalPhase = getFinalPhase(Args, &FinalPhaseArg);
+  if (C.getDefaultToolChain().getTriple().isTVM() &&
+      FinalPhase == phases::Assemble && !Args.hasArg(options::OPT_emit_llvm)) {
+    Diag(clang::diag::warn_tvm_unsupported_assembler);
+    FinalPhase = phases::Link;
+    FinalPhaseArg = nullptr;
+  }
+  // TVM local end
+
   // Reject -Z* at the top level, these options should never have been exposed
   // by gcc.
   if (Arg *A = Args.getLastArg(options::OPT_Z_Joined))
@@ -3946,6 +3958,11 @@ Action *Driver::ConstructPhaseAction(
   // arguments. Just special case here.
   if (Phase == phases::Assemble && Input->getType() != types::TY_PP_Asm)
     return Input;
+
+  // TVM local change begin
+  if (Phase == phases::Assemble && C.getDefaultToolChain().getTriple().isTVM())
+    return Input;
+  // TVM local change end
 
   // Build the appropriate action.
   switch (Phase) {
@@ -5424,6 +5441,10 @@ const ToolChain &Driver::getToolChain(const ArgList &Args,
       case llvm::Triple::wasm64:
         TC = std::make_unique<toolchains::WebAssembly>(*this, Target, Args);
         break;
+      // TVM local begin
+      case llvm::Triple::tvm:
+        TC = std::make_unique<toolchains::TVM>(*this, Target, Args);
+      // TVM local end
       case llvm::Triple::avr:
         TC = std::make_unique<toolchains::AVRToolChain>(*this, Target, Args);
         break;

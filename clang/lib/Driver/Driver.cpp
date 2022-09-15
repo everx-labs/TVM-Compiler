@@ -5444,6 +5444,7 @@ const ToolChain &Driver::getToolChain(const ArgList &Args,
       // TVM local begin
       case llvm::Triple::tvm:
         TC = std::make_unique<toolchains::TVM>(*this, Target, Args);
+        break;
       // TVM local end
       case llvm::Triple::avr:
         TC = std::make_unique<toolchains::AVRToolChain>(*this, Target, Args);

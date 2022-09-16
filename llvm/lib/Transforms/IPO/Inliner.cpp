@@ -421,22 +421,6 @@ inlineCallsImpl(CallGraphSCC &SCC, CallGraph &CG,
       // just become a regular analysis dependency.
       OptimizationRemarkEmitter ORE(Caller);
 
-    // DXX
-      bool db = false;
-      if (
-          //Caller->getName() == 
-          //"_ZNSt3__116__variant_detail12__visitation6__base11__visit_altINS1_9__variant15__value_visitorIN3tvm6schema15builder_visitorEEEJRNS0_6__implIJNS7_10EitherLeftINS7_9StateInitEEENS7_11EitherRightINS7_3refISC_EEEEEEEEEEDcOT_DpOT0_"
-          //&&
-          Callee->getName() ==
-        "_ZNK3tvm17to_std_tuple_implILm3EEclIRNS_6schema15message_relaxedINS3_5emptyEEEEEDaOT_"
-        ) {
-        db = true;
-        dbgs() << "Before Callee " << Callee->getName() << "\n";
-        Caller->print(dbgs());
-        dbgs() << "\n";
-        dbgs().flush();
-      }
-
       auto OIC = shouldInline(CB, GetInlineCost, ORE);
       // If the policy determines that we should inline this function,
       // delete the call instead.
@@ -544,17 +528,6 @@ inlineCallsImpl(CallGraphSCC &SCC, CallGraph &CG,
 
       Changed = true;
       LocalChange = true;
-
-      // DXX
-      /*
-      if (db) {
-        dbgs() << "After Callee " << Callee->getName() << "\n";
-        Caller->print(dbgs());
-        dbgs() << "\n";
-        dbgs().flush();
-        dbgs() << "\n";
-      }
-      */
     }
   } while (LocalChange);
 

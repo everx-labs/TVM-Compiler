@@ -1708,7 +1708,10 @@ Error BitcodeReader::parseTypeTableBody() {
     Expected<unsigned> MaybeRecord = Stream.readRecord(Entry.ID, Record);
     if (!MaybeRecord)
       return MaybeRecord.takeError();
-    switch (MaybeRecord.get()) {
+    int code = MaybeRecord.get();
+    dbgs() << "code = " << code << "\n";
+    dbgs().flush();
+    switch (code) {
     default:
       return error("Invalid value");
     case bitc::TYPE_CODE_NUMENTRY: // TYPE_CODE_NUMENTRY: [numentries]
@@ -1757,6 +1760,20 @@ Error BitcodeReader::parseTypeTableBody() {
     case bitc::TYPE_CODE_TOKEN:     // TOKEN
       ResultTy = Type::getTokenTy(Context);
       break;
+    // TVM local begin
+    case bitc::TYPE_CODE_TVMSLICE:
+      ResultTy = Type::getTVMSliceTy(Context);
+      break;
+    case bitc::TYPE_CODE_TVMBUILDER:
+      ResultTy = Type::getTVMBuilderTy(Context);
+      break;
+    case bitc::TYPE_CODE_TVMCELL:
+      ResultTy = Type::getTVMCellTy(Context);
+      break;
+    case bitc::TYPE_CODE_TVMTUPLE:
+      ResultTy = Type::getTVMTupleTy(Context);
+      break;
+    // TVM local end
     case bitc::TYPE_CODE_INTEGER: { // INTEGER: [width]
       if (Record.empty())
         return error("Invalid record");

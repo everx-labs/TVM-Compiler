@@ -108,5 +108,42 @@ private:
   __tvm_tuple tup_;
 };
 
+// implementation of tuple_stack for unsigned elements
+template<>
+class tuple_stack<unsigned> {
+public:
+  tuple_stack() : tup_(__builtin_tvm_tuple()) {}
+  bool empty() {
+    return !top_;
+  }
+  void push(unsigned val) {
+    if (top_)
+      tup_ = __builtin_tvm_tpush(tup_, *top_);
+    top_ = val;
+  }
+  void pop() {
+    require(!!top_, error_code::empty_container);
+    if (__builtin_tvm_tlen(tup_)) {
+      auto [=tup_, val] = __builtin_tvm_tpop(tup_);
+      top_ = val;
+    } else {
+      top_.reset();
+    }
+  }
+  std::optional<unsigned> extract() {
+    if (!empty()) {
+      auto rv = top();
+      pop();
+      return { rv };
+    }
+    return {};
+  }
+  unsigned size() const { return top_ ? (__builtin_tvm_tlen(tup_) + 1) : 0; }
+  unsigned& top() { return *top_; }
+private:
+  std::optional<unsigned> top_;
+  __tvm_tuple tup_;
+};
+
 } // namespace tvm
 

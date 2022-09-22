@@ -27,6 +27,7 @@ public:
   using elem_info = refs_info::intrusive_elem_info<header, Element>;
 
   bool   empty() const { return size_ == 0; }
+  uint32 last_id() const { return last_id_; }
   uint32 size() const { return size_; }
   uint8  root_lvl() const { return root_lvl_; }
 
@@ -36,53 +37,153 @@ public:
     return parse_elem(rbegin_.get());
   }
 
-  /// Push element in the queue (push back)
-  void push(value_type val) {
+  /// Push element in the queue (push back). Returns new element's id.
+  unsigned push(value_type val) {
     ++size_;
+    ++last_id_;
     // First element in the queue
     if (!rbegin_) {
-      rbegin_ = build_elem(size_, val);
-      return;
+      rbegin_ = build_elem(last_id_, val);
+      return last_id_.get();
     }
     cell old = rbegin_.get();
     auto hdr = parse<header>(old.ctos());
     // If rbegin is full of his lvl, new rbegin is set and old will be first ref of the new rbegin.
     // nref for new root will be 1, nref for other cells unchanged.
     // root_lvl is increased.
-    if (is_full_node(hdr)) {
-      rbegin_ = build_elem(size_, val, old);
+    if (is_full_node(hdr.nref)) {
+      rbegin_ = build_elem(last_id_, val, old);
       root_lvl_++;
-      return;
+      return last_id_.get();
     }
 
     // Otherwise, we need recursively get sub-element from nref
     tuple_stack<cell> path;
-    path.push(build_elem(size_, val, old));
+    path.push(build_elem(last_id_, val, old));
 
     auto cur = old;
     auto cur_lvl = root_lvl_;
     while(true) {
       auto hdr = get_header(cur);
-      if (is_full_node(hdr)) {
+      if (is_full_node(hdr.nref)) {
         rbegin_ = unroll_path(path, cur_lvl);
         break;
       } else {
-        require(cur_lvl > 0, 98);
+        require(cur_lvl > 0, error_code::iterator_overflow);
         path.push(cur);
-        cur = sub_elem(cur, hdr).get();
+        cur = sub_elem(cur, hdr.nref).get();
         cur_lvl--;
+        if (cur.isnull()) {
+          rbegin_ = unroll_path(path, cur_lvl);
+          break;
+        }
         continue;
+      }
+    }
+    return last_id_.get();
+  }
+
+  /// Pop element from the queue (pop front) and return the element if any
+  std::optional<value_type> pop_opt() {
+    if (!rbegin_)
+      return {};
+    optcell cur = rbegin_;
+    tuple_stack<cell> path;
+    while (true) {
+      auto next = sub_elem(cur.get(), 0u8);
+      if (!next) {
+        auto [hdr, rv] = parse_elem(cur.get());
+        rbegin_ = unroll_path_pop(path);
+        if (--size_ == 0)
+          root_lvl_ = 0;
+        return rv;
+      } else {
+        path.push(cur.get());
+        cur = next;
       }
     }
   }
 
-  std::optional<value_type> pop_opt() {
-  }
-
+  /// Pop element from the queue (pop front). `iterator_overflow` error if empty.
   void pop() {
+    auto rv = pop_opt();
+    require(!!rv, error_code::iterator_overflow);
   }
 
-  dict_array<value_type> subpart(unsigned begin_id, unsigned end_id) {
+  /// Get front element from queue with its index. Doesn't erase element from the queue.
+  std::optional<std::pair<unsigned, value_type>> front_with_idx_opt() const {
+    if (!rbegin_)
+      return {};
+    optcell cur = rbegin_;
+    while (auto next = sub_elem(cur.get(), 0u8)) {
+      cur = next;
+    }
+    auto [hdr, rv] = parse_elem(cur.get());
+    return std::make_pair(hdr.id.get(), rv);
+  }
+
+  /// Change front element in the queue.
+  void change_front(value_type v) {
+    require(!!rbegin_, error_code::iterator_overflow);
+    optcell cur = rbegin_;
+    tuple_stack<cell> path;
+    while (auto next = sub_elem(cur.get(), 0u8)) {
+      path.push(cur.get());
+      cur = next;
+    }
+    rbegin_ = unroll_path_change_front(path, cur.get(), v);
+  }
+
+  /// Find element by index and erase if func(elem) is true.
+  /// Returns true if the element was deleted
+  template<typename Func>
+  bool erase_if(unsigned idx, Func func) {
+    require(rbegin_ && idx <= last_id_, error_code::iterator_overflow);
+    optcell cur = rbegin_;
+    tuple_stack<cell> path;
+    tuple_stack<unsigned> path_ids;
+    auto [hdr, refs] = decompose(cur.get());
+    while (true) {
+      if (hdr.id.get() == idx) {
+        // Element is found
+        if (!func(parse_elem(cur.get()).second))
+          return false;
+        if (size_ == 1) {
+          rbegin_ = cell{};
+          size_ = 0;
+          root_lvl_ = 0;
+          return true;
+        }
+        // last child of cur, rebuilt in its place (with all nested last child elements promoted recursively)
+        optcell rebuilt_child = move_last_child_up(cur.get());
+        rbegin_ = unroll_path_erase(path, path_ids, cur.get(), rebuilt_child);
+        return true;
+      } else if (hdr.id.get() < idx) {
+        // Child elements have lesser id than parent, so we can't find such an element
+        return false;
+      } else {
+        // We need to find first child with hdr.id >= idx
+        bool child_found = false;
+        for (unsigned i = 0; i < refs.size(); ++i) {
+          cell ch = refs[i];
+          auto [ch_hdr, ch_refs] = decompose(ch);
+          if (ch_hdr.id >= idx) {
+            hdr = ch_hdr;
+            refs = ch_refs;
+            child_found = true;
+            path.push(cur.get());
+            path_ids.push(i); // we need to save it to use during unroll (remove/fix reference)
+            break;
+          }
+        }
+        if (!child_found)
+          return false;
+      }
+    }
+    return false;
+  }
+
+  dict_array<value_type> subpart(unsigned begin_id, unsigned end_id) const {
     dict_array<value_type> rv;
     if (!rbegin_)
       return rv;
@@ -106,29 +207,131 @@ public:
   }
 
 private:
-  // Unroll path of affected elements and create modified cells
+  // Unroll path of affected elements and create modified cells (for pop operation)
+  static cell unroll_path_pop(tuple_stack<cell> path) {
+    if (path.empty())
+      return {};
+    // First element should be rebuilt without first reference
+    optcell leaf = path.extract();
+    auto [leaf_hdr, leaf_refs] = decompose(leaf.get());
+    leaf_refs.pop_front();
+    cell last = rebuild(leaf.get(), leaf_refs, leaf_hdr);
+    while (optcell cur = path.extract()) {
+      auto [hdr, refs] = decompose(cur.get());
+      refs.set_at(0, last);
+      last = rebuild(cur.get(), refs, hdr);
+    }
+    return last;
+  }
+
+  // Unroll path of affected elements and create modified cells (for change_front operation)
+  static cell unroll_path_change_front(tuple_stack<cell> path, cell leaf, value_type v) {
+    auto [leaf_hdr, leaf_refs] = decompose(leaf);
+    cell last = build_elem(leaf_hdr.id, v);
+    while (optcell cur = path.extract()) {
+      auto [hdr, refs] = decompose(cur.get());
+      refs.set_at(0, last);
+      last = rebuild(cur.get(), refs, hdr);
+    }
+    return last;
+  }
+
+  // Unroll path of affected elements and create modified cells (for erase_if operation)
+  static cell unroll_path_erase(tuple_stack<cell> path, tuple_stack<unsigned> path_ids, cell leaf, optcell rebuilt_child) {
+    require(!path.empty(), error_code::iterator_overflow);
+    cell parent = path.extract().get();
+    auto parent_idx = path_ids.extract();
+    auto [leaf_hdr, leaf_refs] = decompose(leaf);
+    cell last;
+    auto [parent_hdr, parent_refs] = decompose(parent);
+    if (rebuilt_child) {
+      // if leaf (deleted element) has child refs, we need to replace leaf with its last child
+      parent_refs.set_at(parent_idx, rebuilt_child.get());
+      last = rebuild(parent, parent_refs, parent_hdr);
+    } else {
+      // otherwise, we need to remove reference to this element
+      parent_refs.erase_at(parent_idx);
+      last = rebuild(parent, parent_refs, { .nref = parent_hdr.nref - 1, .id = parent_hdr.id });
+    }
+
+    while (optcell cur = path.extract()) {
+      auto parent_idx = path_ids.extract();
+      require(!!parent_idx, error_code::iterator_overflow);
+
+      auto [hdr, refs] = decompose(cur.get());
+      refs.set_at(parent_idx, last);
+      last = rebuild(cur, refs, hdr);
+    }
+    return last;
+  }
+
+  /// In case of erasing non-empty element, we need to move its last child to replace the element.
+  /// And when we moving non-empty last child, we need to move its last child upper etc...
+  /// Returns null if `cur` is an empty element (no child elements)
+  static optcell move_last_child_up(cell cur) {
+    tuple_stack<cell> path;
+    header hdr;
+    // first going down and preparing path of last child elements (which still have its own child elements)
+    do {
+      auto [=hdr, refs] = decompose(cur);
+      auto sz = refs.size();
+      if (sz) {
+        path.push(cur);
+        cur = refs[sz - 1];
+        continue;
+      }
+      break;
+    } while(true);
+    if (path.empty())
+      return {};
+    // Now we have path of non-empty last child elements in `path` and leaf element in `cur`
+
+    // First, rebuilding leaf element with first parent's refs without one (back)
+    cell leaf = cur;
+    optcell parent = path.extract();
+    auto [parent_hdr, parent_refs] = decompose(parent.get());
+    parent_refs.pop_back();
+    cell last = rebuild(leaf, parent_refs, { .nref = parent_hdr.nref - 1, .id = hdr.id });
+    cur = parent.get();
+    hdr = parent_hdr;
+    // In loop, rebuilding current element with its parent's refs with last ref changed to 'last'
+    while (optcell parent = path.extract()) {
+      auto [parent_hdr, parent_refs] = decompose(parent.get());
+      parent_refs.pop_back();
+      parent_refs.push_back(last);
+      last = rebuild(cur, parent_refs, { .nref = parent_hdr.nref, .id = hdr.id });
+      hdr = parent_hdr;
+    }
+    return { last };
+  }
+
+  // Unroll path of affected elements and create modified cells (for push operation)
   static cell unroll_path(tuple_stack<cell> path, uint8 lvl) {
     // ===== 2 custom step for leaf and first parent ===== //
-    require(path.size() >= 2, 99);
+    require(path.size() >= 2, error_code::iterator_overflow);
     optcell leaf = path.extract();
     optcell par1 = path.extract();
-    require(leaf && par1, 99);
+    require(leaf && par1, error_code::iterator_overflow);
     // If it is a leaf of lvl 0 - means it is a full node (nref = max_refs).
     auto [leaf_hdr, leaf_refs] = decompose(leaf.get());
     cell new_leaf = rebuild(leaf.get(), {}, { .nref = uint8((lvl == 0) ? elem_info::max_refs : 0), .id = leaf_hdr.id });
     leaf_refs.push_back(new_leaf);
     auto [old_hdr, old_refs] = decompose(par1.get());
-    cell new_par1 = rebuild(par1.get(), leaf_refs, { .nref = leaf_hdr.nref + 1, .id = old_hdr.id });
+    if (lvl == 0) ++leaf_hdr.nref;
+    cell new_par1 = rebuild(par1.get(), leaf_refs, { .nref = leaf_hdr.nref, .id = old_hdr.id });
     cell new_child = new_par1;
     old_refs.pop_back();
     old_refs.push_back(new_child);
+    auto prev_hdr = leaf_hdr;
     if (!path.empty()) {
       // ===== loop for other elements in the path ===== //
       while (auto cl = path.extract()) {
         auto [hdr, refs] = decompose(cl.get());
+        if (is_full_node(prev_hdr.nref)) ++old_hdr.nref;
         new_child = rebuild(cl.get(), old_refs, { .nref = old_hdr.nref, .id = hdr.id });
         refs.pop_back();
         refs.push_back(new_child);
+        prev_hdr = old_hdr;
         old_refs = refs;
         old_hdr = hdr;
       }
@@ -137,13 +340,13 @@ private:
   }
 
   /// Sub element #nref
-  static optcell sub_elem(cell cl, header hdr) {
-    if (is_full_node(hdr))
+  static optcell sub_elem(cell cl, uint8 nref) {
+    if (is_full_node(nref))
       return {};
     auto [h, refs] = decompose(cl);
-    if (hdr.nref >= refs.size())
+    if (nref >= refs.size())
       return {};
-    return { refs[hdr.nref.get()] };
+    return { refs[nref.get()] };
   }
 
   /// Get header
@@ -161,10 +364,11 @@ private:
     return rebuild(build_elem(id, val), tuple_array<cell>(child), { .nref = 1u8, .id = id } );
   }
 
+  /// Parse element from cell
   static std::pair<header, value_type> parse_elem(cell cl) {
     parser p(cl.ctos());
     [[maybe_unused]] auto [hdr, =p] = parse_continue<header>(p);
-    require(!!hdr, 99);
+    require(!!hdr, error_code::iterator_overflow);
     using est = estimate_element<header>;
     return { *hdr, parse_chain_static<value_type, est::max_bits>(p) };
   }
@@ -187,11 +391,12 @@ private:
   }
 
   // Is it a full node of this lvl
-  static bool is_full_node(header hdr) {
-    return hdr.nref >= elem_info::max_refs;
+  static bool is_full_node(uint8 nref) {
+    return nref >= elem_info::max_refs;
   }
 
 public:
+  uint32  last_id_;
   uint32  size_;
   uint8   root_lvl_;
   optcell rbegin_;

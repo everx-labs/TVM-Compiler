@@ -8,6 +8,7 @@
 #include <tvm/schema/parser/struct_parser.hpp>
 #include <tvm/schema/parser/variant_parser.hpp>
 #include <tvm/schema/parser/dynamic_field_parser.hpp>
+#include <tvm/schema/estimate_element.hpp>
 
 namespace tvm { inline namespace schema {
 
@@ -228,6 +229,9 @@ struct make_parser_impl<empty> {
   }
 };
 
+template<class Data, unsigned BitsOffset = 0, unsigned RefsOffset = 0>
+auto parse_chain_static(parser p);
+
 template<class _Tp>
 struct make_parser_impl<optional<_Tp>> {
   using value_type = optional<_Tp>;
@@ -235,11 +239,19 @@ struct make_parser_impl<optional<_Tp>> {
   //  ret = optional<optional<_Tp>>
   template<class _Ctx>
   inline static std::tuple<optional<value_type>, parser, _Ctx> parse(parser p, _Ctx ctx) {
+    using Est = estimate_element<optional<_Tp>>;
     if (p.ldu(1)) {
-      auto [parsed, new_p, new_ctx] = make_parser_impl<_Tp>::parse(p, ctx);
-      if (parsed)
-        return std::tuple(parsed, new_p, new_ctx);
-      return std::tuple(optional<value_type>{}, p, ctx);
+      if constexpr (Est::is_large) {
+        auto inner_slice = p.ldrefrtos();
+        parser inner_parser(inner_slice);
+        auto rv = parse_chain_static<_Tp>(inner_parser);
+        return std::tuple(rv, p, ctx);
+      } else {
+        auto [parsed, new_p, new_ctx] = make_parser_impl<_Tp>::parse(p, ctx);
+        if (parsed)
+          return std::tuple(parsed, new_p, new_ctx);
+        return std::tuple(optional<value_type>{}, p, ctx);
+      }
     } else {
       return std::tuple(value_type{}, p, ctx);
     }

@@ -42,13 +42,24 @@ public:
     tup_ = tup;
   }
 
+  /// Pop value from the begin
+  void pop_front() {
+    auto [val, tup] = __builtin_tvm_tpopfront(tup_, size());
+    tup_ = tup;
+  }
+
   /// Returns array element #idx
   cell operator[](unsigned idx) const {
     return __builtin_tvm_cast_to_cell(__builtin_tvm_index(tup_, idx));
   }
   /// Sets array element #idx
-  void set_at(unsigned idx, cell val) const {
-    __builtin_tvm_setindex(tup_, __builtin_tvm_cast_from_cell(val), idx);
+  void set_at(unsigned idx, cell val) {
+    tup_ = __builtin_tvm_setindex(tup_, __builtin_tvm_cast_from_cell(val), idx);
+  }
+  /// Erase array element #idx
+  void erase_at(unsigned idx) {
+    unsigned sz = size();
+    tup_ = __builtin_tvm_trerase(sz - idx, tup_, sz);
   }
 private:
   __tvm_tuple tup_;

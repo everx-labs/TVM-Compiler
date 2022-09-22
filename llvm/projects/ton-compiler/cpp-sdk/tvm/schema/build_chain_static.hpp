@@ -6,7 +6,7 @@
 
 namespace tvm { inline namespace schema {
 
-template<class Data, unsigned BitsOffset = 0, unsigned RefsOffset = 0>
+template<class Data, unsigned BitsOffset, unsigned RefsOffset>
 cell build_chain_static(Data val) {
   if constexpr (is_tuple<Data>()) {
     return build(make_chain_tuple<BitsOffset, RefsOffset>(val)).make_cell();

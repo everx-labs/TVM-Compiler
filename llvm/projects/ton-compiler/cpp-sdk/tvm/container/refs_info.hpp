@@ -238,11 +238,6 @@ cell rebuild_refs_impl(builder root, slice old, tuple_array<cell> refs, unsigned
 /// Placing it in the builder. And then add external refs. And return finalized new cell.
 template<typename RefsInfo>
 cell rebuild_refs(builder root, slice old, tuple_array<cell> refs) {
-  /*if (refs.size() < RefsInfo::max_refs) {
-    for (unsigned i = refs.size(); i < RefsInfo::max_refs; ++i) {
-      refs.push_back(__builtin_tvm_cast_to_cell(__builtin_tvm_pushnull()));
-    }
-  }*/
   return rebuild_refs_impl<typename RefsInfo::refs_map>(root, old, refs, 0);
 }
 

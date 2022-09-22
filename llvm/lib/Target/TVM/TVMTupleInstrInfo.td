@@ -152,6 +152,30 @@ defm TPOP : I<(outs Tuple:$ret_tuple, I257:$ret_val), (ins Tuple:$tuple),
               "TPOP\t$ret_tuple, $ret_val, $tuple",
               "TPOP", 0x6f8d>;
 
+// Pop front from tuple - combined instruction EXPLODEVAR + DEC + TUPLEVAR
+defm TPOPFRONT : I<(outs I257:$ret_val, Tuple:$ret_tuple), (ins Tuple:$tuple, I257:$sz),
+            (outs), (ins),
+            [(set I257:$ret_val, Tuple:$ret_tuple,
+              (int_tvm_tpopfront Tuple:$tuple, I257:$sz))],
+            "TPOPFRONT\t$ret_val, $ret_tuple, $tuple, $sz",
+            "EXPLODEVAR\n\t      DEC\n\t      TUPLEVAR", 0x6f8d>;
+
+// Erase element from tuple by reverse index - combined instruction:
+// EXPLODEVAR, DUP, INC, ROLLX, INC, ROLLX, DROP, DEC, TUPLEVAR
+// SZ - SZ - SZ - RI - t2 - SZ - SZ-1 - TU(t0,t1,t3)
+// TU - t3 - SZ - SZ - SZ - t3 - t3   -
+// RI - t2 - t3 - t3 - t3 - t1 - t1   -
+// -  - t1 - t2 - t2 - t1 - t0 - t0   -
+// -  - t0 - t1 - t1 - t0 - -
+// -  - RI - t0 - t0 - -  - -
+// -  - -  - RI - -  - -  - -
+defm TRERASE : I<(outs Tuple:$ret_tuple), (ins I257:$revidx, Tuple:$tuple, I257:$sz),
+            (outs), (ins),
+            [(set Tuple:$ret_tuple,
+              (int_tvm_trerase I257:$revidx, Tuple:$tuple, I257:$sz))],
+            "TRERASE\t$ret_tuple, $revidx, $tuple, $sz",
+            "EXPLODEVAR\n\t      DUP\n\t      INC\n\t      ROLLX\n\t      INC\n\t      ROLLX\n\t      DROP\n\t      DEC\n\t      TUPLEVAR", 0x6f8d>;
+
 defm INDEX2 : I<(outs I257:$result), (ins Tuple:$tuple, uimm2:$i, uimm2:$j),
                 (outs), (ins uimm2:$i, uimm2:$j),
                 [(set I257:$result,

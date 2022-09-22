@@ -96,14 +96,14 @@ else()
     )
   else()
     message(STATUS "Build tvm-linker from git sources for linux/darwin")
-    ExternalProject_Add(tvm_linker
-      PREFIX ${CMAKE_CURRENT_SOURCE_DIR}/tvm_linker
-      BUILD_IN_SOURCE On
-      GIT_REPOSITORY https://github.com/tonlabs/TVM-linker/
-      CONFIGURE_COMMAND cargo update
-      BUILD_COMMAND cargo build --release
-      INSTALL_COMMAND cp "target/release/tvm_linker" "${CMAKE_INSTALL_PREFIX}/bin"
-    )
+    #ExternalProject_Add(tvm_linker
+    #  PREFIX ${CMAKE_CURRENT_SOURCE_DIR}/tvm_linker
+    #  BUILD_IN_SOURCE On
+    #  GIT_REPOSITORY https://github.com/tonlabs/TVM-linker/
+    #  CONFIGURE_COMMAND cargo update
+    #  BUILD_COMMAND cargo build --release
+    #  INSTALL_COMMAND cp "target/release/tvm_linker" "${CMAKE_INSTALL_PREFIX}/bin"
+    #)
   endif()
 endif()
 

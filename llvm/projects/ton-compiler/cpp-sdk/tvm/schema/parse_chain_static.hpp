@@ -6,7 +6,7 @@
 
 namespace tvm { inline namespace schema {
 
-template<class Data, unsigned BitsOffset = 0, unsigned RefsOffset = 0>
+template<class Data, unsigned BitsOffset, unsigned RefsOffset>
 auto parse_chain_static(parser p) {
   if constexpr (is_tuple<Data>()) {
     using data_tup_t = Data;

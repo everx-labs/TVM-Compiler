@@ -7,6 +7,7 @@
 #include <tvm/schema/builder/dynamic_field_builder.hpp>
 #include <tvm/schema/message.hpp>
 #include <experimental/type_traits>
+#include <tvm/schema/estimate_element.hpp>
 
 namespace tvm { inline namespace schema {
 
@@ -153,13 +154,22 @@ struct make_builder_impl<empty> {
   }
 };
 
+template<class Data, unsigned BitsOffset = 0, unsigned RefsOffset = 0>
+cell build_chain_static(Data val);
+
 template<class _Tp>
 struct make_builder_impl<optional<_Tp>> {
   using value_type = optional<_Tp>;
   __always_inline static builder build(builder b, value_type v) {
+    using Est = estimate_element<optional<_Tp>>;
     if (v) {
       b.stu(1, 1);
-      return make_builder_impl<_Tp>::build(b, *v);
+      if constexpr (Est::is_large) {
+        cell sub = build_chain_static<_Tp>(*v);
+        return b.stref(sub);
+      } else {
+        return make_builder_impl<_Tp>::build(b, *v);
+      }
     } else {
       return b.stu(0, 1);
     }

@@ -153,13 +153,15 @@ struct estimate_element<Either<X, Y>> : detail::chain_to< to_std_tuple_t<Either<
 template<class _Tp>
 struct estimate_element<lazy<_Tp>> : detail::chain_to<_Tp> {};
 
+// The optional type is a large if maxBitSize(InnerType) + 1 > 1023 || maxRefSize(InnerType) >= 4.
 template<class _Tp>
 struct estimate_element<std::optional<_Tp>> {
   using Est = estimate_element<_Tp>;
+  static constexpr bool     is_large = (Est::max_bits + 1 > cell::max_bits) || (Est::max_refs >= cell::max_refs);
   static constexpr unsigned min_bits = 1;
-  static constexpr unsigned max_bits = 1 + Est::max_bits;
+  static constexpr unsigned max_bits = is_large ? 1 : (1 + Est::max_bits);
   static constexpr unsigned min_refs = 0;
-  static constexpr unsigned max_refs = Est::max_refs;
+  static constexpr unsigned max_refs = is_large ? 1 : Est::max_refs;
 };
 
 }} // namespace tvm::schema

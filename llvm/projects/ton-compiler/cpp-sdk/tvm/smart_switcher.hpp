@@ -346,7 +346,7 @@ struct smart_switcher_impl {
       if constexpr (!Internal && !is_getter && get_interface_has_pubkey<IContract>::value) {
         require(!!signature, error_code::invalid_signature);
         require(!!hdr.pubkey, error_code::no_pubkey);
-        bool sign_ok = signature_checker_v2::check(body_from_header, (*signature)(), *hdr.pubkey);
+        bool sign_ok = signature_checker_v2_3::check(body_from_header, (*signature)(), *hdr.pubkey);
         require(sign_ok, error_code::invalid_signature);
         if constexpr (supports_msg_pubkey_v<Contract>)
           c.set_msg_pubkey(hdr.pubkey->get());

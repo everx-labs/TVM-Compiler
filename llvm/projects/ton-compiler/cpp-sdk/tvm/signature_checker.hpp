@@ -1,5 +1,8 @@
 #pragma once
 
+#include <tvm/parser.hpp>
+#include <tvm/builder.hpp>
+
 namespace tvm {
 
 template<unsigned err_code>
@@ -37,11 +40,26 @@ private:
   slice modified_slice_;
 };
 
+/// Signature check for abi v2 - v2.2
 class signature_checker_v2 {
 public:
   // msg_sl - slice from header begin
   inline static bool check(slice msg_sl, slice signature, schema::uint256 pubkey) {
     auto hash = __builtin_tvm_hashsu(msg_sl.get());
+    return __builtin_tvm_chksignu(hash, signature, pubkey.get());
+  }
+};
+
+/// Signature check for abi v2.3
+/// msg_sl - message body slice from header (after signature)
+class signature_checker_v2_3 {
+public:
+  // msg_sl - slice from header begin
+  inline static bool check(slice msg_sl, slice signature, schema::uint256 pubkey) {
+    slice sl = builder().stslice(__builtin_tvm_myaddr())
+                        .stslice(msg_sl)
+                        .make_slice();
+    auto hash = __builtin_tvm_hashsu(sl.get());
     return __builtin_tvm_chksignu(hash, signature, pubkey.get());
   }
 };

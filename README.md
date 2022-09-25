@@ -15,7 +15,7 @@ To reproduce the tutorial, you need to get [TON-Compiler sources](https://github
 
 To build C++ compiler from sources, use command sequence (for Linux):
 ```
-git clone https://github.com/tonlabs/TON-Compiler.git –-branch ashistko/llvm13
+git clone --branch ashistko/llvm13  https://github.com/tonlabs/TON-Compiler.git
 cd TON-compiler
 make INSTALL_PREFIX=/path/to/install
 ```
@@ -25,13 +25,13 @@ This command sequence also builds and installs a TVM-linker.
 You can change -DCMAKE_INSTALL_PREFIX if you want to install C++ to other directory.
 Sometimes there is a conflict during installation between "build" directory and "build" temporary file name. To eliminate such conflict, you can beforehand create a "build" subdirectory in your "install" directory. 
 
-For Window users you can use Microsoft Visual Studio 2017 or newer and generate *.sln Solution with command sequence:
+For Window users you can use Microsoft Visual Studio 2019 or newer and generate *.sln Solution with command sequence:
 ```
-git clone https://github.com/tonlabs/TON-Compiler.git –-branch master --single-branch TON-Compiler
+git clone --branch ashistko/llvm13 https://github.com/tonlabs/TON-Compiler.git
 cd TON-compiler
 mkdir build
 cd build
-cmake -G "Visual Studio 15" -DLLVM_TARGETS_TO_BUILD="TVM" -C /path/to/TON-Compiler/cmake/Cache/ton-compiler-alone.cmake ../llvm
+cmake -G "Visual Studio 16 2019" -DLLVM_TARGETS_TO_BUILD="TVM" -C ../cmake/Cache/ton-compiler-alone.cmake ../llvm
 ```
 Than you can compiler "clang" Solution subproject to generate Clang compiler for TVM.
 

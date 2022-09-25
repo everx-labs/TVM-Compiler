@@ -1,6 +1,6 @@
 #pragma once
 
-namespace tvm { namespace schema {
+namespace tvm { inline namespace schema {
 
 // Helper to understand if this type is an expandable structure
 template<class T>
@@ -18,8 +18,14 @@ struct is_expandable<bitconst<_bitlen, _code>> : std::false_type {};
 template<unsigned _bitlen>
 struct is_expandable<bitfield<_bitlen>> : std::false_type {};
 
+template<>
+struct is_expandable<addr_std_compact> : std::false_type {};
+
 template<unsigned _bitlen>
 struct is_expandable<uint_t<_bitlen>> : std::false_type {};
+
+template<>
+struct is_expandable<bool> : std::false_type {};
 
 template<unsigned _bitlen>
 struct is_expandable<int_t<_bitlen>> : std::false_type {};

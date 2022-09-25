@@ -5,9 +5,12 @@
 #include <tvm/resumable.hpp>
 #include <tvm/schema/basics.hpp>
 #include <tvm/schema/message.hpp>
-#include <tvm/sequence.hpp>
+#include <tvm/string.hpp>
 #include <tvm/dict_array.hpp>
 #include <tvm/dict_map.hpp>
+#include <tvm/small_dict_map.hpp>
+#include <tvm/static_print.hpp>
+#include <tvm/persistent_data_header.hpp>
 #include <boost/hana/is_empty.hpp>
 #include <boost/hana/equal.hpp>
 #include <boost/hana/not_equal.hpp>
@@ -30,64 +33,48 @@
 }
 */
 
-namespace tvm { namespace schema { namespace json_abi_gen {
+namespace tvm { inline namespace schema { namespace json_abi_gen {
 
 using namespace hana::literals;
-
-template<unsigned radix>
-constexpr size_t get_magnitude(size_t num) {
-  unsigned i = 0;
-  while (num > 0) {
-    num /= radix;
-    ++i;
-  }
-  return i;
-}
-
-constexpr char hex_sym(unsigned num) {
-  constexpr char arr[] = "0123456789abcdef";
-  return arr[std::min(num, 16u)];
-}
-
-template <unsigned radix, class X, size_t ...i>
-constexpr auto to_string(X x, std::index_sequence<i...>) {
-  constexpr size_t mag = get_magnitude<radix>(X::value);
-  return hana::string<
-    hana::size_c<hex_sym(
-      hana::value(x / hana::power(hana::size_c<radix>, hana::size_c<mag - i - 1>)
-                    % hana::size_c<radix>))
-      >...>{};
-}
-
-template <unsigned radix, class X>
-constexpr auto to_string(X) {
-  if constexpr (X::value == 0)
-    return "0"_s;
-  else
-    return to_string<radix>(hana::size_c<static_cast<size_t>(X::value)>,
-                            std::make_index_sequence<get_magnitude<radix>(X::value)>());
-}
 
 template<class T> struct is_tuple_type : std::true_type {};
 template<unsigned _bitlen> struct is_tuple_type<int_t<_bitlen>> : std::false_type {};
 template<unsigned _bitlen> struct is_tuple_type<uint_t<_bitlen>> : std::false_type {};
 template<> struct is_tuple_type<MsgAddress> : std::false_type {};
+template<> struct is_tuple_type<addr_std_compact> : std::false_type {};
 template<> struct is_tuple_type<MsgAddressInt> : std::false_type {};
 template<> struct is_tuple_type<MsgAddressExt> : std::false_type {};
 template<class Element> struct is_tuple_type<dict_array<Element, 32>> : std::false_type {};
 template<class Key, class Value> struct is_tuple_type<dict_map<Key, Value>> : std::false_type {};
+template<class Key, class Value> struct is_tuple_type<small_dict_map<Key, Value>> : std::false_type {};
+template<class T> struct is_tuple_type<std::optional<T>> : std::false_type {};
 template<> struct is_tuple_type<sequence<uint_t<8>>> : std::false_type {};
+template<> struct is_tuple_type<string> : std::false_type {};
 template<> struct is_tuple_type<cell> : std::false_type {};
+template<> struct is_tuple_type<optcell> : std::false_type {};
+template<> struct is_tuple_type<bool> : std::false_type {};
+template<> struct is_tuple_type<varuint16> : std::false_type {};
+template<> struct is_tuple_type<varuint32> : std::false_type {};
+template<> struct is_tuple_type<varint16> : std::false_type {};
+template<> struct is_tuple_type<varint32> : std::false_type {};
 template<class T> struct is_tuple_type<lazy<T>> : std::false_type {};
 
 template<class T> struct is_tuple_array : std::false_type {};
 template<class Element> struct is_tuple_array<dict_array<Element, 32>> : is_tuple_type<Element> {};
+
+template<class T> struct is_tuple_optional : std::false_type {};
+template<class Element> struct is_tuple_optional<std::optional<Element>> : is_tuple_type<Element> {};
 
 template<class T, unsigned Offset, class ReturnName>
 constexpr auto make_struct_components();
 
 template<class T, unsigned Offset> struct make_array_components {};
 template<class Element, unsigned Offset> struct make_array_components<dict_array<Element, 32>, Offset> {
+  static constexpr auto value = make_struct_components<Element, Offset, decltype(""_s)>();
+};
+
+template<class T, unsigned Offset> struct make_optional_components {};
+template<class Element, unsigned Offset> struct make_optional_components<std::optional<Element>, Offset> {
   static constexpr auto value = make_struct_components<Element, Offset, decltype(""_s)>();
 };
 
@@ -119,6 +106,10 @@ template<>
 struct make_simple_type_impl<MsgAddressExt> {
   static constexpr auto value = "address"_s;
 };
+template<>
+struct make_simple_type_impl<addr_std_compact> {
+  static constexpr auto value = "address"_s;
+};
 template<class Element, bool is_tuple>
 struct make_array_type {
   static constexpr auto elem_value = make_simple_type_impl<Element>::value;
@@ -134,19 +125,67 @@ struct make_simple_type_impl<dict_array<Element, 32>> {
   static constexpr auto value = make_array_type<Element, is_tuple_type<Element>::value>::value;
 };
 
+template<class T>
+__always_inline constexpr bool has_simple_type();
+
+template<class Key, class Value>
+constexpr auto make_map_type() {
+  if constexpr (!has_simple_type<Key>() || !has_simple_type<Value>()) {
+    return "optional(cell)"_s;
+  } else {
+    return "map("_s + make_simple_type_impl<Key>::value + ","_s +
+                      make_simple_type_impl<Value>::value + ")"_s;
+  }
+};
+
 template<class Key, class Value>
 struct make_simple_type_impl<dict_map<Key, Value>> {
-  static constexpr auto key_value = make_simple_type_impl<Key>::value;
-  static constexpr auto elem_value = make_simple_type_impl<Value>::value;
-  static constexpr auto value = "map("_s + key_value + ", "_s + elem_value + ")"_s;
+  static constexpr auto value = make_map_type<Key, Value>();
+};
+template<class Key, class Value>
+struct make_simple_type_impl<small_dict_map<Key, Value>> {
+  static constexpr auto value = make_map_type<Key, Value>();
+};
+template<class T>
+struct make_simple_type_impl<std::optional<T>> {
+  static constexpr auto inner_value = make_simple_type_impl<T>::value;
+  static constexpr auto value = "optional("_s + inner_value + ")"_s;
 };
 template<>
 struct make_simple_type_impl< sequence<uint_t<8>> > {
   static constexpr auto value = "bytes"_s;
 };
 template<>
+struct make_simple_type_impl<string> {
+  static constexpr auto value = "string"_s;
+};
+template<>
 struct make_simple_type_impl<cell> {
   static constexpr auto value = "cell"_s;
+};
+template<>
+struct make_simple_type_impl<optcell> {
+  static constexpr auto value = "optional(cell)"_s;
+};
+template<>
+struct make_simple_type_impl<bool> {
+  static constexpr auto value = "bool"_s;
+};
+template<>
+struct make_simple_type_impl<varuint16> {
+  static constexpr auto value = "varuint16"_s;
+};
+template<>
+struct make_simple_type_impl<varuint32> {
+  static constexpr auto value = "varuint32"_s;
+};
+template<>
+struct make_simple_type_impl<varint16> {
+  static constexpr auto value = "varint16"_s;
+};
+template<>
+struct make_simple_type_impl<varint32> {
+  static constexpr auto value = "varint32"_s;
 };
 template<class T>
 struct make_simple_type_impl<lazy<T>> {
@@ -176,11 +215,11 @@ constexpr auto make_field_name() {
 };
 
 template<bool IsLast>
-constexpr auto make_field_impl_tail() {
+constexpr auto comma_endl() {
   if constexpr (IsLast)
-    return "}\n"_s;
+    return "\n"_s;
   else
-    return "},\n"_s;
+    return ",\n"_s;
 }
 
 template<unsigned Offset>
@@ -196,15 +235,19 @@ template<class T, bool IsLast, unsigned Offset, class FieldName>
 constexpr auto make_field_impl(FieldName field_name) {
   if constexpr (is_tuple_array<T>::value) {
     return make_offset<Offset>::value + "{ \"components\":"_s + make_array_components<T, Offset>::value
-      + ", \"name\":\""_s + field_name + "\", \"type\":\"tuple[]\" "_s
-      + make_field_impl_tail<IsLast>();
+      + ", \"name\":\""_s + field_name + "\", \"type\":\"tuple[]\" }"_s
+      + comma_endl<IsLast>();
   } else if constexpr (is_tuple_type<T>::value) {
     return make_offset<Offset>::value + "{ \"components\":"_s + make_struct_components<T, Offset, decltype(""_s)>()
-      + ", \"name\":\""_s + field_name + "\", \"type\":\"tuple\" "_s
-      + make_field_impl_tail<IsLast>();
+      + ", \"name\":\""_s + field_name + "\", \"type\":\"tuple\" }"_s
+      + comma_endl<IsLast>();
+  } else if constexpr (is_tuple_optional<T>::value) {
+    return make_offset<Offset>::value + "{ \"components\":"_s + make_optional_components<T, Offset>::value
+      + ", \"name\":\""_s + field_name + "\", \"type\":\"optional(tuple)\" }"_s
+      + comma_endl<IsLast>();
   } else {
     return make_offset<Offset>::value + "{ \"name\":\""_s + field_name + "\", \"type\":\""_s +
-        make_simple_type<T>() + "\" "_s + make_field_impl_tail<IsLast>();
+        make_simple_type<T>() + "\" }"_s + comma_endl<IsLast>();
   }
 };
 
@@ -277,6 +320,10 @@ template<unsigned Offset, class ReturnName>
 struct make_struct_json<MsgAddressExt, Offset, ReturnName> {
   static constexpr auto value = make_field_impl<MsgAddressExt, 1, Offset>(make_return_name<ReturnName>());
 };
+template<unsigned Offset, class ReturnName>
+struct make_struct_json<addr_std_compact, Offset, ReturnName> {
+  static constexpr auto value = make_field_impl<addr_std_compact, 1, Offset>(make_return_name<ReturnName>());
+};
 template<unsigned Offset, class ReturnName, class Element>
 struct make_struct_json<dict_array<Element, 32>, Offset, ReturnName> {
   static constexpr auto value = make_field_impl<dict_array<Element, 32>, 1, Offset>(make_return_name<ReturnName>());
@@ -285,13 +332,49 @@ template<unsigned Offset, class ReturnName, class Key, class Value>
 struct make_struct_json<dict_map<Key, Value>, Offset, ReturnName> {
   static constexpr auto value = make_field_impl<dict_map<Key, Value>, 1, Offset>(make_return_name<ReturnName>());
 };
+template<unsigned Offset, class ReturnName, class Key, class Value>
+struct make_struct_json<small_dict_map<Key, Value>, Offset, ReturnName> {
+  static constexpr auto value = make_field_impl<small_dict_map<Key, Value>, 1, Offset>(make_return_name<ReturnName>());
+};
+template<unsigned Offset, class ReturnName, class T>
+struct make_struct_json<std::optional<T>, Offset, ReturnName> {
+  static constexpr auto value = make_field_impl<std::optional<T>, 1, Offset>(make_return_name<ReturnName>());
+};
 template<unsigned Offset, class ReturnName>
 struct make_struct_json< sequence<uint_t<8>>, Offset, ReturnName > {
   static constexpr auto value = make_field_impl<sequence<uint_t<8>>, 1, Offset>(make_return_name<ReturnName>());
 };
 template<unsigned Offset, class ReturnName>
+struct make_struct_json<string, Offset, ReturnName> {
+  static constexpr auto value = make_field_impl<string, 1, Offset>(make_return_name<ReturnName>());
+};
+template<unsigned Offset, class ReturnName>
 struct make_struct_json<cell, Offset, ReturnName> {
   static constexpr auto value = make_field_impl<cell, 1, Offset>(make_return_name<ReturnName>());
+};
+template<unsigned Offset, class ReturnName>
+struct make_struct_json<optcell, Offset, ReturnName> {
+  static constexpr auto value = make_field_impl<optcell, 1, Offset>(make_return_name<ReturnName>());
+};
+template<unsigned Offset, class ReturnName>
+struct make_struct_json<bool, Offset, ReturnName> {
+  static constexpr auto value = make_field_impl<bool, 1, Offset>(make_return_name<ReturnName>());
+};
+template<unsigned Offset, class ReturnName>
+struct make_struct_json<varuint16, Offset, ReturnName> {
+  static constexpr auto value = make_field_impl<varuint16, 1, Offset>(make_return_name<ReturnName>());
+};
+template<unsigned Offset, class ReturnName>
+struct make_struct_json<varuint32, Offset, ReturnName> {
+  static constexpr auto value = make_field_impl<varuint32, 1, Offset>(make_return_name<ReturnName>());
+};
+template<unsigned Offset, class ReturnName>
+struct make_struct_json<varint16, Offset, ReturnName> {
+  static constexpr auto value = make_field_impl<varint16, 1, Offset>(make_return_name<ReturnName>());
+};
+template<unsigned Offset, class ReturnName>
+struct make_struct_json<varint32, Offset, ReturnName> {
+  static constexpr auto value = make_field_impl<varint32, 1, Offset>(make_return_name<ReturnName>());
 };
 template<unsigned Offset, class ReturnName, class T>
 struct make_struct_json<lazy<T>, Offset, ReturnName> {
@@ -308,7 +391,7 @@ constexpr auto make_struct_components() {
 };
 
 constexpr auto make_abi_version() {
-  return "\"ABI version\": 2"_s;
+  return "\"ABI version\": 2,\n  \"version\": \"2.2.0\""_s;
 }
 
 constexpr auto make_getters() {
@@ -317,12 +400,34 @@ constexpr auto make_getters() {
 }
 
 template<class Interface>
+constexpr auto make_header_pubkey() {
+  if constexpr (get_interface_has_pubkey<Interface>::value)
+    return "\n    \"pubkey\","_s;
+  else
+    return ""_s;
+}
+template<class Interface>
+constexpr auto make_header_timestamp() {
+  if constexpr (get_interface_has_timestamp<Interface>::value)
+    return "\n    \"time\","_s;
+  else
+    return ""_s;
+}
+template<class Interface>
+constexpr auto make_header_expire() {
+  if constexpr (get_interface_has_expire<Interface>::value)
+    return "\n    \"expire\""_s;
+  else
+    return ""_s;
+}
+
+template<class Interface>
 constexpr auto make_header() {
-  if constexpr (get_interface_has_pubkey<Interface>::value) {
-    return "\"header\": [\n    \"pubkey\",\n    \"time\",\n    \"expire\"\n  ]"_s;
-  } else {
-    return "\"header\": [\n    \"time\",\n    \"expire\"\n  ]"_s;
-  }
+  return "\"header\": ["_s +
+    make_header_pubkey<Interface>() +
+    make_header_timestamp<Interface>() +
+    make_header_expire<Interface>() +
+    "\n  ]"_s;
 }
 
 constexpr auto make_functions_begin() {
@@ -337,6 +442,49 @@ constexpr auto make_events_begin() {
 }
 constexpr auto make_events_end() {
   return "\n  ]"_s;
+}
+
+// "fields": [
+//   { "name": "a", "type": "optional(uint8)" },
+//   { "name": "b", "type": "optional(map(uint8, tuple))",
+//     "components": [
+//       { "name": "a", "type": "uint" }
+//     ]
+//   },
+//   { "name": "c", "type": "optional(string[])" }
+// ]
+template<class Interface, class ReplayAttackProtection, bool IsLast>
+constexpr auto make_data_fields_header() {
+  using info = persistent_header_info<Interface, ReplayAttackProtection>;
+  // if we have non-empty persistent data header
+  auto uninit_hdr = "    { \"name\":\"__uninitialized\", \"type\":\"bool\" }"_s;
+  if constexpr (info::non_empty) {
+    auto await_hdr =
+      "    { \"name\":\"__await_next_id\", \"type\":\"uint32\" },\n"_s +
+      "    { \"name\":\"__await_dict\", \"type\":\"optional(cell)\" }"_s;
+    if constexpr (info::has_replay) {
+      using replay_t = typename ReplayAttackProtection::persistent_t;
+      auto replay_hdr = make_field_impl<replay_t, IsLast && info::has_awaiting, 2>("__replay"_s);
+      if constexpr (info::has_awaiting)
+        return uninit_hdr + ",\n"_s + replay_hdr + await_hdr + comma_endl<IsLast>();
+      else
+        return uninit_hdr + ",\n"_s + replay_hdr;
+    } else {
+      static_assert(info::has_awaiting);
+      return uninit_hdr + ",\n"_s + await_hdr + comma_endl<IsLast>();
+    }
+  } else {
+    return uninit_hdr + comma_endl<IsLast>();
+  }
+}
+
+template<class Data, class Interface, class ReplayAttackProtection>
+constexpr auto make_data_fields() {
+  constexpr bool IsHdrLast = (calc_fields_count<Data>::value == 0);
+  return "\"fields\": [\n"_s
+    + make_data_fields_header<Interface, ReplayAttackProtection, IsHdrLast>()
+    + make_struct_json<Data, 2, void>::value
+    + "  ]"_s;
 }
 
 template<bool HasAnswerId, unsigned ArgsSize>
@@ -412,9 +560,27 @@ struct make_type_signature_impl<dict_array<Element, 32>> {
 };
 
 template<class Key, class Value>
+constexpr auto make_map_type_signature() {
+  if constexpr (!has_simple_type<Key>() || !has_simple_type<Value>()) {
+    return "optional(cell)"_s;
+  } else {
+    return "map("_s + make_type_signature<Key>() + ","_s + make_type_signature<Value>() + ")"_s;
+  }
+};
+
+template<class Key, class Value>
 struct make_type_signature_impl<dict_map<Key, Value>> {
-  static constexpr auto value =
-    "map("_s + make_type_signature<Key>() + ","_s + make_type_signature<Value>() + ")"_s;
+  static constexpr auto value = make_map_type<Key, Value>();
+};
+
+template<class Key, class Value>
+struct make_type_signature_impl<small_dict_map<Key, Value>> {
+  static constexpr auto value = make_map_type<Key, Value>();
+};
+
+template<class T>
+struct make_type_signature_impl<std::optional<T>> {
+  static constexpr auto value = "optional("_s + make_type_signature<T>() + ")"_s;
 };
 
 template<class T>
@@ -456,7 +622,7 @@ constexpr auto make_func_signature() {
   using ArgsTuple = to_std_tuple_t<Arg>;
   using Rv = get_interface_method_rv<Interface, CurMethod>;
   constexpr bool HasAnswerId =
-    get_interface_method_internal<Interface, CurMethod>::value && !std::is_void_v<Rv> &&
+    get_interface_method_internal<Interface, CurMethod>::value &&
     get_interface_method_answer_id<Interface, CurMethod>::value;
   // TODO: remove answer_id field generation in abi when abiv3 will provide answer_id in header
   auto prefix = make_signature_prefix<HasAnswerId, std::tuple_size_v<ArgsTuple>>();
@@ -472,7 +638,7 @@ constexpr auto make_func_signature() {
   using ArgsTuple = to_std_tuple_t<Arg>;
   using Rv = get_interface_method_ptr_rv<MethodPtr>;
   constexpr bool HasAnswerId =
-    get_interface_method_ptr_internal<MethodPtr>::value && !std::is_void_v<Rv> &&
+    get_interface_method_ptr_internal<MethodPtr>::value &&
     get_interface_method_ptr_answer_id<MethodPtr>::value;
   // TODO: remove answer_id field generation in abi when abiv3 will provide answer_id in header
   auto prefix = make_signature_prefix<HasAnswerId, std::tuple_size_v<ArgsTuple>>();
@@ -502,7 +668,7 @@ struct make_json_abi_impl {
   static constexpr bool ImplicitFuncId =
     get_interface_method_implicit_func_id<Interface, CurMethod>::value || !FuncId;
   static constexpr bool HasAnswerId =
-    get_interface_method_internal<Interface, CurMethod>::value && !std::is_void_v<Rv> &&
+    get_interface_method_internal<Interface, CurMethod>::value &&
     get_interface_method_answer_id<Interface, CurMethod>::value;
 
   static constexpr auto value =
@@ -519,7 +685,7 @@ struct make_json_abi_impl<Interface, CurMethod, 1> {
   static constexpr bool ImplicitFuncId =
     get_interface_method_implicit_func_id<Interface, CurMethod>::value || !FuncId;
   static constexpr bool HasAnswerId =
-    get_interface_method_internal<Interface, CurMethod>::value && !std::is_void_v<Rv> &&
+    get_interface_method_internal<Interface, CurMethod>::value &&
     get_interface_method_answer_id<Interface, CurMethod>::value;
 
   static constexpr auto value =
@@ -530,7 +696,7 @@ struct make_json_abi_impl<Interface, CurMethod, 0> {
   static constexpr auto value = ""_s;
 };
 
-template<class Interface, class Events>
+template<class Interface, class Data, class Events, class ReplayAttackProtection>
 constexpr auto make_json_abi() {
   using MethodsCount = get_interface_methods_count<Interface>;
   using EventsCount = get_interface_methods_count<Events>;
@@ -539,13 +705,20 @@ constexpr auto make_json_abi() {
       make_functions_begin() + "\n"_s +
         make_json_abi_impl<Interface, 0, MethodsCount::value>::value +
       make_functions_end() + ",\n  "_s +
+      make_data_fields<Data, Interface, ReplayAttackProtection>() + ",\n  "_s +
       make_events_begin() +
         make_json_abi_impl<Events, 0, EventsCount::value>::value +
       make_events_end() +
     "\n}\n"_s;
 }
 
-#define DEFINE_JSON_ABI(Interface, DInterface, EInterface) \
-  const char* json_abi = tvm::schema::json_abi_gen::make_json_abi<Interface, EInterface>().c_str()
+#define DEFINE_JSON_ABI1(Interface, DInterface, EInterface) \
+  const char* json_abi = tvm::schema::json_abi_gen::make_json_abi<Interface, DInterface, EInterface, void>().c_str()
+
+#define DEFINE_JSON_ABI2(Interface, DInterface, EInterface, ReplayAttackProtection) \
+  const char* json_abi = tvm::schema::json_abi_gen::make_json_abi<Interface, DInterface, EInterface, ReplayAttackProtection>().c_str()
+
+#define ABI_GET_MACRO(_1,_2,_3,_4,NAME,...) NAME
+#define DEFINE_JSON_ABI(...) ABI_GET_MACRO(__VA_ARGS__, DEFINE_JSON_ABI2, DEFINE_JSON_ABI1)(__VA_ARGS__)
 
 }}} // namespace tvm::schema::json_abi_gen

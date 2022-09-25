@@ -20,7 +20,7 @@
 #include <tvm/schema/chain_builder.hpp>
 #include <tvm/schema/chain_tuple_printer.hpp>
 
-namespace tvm { namespace schema {
+namespace tvm { inline namespace schema {
 
 namespace hana = boost::hana;
 
@@ -73,7 +73,11 @@ auto make_expanded_tuple(std::tuple<Elems...> tup) {
         return std::tuple_cat(make_expanded_tuple(elem_tup), make_expanded_tuple(next_subtup));
       }
     } else {
-      return elem_tup;
+      if constexpr (!tuple_has_expandable_elem<decltype(elem_tup)>::value) {
+        return elem_tup;
+      } else {
+        return make_expanded_tuple(elem_tup);
+      }
     }
   } else {
     return tup;
@@ -86,34 +90,40 @@ auto make_expanded_tuple(std::tuple<Elems...> tup) {
 template<unsigned Offset = 0, unsigned RefsOffset = 0, class... Elems>
 __always_inline
 auto make_chain_tuple_impl(std::tuple<Elems...> tup) {
+  // Fit count (of elems) with usage of the last `reserved` cell for reference elems
+  static constexpr unsigned last_fit_count =
+    extract_fit<cell::max_bits - Offset, cell::max_refs - RefsOffset, 0, Elems...>::value;
+  // Fit count (of elems) without usage of the last `reserved` cell for reference elems
   static constexpr unsigned fit_count =
     extract_fit<cell::max_bits - Offset, cell::max_refs - 1 - RefsOffset, 0, Elems...>::value;
-  auto cur_subtup = hana::take_front_c<fit_count>(tup);
-
-  if constexpr (fit_count == 0 && sizeof...(Elems) != 0) {
-    // expanding first element
-    auto first_elem = std::get<0>(tup);
-    using first_elem_t = decltype(first_elem);
-    static_assert(schema::is_expandable<first_elem_t>::value,
-                  "Can't place even 1 sequence element into cell");
-    auto split_tup = make_chain_tuple_impl(to_std_tuple(first_elem));
-    if constexpr (sizeof...(Elems) > 1) {
-      auto next_subtup = hana::take_back_c<sizeof...(Elems) - 1>(tup);
-      return std::tuple_cat(split_tup, make_chain_tuple_impl(next_subtup));
-    } else {
-      return split_tup;
-    }
+  // If all the remaining elems fit into cell (including `reserved` last reference)
+  if constexpr (sizeof...(Elems) == last_fit_count) {
+    return hana::take_front_c<last_fit_count>(tup);
   } else {
-    if constexpr (sizeof...(Elems) > fit_count) {
-      auto next_subtup = hana::take_back_c<sizeof...(Elems) - fit_count>(tup);
-      auto cont_tup = make_chain_tuple_impl(next_subtup);
-      return std::tuple_cat(cur_subtup, std::make_tuple(schema::ref<decltype(cont_tup)>{cont_tup}));
+    auto cur_subtup = hana::take_front_c<fit_count>(tup);
+
+    if constexpr (fit_count == 0 && sizeof...(Elems) != 0) {
+      if constexpr (Offset || RefsOffset) {
+        auto cont_tup = make_chain_tuple_impl(tup);
+        return std::make_tuple(schema::ref<decltype(cont_tup)>{cont_tup});
+      } else {
+        static_assert(Offset || RefsOffset, "Can't place even 1 sequence element into cell");
+        return std::tuple<>();
+      }
     } else {
-      return cur_subtup;
+      if constexpr (sizeof...(Elems) > fit_count) {
+        auto next_subtup = hana::take_back_c<sizeof...(Elems) - fit_count>(tup);
+        auto cont_tup = make_chain_tuple_impl(next_subtup);
+        return std::tuple_cat(cur_subtup, std::make_tuple(schema::ref<decltype(cont_tup)>{cont_tup}));
+      } else {
+        return cur_subtup;
+      }
     }
   }
 }
 
+// Make tuple of expanded atomic elements, splitted into cells with
+// carry-over by refs {u256, u256, u256, u256, point3d<u32>{}} => {u256, u256, u256, ref<u256, u32, u32, u32>}
 template<unsigned Offset = 0, unsigned RefsOffset = 0, class... Elems>
 __always_inline
 auto make_chain_tuple(std::tuple<Elems...> tup_in) {

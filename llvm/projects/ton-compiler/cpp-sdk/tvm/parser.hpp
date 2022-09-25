@@ -19,6 +19,10 @@ public:
     return val;
   }
 
+  bool ldb() {
+    return ldu(1);
+  }
+
   unsigned ldu(unsigned len) {
     auto [val, sl] = __builtin_tvm_ldu(sl_, len);
     sl_ = sl;
@@ -87,6 +91,11 @@ public:
   parser& skip(unsigned len) {
     auto [to_skip, remain_slice] = __builtin_tvm_ldslice(sl_, len);
     sl_ = remain_slice;
+    return *this;
+  }
+  parser& skipref() {
+    auto [to_skip, sl] = __builtin_tvm_ldref(sl_);
+    sl_ = sl;
     return *this;
   }
 

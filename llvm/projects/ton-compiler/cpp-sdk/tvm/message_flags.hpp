@@ -55,5 +55,58 @@ constexpr unsigned RESERVE_UP_TO = 2;
 [[deprecated]]
 constexpr unsigned RESERVE_ALL_EXCEPT = 1;
 
+/// Modifier to send unspent evers from incoming message (SEND_REST_GAS_FROM_INCOMING flag).
+/// \warning The flag doesn't work well when several messages is sent.
+template<typename Contract>
+class remaining_modifier {
+public:
+  explicit remaining_modifier(Contract& contract) : contract_(contract) {}
+  void with_void() const {
+    tvm_transfer(contract_.int_sender(), 0, true, SEND_REST_GAS_FROM_INCOMING | IGNORE_ACTION_ERRORS);
+  }
+  template<typename T>
+  T operator & (T val) {
+    contract_.set_int_return_flag(SEND_REST_GAS_FROM_INCOMING);
+    return val;
+  }
+  Contract& contract_;
+};
+
+/// Modifier to send fixed amount of evers.
+template<typename Contract>
+class fixed_modifier {
+public:
+  explicit fixed_modifier(Contract& contract, uint128 evers) : contract_(contract), evers_(evers) {}
+  void with_void() const {
+    tvm_transfer(contract_.int_sender(), evers_.get(), true);
+  }
+  template<typename T>
+  T operator & (T val) {
+    contract_.set_int_return_value(evers_.get());
+    return val;
+  }
+  Contract& contract_;
+  uint128   evers_;
+};
+
+/// Modifier to send all contract evers except fixed amount.
+template<typename Contract>
+class all_except_modifier {
+public:
+  explicit all_except_modifier(Contract& contract, uint128 evers) : contract_(contract), evers_(evers) {}
+  void with_void() const {
+    tvm_rawreserve(evers_.get(), rawreserve_flag::up_to);
+    tvm_transfer(contract_.int_sender(), 0, true, SEND_ALL_GAS | IGNORE_ACTION_ERRORS);
+  }
+  template<typename T>
+  T operator & (T val) {
+    tvm_rawreserve(evers_.get(), rawreserve_flag::up_to);
+    contract_.set_int_return_flag(SEND_ALL_GAS);
+    return val;
+  }
+  Contract& contract_;
+  uint128   evers_;
+};
+
 } // namespace tvm
 

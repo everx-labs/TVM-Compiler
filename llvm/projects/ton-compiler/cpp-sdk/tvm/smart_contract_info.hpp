@@ -149,7 +149,7 @@ static inline tuple<incoming_msg> ext_msg() {
 }
 
 static inline int tvm_now() { return smart_contract_info::now(); }
-static inline slice tvm_myaddr() { return smart_contract_info::myaddr(); }
+static inline address tvm_myaddr() { return address{smart_contract_info::myaddr()}; }
 static inline int tvm_balance() { return smart_contract_info::balance_remaining(); }
 
 } // namespace tvm

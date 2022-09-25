@@ -14,6 +14,8 @@ public:
   slice ctos() const { return __builtin_tvm_ctos(cl_); }
   bool isnull() const { return __builtin_tvm_isnull_cell(cl_); }
 
+  unsigned cdepth() const { return __builtin_tvm_cdepth(cl_); }
+
   __tvm_cell get() const { return cl_; }
 
   operator __tvm_cell() const { return get(); }

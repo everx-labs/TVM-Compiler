@@ -745,7 +745,6 @@ typedef __char32_t char32_t;
 #  else
 #    define _LIBCPP_HIDE_FROM_ABI _LIBCPP_HIDDEN _LIBCPP_EXCLUDE_FROM_EXPLICIT_INSTANTIATION
 #  endif
-//#define _LIBCPP_HIDE_FROM_ABI _LIBCPP_HIDDEN  __attribute__((__always_inline__))
 #endif
 
 #ifdef _LIBCPP_BUILDING_LIBRARY

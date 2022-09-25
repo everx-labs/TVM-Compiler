@@ -3,7 +3,7 @@
 #include <tvm/schema/basics.hpp>
 #include <tvm/schema/message.hpp>
 
-namespace tvm { namespace schema {
+namespace tvm { inline namespace schema {
 
 template<class _Tp>
 struct estimate_element;
@@ -111,12 +111,18 @@ struct estimate_element<MsgAddressSlice>
 template<unsigned _bitlen>
 struct estimate_element<bitfield<_bitlen>>
   : detail::exact_size<_bitlen> {};
+template<>
+struct estimate_element<addr_std_compact>
+  : detail::exact_size<2/*hdr*/ + 1/*optional()*/ + 8/*wid*/ + 256/*addr*/> {};
 template<unsigned _bitlen, unsigned _code>
 struct estimate_element<bitconst<_bitlen, _code>>
   : detail::exact_size<_bitlen> {};
 template<unsigned _bitlen>
 struct estimate_element<uint_t<_bitlen>>
   : detail::exact_size<_bitlen> {};
+template<>
+struct estimate_element<bool>
+  : detail::exact_size<1> {};
 template<unsigned _bitlen>
 struct estimate_element<int_t<_bitlen>>
   : detail::exact_size<_bitlen> {};

@@ -80,7 +80,7 @@ struct big_dictionary_map_const_iterator : boost::operators<big_dictionary_map_c
 
   __always_inline Pair operator*() const {
     require(!!cl_, error_code::iterator_overflow);
-    return {schema::uint_t<KeyLen>(idx_), parse_chain<Element,0,0>(parser(*cl_))};
+    return {schema::uint_t<KeyLen>(idx_), parse_chain_static<Element>(parser(*cl_))};
   }
   __always_inline bool is_end() const { return !cl_; }
 

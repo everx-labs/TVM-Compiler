@@ -10,12 +10,15 @@ struct error_code {
   static constexpr int bad_incoming_msg            = 48; // invalid inbound message
   // custom error codes
 
+  static constexpr int integer_overflow            = 50;
   static constexpr int persistent_data_parse_error = 51;
   static constexpr int custom_data_parse_error     = 52;
   static constexpr int bad_tupled_variant_kind     = 53;
   static constexpr int unsupported_call_method     = 54;
   static constexpr int unsupported_bounced_msg     = 55;
   static constexpr int no_persistent_data          = 56;
+
+  static constexpr int method_not_for_deploy       = 57;
 
   static constexpr int wrong_answer_id             = 58;
   static constexpr int unexpected_answer           = 59;
@@ -28,9 +31,10 @@ struct error_code {
   static constexpr int empty_container             = 65;
 
   // test/temp error codes
-  static constexpr int non_empty_bits_at_cell_wrap  = 66;
-  static constexpr int non_single_refs_at_cell_wrap = 67;
-  static constexpr int no_pubkey                    = 68;
+  static constexpr int non_empty_bits_at_cell_wrap   = 66;
+  static constexpr int non_single_refs_at_cell_wrap  = 67;
+  static constexpr int no_pubkey                     = 68;
+  static constexpr int unexpected_refs_count_in_code = 69;
 };
 
 } // namespace tvm

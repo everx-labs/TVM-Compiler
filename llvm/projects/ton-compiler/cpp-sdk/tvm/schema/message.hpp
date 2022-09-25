@@ -2,7 +2,7 @@
 
 #include <tvm/schema/basics.hpp>
 
-namespace tvm { namespace schema {
+namespace tvm { inline namespace schema {
 
 using std::optional;
 using std::variant;
@@ -159,10 +159,46 @@ struct addr_std_fixed {
   uint256 address;
 };
 
+// the same as above^, just serialized as an abi address (additional 3bits header)
+struct addr_std_compact {
+  addr_std_compact() {}
+
+  addr_std_compact(int8 workchain_id, uint256 address)
+    : workchain_id(workchain_id), address(address) {
+  }
+
+  addr_std_compact(addr_std_fixed val)
+    : workchain_id(val.workchain_id), address(val.address) {
+  }
+
+  addr_std_compact(lazy<schema::MsgAddressInt> full_addr) {
+    auto addr = std::get<addr_std>(full_addr.val());
+    workchain_id = addr.workchain_id;
+    address = addr.address;
+  }
+  operator lazy<schema::MsgAddressInt>() const {
+    return lazy<schema::MsgAddressInt>::make_std(workchain_id, address);
+  }
+  operator addr_std_fixed() const {
+    return addr_std_fixed(workchain_id, address);
+  }
+
+  bool operator == (addr_std_compact tt) const {
+    return workchain_id == tt.workchain_id && address == tt.address;
+  }
+  bool operator != (addr_std_compact tt) const {
+    return workchain_id != tt.workchain_id || address != tt.address;
+  }
+
+  int8 workchain_id;
+  uint256 address;
+};
+
 }} // namespace tvm::schema
 
 namespace tvm {
 using address = schema::lazy<schema::MsgAddressInt>;
 using address_ext = schema::lazy<schema::MsgAddressExt>;
+using address_opt = std::optional<address>;
 }
 

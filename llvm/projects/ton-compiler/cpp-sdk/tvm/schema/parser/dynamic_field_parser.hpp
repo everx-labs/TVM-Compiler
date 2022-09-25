@@ -6,7 +6,7 @@
 
 // Parsing of dynamic_bitfield
 
-namespace tvm { namespace schema {
+namespace tvm { inline namespace schema {
 
 template<auto _Field, class _ParentStruct, class _ParentTuple>
 __always_inline

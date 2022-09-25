@@ -11,8 +11,6 @@ struct small_dict_map {
   using est_t = schema::estimate_element<std::tuple<Key, Element>>;
   static_assert(est_t::max_bits < cell::max_bits,
                 "Key + Element must fit one cell");
-  static_assert(est_t::max_bits == est_t::min_bits,
-                "Key + Element must be fixed-size");
   static_assert(est_t::max_refs == 0,
                 "Key and Element must not have references");
   using KeyLen = std::integral_constant<unsigned, schema::estimate_element<Key>::max_bits>;
@@ -105,7 +103,7 @@ struct small_dict_map {
   }
 
   __always_inline
-  std::optional<Element> extract(Key key) const {
+  std::optional<Element> extract(Key key) {
     auto [sl, succ] = dict_.dictdelget(schema::build(key).make_slice(), KeyLen::value);
     if (succ) {
       --size_;

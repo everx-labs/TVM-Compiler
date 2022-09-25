@@ -19,7 +19,7 @@ template<auto Func>
 struct get_func_rv {};
 template<typename Cl, typename RetT, typename... Args, RetT (Cl::*Func)(Args...)>
 struct get_func_rv<Func> {
-  using type = typename schema::resumable_subtype<RetT>::type;
+  using type = typename resumable_subtype<RetT>::type;
 };
 template<auto Func>
 using get_func_rv_t = typename get_func_rv<Func>::type;
@@ -37,7 +37,6 @@ using get_func_class_t = typename get_func_class<Func>::type;
 
 template<auto Func>
 constexpr auto prepare_internal_header() {
-  using namespace schema;
   if constexpr (get_interface_method_ptr_internal<Func>::value &&
                 get_interface_method_ptr_answer_id<Func>::value) {
     unsigned answer_id = temporary_data::getglob(global_id::answer_id);
@@ -51,14 +50,13 @@ constexpr auto prepare_internal_header() {
 // Prepare message cell for contract call (internal message)
 template<auto Func, class... Args>
 __always_inline
-cell contract_call_prepare(address addr, schema::Grams amount, bool ihr_disabled,
-    schema::lazy<schema::MsgAddress> src, Args... args) {
-  using namespace schema;
+cell contract_call_prepare(address addr, Evers amount,
+    lazy<MsgAddress> src, Args... args) {
 
   auto hdr = prepare_internal_header<Func>();
   auto hdr_plus_args = std::make_tuple(hdr, args...);
   int_msg_info_relaxed out_info;
-  out_info.ihr_disabled = ihr_disabled;
+  out_info.ihr_disabled = true;
   out_info.bounce = true;
   out_info.bounced = false;
   out_info.src = src;
@@ -85,8 +83,6 @@ cell contract_call_prepare(address addr, schema::Grams amount, bool ihr_disabled
 template<auto Func, class... Args>
 __always_inline
 cell internal_body_prepare(address addr, Args... args) {
-  using namespace schema;
-
   auto hdr = prepare_internal_header<Func>();
   auto hdr_plus_args = std::make_tuple(hdr, args...);
   using est_t = estimate_element<decltype(hdr_plus_args)>;
@@ -102,8 +98,6 @@ cell internal_body_prepare(address addr, Args... args) {
 template<auto Func, class... Args>
 __always_inline
 cell external_body_prepare(address addr, Args... args) {
-  using namespace schema;
-
   // placeholder for signature
   abiv2::external_signature signature_place {
     .signature = bitfield<512>{builder().stu(0, 256).stu(0, 256).make_slice()}
@@ -125,9 +119,7 @@ cell external_body_prepare(address addr, Args... args) {
 
 template<auto Func, class... Args>
 __always_inline
-cell external_body_prepare_with_pubkey(address addr, schema::uint256 pubkey, Args... args) {
-  using namespace schema;
-
+cell external_body_prepare_with_pubkey(address addr, uint256 pubkey, Args... args) {
   // placeholder for signature
   abiv2::external_signature signature_place {
     .signature = bitfield<512>{builder().stu(0, 256).stu(0, 256).make_slice()}
@@ -149,8 +141,7 @@ cell external_body_prepare_with_pubkey(address addr, schema::uint256 pubkey, Arg
 }
 
 template<bool has_pubkey, bool has_time, bool has_expire>
-auto get_ext_hdr(schema::uint256 pubkey, schema::uint64 time) {
-  using namespace schema;
+auto get_ext_hdr(uint256 pubkey, uint64 time) {
   using hdr0 = std::tuple<>;
   using hdr1 = std::tuple<std::optional<uint256>>;
   using hdr2 = std::conditional_t<has_time,
@@ -172,9 +163,7 @@ auto get_ext_hdr(schema::uint256 pubkey, schema::uint64 time) {
 // Prepare message cell for external call (should later be signed by debot engine)
 template<auto Func, class... Args>
 __always_inline
-cell external_call_prepare(address addr, schema::uint256 pubkey, Args... args) {
-  using namespace schema;
-
+cell external_call_prepare(address addr, uint256 pubkey, Args... args) {
   using Interface = get_func_class_t<Func>;
   constexpr bool has_pubkey = get_interface_has_pubkey<Interface>::value;
   constexpr bool has_time = get_interface_has_timestamp<Interface>::value;
@@ -199,7 +188,7 @@ cell external_call_prepare(address addr, schema::uint256 pubkey, Args... args) {
   ext_in_msg_info msg_info {
     .src = MsgAddressExt{addr_none{}},
     .dest = addr,
-    .import_fee = Grams{0}
+    .import_fee = Evers{0}
   };
 
   using est_t = estimate_element<message<decltype(hdr_plus_args)>>;
@@ -220,9 +209,7 @@ cell external_call_prepare(address addr, schema::uint256 pubkey, Args... args) {
 // Prepare message cell for external call (should later be signed by debot engine)
 template<auto Func, class... Args>
 __always_inline
-cell external_call_prepare_nosign(address addr, schema::uint256 pubkey, Args... args) {
-  using namespace schema;
-
+cell external_call_prepare_nosign(address addr, uint256 pubkey, Args... args) {
   using Interface = get_func_class_t<Func>;
   constexpr bool has_pubkey = get_interface_has_pubkey<Interface>::value;
   constexpr bool has_time = get_interface_has_timestamp<Interface>::value;
@@ -235,7 +222,7 @@ cell external_call_prepare_nosign(address addr, schema::uint256 pubkey, Args... 
     // just some ext addr to differ nosign ext message from getter
     .src = MsgAddressExt{addr_extern{{}, uint_t<9>(2), {builder().stu(1, 2).make_slice(), 2}}},
     .dest = addr,
-    .import_fee = Grams{0}
+    .import_fee = Evers{0}
   };
 
   using est_t = estimate_element<message<decltype(hdr_plus_args)>>;
@@ -257,8 +244,6 @@ cell external_call_prepare_nosign(address addr, schema::uint256 pubkey, Args... 
 template<auto Func, class... Args>
 __always_inline
 cell getter_call_prepare(address addr, Args... args) {
-  using namespace schema;
-
   uint32 answer_id(abiv2::answer_id(temporary_data::getglob(global_id::answer_id)));
 
   // placeholder for signature
@@ -272,7 +257,7 @@ cell getter_call_prepare(address addr, Args... args) {
   ext_in_msg_info msg_info {
     .src = MsgAddressExt{addr_none{}},
     .dest = addr,
-    .import_fee = Grams{0}
+    .import_fee = Evers{0}
   };
 
   using est_t = estimate_element<message<decltype(hdr_plus_args)>>;
@@ -293,10 +278,8 @@ cell getter_call_prepare(address addr, Args... args) {
 // expire_val is used to place answer_id for debot external-in calls
 template<auto Func, class... Args>
 __always_inline
-cell external_call_prepare_with_pubkey(address addr, schema::uint32 expire_val,
-                                       schema::uint256 pubkey, Args... args) {
-  using namespace schema;
-
+cell external_call_prepare_with_pubkey(address addr, uint32 expire_val,
+                                       uint256 pubkey, Args... args) {
   // placeholder for signature
   abiv2::external_signature signature_place {
     .signature = bitfield<512>{builder().stu(0, 256).stu(0, 256).make_slice()}
@@ -311,7 +294,7 @@ cell external_call_prepare_with_pubkey(address addr, schema::uint32 expire_val,
   ext_in_msg_info msg_info {
     .src = MsgAddressExt{addr_none{}},
     .dest = addr,
-    .import_fee = Grams{0}
+    .import_fee = Evers{0}
   };
 
   using est_t = estimate_element<message<decltype(hdr_plus_args)>>;
@@ -331,39 +314,34 @@ cell external_call_prepare_with_pubkey(address addr, schema::uint32 expire_val,
 
 template<auto Func, class... Args>
 __always_inline
-void debot_call_ext_in_impl(address addr, schema::uint256 pubkey, unsigned flags, Args... args) {
-  using namespace schema;
+void debot_call_ext_in_impl(address addr, uint256 pubkey, unsigned flags, Args... args) {
   cell out_msg = external_call_prepare<Func>(addr, pubkey, args...);
   tvm_sendmsg(out_msg, flags);
 }
 
 template<auto Func, class... Args>
 __always_inline
-void debot_call_ext_in_nosign_impl(address addr, schema::uint256 pubkey, unsigned flags, Args... args) {
-  using namespace schema;
+void debot_call_ext_in_nosign_impl(address addr, uint256 pubkey, unsigned flags, Args... args) {
   cell out_msg = external_call_prepare_nosign<Func>(addr, pubkey, args...);
   tvm_sendmsg(out_msg, flags);
 }
 
 template<auto Func, class... Args>
 __always_inline
-void contract_call_impl(address addr, schema::Grams amount,
-                        unsigned flags, bool ihr_disabled, Args... args) {
-  using namespace schema;
-  tvm_sendmsg(contract_call_prepare<Func>(addr, amount, ihr_disabled, MsgAddress{MsgAddressExt{addr_none{}}}, args...), flags);
+void contract_call_impl(address addr, Evers amount,
+                        unsigned flags, Args... args) {
+  tvm_sendmsg(contract_call_prepare<Func>(addr, amount, MsgAddress{MsgAddressExt{addr_none{}}}, args...), flags);
 }
 
 // Deploy message (internal) with function call (immediately after deploy)
 template<auto Func, class... Args>
 __always_inline
-void contract_deploy_impl(address addr, schema::StateInit init,
-                          schema::Grams amount, unsigned flags, bool ihr_disabled, Args... args) {
-  using namespace schema;
-
+void contract_deploy_impl(address addr, StateInit init,
+                          Evers amount, unsigned flags, Args... args) {
   auto hdr = prepare_internal_header<Func>();
   auto hdr_plus_args = std::make_tuple(hdr, args...);
   int_msg_info_relaxed out_info;
-  out_info.ihr_disabled = ihr_disabled;
+  out_info.ihr_disabled = true;
   out_info.bounce = true;
   out_info.bounced = false;
   out_info.src = addr_none{};
@@ -384,13 +362,11 @@ void contract_deploy_impl(address addr, schema::StateInit init,
 // Deploy without any function called (with func_id = 0)
 // Deployed contract should support `fallback`
 __always_inline
-void contract_deploy_noop_impl(address addr, schema::StateInit init,
-                               schema::Grams amount, unsigned flags, bool ihr_disabled) {
-  using namespace schema;
-
+void contract_deploy_noop_impl(address addr, StateInit init,
+                               Evers amount, unsigned flags) {
   auto hdr = abiv2::internal_msg_header{ uint32(0) };
   int_msg_info_relaxed out_info;
-  out_info.ihr_disabled = ihr_disabled;
+  out_info.ihr_disabled = true;
   out_info.bounce = true;
   out_info.bounced = false;
   out_info.src = addr_none{};
@@ -411,14 +387,12 @@ void contract_deploy_noop_impl(address addr, schema::StateInit init,
 // The same for external message (from debots)
 template<class Interface>
 __always_inline
-void contract_deploy_ext_noop_impl(address addr, schema::uint256 pubkey,
-                                   schema::StateInit init, unsigned flags) {
-  using namespace schema;
-
+void contract_deploy_ext_noop_impl(address addr, uint256 pubkey,
+                                   StateInit init, unsigned flags) {
   ext_in_msg_info msg_info {
     .src = MsgAddressExt{addr_none{}},
     .dest = addr,
-    .import_fee = Grams{0}
+    .import_fee = Evers{0}
   };
 
   constexpr bool has_pubkey = get_interface_has_pubkey<Interface>::value;
@@ -453,14 +427,12 @@ void contract_deploy_ext_noop_impl(address addr, schema::uint256 pubkey,
 // External deploy (from debot) with function call
 template<auto Func, class... Args>
 __always_inline
-void contract_deploy_ext_impl(address addr, schema::uint256 pubkey,
-                              schema::StateInit init, unsigned flags, Args... args) {
-  using namespace schema;
-
+void contract_deploy_ext_impl(address addr, uint256 pubkey,
+                              StateInit init, unsigned flags, Args... args) {
   ext_in_msg_info msg_info {
     .src = MsgAddressExt{addr_none{}},
     .dest = addr,
-    .import_fee = Grams{0}
+    .import_fee = Evers{0}
   };
 
   using Interface = get_func_class_t<Func>;
@@ -501,7 +473,6 @@ struct wait_call_result {
   void await_suspend(std::experimental::coroutine_handle<>) const {}
   __always_inline
   RetT await_resume() const {
-    using namespace schema;
     using est_t = estimate_element<RetT>;
     if constexpr (est_t::max_bits > cell::max_bits || est_t::max_refs > cell::max_refs) {
       parser p(__builtin_tvm_cast_to_slice(
@@ -524,20 +495,20 @@ using awaitable_ret_t = std::conditional_t<std::is_void_v<RetT>, void, wait_call
 // For external-in messages from debot we converting void return value to bool (to be awaitable)
 template<typename RetT>
 using awaitable_ext_t = std::conditional_t<std::is_void_v<RetT>,
-  wait_call_result<schema::bool_t>, wait_call_result<RetT>>;
+  wait_call_result<bool_t>, wait_call_result<RetT>>;
 
 class contract_call_configured {
 public:
-  contract_call_configured(address addr, schema::Grams amount, unsigned flags, bool ihr_disabled)
-    : addr_(addr), amount_(amount), flags_(flags), ihr_disabled_(ihr_disabled) {}
+  contract_call_configured(address addr, Evers amount, unsigned flags)
+    : addr_(addr), amount_(amount), flags_(flags) {}
   template<auto Func, class... Args>
   __always_inline void call(Args... args) const {
-    contract_call_impl<Func>(addr_, amount_, flags_, ihr_disabled_, args...);
+    contract_call_impl<Func>(addr_, amount_, flags_, args...);
   }
   template<auto Func, class... Args>
   __always_inline
   awaitable_ret_t<get_func_rv_t<Func>> _call_impl(Args... args) const {
-    contract_call_impl<Func>(addr_, amount_, flags_, ihr_disabled_, args...);
+    contract_call_impl<Func>(addr_, amount_, flags_, args...);
     if constexpr (!std::is_void_v<get_func_rv_t<Func>>) {
       temporary_data::setglob(global_id::coroutine_wait_addr, __builtin_tvm_cast_from_slice(addr_.sl()));
       return {};
@@ -545,32 +516,34 @@ public:
   }
 private:
   address addr_;
-  schema::Grams amount_;
+  Evers amount_;
   unsigned flags_;
-  bool ihr_disabled_;
 };
 
 // message is sent to one contract, but answer is expected from other contract
-template<class ReturnVal>
+template<class ReturnVal, bool Debot = false>
 class tail_call_configured {
 public:
-  tail_call_configured(address addr, address wait_addr, schema::Grams amount, unsigned flags, bool ihr_disabled)
-    : addr_(addr), wait_addr_(wait_addr), amount_(amount), flags_(flags), ihr_disabled_(ihr_disabled) {}
+  tail_call_configured(address addr, address wait_addr, Evers amount, unsigned flags)
+    : addr_(addr), wait_addr_(wait_addr), amount_(amount), flags_(flags) {}
   template<auto Func, class... Args>
   __always_inline
   awaitable_ret_t<ReturnVal> _call_impl(Args... args) const {
     static_assert(!std::is_void_v<ReturnVal>);
-    using namespace schema;
-    tvm_sendmsg(contract_call_prepare<Func>(addr_, amount_, ihr_disabled_, {wait_addr_.sl()}, args...), flags_);
+    lazy<MsgAddress> src;
+    if constexpr (Debot)
+      src = {wait_addr_.sl()};
+    else
+      src = MsgAddress{MsgAddressExt{addr_none{}}};
+    tvm_sendmsg(contract_call_prepare<Func>(addr_, amount_, src, args...), flags_);
     temporary_data::setglob(global_id::coroutine_wait_addr, __builtin_tvm_cast_from_slice(wait_addr_.sl()));
     return {};
   }
 private:
   address addr_;
   address wait_addr_;
-  schema::Grams amount_;
+  Evers amount_;
   unsigned flags_;
-  bool ihr_disabled_;
 };
 
 class run_getter {
@@ -584,7 +557,7 @@ public:
     cell msg = getter_call_prepare<Func>(addr_, args...);
     tvm_sendmsg(msg, DEFAULT_MSG_FLAGS);
     // For getter call we are expecting the answer from debot engine
-    auto awaiting_addr = address::make_std(schema::int8(0), schema::uint256(0));
+    auto awaiting_addr = address::make_std(int8(0), uint256(0));
     temporary_data::setglob(global_id::coroutine_wait_addr, __builtin_tvm_cast_from_slice(awaiting_addr.sl()));
     return {};
   }
@@ -594,17 +567,17 @@ private:
 
 class contract_deploy_configured {
 public:
-  contract_deploy_configured(address addr, schema::StateInit init,
-                             schema::Grams amount, unsigned flags, bool ihr_disabled)
-    : addr_(addr), init_(init), amount_(amount), flags_(flags), ihr_disabled_(ihr_disabled) {}
+  contract_deploy_configured(address addr, StateInit init,
+                             Evers amount, unsigned flags)
+    : addr_(addr), init_(init), amount_(amount), flags_(flags) {}
   template<auto Func, class... Args>
   __always_inline void call(Args... args) const {
-    contract_deploy_impl<Func>(addr_, init_, amount_, flags_, ihr_disabled_, args...);
+    contract_deploy_impl<Func>(addr_, init_, amount_, flags_, args...);
   }
   template<auto Func, class... Args>
   __always_inline
   awaitable_ret_t<get_func_rv_t<Func>> _call_impl(Args... args) const {
-    contract_deploy_impl<Func>(addr_, init_, amount_, flags_, ihr_disabled_, args...);
+    contract_deploy_impl<Func>(addr_, init_, amount_, flags_, args...);
     if constexpr (!std::is_void_v<get_func_rv_t<Func>>) {
       temporary_data::setglob(global_id::coroutine_wait_addr, __builtin_tvm_cast_from_slice(addr_.sl()));
       return {};
@@ -612,15 +585,14 @@ public:
   }
 private:
   address addr_;
-  schema::StateInit init_;
-  schema::Grams amount_;
+  StateInit init_;
+  Evers amount_;
   unsigned flags_;
-  bool ihr_disabled_;
 };
 
 class contract_deploy_ext_configured {
 public:
-  contract_deploy_ext_configured(address addr, schema::uint256 pubkey, schema::StateInit init,
+  contract_deploy_ext_configured(address addr, uint256 pubkey, StateInit init,
                                  unsigned flags)
     : addr_(addr), pubkey_(pubkey), init_(init), flags_(flags) {}
   template<auto Func, class... Args>
@@ -628,32 +600,30 @@ public:
   awaitable_ext_t<get_func_rv_t<Func>> _call_impl(Args... args) const {
     contract_deploy_ext_impl<Func>(addr_, pubkey_, init_, flags_, args...);
     // For external-in call we are expecting the answer from debot engine
-    auto awaiting_addr = address::make_std(schema::int8(0), schema::uint256(0));
+    auto awaiting_addr = address::make_std(int8(0), uint256(0));
     temporary_data::setglob(global_id::coroutine_wait_addr, __builtin_tvm_cast_from_slice(awaiting_addr.sl()));
     return {};
   }
 private:
   address addr_;
-  schema::uint256 pubkey_;
-  schema::StateInit init_;
+  uint256 pubkey_;
+  StateInit init_;
   unsigned flags_;
 };
 
 // class for preparing (internal) call message cell without sending it
 class contract_call_prepare_only {
 public:
-  contract_call_prepare_only(address addr, schema::Grams amount, bool ihr_disabled)
-    : addr_(addr), amount_(amount), ihr_disabled_(ihr_disabled) {}
+  contract_call_prepare_only(address addr, Evers amount)
+    : addr_(addr), amount_(amount) {}
   template<auto Func, class... Args>
   __always_inline
   cell _call_impl(Args... args) const {
-    using namespace schema;
-    return contract_call_prepare<Func>(addr_, amount_, ihr_disabled_, MsgAddress{MsgAddressExt{addr_none{}}}, args...);
+    return contract_call_prepare<Func>(addr_, amount_, MsgAddress{MsgAddressExt{addr_none{}}}, args...);
   }
 private:
   address addr_;
-  schema::Grams amount_;
-  bool ihr_disabled_;
+  Evers amount_;
 };
 
 // class for preparing (internal) call message body cell without sending it
@@ -686,7 +656,7 @@ private:
 // the same with pubkey in header
 class external_body_prepare_only_with_pubkey {
 public:
-  external_body_prepare_only_with_pubkey(address addr, schema::uint256 pubkey)
+  external_body_prepare_only_with_pubkey(address addr, uint256 pubkey)
     : addr_(addr), pubkey_(pubkey) {}
   template<auto Func, class... Args>
   __always_inline
@@ -695,43 +665,43 @@ public:
   }
 private:
   address addr_;
-  schema::uint256 pubkey_;
+  uint256 pubkey_;
 };
 
 class debot_call_ext_in {
 public:
-  debot_call_ext_in(address addr, schema::uint256 pubkey, unsigned flags)
+  debot_call_ext_in(address addr, uint256 pubkey, unsigned flags)
     : addr_(addr), pubkey_(pubkey), flags_(flags) {}
   template<auto Func, class... Args>
   __always_inline
   awaitable_ext_t<get_func_rv_t<Func>> _call_impl(Args... args) const {
     debot_call_ext_in_impl<Func>(addr_, pubkey_, flags_, args...);
     // For external-in call we are expecting the answer from debot engine
-    auto awaiting_addr = address::make_std(schema::int8(0), schema::uint256(0));
+    auto awaiting_addr = address::make_std(int8(0), uint256(0));
     temporary_data::setglob(global_id::coroutine_wait_addr, __builtin_tvm_cast_from_slice(awaiting_addr.sl()));
     return {};
   }
 private:
   address addr_;
-  schema::uint256 pubkey_;
+  uint256 pubkey_;
   unsigned flags_;
 };
 class debot_call_ext_in_nosign {
 public:
-  debot_call_ext_in_nosign(address addr, schema::uint256 pubkey, unsigned flags)
+  debot_call_ext_in_nosign(address addr, uint256 pubkey, unsigned flags)
     : addr_(addr), pubkey_(pubkey), flags_(flags) {}
   template<auto Func, class... Args>
   __always_inline
   awaitable_ext_t<get_func_rv_t<Func>> _call_impl(Args... args) const {
     debot_call_ext_in_nosign_impl<Func>(addr_, pubkey_, flags_, args...);
     // For external-in call we are expecting the answer from debot engine
-    auto awaiting_addr = address::make_std(schema::int8(0), schema::uint256(0));
+    auto awaiting_addr = address::make_std(int8(0), uint256(0));
     temporary_data::setglob(global_id::coroutine_wait_addr, __builtin_tvm_cast_from_slice(awaiting_addr.sl()));
     return {};
   }
 private:
   address addr_;
-  schema::uint256 pubkey_;
+  uint256 pubkey_;
   unsigned flags_;
 };
 // class for preparing external call message cell
@@ -742,7 +712,7 @@ public:
   template<auto Func, class... Args>
   __always_inline
   cell _call_impl(Args... args) const {
-    return external_call_prepare<Func>(addr_, schema::uint256(0), args...);
+    return external_call_prepare<Func>(addr_, uint256(0), args...);
   }
 private:
   address addr_;
@@ -750,16 +720,16 @@ private:
 // the same with pubkey in header
 class external_call_prepare_only_with_pubkey {
 public:
-  external_call_prepare_only_with_pubkey(address addr, schema::uint256 pubkey)
+  external_call_prepare_only_with_pubkey(address addr, uint256 pubkey)
     : addr_(addr), pubkey_(pubkey) {}
   template<auto Func, class... Args>
   __always_inline
   cell _call_impl(Args... args) const {
-    return external_call_prepare_with_pubkey<Func>(addr_, schema::uint32(0), pubkey_, args...);
+    return external_call_prepare_with_pubkey<Func>(addr_, uint32(0), pubkey_, args...);
   }
 private:
   address addr_;
-  schema::uint256 pubkey_;
+  uint256 pubkey_;
 };
 
 template<class Interface>
@@ -794,100 +764,90 @@ public:
   // for getter run (from debot)
   using proxy_run_getter = __reflect_proxy<Interface, run_getter, only_getter>;
   // for tail call - when return is expected from another contract (a->b->c->a)
-  template<class ReturnVal>
-  using proxy_tail_call = __reflect_proxy<Interface, tail_call_configured<ReturnVal>, only_internal>;
+  template<class ReturnVal, bool Debot = false>
+  using proxy_tail_call = __reflect_proxy<Interface, tail_call_configured<ReturnVal, Debot>, only_internal>;
 
   contract_handle() {}
   contract_handle(address addr) : addr_(addr) {}
 
   template<auto Func, class... Args>
-  __always_inline
-  void call(schema::Grams amount, Args... args) {
+  void call(Evers amount, Args... args) {
     contract_call_impl<Func>(addr_, amount, DEFAULT_MSG_FLAGS, true, args...);
   }
 
   template<auto Func, class... Args>
-  __always_inline
-  void deploy_call(schema::StateInit init, schema::Grams amount, Args... args) {
+  void deploy_call(StateInit init, Evers amount, Args... args) {
     contract_deploy_impl<Func>(addr_, init, amount, DEFAULT_MSG_FLAGS, true, args...);
   }
 
-  __always_inline
   contract_call_configured cfg(
-      schema::Grams amount = 10000000, unsigned flags = DEFAULT_MSG_FLAGS, bool ihr_disabled = true) const {
-    return contract_call_configured(addr_, amount, flags, ihr_disabled);
+      Evers amount = 10000000, unsigned flags = DEFAULT_MSG_FLAGS) const {
+    return contract_call_configured(addr_, amount, flags);
   }
   // Deploy message with function call (immediately after deploy)
-  __always_inline
   proxy_deploy deploy(
-      schema::StateInit init, schema::Grams amount, unsigned flags = DEFAULT_MSG_FLAGS,
-      bool ihr_disabled = true) const {
-    return proxy_deploy(addr_, init, amount, flags, ihr_disabled);
+      StateInit init, Evers amount, unsigned flags = DEFAULT_MSG_FLAGS) const {
+    return proxy_deploy(addr_, init, amount, flags);
   }
   // Deploy message with func_id = 0 (deploying contract must support fallback)
-  __always_inline
-  void deploy_noop(schema::StateInit init, schema::Grams amount,
-                   unsigned flags = DEFAULT_MSG_FLAGS, bool ihr_disabled = true) {
-    contract_deploy_noop_impl(addr_, init, amount, flags, ihr_disabled);
+  void deploy_noop(StateInit init, Evers amount,
+                   unsigned flags = DEFAULT_MSG_FLAGS) {
+    contract_deploy_noop_impl(addr_, init, amount, flags);
   }
   // the same for external messages (from debots)
-  __always_inline
-  void deploy_ext_noop(schema::uint256 pubkey, schema::StateInit init, unsigned flags = DEFAULT_MSG_FLAGS) {
+  void deploy_ext_noop(uint256 pubkey, StateInit init, unsigned flags = DEFAULT_MSG_FLAGS) {
     contract_deploy_ext_noop_impl<Interface>(addr_, pubkey, init, flags);
   }
   // Deploy external message with function call (immediately after deploy)
-  __always_inline
-  proxy_deploy_ext deploy_ext(schema::uint256 pubkey,
-      schema::StateInit init, unsigned flags = DEFAULT_MSG_FLAGS) const {
+  proxy_deploy_ext deploy_ext(uint256 pubkey,
+      StateInit init, unsigned flags = DEFAULT_MSG_FLAGS) const {
     return proxy_deploy_ext(addr_, pubkey, init, flags);
   }
-  __always_inline
-  proxy operator()(schema::Grams amount = 10000000, unsigned flags = DEFAULT_MSG_FLAGS, bool ihr_disabled = true) const {
-    return proxy(addr_, amount, flags, ihr_disabled);
+  proxy operator()(Evers amount = 10000000, unsigned flags = DEFAULT_MSG_FLAGS) const {
+    return proxy(addr_, amount, flags);
   }
-  __always_inline
-  proxy_prepare prepare_internal(schema::Grams amount = 10000000, bool ihr_disabled = true) const {
-    return proxy_prepare(addr_, amount, ihr_disabled);
+  template<typename Contract>
+  proxy operator()(remaining_modifier<Contract>) const {
+    return proxy(addr_, Evers(0), SEND_REST_GAS_FROM_INCOMING);
   }
-  __always_inline
+  template<typename Contract>
+  proxy operator()(all_except_modifier<Contract> m) const {
+    tvm_rawreserve(m.evers_.get(), rawreserve_flag::up_to);
+    return proxy(addr_, Evers(0), SEND_ALL_GAS);
+  }
+  proxy_prepare prepare_internal(Evers amount = 10000000) const {
+    return proxy_prepare(addr_, amount);
+  }
   proxy_body body_internal() const {
     return proxy_body(addr_);
   }
-  __always_inline
   proxy_prepare_ext prepare_external() const {
     return proxy_prepare_ext(addr_);
   }
-  __always_inline
-  proxy_prepare_ext_with_pubkey prepare_external_with_pubkey(schema::uint256 pubkey) const {
+  proxy_prepare_ext_with_pubkey prepare_external_with_pubkey(uint256 pubkey) const {
     return proxy_prepare_ext_with_pubkey(addr_, pubkey);
   }
-  __always_inline
-  proxy_debot_ext_in debot_ext_in(schema::uint256 pubkey = schema::uint256(0),
+  proxy_debot_ext_in debot_ext_in(uint256 pubkey = uint256(0),
                                   unsigned flags = DEFAULT_MSG_FLAGS) const {
     return proxy_debot_ext_in(addr_, pubkey, flags);
   }
-  __always_inline
-  proxy_debot_ext_in_nosign debot_ext_in_nosign(schema::uint256 pubkey = schema::uint256(0),
+  proxy_debot_ext_in_nosign debot_ext_in_nosign(uint256 pubkey = uint256(0),
                                                 unsigned flags = DEFAULT_MSG_FLAGS) const {
     return proxy_debot_ext_in_nosign(addr_, pubkey, flags);
   }
-  __always_inline
   proxy_body_ext body_external() const {
     return proxy_body_ext(addr_);
   }
-  __always_inline
-  proxy_body_ext_with_pubkey body_external_with_pubkey(schema::uint256 pubkey) const {
+  proxy_body_ext_with_pubkey body_external_with_pubkey(uint256 pubkey) const {
     return proxy_body_ext_with_pubkey(addr_, pubkey);
   }
-  __always_inline
   proxy_run_getter run() const {
     return proxy_run_getter(addr_);
   }
-  template<class ReturnVal>
-  __always_inline
-  auto tail_call(address wait_addr, schema::Grams amount = 10000000,
-                 unsigned flags = DEFAULT_MSG_FLAGS, bool ihr_disabled = true) const {
-    return proxy_tail_call<ReturnVal>(addr_, wait_addr, amount, flags, ihr_disabled);
+  template<class ReturnVal, bool Debot = false>
+  auto tail_call(address wait_addr, Evers amount = 10000000,
+                 unsigned flags = DEFAULT_MSG_FLAGS) const {
+    return proxy_tail_call<ReturnVal, Debot>(addr_, wait_addr, amount, flags);
   }
   address get() const { return addr_; }
 
@@ -899,7 +859,7 @@ using handle = contract_handle<Interface>;
 
 /*
 void example_usage(contract_handle<Interface> handle) {
-  handle(Grams(10), SENDER_WANTS_TO_PAY_FEES_SEPARATELY).method(arg0, arg1, ...);
+  handle(Evers(10), SENDER_WANTS_TO_PAY_FEES_SEPARATELY).method(arg0, arg1, ...);
   handle.deploy(init, 10, SENDER_WANTS_TO_PAY_FEES_SEPARATELY).method(arg0, arg1, ...);
 }
 */

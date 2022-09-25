@@ -963,6 +963,9 @@ bool Sema::LookupBuiltin(LookupResult &R) {
       } else if (II == getASTContext().getReflectMethodDynChainParseName()) {
         R.addDecl(getASTContext().getReflectMethodDynChainParseDecl());
         return true;
+      } else if (II == getASTContext().getReflectMethodDeployName()) {
+        R.addDecl(getASTContext().getReflectMethodDeployDecl());
+        return true;
       } else if (II == getASTContext().getReflectMethodNoReadPersistentName()) {
         R.addDecl(getASTContext().getReflectMethodNoReadPersistentDecl());
         return true;

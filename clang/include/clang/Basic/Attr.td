@@ -2169,6 +2169,13 @@ def TVMImplicitFuncIdFunc : InheritableAttr {
   let Documentation = [Undocumented];
   let Subjects = SubjectList<[Function]>;
 }
+def TVMDeployFunc : InheritableAttr {
+  let Spellings = [GCC<"deploy">,
+                   CXX11<"", "deploy", 201309>,
+                   C2x<"", "deploy">];
+  let Documentation = [Undocumented];
+  let Subjects = SubjectList<[Function]>;
+}
 def TVMDynChainParseFunc : InheritableAttr {
   let Spellings = [GCC<"dyn_chain_parse">,
                    CXX11<"", "dyn_chain_parse", 201309>,

@@ -4406,6 +4406,8 @@ ASTFileSignature ASTWriter::WriteASTCore(Sema &SemaRef, StringRef isysroot,
                      PREDEF_DECL_REFLECT_METHOD_IMPLICIT_FUNC_ID_ID);
   RegisterPredefDecl(Context.ReflectMethodDynChainParseDecl,
                      PREDEF_DECL_REFLECT_METHOD_DYN_CHAIN_PARSE_ID);
+  RegisterPredefDecl(Context.ReflectMethodDeployDecl,
+                     PREDEF_DECL_REFLECT_METHOD_DEPLOY_ID);
   RegisterPredefDecl(Context.ReflectMethodNoReadPersistentDecl,
                      PREDEF_DECL_REFLECT_METHOD_NO_READ_PERSISTENT_ID);
   RegisterPredefDecl(Context.ReflectMethodNoWritePersistentDecl,

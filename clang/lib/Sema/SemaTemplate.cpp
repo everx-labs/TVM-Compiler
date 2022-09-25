@@ -3875,6 +3875,9 @@ checkBuiltinTemplateIdType(Sema &SemaRef, BuiltinTemplateDecl *BTD,
     case BTK__reflect_method_dyn_chain_parse:
       return processFlagAttribute<TVMDynChainParseFuncAttr>(
           SemaRef, Converted, TemplateLoc, TemplateArgs);
+    case BTK__reflect_method_deploy:
+      return processFlagAttribute<TVMDeployFuncAttr>(SemaRef, Converted,
+                                                     TemplateLoc, TemplateArgs);
     case BTK__reflect_method_no_read_persistent:
       return processFlagAttribute<TVMNoReadPersistentFuncAttr>(
           SemaRef, Converted, TemplateLoc, TemplateArgs);
@@ -4775,6 +4778,13 @@ bool Sema::resolveAssumedTemplateNameAsType(Scope *S, TemplateName &Name,
   // Try to typo-correct it now.
   AssumedTemplateStorage *ATN = Name.getAsAssumedTemplateName();
   assert(ATN && "not an assumed template name");
+
+
+  // DXX
+  if (ATN->getDeclName().getAsString() == "__reflect_method_deploy") {
+    llvm::dbgs() << ATN->getDeclName() << "\n";
+    llvm::dbgs().flush();
+  }
 
   LookupResult R(*this, ATN->getDeclName(), NameLoc, LookupOrdinaryName);
   struct CandidateCallback : CorrectionCandidateCallback {

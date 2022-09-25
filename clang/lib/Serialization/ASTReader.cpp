@@ -7474,6 +7474,9 @@ static Decl *getPredefinedDecl(ASTContext &Context, PredefinedDeclIDs ID) {
   case PREDEF_DECL_REFLECT_METHOD_DYN_CHAIN_PARSE_ID:
     return Context.getReflectMethodDynChainParseDecl();
 
+  case PREDEF_DECL_REFLECT_METHOD_DEPLOY_ID:
+    return Context.getReflectMethodDeployDecl();
+
   case PREDEF_DECL_REFLECT_METHOD_NO_READ_PERSISTENT_ID:
     return Context.getReflectMethodNoReadPersistentDecl();
 

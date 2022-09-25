@@ -304,6 +304,9 @@ enum BuiltinTemplateKind : int {
   /// This names the __reflect_method_dyn_chain_parse BuiltinTemplateDecl.
   BTK__reflect_method_dyn_chain_parse,
 
+  /// This names the __reflect_method_deploy BuiltinTemplateDecl.
+  BTK__reflect_method_deploy,
+
   /// This names the __reflect_method_no_read_persistent BuiltinTemplateDecl.
   BTK__reflect_method_no_read_persistent,
 

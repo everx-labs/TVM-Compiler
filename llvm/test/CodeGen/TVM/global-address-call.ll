@@ -6,7 +6,7 @@ target triple = "tvm-unknown-unknown"
 @array = dso_local global [9 x i257] [i257 1, i257 2, i257 3, i257 4, i257 5, i257 6, i257 7, i257 8, i257 9], align 1
 
 ; Function Attrs: noinline nounwind optnone
-define dso_local i257 @sum(i257* %array, i257 %idx) #0 {
+define internal i257 @sum(i257* %array, i257 %idx) unnamed_addr nounwind norecurse {
 entry:
   %array.addr = alloca i257*, align 1
   %idx.addr = alloca i257, align 1

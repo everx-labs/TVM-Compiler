@@ -4,8 +4,8 @@ target datalayout = "E-S257-i1:257:257-i8:257:257-i16:257:257-i32:257:257-i64:25
 target triple = "tvm"
 
 ; Function Attrs: noinline norecurse nounwind
-define dso_local void @f(i257* nocapture %val) local_unnamed_addr noinline norecurse nounwind {
-; CHECK-LABEL: f:
+define internal void @f(i257* nocapture %val) unnamed_addr noinline norecurse nounwind {
+; CHECK: .macro  f
 ; CHECK:	GETGLOB 13 CALLX
 ; CHECK:	INC
 ; CHECK:	GETGLOB 14 CALLX

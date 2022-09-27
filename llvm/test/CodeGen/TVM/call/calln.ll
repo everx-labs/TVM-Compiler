@@ -7,7 +7,9 @@ declare %st @bar()
 
 define void @foo() {
 ; CHECK-LABEL: foo
-; CHECK: CALL $bar$
+; CHECK: PUSHINT $bar
+; CHECK: PUSH C3
+; CHECK: EXECUTE
 ; CHECK-NEXT: BLKDROP 3
   %call = call %st @bar()
   ret void
@@ -17,7 +19,9 @@ define void @foo() {
 declare %st_iti @ret_iti()
 define tuple @call_iti() {
 ; CHECK-LABEL: call_iti
-; CHECK: CALL $ret_iti$
+; CHECK: PUSHINT $ret_iti$
+; CHECK: PUSH C3
+; CHECK: EXECUTE
 ; CHECK-NEXT: XCHG	s1, s2
 ; CHECK-NEXT: DROP2
   %call = call %st_iti @ret_iti()
@@ -29,7 +33,9 @@ define tuple @call_iti() {
 declare %st_isi @ret_isi()
 define slice @call_isi() {
 ; CHECK-LABEL: call_isi
-; CHECK: CALL $ret_isi$
+; CHECK: PUSHINT $ret_isi$
+; CHECK: PUSH C3
+; CHECK: EXECUTE
 ; CHECK-NEXT: XCHG	s1, s2
 ; CHECK-NEXT: DROP2
   %call = call %st_isi @ret_isi()
@@ -41,7 +47,9 @@ define slice @call_isi() {
 declare %st_ibi @ret_ibi()
 define builder @call_ibi() {
 ; CHECK-LABEL: call_ibi
-; CHECK: CALL $ret_ibi$
+; CHECK: PUSHINT $ret_ibi$
+; CHECK: PUSH C3
+; CHECK: EXECUTE
 ; CHECK-NEXT: XCHG	s1, s2
 ; CHECK-NEXT: DROP2
   %call = call %st_ibi @ret_ibi()
@@ -53,7 +61,9 @@ define builder @call_ibi() {
 declare %st_ici @ret_ici()
 define cell @call_ici() {
 ; CHECK-LABEL: call_ici
-; CHECK: CALL $ret_ici$
+; CHECK: PUSHINT $ret_ici$
+; CHECK: PUSH C3
+; CHECK: EXECUTE
 ; CHECK-NEXT: XCHG	s1, s2
 ; CHECK-NEXT: DROP2
   %call = call %st_ici @ret_ici()

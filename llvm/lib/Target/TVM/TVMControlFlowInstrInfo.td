@@ -62,12 +62,10 @@ let isTerminator = 1, hasCtrlDep = 1 in {
   } // isBranch = 1
 } // isTerminator = 1, hasCtrlDep = 1
 
-// TODO: The approach with two CALLs was copied from WebAssembly backend.
-// We need to investigate how it works and why 2 CALLs are needed
-//
-// TODO: If a function is called in many places, we may cosider a special
-// "short" library variant, so that some common functions would not get
-// long call: "PUSHINT x; CALL 1", but a short one: "CALL x"
+// CALL/CALLDICT:
+// CALL - using CALLREF (macros inlining, not suitable for recursive calls)
+// CALLDICT - dictionary call (may be used for recursive calls)
+
 let isCall = 1, hasCtrlDep = 1 in {
   defm CALL_VOID : I<(outs), (ins function_op:$callee, variable_ops),
                      (outs), (ins function_op:$callee),
@@ -99,13 +97,13 @@ let isCall = 1, hasCtrlDep = 1 in {
     : I<(outs), (ins function_op:$callee, variable_ops),
         (outs), (ins function_op:$callee),
         [(TVMcalldict0 (TVMGlobalAddressWrapper(tglobaladdr:$callee)))],
-        "CALL\t$callee", "CALL\t$callee", 0xF0>;
+        "CALL\t$callee", "PUSHINT\t$callee\n\t      PUSH C3\n\t      EXECUTE", 0xF0>;
 
   multiclass CALLDICT_1<TVMRegClass OutReg> :
     I<(outs OutReg:$dst), (ins function_op:$callee, variable_ops),
       (outs), (ins function_op:$callee),
       [(set OutReg:$dst, (TVMcalldict1 (TVMGlobalAddressWrapper(tglobaladdr:$callee))))],
-      "CALL\t$callee", "CALL\t$callee", 0xF0>;
+      "CALL\t$callee", "PUSHINT\t$callee\n\t      PUSH C3\n\t      EXECUTE", 0xF0>;
 
   defm CALLDICT_1_INT : CALLDICT_1<I257>;
   defm CALLDICT_1_SLICE : CALLDICT_1<Slice>;
@@ -117,7 +115,7 @@ let isCall = 1, hasCtrlDep = 1 in {
                       (ins function_op:$callee, variable_ops),
                       (outs), (ins function_op:$callee),
                       [],
-                      "CALL\t$callee", "CALL\t$callee", 0xF0>;
+                      "CALL\t$callee", "PUSHINT\t$callee\n\t      PUSH C3\n\t      EXECUTE", 0xF0>;
 }
 
 // Patterns for matching a direct call to an external symbol.

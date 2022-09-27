@@ -27,10 +27,14 @@ define void @diamond(i1 %par) nounwind {
 entry:
 ; CHECK: PUSHCONT
 ; CHECK: {
-; CHECK:   CALL $bar$
+; CHECK:   PUSHINT $bar
+; CHECK:   PUSH C3
+; CHECK:   EXECUTE
 ; CHECK: }
 ; CHECK: IFNOTJMP
-; CHECK: CALL $foo$
+; CHECK: PUSHINT $foo
+; CHECK: PUSH C3
+; CHECK: EXECUTE
   br i1 %par, label %bb1, label %bb2
 bb1:
   call void @foo()
@@ -48,15 +52,21 @@ entry:
   switch i257 %par, label %bb3 [ i257 0, label %bb1
                                 i257 1, label %bb2 ]
 bb1:
-; CHECK-DAG: CALL $foo$
+; CHECK-DAG:   PUSHINT $foo
+; CHECK-DAG:   PUSH C3
+; CHECK-DAG:   EXECUTE
   call void @foo()
   br label %exit
 bb2:
-; CHECK-DAG: CALL $bar$
+; CHECK-DAG:   PUSHINT $bar
+; CHECK-DAG:   PUSH C3
+; CHECK-DAG:   EXECUTE
   call void @bar()
   br label %exit
 bb3:
-; CHECK-DAG: CALL $bazz$
+; CHECK-DAG:   PUSHINT $bazz
+; CHECK-DAG:   PUSH C3
+; CHECK-DAG:   EXECUTE
   call void @bazz()
   br label %exit
 exit:

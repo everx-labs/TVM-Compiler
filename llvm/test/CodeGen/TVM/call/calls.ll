@@ -2,19 +2,19 @@
 target datalayout = "E-S257-i1:257:257-i8:257:257-i16:257:257-i32:257:257-i64:257:257-i257:257:257-p:257:257-a:257:257"
 target triple = "tvm"
 
-define void @nop() nounwind {
+define internal void @nop() unnamed_addr nounwind norecurse {
   ret void
 }
 
 ; CHECK-LABEL: test0
-define void @test0() nounwind {
+define internal void @test0() unnamed_addr nounwind norecurse {
 ; CHECK: CALL $nop$
   call void @nop()
   ret void
 }
 
 ; CHECK-LABEL: test00
-define void @test00() nounwind {
+define internal void @test00() nounwind norecurse {
 ; CHECK: CALL $nop$
 ; CHECK: CALL $nop$
   call void @nop()
@@ -26,12 +26,12 @@ define void @test00() nounwind {
 ;;;; Testing return value
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-define i257 @one() nounwind {
+define internal i257 @one() unnamed_addr nounwind norecurse {
   ret i257 1
 }
 
 ; CHECK-LABEL: test11
-define i257 @test11() nounwind {
+define internal i257 @test11() unnamed_addr nounwind norecurse {
 ; CHECK: CALL $one$
   %1 = call i257 @one()
 ; CHECK: CALL $one$
@@ -45,12 +45,12 @@ define i257 @test11() nounwind {
 ;;;; Testing parameters
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-define void @nop1(i257 %x) nounwind {
+define internal void @nop1(i257 %x) unnamed_addr nounwind norecurse {
   ret void
 }
 
 ; CHECK-LABEL: test21
-define i257 @test21(i257 %x) nounwind {
+define internal i257 @test21(i257 %x) unnamed_addr nounwind norecurse {
 ; CHECK: CALL $nop$
   call void @nop()
 ; CHECK: ADD
@@ -62,7 +62,7 @@ define i257 @test21(i257 %x) nounwind {
 
 
 ; CHECK-LABEL: pow2
-define i257 @pow2(i257 %x) nounwind {
+define internal i257 @pow2(i257 %x) unnamed_addr nounwind norecurse {
 ; CHECK: DUP
 ; CHECK: MUL
   %1 = mul i257 %x, %x
@@ -70,7 +70,7 @@ define i257 @pow2(i257 %x) nounwind {
 }
 
 ; CHECK-LABEL: test22
-define i257 @test22(i257 %x) nounwind {
+define internal i257 @test22(i257 %x) unnamed_addr nounwind norecurse {
 ; CHECK: ADD
   %1 = add i257 %x, %x
 ; CHECK: CALL $pow2$
@@ -79,7 +79,7 @@ define i257 @test22(i257 %x) nounwind {
 }
 
 ; CHECK-LABEL: test23
-define i257 @test23(i257 %x, i257 %y) nounwind {
+define internal i257 @test23(i257 %x, i257 %y) unnamed_addr nounwind norecurse {
 ; CHECK: CALL $pow2$
   %1 = call i257 @pow2(i257 %x)
 ; CHECK: CALL $pow2$
@@ -89,13 +89,13 @@ define i257 @test23(i257 %x, i257 %y) nounwind {
   ret i257 %3
 }
 
-define i257 @sum(i257 %x, i257 %y) nounwind {
+define internal i257 @sum(i257 %x, i257 %y) unnamed_addr nounwind norecurse {
   %1 = add i257 %x, %y
   ret i257 %1
 }
 
 ; CHECK-LABEL: test24
-define i257 @test24(i257 %x, i257 %y) nounwind {
+define internal i257 @test24(i257 %x, i257 %y) unnamed_addr nounwind norecurse {
 ; CHECK: CALL $sum$
   %1 = call i257 @sum(i257 %x, i257 %y)
 ; CHECK: CALL $sum$
@@ -106,7 +106,7 @@ define i257 @test24(i257 %x, i257 %y) nounwind {
 }
 
 ; CHECK-LABEL: test25
-define i257 @test25(i257 %x, i257 %y, i257 %z) nounwind {
+define internal i257 @test25(i257 %x, i257 %y, i257 %z) unnamed_addr nounwind norecurse {
 ; CHECK: CALL $sum$
   %1 = call i257 @sum(i257 %x, i257 %y)
 ; CHECK: CALL $sum$

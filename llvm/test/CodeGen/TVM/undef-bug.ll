@@ -24,7 +24,9 @@ loop:
 define void @two1() {
 ; CHECK: PUSHINT 12345
 ; CHECK-NEXT: ZERO
-; CHECK-NEXT: CALL
+; CHECK: PUSHINT $two
+; CHECK: PUSH C3
+; CHECK: EXECUTE
   call void @two(i257 12345, i257 undef)
   ret void
 }
@@ -33,7 +35,9 @@ define void @two1() {
 define void @two2() {
 ; CHECK: PUSHINT 12345
 ; CHECK-NEXT: PUSHINT 12345
-; CHECK-NEXT: CALL
+; CHECK: PUSHINT $two
+; CHECK: PUSH C3
+; CHECK: EXECUTE
   call void @two(i257 undef, i257 12345)
   ret void
 }
@@ -42,7 +46,9 @@ define void @two2() {
 define void @two3() {
 ; CHECK: ZERO
 ; CHECK-NEXT: ZERO
-; CHECK-NEXT: CALL
+; CHECK: PUSHINT $two
+; CHECK: PUSH C3
+; CHECK: EXECUTE
   call void @two(i257 undef, i257 undef)
   ret void
 }
@@ -53,7 +59,9 @@ define void @three1() {
 ; CHECK: PUSHINT 12345
 ; CHECK-NEXT: PUSHINT 12345
 ; CHECK-NEXT: ZERO
-; CHECK-NEXT: CALL
+; CHECK: PUSHINT $three
+; CHECK: PUSH C3
+; CHECK: EXECUTE
   call void @three(i257 12345, i257 12345, i257 undef)
   ret void
 }
@@ -62,7 +70,9 @@ define void @three1() {
 define void @three2() {
 ; CHECK: PUSHINT 12345
 ; CHECK-NEXT: BLKPUSH 2, 0
-; CHECK-NEXT: CALL
+; CHECK: PUSHINT $three
+; CHECK: PUSH C3
+; CHECK: EXECUTE
   call void @three(i257 12345, i257 undef, i257 12345)
   ret void
 }
@@ -72,7 +82,9 @@ define void @three3() {
 ; CHECK: PUSHINT 12345
 ; CHECK-NEXT: ZERO
 ; CHECK-NEXT: ZERO
-; CHECK-NEXT: CALL
+; CHECK: PUSHINT $three
+; CHECK: PUSH C3
+; CHECK: EXECUTE
   call void @three(i257 12345, i257 undef, i257 undef)
   ret void
 }
@@ -81,7 +93,9 @@ define void @three3() {
 define void @three4() {
 ; CHECK: PUSHINT 12345
 ; CHECK-NEXT: BLKPUSH 2, 0
-; CHECK-NEXT: CALL
+; CHECK: PUSHINT $three
+; CHECK: PUSH C3
+; CHECK: EXECUTE
   call void @three(i257 undef, i257 12345, i257 12345)
   ret void
 }
@@ -91,7 +105,9 @@ define void @three5() {
 ; CHECK: PUSHINT 12345
 ; CHECK-NEXT: PUSHINT 12345
 ; CHECK-NEXT: ZERO
-; CHECK-NEXT: CALL
+; CHECK: PUSHINT $three
+; CHECK: PUSH C3
+; CHECK: EXECUTE
   call void @three(i257 undef, i257 12345, i257 undef)
   ret void
 }
@@ -100,7 +116,9 @@ define void @three5() {
 define void @three6() {
 ; CHECK: PUSHINT 12345
 ; CHECK-NEXT: BLKPUSH 2, 0
-; CHECK-NEXT: CALL
+; CHECK: PUSHINT $three
+; CHECK: PUSH C3
+; CHECK: EXECUTE
   call void @three(i257 undef, i257 undef, i257 12345)
   ret void
 }
@@ -109,7 +127,9 @@ define void @three6() {
 define void @three7() {
 ; CHECK: ZERO
 ; CHECK-NEXT: BLKPUSH 2, 0
-; CHECK-NEXT: CALL
+; CHECK: PUSHINT $three
+; CHECK: PUSH C3
+; CHECK: EXECUTE
   call void @three(i257 undef, i257 undef, i257 undef)
   ret void
 }
@@ -119,7 +139,9 @@ declare void @three(i257, i257, i257)
 define void @four1() {
 ; CHECK: ZERO
 ; CHECK-NEXT: BLKPUSH 3, 0
-; CHECK-NEXT: CALL
+; CHECK: PUSHINT $four
+; CHECK: PUSH C3
+; CHECK: EXECUTE
   call void @four(i257 undef, i257 undef, i257 undef, i257 undef)
   ret void
 }
@@ -128,7 +150,9 @@ define void @four1() {
 define void @four2() {
 ; CHECK: PUSHINT 12345
 ; CHECK-NEXT: BLKPUSH 3, 0
-; CHECK-NEXT: CALL
+; CHECK: PUSHINT $four
+; CHECK: PUSH C3
+; CHECK: EXECUTE
   call void @four(i257 undef, i257 12345, i257 12345, i257 12345)
   ret void
 }
@@ -138,7 +162,9 @@ define void @four3() {
 ; CHECK: PUSHINT 12345
 ; CHECK-NEXT: BLKPUSH 2, 0
 ; CHECK-NEXT: ZERO
-; CHECK-NEXT: CALL
+; CHECK: PUSHINT $four
+; CHECK: PUSH C3
+; CHECK: EXECUTE
   call void @four(i257 12345, i257 12345, i257 12345, i257 undef)
   ret void
 }

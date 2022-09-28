@@ -25,6 +25,7 @@ public:
   };
   using value_type = Element;
   using elem_info = refs_info::intrusive_elem_info<header, Element>;
+  using this_type = intrusive_queue<value_type>;
 
   bool   empty() const { return size_ == 0; }
   uint32 last_id() const { return last_id_; }
@@ -37,36 +38,35 @@ public:
     return parse_elem(rbegin_.get());
   }
 
-  /// Push element in the queue (push back). Returns new element's id.
-  unsigned push(value_type val) {
-    ++size_;
-    ++last_id_;
+  static std::pair<unsigned, this_type> push_impl(this_type v, value_type val) {
+    ++v.size_;
+    ++v.last_id_;
     // First element in the queue
-    if (!rbegin_) {
-      rbegin_ = build_elem(last_id_, val);
-      return last_id_.get();
+    if (!v.rbegin_) {
+      v.rbegin_ = build_elem(v.last_id_, val);
+      return { v.last_id_.get(), v };
     }
-    cell old = rbegin_.get();
+    cell old = v.rbegin_.get();
     auto hdr = parse<header>(old.ctos());
     // If rbegin is full of his lvl, new rbegin is set and old will be first ref of the new rbegin.
     // nref for new root will be 1, nref for other cells unchanged.
     // root_lvl is increased.
     if (is_full_node(hdr.nref)) {
-      rbegin_ = build_elem(last_id_, val, old);
-      root_lvl_++;
-      return last_id_.get();
+      v.rbegin_ = build_elem(v.last_id_, val, old);
+      v.root_lvl_++;
+      return { v.last_id_.get(), v };
     }
 
     // Otherwise, we need recursively get sub-element from nref
     tuple_stack<cell> path;
-    path.push(build_elem(last_id_, val, old));
+    path.push(build_elem(v.last_id_, val, old));
 
     auto cur = old;
-    auto cur_lvl = root_lvl_;
+    auto cur_lvl = v.root_lvl_;
     while(true) {
       auto hdr = get_header(cur);
       if (is_full_node(hdr.nref)) {
-        rbegin_ = unroll_path(path, cur_lvl);
+        v.rbegin_ = unroll_path(path, cur_lvl);
         break;
       } else {
         require(cur_lvl > 0, error_code::iterator_overflow);
@@ -74,13 +74,20 @@ public:
         cur = sub_elem(cur, hdr.nref).get();
         cur_lvl--;
         if (cur.isnull()) {
-          rbegin_ = unroll_path(path, cur_lvl);
+          v.rbegin_ = unroll_path(path, cur_lvl);
           break;
         }
         continue;
       }
     }
-    return last_id_.get();
+    return { v.last_id_.get(), v };
+  }
+
+  /// Push element in the queue (push back). Returns new element's id.
+  unsigned push(value_type val) {
+    auto [rv, new_this] = push_impl(*this, val);
+    *this = new_this;
+    return rv;
   }
 
   /// Pop element from the queue (pop front) and return the element if any
@@ -208,6 +215,7 @@ public:
 
 private:
   // Unroll path of affected elements and create modified cells (for pop operation)
+  __attribute__((noinline))
   static cell unroll_path_pop(tuple_stack<cell> path) {
     if (path.empty())
       return {};
@@ -237,6 +245,7 @@ private:
   }
 
   // Unroll path of affected elements and create modified cells (for erase_if operation)
+  __attribute__((noinline))
   static cell unroll_path_erase(tuple_stack<cell> path, tuple_stack<unsigned> path_ids, cell leaf, optcell rebuilt_child) {
     require(!path.empty(), error_code::iterator_overflow);
     cell parent = path.extract().get();
@@ -268,6 +277,7 @@ private:
   /// In case of erasing non-empty element, we need to move its last child to replace the element.
   /// And when we moving non-empty last child, we need to move its last child upper etc...
   /// Returns null if `cur` is an empty element (no child elements)
+  __attribute__((noinline))
   static optcell move_last_child_up(cell cur) {
     tuple_stack<cell> path;
     header hdr;
@@ -306,6 +316,7 @@ private:
   }
 
   // Unroll path of affected elements and create modified cells (for push operation)
+  __attribute__((noinline))
   static cell unroll_path(tuple_stack<cell> path, uint8 lvl) {
     // ===== 2 custom step for leaf and first parent ===== //
     require(path.size() >= 2, error_code::iterator_overflow);
@@ -350,21 +361,25 @@ private:
   }
 
   /// Get header
+  __attribute__((noinline))
   static header get_header(cell cl) {
     return parse<header>(cl.ctos());
   }
 
   /// Build new (leaf) element
+  __attribute__((noinline))
   static cell build_elem(uint32 id, value_type val) {
     return build_chain_static(std::make_pair(header{ .nref = uint8(elem_info::max_refs), .id = id }, val));
   }
 
   /// Build new root element
+  __attribute__((noinline))
   static cell build_elem(uint32 id, value_type val, cell child) {
     return rebuild(build_elem(id, val), tuple_array<cell>(child), { .nref = 1u8, .id = id } );
   }
 
   /// Parse element from cell
+  __attribute__((noinline))
   static std::pair<header, value_type> parse_elem(cell cl) {
     parser p(cl.ctos());
     [[maybe_unused]] auto [hdr, =p] = parse_continue<header>(p);

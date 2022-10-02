@@ -17,7 +17,7 @@ __interface IBigStringTest {
   [[external]]
   void constructor() = 1;
   [[getter]]
-  bytes str() = 2;
+  string str() = 2;
 };
 
 struct DBigStringTest {
@@ -30,12 +30,13 @@ static constexpr unsigned TIMESTAMP_DELAY = 1800;
 using replay_protection_t = replay_attack_protection::timestamp<TIMESTAMP_DELAY>;
 
 class BigStringTest final : public smart_interface<IBigStringTest>, public DBigStringTest {
+  using data = DBigStringTest;
 public:
   __always_inline
   void constructor() override {
   }
   __always_inline
-  bytes str() override {
+  string str() override {
     return "0123456789012345678901234567890123456789";
   }
   DEFAULT_SUPPORT_FUNCTIONS(IBigStringTest, replay_protection_t)

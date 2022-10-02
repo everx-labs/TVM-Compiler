@@ -3740,7 +3740,7 @@ bool CompilerInvocation::ParseLangArgs(LangOptions &Opts, ArgList &Args,
   Opts.DecompositionBindingOverride =
       Args.hasFlag(OPT_fdecomposition_binding_override,
                    OPT_fno_decomposition_binding_override, isTVM);
-  Opts.GNUCVersion = 0x4e20;
+  Opts.GNUCVersion = 0x9d09;  // gnuc 4.2.1
   // TVM local end
 
   if (Arg *A = Args.getLastArg(options::OPT_fgnuc_version_EQ)) {

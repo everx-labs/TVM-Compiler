@@ -688,6 +688,9 @@ NumericLiteralParser::NumericLiteralParser(StringRef TokSpelling,
       continue;
     case 'i':
     case 'I':
+      // TVM local begin
+      break; // In TVM we have user-defined literals for i8-i256
+      // TVM local end
       if (LangOpts.MicrosoftExt && !isFPConstant) {
         // Allow i8, i16, i32, and i64. First, look ahead and check if
         // suffixes are Microsoft integers and not the imaginary unit.
@@ -846,6 +849,21 @@ bool NumericLiteralParser::isValidUDSuffix(const LangOptions &LangOpts,
   // In C++11, there are no library suffixes.
   if (!LangOpts.CPlusPlus14)
     return false;
+
+  // TVM local begin
+  if (llvm::StringSwitch<bool>(Suffix)
+          .Cases("nanoton", "nano", "nTon", "nT", true)
+          .Cases("microton", "micro", "mcTon", "mcT", true)
+          .Cases("milliton", "milli", "mTon", "mT", true)
+          .Cases("ton", "Ton", "T", "UT", true)
+          .Cases("kiloton", "kTon", "KT", "UKT", true)
+          .Cases("megaton", "MTon", "MT", "UMT", true)
+          .Cases("gigaton", "GTon", "GT", "UGT", true)
+          .Cases("u8", "u16", "u32", "u64", "u128", "u256", true)
+          .Cases("i8", "i16", "i32", "i64", "i128", "i256", true)
+          .Default(false))
+    return true;
+  // TVM local end
 
   // In C++14, "s", "h", "min", "ms", "us", and "ns" are used in the library.
   // Per tweaked N3660, "il", "i", and "if" are also used in the library.

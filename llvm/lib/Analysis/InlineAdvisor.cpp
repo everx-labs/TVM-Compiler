@@ -365,24 +365,41 @@ llvm::shouldInline(CallBase &CB,
     return IC;
   }
 
+  // TVM local begin
+  if (IC.isNever()) {
+    ORE.emit([&]() {
+      return OptimizationRemarkMissed(DEBUG_TYPE, "NeverInline", Call)
+             << NV("Callee", Callee) << " not inlined into "
+             << NV("Caller", Caller) << " because it should never be inlined "
+             << IC;
+    });
+    return None;
+  }
+  // TVM local end
+
+
   if (!IC) {
     LLVM_DEBUG(dbgs() << "    NOT Inlining " << inlineCostStr(IC)
                       << ", Call: " << CB << "\n");
-    if (IC.isNever()) {
-      ORE.emit([&]() {
-        return OptimizationRemarkMissed(DEBUG_TYPE, "NeverInline", Call)
-               << NV("Callee", Callee) << " not inlined into "
-               << NV("Caller", Caller) << " because it should never be inlined "
-               << IC;
-      });
-    } else {
+    // TVM local begin
+    //if (IC.isNever()) {
+    //  ORE.emit([&]() {
+    //    return OptimizationRemarkMissed(DEBUG_TYPE, "NeverInline", Call)
+    //           << NV("Callee", Callee) << " not inlined into "
+    //           << NV("Caller", Caller) << " because it should never be inlined "
+    //           << IC;
+    //  });
+    //} else {
+    // TVM local end
       ORE.emit([&]() {
         return OptimizationRemarkMissed(DEBUG_TYPE, "TooCostly", Call)
                << NV("Callee", Callee) << " not inlined into "
                << NV("Caller", Caller) << " because too costly to inline "
                << IC;
       });
-    }
+    // TVM local begin
+    //}
+    // TVM local end
     setInlineRemark(CB, inlineCostStr(IC));
     return None;
   }

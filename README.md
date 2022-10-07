@@ -31,9 +31,17 @@ git clone --branch ashistko/llvm13 https://github.com/tonlabs/TON-Compiler.git
 cd TON-compiler
 mkdir build
 cd build
-cmake -G "Visual Studio 16 2019" -DLLVM_TARGETS_TO_BUILD="TVM" -C ../cmake/Cache/ton-compiler-alone.cmake ../llvm
+cmake -G "Visual Studio 16 2019 Win64" -DLLVM_TARGETS_TO_BUILD="TVM" -C ../cmake/Cache/ton-compiler-alone.cmake ../llvm
 ```
 Than you can compiler "clang" Solution subproject to generate Clang compiler for TVM.
+
+## Running tests
+To run tests for TVM, execute
+```
+$ make check-llvm-codegen-tvm
+```
+
+For more details see [testing.md](./docs/testing.md).
 
 ## The toolchain description
 

@@ -55,3 +55,6 @@ llvm-configure:
 llvm-build-install: create-install-path
 	cd $(BUILD_DIR) && \
 	cmake --build . --target install -- $(JOBS)
+
+check-llvm-codegen-tvm:
+	cmake cmake --build . --target check-llvm-codegen-tvm

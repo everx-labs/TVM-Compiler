@@ -1261,50 +1261,53 @@ enum PredefinedDeclIDs {
   /// The internal '__reflect_method_dyn_chain_parse' template.
   PREDEF_DECL_REFLECT_METHOD_DYN_CHAIN_PARSE_ID = 33,
 
+/// The internal '__reflect_method_deploy' template.
+  PREDEF_DECL_REFLECT_METHOD_DEPLOY_ID = 34,
+
   /// The internal '__reflect_method_no_read_persistent' template.
-  PREDEF_DECL_REFLECT_METHOD_NO_READ_PERSISTENT_ID = 34,
+  PREDEF_DECL_REFLECT_METHOD_NO_READ_PERSISTENT_ID = 35,
 
   /// The internal '__reflect_method_no_write_persistent' template.
-  PREDEF_DECL_REFLECT_METHOD_NO_WRITE_PERSISTENT_ID = 35,
+  PREDEF_DECL_REFLECT_METHOD_NO_WRITE_PERSISTENT_ID = 36,
 
   /// The internal '__reflect_method_ptr_func_id' template.
-  PREDEF_DECL_REFLECT_METHOD_PTR_FUNC_ID_ID = 36,
+  PREDEF_DECL_REFLECT_METHOD_PTR_FUNC_ID_ID = 37,
 
   /// The internal '__reflect_method_rv' template.
-  PREDEF_DECL_REFLECT_METHOD_RV_ID = 37,
+  PREDEF_DECL_REFLECT_METHOD_RV_ID = 38,
 
   /// The internal '__reflect_method_ptr_rv' template.
-  PREDEF_DECL_REFLECT_METHOD_PTR_RV_ID = 38,
+  PREDEF_DECL_REFLECT_METHOD_PTR_RV_ID = 39,
 
   /// The internal '__reflect_method_arg_struct' template.
-  PREDEF_DECL_REFLECT_METHOD_ARG_STRUCT_ID = 39,
+  PREDEF_DECL_REFLECT_METHOD_ARG_STRUCT_ID = 40,
 
   /// The internal '__reflect_method_ptr_arg_struct' template.
-  PREDEF_DECL_REFLECT_METHOD_PTR_ARG_STRUCT_ID = 40,
+  PREDEF_DECL_REFLECT_METHOD_PTR_ARG_STRUCT_ID = 41,
 
   /// The internal '__reflect_smart_interface' template.
-  PREDEF_DECL_REFLECT_SMART_INTERFACE_ID = 41,
+  PREDEF_DECL_REFLECT_SMART_INTERFACE_ID = 42,
 
   /// The internal '__reflect_proxy' template.
-  PREDEF_DECL_REFLECT_PROXY_ID = 42,
+  PREDEF_DECL_REFLECT_PROXY_ID = 43,
 
   /// The internal '__reflect_method_ptr' template.
-  PREDEF_DECL_REFLECT_METHOD_PTR_ID = 43,
+  PREDEF_DECL_REFLECT_METHOD_PTR_ID = 44,
 
   /// The internal '__reflect_interface_has_pubkey' template.
-  PREDEF_DECL_REFLECT_INTERFACE_HAS_PUBKEY_ID = 44,
+  PREDEF_DECL_REFLECT_INTERFACE_HAS_PUBKEY_ID = 45,
 
   /// The internal '__reflect_interface_has_timestamp' template.
-  PREDEF_DECL_REFLECT_INTERFACE_HAS_TIMESTAMP_ID = 45,
+  PREDEF_DECL_REFLECT_INTERFACE_HAS_TIMESTAMP_ID = 46,
 
   /// The internal '__reflect_interface_has_expire' template.
-  PREDEF_DECL_REFLECT_INTERFACE_HAS_EXPIRE_ID = 46,
+  PREDEF_DECL_REFLECT_INTERFACE_HAS_EXPIRE_ID = 47,
 
   /// The internal '__reflect_signature_func_id' template.
-  PREDEF_DECL_REFLECT_SIGNATURE_FUNC_ID_ID = 47,
+  PREDEF_DECL_REFLECT_SIGNATURE_FUNC_ID_ID = 48,
 
   /// The internal '__reflect_echo' template.
-  PREDEF_DECL_REFLECT_ECHO_ID = 48
+  PREDEF_DECL_REFLECT_ECHO_ID = 49
   // TVM local end
 };
 
@@ -1314,16 +1317,16 @@ enum PredefinedDeclIDs {
 /// \c PredefinedDeclIDs type and the PREDEF_DECL_*_ID constants.
 //const unsigned int NUM_PREDEF_DECL_IDS = 18;
 // TVM local begin
-const unsigned int NUM_PREDEF_DECL_IDS = 48;
+const unsigned int NUM_PREDEF_DECL_IDS = 49;
 // TVM local end
 
 /// Record of updates for a declaration that was modified after
 /// being deserialized. This can occur within DECLTYPES_BLOCK_ID.
-const unsigned int DECL_UPDATES = 49;
+const unsigned int DECL_UPDATES = 50;
 
 /// Record code for a list of local redeclarations of a declaration.
 /// This can occur within DECLTYPES_BLOCK_ID.
-const unsigned int LOCAL_REDECLARATIONS = 50;
+const unsigned int LOCAL_REDECLARATIONS = 51;
 
 /// Record codes for each kind of declaration.
 ///
@@ -1333,7 +1336,7 @@ const unsigned int LOCAL_REDECLARATIONS = 50;
 /// in the AST. Note that TypeCode values share this code space.
 enum DeclCode {
   /// A TypedefDecl record.
-  DECL_TYPEDEF = 51,
+  DECL_TYPEDEF = 52,
   /// A TypeAliasDecl record.
 
   DECL_TYPEALIAS,

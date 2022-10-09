@@ -711,30 +711,12 @@ void SelectionDAGISel::SelectBasicBlock(BasicBlock::const_iterator Begin,
   // Allow creating illegal types during DAG building for the basic block.
   CurDAG->NewNodesMustHaveLegalTypes = false;
 
-  // DXX
-  bool db = false;
-  const BasicBlock *bb = (*Begin).getParent();
-  const Function *F = bb->getParent();
-  if (F->getName() ==
-      "_ZN6Wallet33set_subscription_account_externalEN3tvm4cellENS0_5sliceE") {
-    const Instruction &I = *Begin;
-    std::string s;
-    llvm::raw_string_ostream sos(s);
-    I.print(sos);
-    sos.flush();
-    if (s.find("call %struct.args_t") != std::string::npos) {
-      db = true;
-      bb->print(dbgs());
-      dbgs() << s << "\n";
-      dbgs().flush();
-    }
-  }
-
   // Lower the instructions. If a call is emitted as a tail call, cease emitting
   // nodes for this block.
   for (BasicBlock::const_iterator I = Begin; I != End && !SDB->HasTailCall; ++I) {
-    if (!ElidedArgCopyInstrs.count(&*I))
+    if (!ElidedArgCopyInstrs.count(&*I)) {
       SDB->visit(*I);
+    }
   }
 
   // Make sure the root of the DAG is up-to-date.

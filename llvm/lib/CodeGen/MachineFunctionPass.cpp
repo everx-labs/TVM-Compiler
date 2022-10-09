@@ -68,16 +68,6 @@ bool MachineFunctionPass::runOnFunction(Function &F) {
   if (ShouldEmitSizeRemarks)
     CountBefore = MF.getInstructionCount();
 
-  // DXX
-  if (MF.getName() ==
-      "_ZN6Wallet33set_subscription_account_externalEN3tvm4cellENS0_5sliceE") {
-    dbgs() << "Before " <<  this->getPassName() << "  runOnMachineFunction "
-           << MF.getName() << "\n";
-    MF.print(dbgs());
-    dbgs() << "\n";
-    dbgs().flush();
-  }
-
   bool RV = runOnMachineFunction(MF);
 
   if (ShouldEmitSizeRemarks) {
@@ -105,6 +95,18 @@ bool MachineFunctionPass::runOnFunction(Function &F) {
 
   MFProps.set(SetProperties);
   MFProps.reset(ClearedProperties);
+
+ // DXX
+  /*
+  if (F.getName() ==
+      "_ZN6Wallet24set_subscription_accountEN3tvm4cellENS0_5sliceE") {
+    dbgs() << "MachineFunctionPass " << this->getPassName() << "  "
+           << F.getFunction().getName() << "\n";
+    MF.print(dbgs());
+    dbgs().flush();
+  }
+  */
+
   return RV;
 }
 

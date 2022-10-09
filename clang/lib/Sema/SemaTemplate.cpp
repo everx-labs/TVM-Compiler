@@ -4779,13 +4779,6 @@ bool Sema::resolveAssumedTemplateNameAsType(Scope *S, TemplateName &Name,
   AssumedTemplateStorage *ATN = Name.getAsAssumedTemplateName();
   assert(ATN && "not an assumed template name");
 
-
-  // DXX
-  if (ATN->getDeclName().getAsString() == "__reflect_method_deploy") {
-    llvm::dbgs() << ATN->getDeclName() << "\n";
-    llvm::dbgs().flush();
-  }
-
   LookupResult R(*this, ATN->getDeclName(), NameLoc, LookupOrdinaryName);
   struct CandidateCallback : CorrectionCandidateCallback {
     bool ValidateCandidate(const TypoCorrection &TC) override {

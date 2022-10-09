@@ -37,6 +37,7 @@ int sys::ExecuteAndWait(StringRef Program, ArrayRef<StringRef> Args,
                         Optional<ProcessStatistics> *ProcStat,
                         BitVector *AffinityMask) {
   assert(Redirects.empty() || Redirects.size() == 3);
+
   ProcessInfo PI;
   if (Execute(PI, Program, Args, Env, Redirects, MemoryLimit, ErrMsg,
               AffinityMask)) {

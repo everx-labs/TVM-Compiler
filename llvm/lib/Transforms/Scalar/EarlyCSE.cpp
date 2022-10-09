@@ -1220,6 +1220,7 @@ bool EarlyCSE::processNode(DomTreeNode *Node) {
   // not, add them to AvailableValues.
   for (Instruction &Inst : make_early_inc_range(BB->getInstList())) {
     // Dead instructions should just be removed.
+
     if (isInstructionTriviallyDead(&Inst, &TLI)) {
       LLVM_DEBUG(dbgs() << "EarlyCSE DCE: " << Inst << '\n');
       if (!DebugCounter::shouldExecute(CSECounter)) {

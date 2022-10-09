@@ -4879,6 +4879,7 @@ InputInfo Driver::BuildJobsForActionNoCache(
           C.getArgsForToolChain(TC, BoundArch, JA->getOffloadingDeviceKind()),
           LinkingOutput);
   }
+
   return Result;
 }
 

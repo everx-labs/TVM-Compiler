@@ -2319,6 +2319,11 @@ static bool CheckLiteralType(EvalInfo &Info, const Expr *E,
   if (This && Info.EvaluatingDecl == This->getLValueBase())
     return true;
 
+  // TODO
+  // TVM local begin
+  return true;
+  // TVM local end
+
   // Prvalue constant expressions must be of literal types.
   if (Info.getLangOpts().CPlusPlus11)
     Info.FFDiag(E, diag::note_constexpr_nonliteral)

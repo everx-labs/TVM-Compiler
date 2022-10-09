@@ -253,10 +253,11 @@ static bool simplifyFunctionCFGImpl(Function &F, const TargetTransformInfo &TTI,
                                     DominatorTree *DT,
                                     const SimplifyCFGOptions &Options) {
   DomTreeUpdater DTU(DT, DomTreeUpdater::UpdateStrategy::Eager);
-
   bool EverChanged = removeUnreachableBlocks(F, DT ? &DTU : nullptr);
+
   EverChanged |=
       tailMergeBlocksWithSimilarFunctionTerminators(F, DT ? &DTU : nullptr);
+
   EverChanged |= iterativelySimplifyCFG(F, TTI, DT ? &DTU : nullptr, Options);
 
   // If neither pass changed anything, we're done.
@@ -300,14 +301,26 @@ static void applyCommandLineOverridesToOptions(SimplifyCFGOptions &Options) {
     Options.BonusInstThreshold = UserBonusInstThreshold;
   if (UserForwardSwitchCond.getNumOccurrences())
     Options.ForwardSwitchCondToPhi = UserForwardSwitchCond;
+  // TVM local begin
+  else
+    Options.ForwardSwitchCondToPhi = false;
+  // TVM local end
   if (UserSwitchToLookup.getNumOccurrences())
     Options.ConvertSwitchToLookupTable = UserSwitchToLookup;
+  // TVM local begin
+  else
+    Options.ConvertSwitchToLookupTable = false;
+  // TVM local end
   if (UserKeepLoops.getNumOccurrences())
     Options.NeedCanonicalLoop = UserKeepLoops;
   if (UserHoistCommonInsts.getNumOccurrences())
     Options.HoistCommonInsts = UserHoistCommonInsts;
   if (UserSinkCommonInsts.getNumOccurrences())
     Options.SinkCommonInsts = UserSinkCommonInsts;
+  // TVM local begin
+  else 
+    Options.SinkCommonInsts = false;
+  // TVM local end
 }
 
 SimplifyCFGPass::SimplifyCFGPass() : Options() {
@@ -324,6 +337,7 @@ PreservedAnalyses SimplifyCFGPass::run(Function &F,
   auto &TTI = AM.getResult<TargetIRAnalysis>(F);
   Options.AC = &AM.getResult<AssumptionAnalysis>(F);
   DominatorTree *DT = nullptr;
+
   if (RequireAndPreserveDomTree)
     DT = &AM.getResult<DominatorTreeAnalysis>(F);
   if (F.hasFnAttribute(Attribute::OptForFuzzing)) {
@@ -364,6 +378,7 @@ struct CFGSimplifyPass : public FunctionPass {
     DominatorTree *DT = nullptr;
     if (RequireAndPreserveDomTree)
       DT = &getAnalysis<DominatorTreeWrapperPass>().getDomTree();
+
     if (F.hasFnAttribute(Attribute::OptForFuzzing)) {
       Options.setSimplifyCondBranch(false)
              .setFoldTwoEntryPHINode(false);
@@ -375,6 +390,7 @@ struct CFGSimplifyPass : public FunctionPass {
     auto &TTI = getAnalysis<TargetTransformInfoWrapperPass>().getTTI(F);
     return simplifyFunctionCFG(F, TTI, DT, Options);
   }
+
   void getAnalysisUsage(AnalysisUsage &AU) const override {
     AU.addRequired<AssumptionCacheTracker>();
     if (RequireAndPreserveDomTree)

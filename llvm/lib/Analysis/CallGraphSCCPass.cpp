@@ -128,6 +128,7 @@ bool CGPassManager::RunPassOnSCC(Pass *P, CallGraphSCC &CurSCC,
 
   if (!PM) {
     CallGraphSCCPass *CGSP = (CallGraphSCCPass *)P;
+
     if (!CallGraphUpToDate) {
       DevirtualizedCall |= RefreshCallGraph(CurSCC, CG, false);
       CallGraphUpToDate = true;

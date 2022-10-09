@@ -1403,6 +1403,43 @@ bool FPPassManager::runOnFunction(Function &F) {
    if (F.isDeclaration())
     return false;
       
+   // DXX
+   bool db = false;
+   static bool first = true;
+
+   //dbgs() << "------ " << F.getName() << "\n";
+   if (F.getName() == 
+      //"main_external"
+      //"main_internal"
+
+     ""
+     //"_ZN6Wallet33set_subscription_account_externalEN3tvm4cellENS0_5sliceE"
+     // "_ZN3tvm12call_wrapperI6WalletNS_28persistent_strategy_in_sliceIS1_EEE21process_external_callEMS1_FiNS_4cellENS_5sliceEES5_S6_"
+     //"_ZN3tvm28persistent_strategy_in_sliceI6WalletE21process_external_callEMS1_FiNS_4cellENS_5sliceEES3_S4_"
+      
+     //"_ZNSt3__116__variant_detail12__visitation6__base22__unroll_fmatrix1_caseILm1EE6unrollINS_5arrayIPFN3tvm7builderEONS1_9__variant15__value_visitorINS7_6schema15builder_visitorEEERNS0_6__baseILNS0_6_TraitE0EJNS_7variantIJNSB_9addr_noneENSB_11addr_externEEEENSH_IJNSB_8addr_stdENSB_8addr_varEEEEEEEELm2EEESD_RNS0_6__implIJSK_SN_EEEEEDcT_mOT0_OT1_"
+     // "_ZNSt3__116__variant_detail12__visitation6__base10__unrollerILj1EE6unrollINS_5arrayIPFN3tvm7builderEONS1_9__variant15__value_visitorINS7_6schema15builder_visitorEEERNS0_6__baseILNS0_6_TraitE0EJNS_7variantIJNSB_9addr_noneENSB_11addr_externEEEENSH_IJNSB_8addr_stdENSB_8addr_varEEEEEEEELm2EEESD_RNS0_6__implIJSK_SN_EEEEEDaT_mOT0_OT1_"
+     //"_ZNSt3__116__variant_detail12__visitation6__base11__visit_altINS1_9__variant15__value_visitorIN3tvm6schema15builder_visitorEEEJRNS0_6__implIJNS_7variantIJNS7_9addr_noneENS7_11addr_externEEEENSB_IJNS7_8addr_stdENS7_8addr_varEEEEEEEEEEDcOT_DpOT0_"
+     //"_ZNSt3__116__variant_detail12__visitation9__variant11__visit_altINS2_15__value_visitorIN3tvm6schema15builder_visitorEEEJRNS_7variantIJNS9_IJNS6_9addr_noneENS6_11addr_externEEEENS9_IJNS6_8addr_stdENS6_8addr_varEEEEEEEEEEDcOT_DpOT0_"
+     //"_ZNSt3__116__variant_detail12__visitation9__variant13__visit_valueIN3tvm6schema15builder_visitorEJRNS_7variantIJNS7_IJNS5_9addr_noneENS5_11addr_externEEEENS7_IJNS5_8addr_stdENS5_8addr_varEEEEEEEEEEDcOT_DpOT0_"
+     //"_ZNSt3__15visitIN3tvm6schema15builder_visitorEJRNS_7variantIJNS4_IJNS2_9addr_noneENS2_11addr_externEEEENS4_IJNS2_8addr_stdENS2_8addr_varEEEEEEEEEEDcOT_DpOT0_"
+     //"_ZN3tvm6schema17make_builder_implINSt3__17variantIJNS3_IJNS0_9addr_noneENS0_11addr_externEEEENS3_IJNS0_8addr_stdENS0_8addr_varEEEEEEEE5buildENS_7builderESA_"
+     //"_ZN3tvm6schema16sequence_builderINSt3__15tupleIJNS0_6uint_tILj256EEENS2_7variantIJNS6_IJNS0_9addr_noneENS0_11addr_externEEEENS6_IJNS0_8addr_stdENS0_8addr_varEEEEEEENS4_ILj64EEEEEELm2ESE_JEE5buildENS_7builderESF_"
+     //"_ZN3tvm6schema16sequence_builderINSt3__15tupleIJNS0_6uint_tILj256EEENS2_7variantIJNS6_IJNS0_9addr_noneENS0_11addr_externEEEENS6_IJNS0_8addr_stdENS0_8addr_varEEEEEEENS4_ILj64EEEEEELm1ESD_JSE_EE5buildENS_7builderESF_"
+     //"_ZN3tvm6schema16sequence_builderINSt3__15tupleIJNS0_6uint_tILj256EEENS2_7variantIJNS6_IJNS0_9addr_noneENS0_11addr_externEEEENS6_IJNS0_8addr_stdENS0_8addr_varEEEEEEENS4_ILj64EEEEEELm0ES5_JSD_SE_EE5buildENS_7builderESF_"
+     //_ZN3tvm6schema17make_builder_implINSt3__15tupleIJNS0_6uint_tILj256EEENS2_7variantIJNS6_IJNS0_9addr_noneENS0_11addr_externEEEENS6_IJNS0_8addr_stdENS0_8addr_varEEEEEEENS4_ILj64EEEEEEE5buildENS_7builderESF_"
+     //"_ZN3tvm6schema17make_builder_implIN6Wallet17persistent_valuesEE5buildENS_7builderES3_"
+     //"_ZN3tvm6schema5buildIN6Wallet17persistent_valuesEEENS_7builderET_"
+     //"_ZN3tvm15persistent_data3setENS_4cellE"
+    ) {
+     if (first) {
+       dbgs() << this->getPassName() << "\n";
+       F.print(dbgs());
+     }
+     db = true;
+     first = false;
+   }
+
   bool Changed = false;
   Module &M = *F.getParent();
   // Collect inherited analysis from Module level pass manager.
@@ -1436,10 +1473,24 @@ bool FPPassManager::runOnFunction(Function &F) {
 #ifdef EXPENSIVE_CHECKS
       uint64_t RefHash = StructuralHash(F);
 #endif
-
       bool Chg = FP->runOnFunction(F);
       LocalChanged |= Chg;
-      
+
+      // DXX
+      if (db) {
+        if (Chg) 
+        {
+          dbgs() << "\n" << FP->getPassName() << "\n";
+          F /*.getEntryBlock()*/.print(dbgs());
+          dbgs() << "\n";
+        } else {
+          dbgs() << "\n"
+                 << FP->getPassName() << "  Unchanged"
+                 << "\n";
+          dbgs().flush();
+        }
+      }
+
  #if defined(EXPENSIVE_CHECKS) && !defined(NDEBUG)
       if (!LocalChanged && (RefHash != StructuralHash(F))) {
         llvm::errs() << "Pass modifies its input and doesn't report it: "
@@ -1519,6 +1570,22 @@ MPPassManager::runOnModule(Module &M) {
 
   bool Changed = false;
 
+  // DXX
+  /*
+  bool db = false;
+  std::vector<std::string> funcs = {
+    "_Z24test_argument_gamma_callv"     
+  };
+  for (std::string str : funcs) {
+    Function *f = M.getFunction(str);
+    if (f) {
+      db = true;
+      f->print(dbgs());
+      dbgs() << "\n";
+    }
+  }
+  */
+
   // Initialize on-the-fly passes
   for (auto &OnTheFlyManager : OnTheFlyManagers) {
     legacy::FunctionPassManagerImpl *FPP = OnTheFlyManager.second;
@@ -1555,7 +1622,21 @@ MPPassManager::runOnModule(Module &M) {
 
       LocalChanged |= MP->runOnModule(M);
 
-
+      // DXX
+      /*
+      if (db && LocalChanged) {
+        dbgs() << "After " << MP->getPassName() << " :\n";
+        for (std::string str : funcs) {
+          Function *f = M.getFunction(str);
+          if (f) {
+            db = true;
+            f->print(dbgs());
+            dbgs() << "\n";
+          }
+        }
+        dbgs().flush();
+      }
+      */
 
  #ifdef EXPENSIVE_CHECKS
       assert((LocalChanged || (RefHash == StructuralHash(M))) &&

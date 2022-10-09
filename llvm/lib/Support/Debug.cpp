@@ -182,10 +182,16 @@ raw_ostream &llvm::dbgs() {
 
 #else
 // Avoid "has no symbols" warning.
-namespace llvm {
+namespace llvm { 
   /// dbgs - Return errs().
   raw_ostream &dbgs() {
-    return errs();
+  // DXX 
+  static raw_fd_ostream rfs(
+      "E:/Temp/TON-Compiler-LLVM13-Build/Debug/bin/opttests/clang13u.dbg",
+      std::error_code());
+
+   return rfs;
+   // return errs();
   }
 }
 void llvm::initDebugOptions() {}

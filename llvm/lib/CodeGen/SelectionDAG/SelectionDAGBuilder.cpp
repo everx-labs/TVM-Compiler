@@ -2385,7 +2385,11 @@ void SelectionDAGBuilder::visitBr(const BranchInst &I) {
   //     cmp D, E
   //     jle foo
   const Instruction *BOp = dyn_cast<Instruction>(CondVal);
-  if (!DAG.getTargetLoweringInfo().isJumpExpensive() && BOp &&
+  // TVM local begin
+  const auto &Triple = DAG.getTarget().getTargetTriple();
+  if (Triple.getArch() != Triple::tvm &&
+  // TVM local end
+    !DAG.getTargetLoweringInfo().isJumpExpensive() && BOp &&
       BOp->hasOneUse() && !I.hasMetadata(LLVMContext::MD_unpredictable)) {
     Value *Vec;
     const Value *BOp0, *BOp1;
@@ -2512,11 +2516,20 @@ void SelectionDAGBuilder::visitSwitchCase(CaseBlock &CB,
 
   // If the lhs block is the next block, invert the condition so that we can
   // fall through to the lhs instead of the rhs block.
-  if (CB.TrueBB == NextBlock(SwitchBB)) {
-    std::swap(CB.TrueBB, CB.FalseBB);
-    SDValue True = DAG.getConstant(1, dl, Cond.getValueType());
-    Cond = DAG.getNode(ISD::XOR, dl, Cond.getValueType(), Cond, True);
+  // TVM Local change: we need true successor to be the loop header,
+  // an IR pass ensures that, so we don't need to reorder when building DAG.
+  // TVM local begin
+  const auto &Triple = DAG.getTarget().getTargetTriple();
+  if (Triple.getArch() != Triple::tvm) {
+  // TVM local end
+    if (CB.TrueBB == NextBlock(SwitchBB)) {
+      std::swap(CB.TrueBB, CB.FalseBB);
+      SDValue True = DAG.getConstant(1, dl, Cond.getValueType());
+      Cond = DAG.getNode(ISD::XOR, dl, Cond.getValueType(), Cond, True);
+    }
+  // TVM local begin
   }
+  // TVM local end
 
   SDValue BrCond = DAG.getNode(ISD::BRCOND, dl,
                                MVT::Other, getControlRoot(), Cond,

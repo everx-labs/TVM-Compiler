@@ -1709,8 +1709,6 @@ Error BitcodeReader::parseTypeTableBody() {
     if (!MaybeRecord)
       return MaybeRecord.takeError();
     int code = MaybeRecord.get();
-    dbgs() << "code = " << code << "\n";
-    dbgs().flush();
     switch (code) {
     default:
       return error("Invalid value");

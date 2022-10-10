@@ -694,7 +694,12 @@ bool Sema::checkFinalSuspendNoThrow(const Stmt *FinalSuspend) {
   // with noexcept. We then sort them based on the location before printing.
   // This is to avoid emitting the same note multiple times on the same
   // declaration, and also provide a deterministic order for the messages.
-  checkNoThrow(*this, FinalSuspend, ThrowingDecls);
+
+  // TVM local begin
+  // TODO
+  // checkNoThrow(*this, FinalSuspend, ThrowingDecls);
+  // TVM local end
+
   auto SortedDecls = llvm::SmallVector<const Decl *, 4>{ThrowingDecls.begin(),
                                                         ThrowingDecls.end()};
   sort(SortedDecls, [](const Decl *A, const Decl *B) {

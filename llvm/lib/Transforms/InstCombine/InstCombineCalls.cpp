@@ -1677,7 +1677,8 @@ Instruction *InstCombinerImpl::visitCallInst(CallInst &CI) {
           assert(Indices.size() == 1);
           Value *IdxC =
               ConstantInt::get(Type::getInt257Ty(II->getContext()), Indices[0]);
-          ArrayRef<Value *> Args = {II->getArgOperand(0), IdxC};
+          std::vector<Value *> vArgs = {II->getArgOperand(0), IdxC};
+          ArrayRef<Value *> Args(vArgs);
           CallInst *NewCall = Builder.CreateCall(NewF, Args);
           replaceInstUsesWith(*Extract, NewCall);
         }

@@ -57,8 +57,13 @@ FunctionPass *llvm::createTVMDefineUndef() { return new TVMDefineUndef(); }
 static Value *definedValue(Instruction &I, Type *Ty) {
   auto &Ctx = I.getModule()->getContext();
   auto *Int257Ty = Type::getIntNTy(Ctx, 257);
+  auto *Int1Ty = Type::getInt1Ty(Ctx);
   if (Ty == Int257Ty)
     return ConstantInt::get(Int257Ty, 0);
+  
+  // Clang13 uses i1 types for booleans
+  if (Ty == Int1Ty)
+    return ConstantInt::get(Int1Ty, 0);
   if (Ty == Type::getTVMCellTy(Ctx)) {
     IRBuilder<> Builder(&I);
     CallInst *Pushnull =

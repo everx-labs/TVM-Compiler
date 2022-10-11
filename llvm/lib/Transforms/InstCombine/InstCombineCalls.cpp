@@ -809,6 +809,7 @@ static Instruction *foldClampRangeOfTwo(IntrinsicInst *II,
 Instruction *InstCombinerImpl::visitCallInst(CallInst &CI) {
   // Don't try to simplify calls without uses. It will not do anything useful,
   // but will result in the following folds being skipped.
+
   if (!CI.use_empty())
     if (Value *V = SimplifyCall(&CI, SQ.getWithInstruction(&CI)))
       return replaceInstUsesWith(CI, V);
@@ -1667,9 +1668,12 @@ Instruction *InstCombinerImpl::visitCallInst(CallInst &CI) {
         }
         return true;
       };
+
       if (OptToIndex()) {
+
         Function *NewF =
             Intrinsic::getDeclaration(II->getModule(), Intrinsic::tvm_index);
+
         for (User *U : II->users()) {
           auto *Extract = dyn_cast<ExtractValueInst>(U);
           assert(Extract);
@@ -1682,6 +1686,7 @@ Instruction *InstCombinerImpl::visitCallInst(CallInst &CI) {
           CallInst *NewCall = Builder.CreateCall(NewF, Args);
           replaceInstUsesWith(*Extract, NewCall);
         }
+
         return nullptr;
       }
       break;

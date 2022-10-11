@@ -4162,7 +4162,6 @@ static bool combineInstructionsOverFunction(
     AssumptionCache &AC, TargetLibraryInfo &TLI, TargetTransformInfo &TTI,
     DominatorTree &DT, OptimizationRemarkEmitter &ORE, BlockFrequencyInfo *BFI,
     ProfileSummaryInfo *PSI, unsigned MaxIterations, LoopInfo *LI) {
-  
   auto &DL = F.getParent()->getDataLayout();
   MaxIterations = std::min(MaxIterations, LimitMaxIterations.getValue());
 

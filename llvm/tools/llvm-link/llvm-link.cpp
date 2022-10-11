@@ -370,11 +370,11 @@ static bool linkFiles(const char *argv0, LLVMContext &Context, Linker &L,
   for (const auto &File : Files) {
     std::unique_ptr<MemoryBuffer> Buffer =
         ExitOnErr(errorOrToExpected(MemoryBuffer::getFileOrSTDIN(File)));
-
     std::unique_ptr<Module> M =
         identify_magic(Buffer->getBuffer()) == file_magic::archive
             ? loadArFile(argv0, std::move(Buffer), Context)
             : loadFile(argv0, std::move(Buffer), Context);
+
     if (!M.get()) {
       errs() << argv0 << ": ";
       WithColor::error() << " loading file '" << File << "'\n";

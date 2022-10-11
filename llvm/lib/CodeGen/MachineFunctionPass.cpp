@@ -96,17 +96,6 @@ bool MachineFunctionPass::runOnFunction(Function &F) {
   MFProps.set(SetProperties);
   MFProps.reset(ClearedProperties);
 
- // DXX
-  /*
-  if (F.getName() ==
-      "_ZN6Wallet24set_subscription_accountEN3tvm4cellENS0_5sliceE") {
-    dbgs() << "MachineFunctionPass " << this->getPassName() << "  "
-           << F.getFunction().getName() << "\n";
-    MF.print(dbgs());
-    dbgs().flush();
-  }
-  */
-
   return RV;
 }
 

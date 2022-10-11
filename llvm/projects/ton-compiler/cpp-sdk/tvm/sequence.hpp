@@ -54,7 +54,8 @@ public:
     unsigned rem_bits = max_cell_bits;
     for (; __first != __last; ++__first) {
       Element elem(*__first);
-      if constexpr (schema::get_bitsize_v<Element>) {
+      // DXX
+      if /*constexpr*/ (schema::get_bitsize_v<Element>) {
         constexpr unsigned new_bits = schema::get_bitsize_v<Element>;
         if (new_bits > rem_bits) {
           bldrs.push(builder());

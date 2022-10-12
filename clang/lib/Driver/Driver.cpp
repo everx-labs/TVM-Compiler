@@ -302,7 +302,14 @@ phases::ID Driver::getFinalPhase(const DerivedArgList &DAL,
     FinalPhase = phases::Compile;
 
   // -S only runs up to the backend.
-  } else if ((PhaseArg = DAL.getLastArg(options::OPT_S))) {
+  } else if ((PhaseArg = DAL.getLastArg(options::OPT_S))  
+              // TVM local begin
+              || 
+              (PhaseArg = DAL.getLastArg(options::OPT_export_json_abi)) ||
+              (PhaseArg = DAL.getLastArg(options::OPT_emit_text_const))
+              // TVM local end
+
+    ) {
     FinalPhase = phases::Backend;
 
   // -c compilation only runs up to the assembler.
@@ -3782,7 +3789,16 @@ void Driver::BuildActions(Compilation &C, DerivedArgList &Args,
     if (OffloadBuilder.addHostDependenceToDeviceActions(Current, InputArg))
       break;
 
-    for (phases::ID Phase : PL) {
+    // TVM local begin
+    //for (phases::ID Phase : PL) {
+    for (SmallVectorImpl<phases::ID>::iterator i = PL.begin(), e = PL.end();
+         i != e; ++i) {
+      phases::ID Phase = *i;
+
+      // We are done if this step is past what the user requested.
+      if (Phase > FinalPhase)
+        break;
+    // TVM local end
 
       // Add any offload action the host action depends on.
       Current = OffloadBuilder.addDeviceDependencesToHostAction(

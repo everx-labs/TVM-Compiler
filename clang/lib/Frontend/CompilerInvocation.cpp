@@ -1711,6 +1711,10 @@ bool CompilerInvocation::ParseCodeGenArgs(CodeGenOptions &Opts, ArgList &Args,
     }
   }
 
+  // TVM local begin
+  Opts.EmitTextConstant = Args.getLastArgValue(OPT_emit_text_const);
+  // TVM local end
+
   Opts.PrepareForLTO = Args.hasArg(OPT_flto, OPT_flto_EQ);
   Opts.PrepareForThinLTO = false;
   if (Arg *A = Args.getLastArg(OPT_flto_EQ)) {
@@ -2376,6 +2380,12 @@ static const auto &getFrontendActionTable() {
       {frontend::EmitLLVMOnly, OPT_emit_llvm_only},
       {frontend::EmitCodeGenOnly, OPT_emit_codegen_only},
       {frontend::EmitCodeGenOnly, OPT_emit_codegen_only},
+
+      // TVM local begin
+      {frontend::EmitTextConst, OPT_emit_text_const },
+      {frontend::ImportJsonAbi, OPT_import_json_name },
+      // TVM local end
+
       {frontend::EmitObj, OPT_emit_obj},
 
       {frontend::FixIt, OPT_fixit_EQ},
@@ -2604,6 +2614,13 @@ static bool ParseFrontendArgs(FrontendOptions &Opts, ArgList &Args,
     OptSpecifier Opt = OptSpecifier(A->getOption().getID());
     Optional<frontend::ActionKind> ProgramAction = getFrontendAction(Opt);
     assert(ProgramAction && "Option specifier not in Action_Group.");
+
+    // TVM local begin
+    if (ProgramAction == frontend::ImportJsonAbi) {
+      if (auto *Arg = Args.getLastArg(options::OPT_import_json_name))
+        Opts.TVMJsonAbiStructName = Arg->getValue();
+    }
+    // TVM local end
 
     if (ProgramAction == frontend::ASTDump &&
         (Opt == OPT_ast_dump_all_EQ || Opt == OPT_ast_dump_EQ)) {

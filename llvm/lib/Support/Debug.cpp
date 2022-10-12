@@ -185,13 +185,7 @@ raw_ostream &llvm::dbgs() {
 namespace llvm { 
   /// dbgs - Return errs().
   raw_ostream &dbgs() {
-  // DXX
-  static raw_fd_ostream rfs(
-      "E:/Temp/TON-Compiler-LLVM13-Build/Debug/bin/opttests/clang13u.dbg",
-      std::error_code());
-
-  return rfs;
-  // return errs();
+    return errs();
   }
 }
 void llvm::initDebugOptions() {}

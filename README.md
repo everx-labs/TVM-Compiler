@@ -187,7 +187,7 @@ using namespace tvm;
 
 class HelloWorld final : public smart_interface<IHelloWorld>,
                          public DHelloWorld {
-…
+...
 };
 ```
 
@@ -257,7 +257,7 @@ clang++ -o HelloWorld.tvc HelloWorld.cpp --sysroot=$TVM\_INCLUDE\_PATH
 
 This command generates ABI file (*.abi) and executable TVC file (*.tvc). 
 
-The first command produces the ABI file. Note that in case the contract uses an unsupported type, clang will silently generate "unknown" for it in the ABI and the contract will not link. The second command compiles and links the contract. It produces address.tvc file and the file named “key”.
+The first command produces the ABI file. Note that in case the contract uses an unsupported type, clang will silently generate "unknown" for it in the ABI and the contract will not link. The second command compiles and links the contract. It produces address.tvc file and the file named "key".
   
 
 ### Debugging locally
@@ -302,7 +302,7 @@ cargo run deploy --abi HelloWorld.abi HelloWorld.tvc '{}' --sign hw.key
 And finally test `hello_world` method:
 
 ```
-cargo run call –abi HelloWorld.abi "<raw address>" hello_world "{}" --sign hw.key
+cargo run call --abi HelloWorld.abi "<raw address>" hello_world "{}" --sign hw.key
 ```
 
 The command is supposed to output the message ending with
@@ -376,8 +376,8 @@ cd tonos-cli/target/<debug or release>/
 cargo run genaddr HelloWorld.tvc HelloWorld.abi --genkey auth.key
 #send coins to the contract address somehow
 cargo run deploy --abi HelloWorld.abi HelloWorld.tvc '{}' --sign auth.key
-cargo run call –abi HelloWorld.abi "<raw address>" hello_world "{}" --sign hw.key
-cargo run call –abi HelloWorld.abi "<raw address>" hello_world "{}" --sign auth.key
+cargo run call --abi HelloWorld.abi "<raw address>" hello_world "{}" --sign hw.key
+cargo run call --abi HelloWorld.abi "<raw address>" hello_world "{}" --sign auth.key
 ```
 
 The first call will fail and terminate by timeout. Any uncaught exception that occurs prior to accept will not be shown, because currently the node doesn't support such a feature. To properly diagnose it, you should install TON OS SE and use it for debugging, which is out of scope of this tutorial. The second call should successfully return 0x2a.
@@ -394,7 +394,7 @@ Finally, we are ready to implement more complex contracts that exchange messages
 
 ```
 auto handle = contract_handle<ICallee>(callee_address);
-handle(message_balance, message_flags).method_name(parameters…);
+handle(message_balance, message_flags).method_name(parameters...);
 ```
 
 The first line constructs the handle for the contract. A contract might be called though it. The second line configures the call via `operator()` and then performs it. `operator()` is optional, by default this configuration guarantees that if the sender has enough balance the message will carry 1 000 000 units of money.

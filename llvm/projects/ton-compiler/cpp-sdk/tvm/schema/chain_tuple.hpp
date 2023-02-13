@@ -37,6 +37,12 @@ struct expander<std::tuple<Types...>> {
   }
 };
 template<class T>
+struct expander<tvm::tuple<T>> {
+  static auto execute(tvm::tuple<T> elem) {
+    return expander<T>::execute(elem.unpack());
+  }
+};
+template<class T>
 struct entupler {
   static auto execute(T elem) {
     return std::make_tuple(elem);

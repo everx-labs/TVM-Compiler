@@ -68,6 +68,10 @@ auto chain_fold_cont(FoldedTup folded_tup, LinearTup linear_tup) {
 
 template <typename> struct is_tuple: std::false_type {};
 template <typename ...T> struct is_tuple<std::tuple<T...>>: std::true_type {};
+template <typename> struct is_tvm_tuple: std::false_type {};
+template <typename T> struct is_tvm_tuple<tvm::tuple<T>>: std::true_type {};
+template <typename> struct get_tvm_tuple_struct {};
+template <typename T> struct get_tvm_tuple_struct<tvm::tuple<T>> { using type = T; };
 
 // Fold from expanded linear tuple into return type (may be tuple, structure)
 template<class RT, class LinearTup>
@@ -76,6 +80,11 @@ auto chain_fold_impl(LinearTup linear_tup) {
   if constexpr (is_tuple<RT>::value) {
     auto [folded_tup, new_linear_tup] = chain_fold_cont<RT>(std::tuple<>{}, linear_tup);
     return std::make_pair(folded_tup, new_linear_tup);
+  } else if constexpr (is_tvm_tuple<RT>::value) {
+    using SubT = typename get_tvm_tuple_struct<RT>::type;
+    using ExpandedTup = to_std_tuple_t<SubT>;
+    auto [folded_tup, new_linear_tup] = chain_fold_cont<ExpandedTup>(std::tuple<>{}, linear_tup);
+    return std::make_pair(RT(to_struct<SubT>(folded_tup)), new_linear_tup);
   } else {
     using ExpandedTup = to_std_tuple_t<RT>;
     auto [folded_tup, new_linear_tup] = chain_fold_cont<ExpandedTup>(std::tuple<>{}, linear_tup);

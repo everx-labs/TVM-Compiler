@@ -384,6 +384,10 @@ template<unsigned Offset, class ReturnName, class T>
 struct make_struct_json<resumable<T>, Offset, ReturnName> {
   static constexpr auto value = make_struct_json<T, Offset, ReturnName>::value;
 };
+template<unsigned Offset, class ReturnName, class T>
+struct make_struct_json<tvm::tuple<T>, Offset, ReturnName> {
+  static constexpr auto value = make_struct_json<T, Offset, ReturnName>::value;
+};
 
 template<class T, unsigned Offset, class ReturnName>
 constexpr auto make_struct_components() {
@@ -627,8 +631,10 @@ constexpr auto make_func_signature() {
   // TODO: remove answer_id field generation in abi when abiv3 will provide answer_id in header
   auto prefix = make_signature_prefix<HasAnswerId, std::tuple_size_v<ArgsTuple>>();
 
-  return FuncName{} +
+  constexpr auto rv = FuncName{} +
     prefix + make_arg_types_list<ArgsTuple>::value + ")("_s + make_rv_types_list<Rv>() + ")v2"_s;
+  //__reflect_echo<rv.c_str()>{};
+  return rv;
 }
 
 template<auto MethodPtr>
@@ -642,8 +648,10 @@ constexpr auto make_func_signature() {
     get_interface_method_ptr_answer_id<MethodPtr>::value;
   // TODO: remove answer_id field generation in abi when abiv3 will provide answer_id in header
   auto prefix = make_signature_prefix<HasAnswerId, std::tuple_size_v<ArgsTuple>>();
-  return FuncName{} +
+  constexpr auto rv = FuncName{} +
     prefix + make_arg_types_list<ArgsTuple>::value + ")("_s + make_rv_types_list<Rv>() + ")v2"_s;
+  //__reflect_echo<rv.c_str()>{};
+  return rv;
 }
 // ====== ^^^Signature generation^^^ =========
 

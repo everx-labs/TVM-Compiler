@@ -2,6 +2,7 @@
 
 #include <tvm/schema/basics.hpp>
 #include <tvm/schema/message.hpp>
+#include <tvm/tuple.hpp>
 
 namespace tvm { inline namespace schema {
 
@@ -149,6 +150,9 @@ struct estimate_element<EitherRight<Y>> : detail::chain_to< to_std_tuple_t<Eithe
 
 template<class X, class Y>
 struct estimate_element<Either<X, Y>> : detail::chain_to< to_std_tuple_t<Either<X, Y>> > {};
+
+template<class _Tp>
+struct estimate_element<tuple<_Tp>> : detail::chain_to<_Tp> {};
 
 template<class _Tp>
 struct estimate_element<lazy<_Tp>> : detail::chain_to<_Tp> {};

@@ -357,6 +357,7 @@ defm MULDIVR  : I<(outs I257:$res), (ins I257:$x, I257:$y, I257:$z),
                   "MULDIVR\t$res, $x, $y, $z", "MULDIVR", 0xa985>;
 
 def : Pat<(srl I257:$val, imm:$off), (SHRCONST I257:$val, imm:$off)>;
+def : Pat<(srl I257:$val, I257:$off), (SHR I257:$val, I257:$off)>;
 
 // TODO: maybe support mulhs/mulhu using double-length multiply-shift operation
 def : Pat<(mul I257:$a, I257:$b), (MUL I257:$a, I257:$b)>;

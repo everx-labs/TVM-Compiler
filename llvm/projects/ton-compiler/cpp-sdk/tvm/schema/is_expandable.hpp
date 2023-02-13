@@ -9,6 +9,9 @@ struct is_expandable : std::true_type {};
 template<class... Elems>
 struct is_expandable<std::tuple<Elems...>> : std::true_type {};
 
+template<class T>
+struct is_expandable<tvm::tuple<T>> : std::true_type {};
+
 template<class... Elems>
 struct is_expandable<std::variant<Elems...>> : std::false_type {};
 

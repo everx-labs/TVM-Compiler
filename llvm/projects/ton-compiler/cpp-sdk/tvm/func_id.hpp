@@ -16,7 +16,11 @@ constexpr unsigned get_func_id() {
   if constexpr (explicit_id != 0) {
     return explicit_id;
   } else {
-    return get_signature_func_id<json_abi_gen::make_func_signature<MethodPtr>().c_str()>::value;
+    constexpr auto signature = json_abi_gen::make_func_signature<MethodPtr>();
+    constexpr auto rv = get_signature_func_id<signature.c_str()>::value;
+    constexpr auto debug_str = signature + ":"_s + to_string<16>(hana::integral_c<unsigned, rv>);
+    //__reflect_echo<debug_str.c_str()>{};
+    return rv;
   }
 }
 
@@ -28,7 +32,11 @@ constexpr unsigned get_func_id() {
   if constexpr (explicit_id != 0) {
     return explicit_id;
   } else {
-    return get_signature_func_id<json_abi_gen::make_func_signature<Interface, Index>().c_str()>::value;
+    constexpr auto signature = json_abi_gen::make_func_signature<Interface, Index>();
+    constexpr auto rv = get_signature_func_id<signature.c_str()>::value;
+    constexpr auto debug_str = signature + ":"_s + to_string<16>(hana::integral_c<unsigned, rv>);
+    //__reflect_echo<debug_str.c_str()>{};
+    return rv;
   }
 }
 

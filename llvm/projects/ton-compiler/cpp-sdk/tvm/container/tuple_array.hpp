@@ -20,6 +20,8 @@ public:
   /// Creates empty array/tuple
   tuple_array() : tup_(__builtin_tvm_tuple()) {}
 
+  explicit tuple_array(__tvm_tuple tup) : tup_(tup) {}
+
   template<typename ...Args>
   tuple_array(Args... args) : tup_(__builtin_tvm_tuple(args...)) {}
 
@@ -61,7 +63,7 @@ public:
     unsigned sz = size();
     tup_ = __builtin_tvm_trerase(sz - idx, tup_, sz);
   }
-private:
+  operator __tvm_tuple() const { return tup_; }
   __tvm_tuple tup_;
 };
 

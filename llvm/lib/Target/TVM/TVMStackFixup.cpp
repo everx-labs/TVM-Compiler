@@ -348,10 +348,29 @@ StackFixup StackFixup::DiffForArgs(const Stack &From, const MIArgs &Args,
   Stack CurStack(From);
 
   unsigned TopUnused = 0;
+  unsigned DeepUnused = 0;
+  bool goingDeep = false;
   for (auto Vreg : CurStack) {
-    if (Vreg.VirtReg != TVMFunctionInfo::UnusedReg)
-      break;
-    ++TopUnused;
+    if (Vreg.VirtReg != TVMFunctionInfo::UnusedReg) {
+      goingDeep = true;
+      continue;
+    }
+    goingDeep ? ++DeepUnused : ++TopUnused;
+  }
+  if (DeepUnused >= 3) {
+    unsigned i = TopUnused;
+    unsigned sz = static_cast<unsigned>(CurStack.size());
+    while (i < sz) {
+      // skipping used regs
+      while (i < sz && CurStack[i].VirtReg != TVMFunctionInfo::UnusedReg) ++i;
+      if (i >= sz) break;
+      // calculating unused regs line
+      unsigned unused_begin = i;
+      while (i < sz && CurStack[i].VirtReg == TVMFunctionInfo::UnusedReg) ++i;
+      unsigned unused_sz = i - unused_begin;
+      rv(CurStack += rv(makeBlkSwap(unused_sz, unused_begin)));
+      TopUnused += unused_sz;
+    }
   }
   if (TopUnused)
     rv(CurStack += rv(makeBlkdrop(TopUnused)));
@@ -466,20 +485,51 @@ StackFixup StackFixup::DiffForArgs(const Stack &From, const MIArgs &Args,
     else if (Push0 && Push1 && Push2)
       StackPatterns::pattern3_ppp(rv, Pos0, Pos1, Pos2);
   } else {
-    unsigned Offset = 0;
-    for (unsigned i = 0; i < Args.size(); ++i) {
-      StackVreg Vreg(Ar[i].Vreg);
-      if (ArgInfo[i].Push) {
-        if (Vreg.VirtReg == TVMFunctionInfo::UnusedReg)
-          rv(CurStack += rv(pushUndef()));
-        else
-          rv(CurStack += rv(pushI(CurStack.position(Vreg))));
-        ++Offset;
-      } else if (auto Pos = CurStack.position(Offset, Vreg)) {
-        rv(CurStack += rv(makeRoll(Pos)));
-        ++Offset;
+    struct blkswap_line {
+      StackFixup &rv;
+      Stack &CurStack;
+      unsigned Offset;
+      bool started;
+      unsigned deep;
+      unsigned top;
+
+      void addArg(const StackVreg &Vreg, const argInfo &info) {
+        if (info.Push) {
+          finalize();
+          if (Vreg.VirtReg == TVMFunctionInfo::UnusedReg)
+            rv(CurStack += rv(pushUndef()));
+          else
+            rv(CurStack += rv(pushI(static_cast<unsigned>(CurStack.position(Vreg)))));
+          ++Offset;
+        } else {
+          unsigned Pos = static_cast<unsigned>(CurStack.position(Offset, Vreg));
+          if (started && top == Pos + 1) {
+            top = Pos;
+          } else {
+            finalize();
+            // we need to update Pos here, because finalize may change stack
+            Pos = static_cast<unsigned>(CurStack.position(Offset, Vreg));
+            deep = top = Pos;
+            started = true;
+          }
+        }
       }
+
+      void finalize() {
+        if (started) {
+          if (top != 0)
+            rv(CurStack += rv(makeBlkSwap(1 + deep - top, top)));
+          Offset += 1 + deep - top;
+        }
+        deep = 0;
+        top = 0;
+        started = false;
+      }
+    } line_state { rv, CurStack, 0, false, 0, 0 };
+    for (unsigned i = 0; i < Args.size(); ++i) {
+      line_state.addArg(Ar[i].Vreg, ArgInfo[i]);
     }
+    line_state.finalize();
   }
   rv.optimize(IsCommutative);
   rv.annotate(From);

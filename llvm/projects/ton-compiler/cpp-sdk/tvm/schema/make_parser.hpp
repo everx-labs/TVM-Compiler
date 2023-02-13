@@ -148,7 +148,7 @@ struct make_parser_impl<ref<_Tp>> {
     auto inner_slice = p.ldrefrtos();
     parser inner_parser(inner_slice);
     auto [rv, =inner_parser, new_ctx] = make_parser_impl<_Tp>::parse(inner_parser, ctx);
-    inner_parser.ends();
+    //inner_parser.ends();
     return std::tuple(value_type{*rv}, p, new_ctx);
   }
 };
@@ -256,6 +256,17 @@ struct make_parser_impl<optional<_Tp>> {
       return std::tuple(value_type{}, p, ctx);
     }
     return std::tuple(optional<value_type>{}, p, ctx);
+  }
+};
+
+template<class _Tp>
+struct make_parser_impl<tuple<_Tp>> {
+  using value_type = tuple<_Tp>;
+  template<class _Ctx>
+  __always_inline static std::tuple<optional<value_type>, parser, _Ctx> parse(parser p, _Ctx ctx) {
+    auto [rv, =p, new_ctx] = make_parser_impl<_Tp>::parse(p, ctx);
+    require(!!rv, error_code::custom_data_parse_error);
+    return std::tuple(value_type{*rv}, p, new_ctx);
   }
 };
 

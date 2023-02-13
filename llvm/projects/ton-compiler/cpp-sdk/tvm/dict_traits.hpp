@@ -12,10 +12,9 @@ namespace tvm {
 template<class Element, unsigned KeyLen>
 struct small_element_impl {
   using est_t = schema::estimate_element<Element>;
+  static constexpr bool value = est_t::max_bits + KeyLen < cell::max_bits;
   //static constexpr bool value =
-  //  (est_t::max_bits + KeyLen < cell::max_bits) && (est_t::max_refs + 1 < cell::max_refs);
-  static constexpr bool value =
-    (est_t::max_bits + KeyLen < cell::max_bits) && (est_t::max_refs == 0);
+  //  (est_t::max_bits + KeyLen < cell::max_bits) && (est_t::max_refs == 0);
 };
 
 template<class Element, unsigned KeyLen>

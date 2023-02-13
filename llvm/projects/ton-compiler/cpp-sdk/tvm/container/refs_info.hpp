@@ -129,10 +129,8 @@ struct RefsMap {
 template<typename RefsTup>
 constexpr unsigned calc_free_refs() {
   constexpr unsigned my_free_refs = cell::max_refs - decltype(hana::size(RefsTup{}))::value;
-  using dbg4 = __reflect_echo<("my_free_refs: "_s + make_uint<my_free_refs>()).c_str()>;
   BOOST_HANA_CONSTEXPR_LAMBDA auto child_free_refs = [](unsigned count, auto E) {
     using T = typename decltype(E)::type;
-    using dbg5 = __reflect_echo<ref_info_printer<T>::value.c_str()>;
     if constexpr (is_child<T>::value) {
       using SubT = typename extract_child<T>::type;
       return count + calc_free_refs<SubT>();
@@ -148,14 +146,10 @@ struct intrusive_elem_info {
   using hdr_est = estimate_element<Header>;
   using data_tup_t = to_std_tuple_t<Element>;
   using LinearTup = decltype(make_chain_tuple<hdr_est::max_bits, 0>(data_tup_t{}));
-  using dbg = __reflect_echo<print_chain_tuple<LinearTup>().c_str()>;
   using refs_map = decltype(process_refs(std::declval<LinearTup>()));
-  using dbg2 = __reflect_echo<map_ref_printer<refs_map>::value.c_str()>;
 
   // Maximum references from one element to another elements
   static constexpr unsigned max_refs = calc_free_refs<refs_map>();
-
-  using dbg3 = __reflect_echo<make_uint<max_refs>().c_str()>;
 };
 
 /// For each cell in the tree, extract "extra" refs (free)
@@ -201,9 +195,6 @@ template<typename RefsInfo>
 cell rebuild_refs_impl(builder root, slice old, tuple_array<cell> refs, unsigned begin_ref) {
   constexpr unsigned sz = decltype(hana::size(RefsInfo{}))::value;
   constexpr unsigned free_sz = cell::max_refs - sz;
-  using dbg1 = __reflect_echo<map_ref_printer<RefsInfo>::value.c_str()>;
-  using dbg2 = __reflect_echo<("sz: "_s + make_uint<sz>()).c_str()>;
-  using dbg3 = __reflect_echo<("free_sz: "_s + make_uint<free_sz>()).c_str()>;
   slice only_bits = __builtin_tvm_scutfirst(old, old.sbits(), 0);
   root.stslice(only_bits);
   parser p(old);
@@ -213,10 +204,8 @@ cell rebuild_refs_impl(builder root, slice old, tuple_array<cell> refs, unsigned
     using T = typename decltype(E)::type;
     if constexpr (is_child<T>::value) {
       using SubT = typename extract_child<T>::type;
-      using dbg4 = __reflect_echo<map_ref_printer<SubT>::value.c_str()>;
       root.stref(rebuild_refs_impl<SubT>(builder(), p.ldrefrtos(), refs, cur_ref));
       constexpr unsigned child_free_refs = calc_free_refs<SubT>();
-      using dbg5 = __reflect_echo<("child_free_refs: "_s + make_uint<child_free_refs>()).c_str()>;
       cur_ref += child_free_refs;
     } else {
       root.stref(p.ldref());

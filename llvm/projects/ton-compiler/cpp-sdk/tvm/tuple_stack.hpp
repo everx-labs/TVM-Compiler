@@ -145,5 +145,42 @@ private:
   __tvm_tuple tup_;
 };
 
+// implementation of tuple_stack for nested raw tuple elements
+template<>
+class tuple_stack<__tvm_tuple> {
+public:
+  tuple_stack() : tup_(__builtin_tvm_tuple()) {}
+  bool empty() {
+    return !top_;
+  }
+  void push(__tvm_tuple val) {
+    if (top_)
+      tup_ = __builtin_tvm_tpush(tup_, (unsigned)*top_);
+    top_ = val;
+  }
+  void pop() {
+    require(!!top_, error_code::empty_container);
+    if (__builtin_tvm_tlen(tup_)) {
+      auto [=tup_, val] = __builtin_tvm_tpop(tup_);
+      top_ = (__tvm_tuple)val;
+    } else {
+      top_.reset();
+    }
+  }
+  std::optional<__tvm_tuple> extract() {
+    if (!empty()) {
+      auto rv = top();
+      pop();
+      return { rv };
+    }
+    return {};
+  }
+  unsigned size() const { return top_ ? (__builtin_tvm_tlen(tup_) + 1) : 0; }
+  __tvm_tuple& top() { return *top_; }
+private:
+  std::optional<__tvm_tuple> top_;
+  __tvm_tuple tup_;
+};
+
 } // namespace tvm
 

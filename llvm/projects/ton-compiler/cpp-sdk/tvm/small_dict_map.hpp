@@ -99,7 +99,7 @@ struct small_dict_map {
     auto [sl, succ] = dict_.dictget(schema::build(key).make_slice(), KeyLen::value);
     if (succ)
       return schema::parse<Element>(sl);
-    return {}; 
+    return {};
   }
 
   __always_inline

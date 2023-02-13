@@ -89,7 +89,6 @@ public:
     return Ref{base::dict_, base::size_, idx};
   }
 
-  __always_inline
   std::optional<Element> extract(unsigned idx) {
     if constexpr (small_elem) {
       auto [sl, succ] = base::dict_.dictudelget(idx, KeyLen);

@@ -2340,9 +2340,15 @@ void CastOperation::CheckCXXCStyleCast(bool FunctionalStyle,
   if (Self.Context.getTargetInfo().getTriple().getArch() == llvm::Triple::tvm) {
     auto doBuiltinCast = [&](const char *IntrName){
       IdentifierInfo *II = Self.PP.getIdentifierInfo(IntrName);
-      NamedDecl *D = Self.LazilyCreateBuiltin(II, II->getBuiltinID(),
-                                              Self.TUScope, false,
-                                              SourceLocation());
+      DeclContext::lookup_result DR = Self.TUScope->getEntity()->lookup(DeclarationName(II));
+      NamedDecl *D = nullptr;
+      if (DR.size() == 1) {
+        D = DR.front();
+      } else {
+        D = Self.LazilyCreateBuiltin(II, II->getBuiltinID(),
+                                     Self.TUScope, false,
+                                     SourceLocation());
+      }
       FunctionDecl *FDecl = dyn_cast<FunctionDecl>(D);
       assert(FDecl && FDecl->getBuiltinID() && "Wrong builtin decl");
       auto Fn = DeclRefExpr::Create(

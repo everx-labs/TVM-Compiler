@@ -176,6 +176,15 @@ struct make_builder_impl<optional<_Tp>> {
   }
 };
 
+// when we want to keep struct in run-time tvm tuple
+template<class _Tp>
+struct make_builder_impl<tuple<_Tp>> {
+  using value_type = tuple<_Tp>;
+  __always_inline static builder build(builder b, value_type v) {
+    return make_builder_impl<_Tp>::build(b, v.unpack());
+  }
+};
+
 template<class _Tp>
 using make_builder = make_builder_impl<_Tp>;
 

@@ -789,6 +789,10 @@ public:
       StateInit init, Evers amount, unsigned flags = DEFAULT_MSG_FLAGS) const {
     return proxy_deploy(addr_, init, amount, flags);
   }
+  proxy_deploy deploy(
+      StateInit init, uint128 amount, unsigned flags = DEFAULT_MSG_FLAGS) const {
+    return proxy_deploy(addr_, init, Evers(amount.get()), flags);
+  }
   // Deploy message with func_id = 0 (deploying contract must support fallback)
   void deploy_noop(StateInit init, Evers amount,
                    unsigned flags = DEFAULT_MSG_FLAGS) {
@@ -805,6 +809,9 @@ public:
   }
   proxy operator()(Evers amount = 10000000, unsigned flags = DEFAULT_MSG_FLAGS) const {
     return proxy(addr_, amount, flags);
+  }
+  proxy operator()(uint128 amount, unsigned flags = DEFAULT_MSG_FLAGS) const {
+    return proxy(addr_, Evers(amount.get()), flags);
   }
   template<typename Contract>
   proxy operator()(remaining_modifier<Contract>) const {

@@ -77,8 +77,8 @@ defm SETINDEX : I<(outs Tuple:$result),
                   (ins Tuple:$tuple, I257:$val, uimm4:$idx),
                   (outs), (ins uimm4:$idx),
                   [(set Tuple:$result,
-                   (int_tvm_setindex Tuple:$tuple, uimm4:$idx, I257:$val))],
-                  "SETINDEX\t$result, $tuple, $idx, $val",
+                   (int_tvm_setindex Tuple:$tuple, I257:$val, uimm4:$idx))],
+                  "SETINDEX\t$result, $tuple, $val, $idx",
                   "SETINDEX\t$idx", 0x6f50>;
 
 defm INDEXQ : I<(outs I257:$result), (ins Tuple:$tuple, uimm4:$idx),
@@ -91,8 +91,8 @@ defm SETINDEXQ : I<(outs Tuple:$result),
                    (ins Tuple:$tuple, I257:$val, uimm4:$idx),
                    (outs), (ins uimm4:$idx),
                    [(set Tuple:$result,
-                    (int_tvm_setindex Tuple:$tuple, uimm4:$idx, I257:$val))],
-                   "SETINDEXQ\t$result, $tuple, $idx, $val",
+                    (int_tvm_setindexq Tuple:$tuple, I257:$val, uimm4:$idx))],
+                   "SETINDEXQ\t$result, $tuple, $val, $idx",
                    "SETINDEXQ\t$idx", 0x6f50>;
 
 defm INDEXVAR : I<(outs I257:$result), (ins Tuple:$tuple, I257:$idx),
@@ -102,11 +102,11 @@ defm INDEXVAR : I<(outs I257:$result), (ins Tuple:$tuple, I257:$idx),
                   "INDEXVAR\t$result, $tuple, $idx",
                   "INDEXVAR", 0x6f81>;
 defm SETINDEXVAR : I<(outs Tuple:$result),
-                     (ins Tuple:$tuple, I257:$idx, I257:$val),
+                     (ins Tuple:$tuple, I257:$val, I257:$idx),
                      (outs), (ins),
                      [(set Tuple:$result,
-                      (int_tvm_setindex Tuple:$tuple, I257:$idx, I257:$val))],
-                     "SETINDEXVAR\t$result, $tuple, $idx, $val",
+                      (int_tvm_setindex Tuple:$tuple, I257:$val, I257:$idx))],
+                     "SETINDEXVAR\t$result, $tuple, $val, $idx",
                      "SETINDEXVAR", 0x6f85>;
 
 defm CHKTUPLE : I<(outs), (ins Tuple:$tuple),

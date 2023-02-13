@@ -66,7 +66,7 @@ void TVMFrameLowering::emitPrologue(MachineFunction &MF,
   if (TraceCalls) {
     const Function &Fn = MF.getFunction();
     if (MBB.getBasicBlock() == &Fn.getEntryBlock())
-      BuildMI(MBB, InsertPt, DL, TII->get(TVM::LOGSTR)).addGlobalAddress(&Fn);
+      BuildMI(MBB, InsertPt, DL, TII->get(TVM::PRINTSTR)).addGlobalAddress(&Fn);
   }
 
   // %RegFrameBase:i257 = GETGLOB i257 5

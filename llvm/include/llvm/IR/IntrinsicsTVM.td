@@ -709,6 +709,9 @@ let TargetPrefix = "tvm" in {
   def int_tvm_tpopfront:
     GCCBuiltin<"__builtin_tvm_tpopfront">,
     Intrinsic<[llvm_i257_ty, llvm_TVMTuple_ty], [llvm_TVMTuple_ty, llvm_i257_ty], [IntrNoMem]>;
+  def int_tvm_tdropfront:
+    GCCBuiltin<"__builtin_tvm_tdropfront">,
+    Intrinsic<[llvm_TVMTuple_ty], [llvm_i257_ty, llvm_TVMTuple_ty, llvm_i257_ty], [IntrNoMem]>;
   def int_tvm_trerase:
     GCCBuiltin<"__builtin_tvm_trerase">,
     Intrinsic<[llvm_TVMTuple_ty], [llvm_i257_ty, llvm_TVMTuple_ty, llvm_i257_ty], [IntrNoMem]>;

@@ -150,6 +150,7 @@ static inline tuple<incoming_msg> ext_msg() {
 
 static inline int tvm_now() { return smart_contract_info::now(); }
 static inline address tvm_myaddr() { return address{smart_contract_info::myaddr()}; }
+static inline int8 tvm_mywid() { return std::get<addr_std>(tvm_myaddr().val()).workchain_id; }
 static inline int tvm_balance() { return smart_contract_info::balance_remaining(); }
 
 } // namespace tvm

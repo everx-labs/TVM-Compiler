@@ -29,10 +29,14 @@ struct dictionary_array_iterator : boost::operators<dictionary_array_iterator<El
   __always_inline bool is_end() const { return idx_ >= size_.get(); }
 
   static dictionary_array_iterator create_begin(dictionary& dict, schema::uint32 size) {
-    return dictionary_array_iterator{{}, dict, 0, size};
+    auto [sl, idx, succ] = dict.dictumin(KeyLen);
+    require(succ, error_code::iterator_overflow);
+    return dictionary_array_iterator{{}, dict, idx, size};
   }
   static dictionary_array_iterator create_end(dictionary& dict, schema::uint32 size) {
-    return dictionary_array_iterator{{}, dict, size.get(), size};
+    auto [sl, idx, succ] = dict.dictumax(KeyLen);
+    require(succ, error_code::iterator_overflow);
+    return dictionary_array_iterator{{}, dict, idx + 1, size};
   }
 
   bool operator<(dictionary_array_iterator x) const { return idx_ < x.idx_; }

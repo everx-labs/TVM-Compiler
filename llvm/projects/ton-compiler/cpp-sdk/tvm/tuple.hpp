@@ -66,4 +66,9 @@ inline tuple<T> entuple(T v) {
   return tuple<T>(v);
 }
 
+template<class T>
+inline T detuple(__tvm_tuple tup) {
+  return tuple<T>(tup).unpack();
+}
+
 } // namespace tvm

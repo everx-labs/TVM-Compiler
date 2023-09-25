@@ -65,7 +65,12 @@ public:
     ++base::size_;
   }
   void pop_back() {
-    auto [val, idx, succ] = base::dict_.dictureremmax(KeyLen);
+    auto [val, idx, succ] = base::dict_.dicturemmax(KeyLen);
+    require(succ, error_code::iterator_overflow);
+    --base::size_;
+  }
+  void pop_front() {
+    auto [val, idx, succ] = base::dict_.dicturemmin(KeyLen);
     require(succ, error_code::iterator_overflow);
     --base::size_;
   }

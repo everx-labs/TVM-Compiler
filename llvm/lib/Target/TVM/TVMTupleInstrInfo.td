@@ -160,6 +160,26 @@ defm TPOPFRONT : I<(outs I257:$ret_val, Tuple:$ret_tuple), (ins Tuple:$tuple, I2
             "TPOPFRONT\t$ret_val, $ret_tuple, $tuple, $sz",
             "EXPLODEVAR\n\t      DEC\n\t      TUPLEVAR", 0x6f8d>;
 
+// Ex: (SZ = 4, PR = 3)
+// EXPLODEVAR|DUP|INC |ROLLX|TUCK| SUB     | TUCK    | INC       |ROLLREVX |TUPLEVAR| OVER   | INC   |ROLLREVX| DROPX
+// SZ - SZ - SZ - SZ+1 - PR - PR - (SZ-PR) - (SZ-PR) - (SZ-PR+1) - (SZ-PR) - TU(t3) - PR     - PR+1   - PR    - TU(t3)
+// TU - t3 - SZ - SZ   - SZ - SZ - PR      - PR      - PR        - t3      - PR     - TU(t3) - TU(t3) - t2
+// PR - t2 - t3 - t3   - t3 - PR - t3      - (SZ-PR) - (SZ-PR)   - PR      - t2     - PR     - PR     - t1
+//      t1 - t2 - t2   - t2 - t3 - t2      - t3      - t3        - t2      - t1     - t2     - t2     - t0
+//      t0 - t1 - t1   - t1 - t2 - t1      - t2      - t2        - t1      - t0     - t1     - t1     - TU(t3)
+//      PR - t0 - t0   - t0 - t1 - t0      - t1      - t1        - t0               - t0     - t0
+//           PR - PR        - t0           - t0      - t0
+
+// Drop N front elements from tuple - combined instruction
+defm TDROPFRONT : I<(outs Tuple:$ret_tuple), (ins I257:$part, Tuple:$tuple, I257:$sz),
+            (outs), (ins),
+            [(set Tuple:$ret_tuple,
+              (int_tvm_tdropfront I257:$part, Tuple:$tuple, I257:$sz))],
+            "TPOPFRONT\t$ret_tuple, $part, $tuple, $sz",
+  "EXPLODEVAR\n\t      DUP\n\t      INC\n\t      ROLLX\n\t      TUCK\n\t      SUB\n\t      TUCK\n\t      INC\n\t      "
+  "ROLLREVX\n\t      TUPLEVAR\n\t      OVER\n\t      INC\n\t      ROLLREVX\n\t      DROPX",
+  0x6f8d>;
+
 // Erase element from tuple by reverse index - combined instruction:
 // EXPLODEVAR, DUP, INC, ROLLX, INC, ROLLX, DROP, DEC, TUPLEVAR
 // SZ - SZ - SZ - RI - t2 - SZ - SZ-1 - TU(t0,t1,t3)

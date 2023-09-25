@@ -78,6 +78,8 @@ struct persistent_data_header {
   static __always_inline hdr_t init() {
     if constexpr (info::has_replay && info::has_awaiting)
       return { ReplayAttackProtection::init(), {} };
+    else if constexpr (info::has_replay)
+      return ReplayAttackProtection::init();
     else
       return {};
   }

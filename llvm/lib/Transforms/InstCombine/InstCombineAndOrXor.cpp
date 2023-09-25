@@ -1857,6 +1857,8 @@ Value *InstCombiner::foldOrOfICmps(ICmpInst *LHS, ICmpInst *RHS,
     return V;
 
   Value *LHS0 = LHS->getOperand(0), *RHS0 = RHS->getOperand(0);
+  // TVM local begin: in TVM unsigned 0 minus one will be -1, not 0xFF..FF, so this optimizations are wrong
+#if 0
   if (LHS->hasOneUse() || RHS->hasOneUse()) {
     // (icmp eq B, 0) | (icmp ult A, B) -> (icmp ule A, B-1)
     // (icmp eq B, 0) | (icmp ugt B, A) -> (icmp ule A, B-1)
@@ -1882,6 +1884,8 @@ Value *InstCombiner::foldOrOfICmps(ICmpInst *LHS, ICmpInst *RHS,
           ICmpInst::ICMP_UGE,
           Builder.CreateAdd(B, ConstantInt::getSigned(B->getType(), -1)), A);
   }
+#endif
+  // TVM local end
 
   // E.g. (icmp slt x, 0) | (icmp sgt x, n) --> icmp ugt x, n
   if (Value *V = simplifyRangeCheck(LHS, RHS, /*Inverted=*/true))

@@ -19,7 +19,7 @@ class rolling_ids {
 public:
   using persistent_t = schema::uint64;
   static inline persistent_t init() {
-    return persistent_t(0);
+    return persistent_t(1ul << 32);
   }
   template<class Header>
   static inline std::optional<persistent_t> check(

@@ -179,12 +179,9 @@ void tvm::Linker::ConstructJob(Compilation &C, const JobAction &JA,
       constructOptCommand(C, JA, Inputs, Args, Prefix, OptIntCommand, false);
   const char *LlcCommand =
       Args.hasArg(options::OPT_lto_S)
-          ? constructLlcCommand(C, JA, Inputs, Args, Output.getFilename(),
+          ? constructLlcCommand(C, JA, Inputs, Args, OutPrefix + ".s",
                                 OptCommand, true)
           : constructLlcCommand(C, JA, Inputs, Args, Prefix, OptCommand);
-
-  if (Args.hasArg(options::OPT_lto_S))
-    return;
 
   // TODO: We now reinvoke the driver to produce the ABI output.
   // Constant printing pass can't be invoked from opt or llc, it's better to

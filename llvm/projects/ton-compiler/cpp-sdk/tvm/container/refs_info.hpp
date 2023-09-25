@@ -121,11 +121,6 @@ struct ref_info_printer<ref_info_child<Tup>> {
   static constexpr auto value = "ref("_s + map_ref_printer<Tup>::value + ")"_s;
 };
 
-template<class LinearTup>
-struct RefsMap {
-  //cell_info_tup
-};
-
 template<typename RefsTup>
 constexpr unsigned calc_free_refs() {
   constexpr unsigned my_free_refs = cell::max_refs - decltype(hana::size(RefsTup{}))::value;

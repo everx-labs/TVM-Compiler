@@ -257,21 +257,23 @@ std::tuple<persistent_data_header_t<Interface, ReplayAttackProtection>, DContrac
 template<bool Internal, class MsgHeader, class Data, bool dyn_chain>
 Data parse_smart(parser p) {
   using namespace schema;
+  constexpr const unsigned address_in_signature_place_sz = 591;
 
   if constexpr (dyn_chain) {
     return parse_chain_dynamic<Data>(p);
   } else {
-    using header_tup = std::conditional_t<Internal,
-        std::tuple<MsgHeader>,
-        std::tuple<abiv2::external_signature, MsgHeader>
-        >;
+    using est_msg_hdr = estimate_element<MsgHeader>;
+    static_assert(est_msg_hdr::max_refs == 0, "Refs in MsgHeader");
+    constexpr const unsigned header_sz = Internal ?
+      est_msg_hdr::max_bits : address_in_signature_place_sz + est_msg_hdr::max_bits;
     using args_tup = to_std_tuple_t<Data>;
-    using header_with_args = decltype(std::tuple_cat(header_tup{}, args_tup{}));
-    using est_t = estimate_element<header_with_args>;
-    if constexpr (est_t::max_bits > cell::max_bits || est_t::max_refs > cell::max_refs) {
-      using est_hdr_t = estimate_element<header_tup>;
+    using est_args = estimate_element<args_tup>;
+    constexpr const unsigned est_bits = header_sz + est_args::max_bits;
+    constexpr const unsigned est_refs = est_args::max_refs;
+
+    if constexpr (est_bits > cell::max_bits || est_refs > cell::max_refs) {
       // calculating placement pattern with hdr offset
-      using LinearTup = decltype(make_chain_tuple<est_hdr_t::max_bits, est_hdr_t::max_refs>(args_tup{}));
+      using LinearTup = decltype(make_chain_tuple<header_sz, 0>(args_tup{}));
       // uncomment to print in remark:
       //__reflect_echo<print_chain_tuple<LinearTup>().c_str()>{};
       auto linear_tup = parse<LinearTup>(p);

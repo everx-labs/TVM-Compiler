@@ -80,6 +80,31 @@ cell contract_call_prepare(address addr, Evers amount,
   }
 }
 
+// Prepare message cell for contract deploy (internal message)
+template<auto Func, class... Args>
+__always_inline
+cell contract_deploy_prepare(address addr, StateInit init, Evers amount, Args... args) {
+  auto hdr = prepare_internal_header<Func>();
+  auto hdr_plus_args = std::make_tuple(hdr, args...);
+  int_msg_info_relaxed out_info;
+  out_info.ihr_disabled = true;
+  out_info.bounce = true;
+  out_info.bounced = false;
+  out_info.src = addr_none{};
+  out_info.dest = addr;
+  out_info.created_lt = 0;
+  out_info.created_at = 0;
+  out_info.value.grams = amount;
+
+  auto chain_tup = make_chain_tuple(hdr_plus_args);
+  message_relaxed<decltype(chain_tup)> out_msg;
+  out_msg.info = out_info;
+  Either<StateInit, ref<StateInit>> init_ref = ref<StateInit>{init};
+  out_msg.init = init_ref;
+  out_msg.body = ref<decltype(chain_tup)>{chain_tup};
+  return build(out_msg).endc();
+}
+
 template<auto Func, class... Args>
 __always_inline
 cell internal_body_prepare(address addr, Args... args) {
@@ -338,25 +363,7 @@ template<auto Func, class... Args>
 __always_inline
 void contract_deploy_impl(address addr, StateInit init,
                           Evers amount, unsigned flags, Args... args) {
-  auto hdr = prepare_internal_header<Func>();
-  auto hdr_plus_args = std::make_tuple(hdr, args...);
-  int_msg_info_relaxed out_info;
-  out_info.ihr_disabled = true;
-  out_info.bounce = true;
-  out_info.bounced = false;
-  out_info.src = addr_none{};
-  out_info.dest = addr;
-  out_info.created_lt = 0;
-  out_info.created_at = 0;
-  out_info.value.grams = amount;
-
-  auto chain_tup = make_chain_tuple(hdr_plus_args);
-  message_relaxed<decltype(chain_tup)> out_msg;
-  out_msg.info = out_info;
-  Either<StateInit, ref<StateInit>> init_ref = ref<StateInit>{init};
-  out_msg.init = init_ref;
-  out_msg.body = ref<decltype(chain_tup)>{chain_tup};
-  tvm_sendmsg(build(out_msg).endc(), flags);
+  tvm_sendmsg(contract_deploy_prepare<Func>(addr, init, amount, args...), flags);
 }
 
 // Deploy without any function called (with func_id = 0)
@@ -626,6 +633,22 @@ private:
   Evers amount_;
 };
 
+// class for preparing (internal) deploy message cell without sending it
+class contract_deploy_prepare_only {
+public:
+  contract_deploy_prepare_only(address addr, StateInit init, Evers amount)
+    : addr_(addr), init_(init), amount_(amount) {}
+  template<auto Func, class... Args>
+  __always_inline
+  cell _call_impl(Args... args) const {
+    return contract_deploy_prepare<Func>(addr_, init_, amount_, args...);
+  }
+private:
+  address addr_;
+  StateInit init_;
+  Evers amount_;
+};
+
 // class for preparing (internal) call message body cell without sending it
 class body_prepare_only {
 public:
@@ -746,6 +769,8 @@ public:
   using proxy_deploy_ext = __reflect_proxy<Interface, contract_deploy_ext_configured, only_external>;
   // prepare full internal call message (not send)
   using proxy_prepare = __reflect_proxy<Interface, contract_call_prepare_only, only_internal>;
+  // prepare full internal deploy message (not send)
+  using proxy_prepare_deploy = __reflect_proxy<Interface, contract_deploy_prepare_only, only_internal>;
   // prepare internal call message body
   using proxy_body = __reflect_proxy<Interface, body_prepare_only, only_internal>;
   // prepare external call message without pubkey
@@ -793,10 +818,26 @@ public:
       StateInit init, uint128 amount, unsigned flags = DEFAULT_MSG_FLAGS) const {
     return proxy_deploy(addr_, init, Evers(amount.get()), flags);
   }
+  template<typename Contract>
+  proxy_deploy deploy(
+      StateInit init, remaining_modifier<Contract>) const {
+    return proxy_deploy(addr_, init, Evers(0), SEND_REST_GAS_FROM_INCOMING);
+  }
+  template<typename Contract>
+  proxy_deploy deploy(
+      StateInit init, all_except_modifier<Contract> m) const {
+    tvm_rawreserve(m.evers_.get(), rawreserve_flag::up_to);
+    return proxy_deploy(addr_, init, Evers(0), SEND_ALL_GAS);
+  }
+
   // Deploy message with func_id = 0 (deploying contract must support fallback)
   void deploy_noop(StateInit init, Evers amount,
                    unsigned flags = DEFAULT_MSG_FLAGS) {
     contract_deploy_noop_impl(addr_, init, amount, flags);
+  }
+  void deploy_noop(StateInit init, uint128 amount,
+                   unsigned flags = DEFAULT_MSG_FLAGS) {
+    contract_deploy_noop_impl(addr_, init, Evers(amount.get()), flags);
   }
   // the same for external messages (from debots)
   void deploy_ext_noop(uint256 pubkey, StateInit init, unsigned flags = DEFAULT_MSG_FLAGS) {
@@ -824,6 +865,12 @@ public:
   }
   proxy_prepare prepare_internal(Evers amount = 10000000) const {
     return proxy_prepare(addr_, amount);
+  }
+  proxy_prepare_deploy prepare_deploy(StateInit init, Evers amount = 10000000) const {
+    return proxy_prepare_deploy(addr_, init, amount);
+  }
+  proxy_prepare_deploy prepare_deploy(StateInit init, uint128 amount = uint128(10000000)) const {
+    return proxy_prepare_deploy(addr_, init, Evers(amount.get()));
   }
   proxy_body body_internal() const {
     return proxy_body(addr_);
